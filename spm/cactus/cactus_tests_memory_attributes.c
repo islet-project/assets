@@ -16,6 +16,7 @@
 #include <xlat_tables_defs.h>
 
 #include "cactus.h"
+#include "cactus_def.h"
 #include "cactus_tests.h"
 
 /* This is filled at runtime. */
@@ -136,15 +137,15 @@ static void mem_attr_changes_unittest(uintptr_t addr, int pages_count)
  * Exercise the ability of the Trusted Firmware to change the data access
  * permissions and instruction execution permissions of some memory region.
  */
-void mem_attr_changes_tests(const secure_partition_boot_info_t *boot_info)
+void mem_attr_changes_tests(void)
 {
 	uint32_t attributes;
 	int32_t ret;
 	uintptr_t addr;
 
-	cactus_tests_start = CACTUS_BSS_END;
-	cactus_tests_end   = boot_info->sp_image_base + boot_info->sp_image_size;
-	cactus_tests_size  = cactus_tests_end - cactus_tests_start;
+	cactus_tests_start = CACTUS_TEST_MEM_BASE;
+	cactus_tests_size  = CACTUS_TEST_MEM_SIZE;
+	cactus_tests_end   = cactus_tests_start + cactus_tests_size;
 
 	const char *test_sect_desc = "memory attributes changes";
 
@@ -181,7 +182,7 @@ void mem_attr_changes_tests(const secure_partition_boot_info_t *boot_info)
 	const char *test_desc4 = "Unmapped memory region";
 
 	announce_test_start(test_desc4);
-	addr = boot_info->sp_mem_limit + 2 * PAGE_SIZE;
+	addr = cactus_tests_end + 2 * PAGE_SIZE;
 	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
 	ret = request_mem_attr_changes(addr, 3, attributes);
 	expect(ret, SPM_INVALID_PARAMETER);
@@ -190,7 +191,7 @@ void mem_attr_changes_tests(const secure_partition_boot_info_t *boot_info)
 	const char *test_desc5 = "Partially unmapped memory region";
 
 	announce_test_start(test_desc5);
-	addr = boot_info->sp_mem_base - 2 * PAGE_SIZE;
+	addr = cactus_tests_end - 2 * PAGE_SIZE;
 	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
 	ret = request_mem_attr_changes(addr, 6, attributes);
 	expect(ret, SPM_INVALID_PARAMETER);

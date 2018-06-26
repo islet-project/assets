@@ -1,13 +1,11 @@
 /*
- * Copyright (c) 2017, Arm Limited. All rights reserved.
+ * Copyright (c) 2017-2018, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __CACTUS_TESTS_H__
-#define __CACTUS_TESTS_H__
-
-#include <secure_partition.h>
+#ifndef CACTUS_TESTS_H
+#define CACTUS_TESTS_H
 
 /*
  * Test functions
@@ -36,11 +34,7 @@ void system_setup_tests(void);
  *
  * These tests report their results on the UART. They do not recover from a
  * failure : when an error is encountered they endlessly loop.
- *
- * The argument is a pointer to a secure_partition_boot_info_t struct that has
- * been filled by EL3 with the information about the memory map of this Secure
- * Partition.
  */
-void mem_attr_changes_tests(const secure_partition_boot_info_t *boot_info);
+void mem_attr_changes_tests(void);
 
-#endif /* __CACTUS_TESTS_H__ */
+#endif /* CACTUS_TESTS_H */
