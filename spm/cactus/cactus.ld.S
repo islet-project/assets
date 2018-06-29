@@ -14,6 +14,8 @@ ENTRY(cactus_entrypoint)
 
 SECTIONS
 {
+    . = CACTUS_IMAGE_BASE;
+
     ASSERT(. == ALIGN(PAGE_SIZE),
            "TEXT_START address is not aligned to PAGE_SIZE.")
 
