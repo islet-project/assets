@@ -41,6 +41,8 @@
 #define IVY_PRINT_MAGIC			U(1001)
 /* Return a magic number unique to IVY */
 #define IVY_GET_MAGIC			U(1002)
+/* Sleep for a number of milliseconds */
+#define IVY_SLEEP_MS			U(1003)
 
 #define IVY_MAGIC_NUMBER		U(0x97531842)
 

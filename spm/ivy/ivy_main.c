@@ -12,6 +12,7 @@
 #include <pl011.h>
 #include <plat_arm.h>
 #include <platform_def.h>
+#include <sp_helpers.h>
 #include <sprt_client.h>
 #include <sprt_svc.h>
 
@@ -61,6 +62,11 @@ void ivy_message_handler(struct sprt_queue_entry_message *message)
 
 		case IVY_GET_MAGIC:
 			ret1 = IVY_MAGIC_NUMBER;
+			ret0 = SPRT_SUCCESS;
+			break;
+
+		case IVY_SLEEP_MS:
+			sp_sleep(message->args[2]);
 			ret0 = SPRT_SUCCESS;
 			break;
 

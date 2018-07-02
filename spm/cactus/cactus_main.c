@@ -12,6 +12,7 @@
 #include <pl011.h>
 #include <plat_arm.h>
 #include <platform_def.h>
+#include <sp_helpers.h>
 #include <sprt_client.h>
 #include <sprt_svc.h>
 #include <std_svc.h>
@@ -67,6 +68,11 @@ static void cactus_message_handler(struct sprt_queue_entry_message *message)
 
 		case CACTUS_GET_MAGIC:
 			ret1 = CACTUS_MAGIC_NUMBER;
+			ret0 = SPRT_SUCCESS;
+			break;
+
+		case CACTUS_SLEEP_MS:
+			sp_sleep(message->args[2]);
 			ret0 = SPRT_SUCCESS;
 			break;
 

@@ -55,7 +55,7 @@ void announce_test_section_end(const char *test_sect_desc);
 void announce_test_start(const char *test_desc);
 void announce_test_end(const char *test_desc);
 
-/* Sleep for at least 'duration_sec' seconds then return. */
-void sp_sleep(uint32_t duration_sec);
+/* Sleep for at least 'ms' milliseconds. */
+void sp_sleep(uint32_t ms);
 
 #endif /* SP_HELPERS_H */

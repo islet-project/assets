@@ -52,6 +52,8 @@
 #define CACTUS_PRINT_MAGIC		U(1)
 /* Return a magic number unique to Cactus */
 #define CACTUS_GET_MAGIC		U(2)
+/* Sleep for a number of milliseconds */
+#define CACTUS_SLEEP_MS			U(3)
 
 #define CACTUS_MAGIC_NUMBER		U(0x12481369)
 
