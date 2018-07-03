@@ -77,8 +77,8 @@ static void cactus_print_memory_layout(const secure_partition_boot_info_t *boot_
 
 void __dead2 cactus_main(void *el3_el0_buffer, size_t el3_el0_buffer_size)
 {
-	console_init(PLAT_ARM_UART_BASE,
-		     PLAT_ARM_UART_CLK_IN_HZ,
+	console_init(PL011_UART2_BASE,
+		     PL011_UART2_CLK_IN_HZ,
 		     PL011_BAUDRATE);
 
 	NOTICE("Booting test Secure Partition Cactus\n");
