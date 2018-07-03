@@ -5,12 +5,15 @@
  */
 
 #include <assert.h>
+#include <cactus_def.h>
 #include <console.h>
 #include <debug.h>
+#include <errno.h>
 #include <pl011.h>
 #include <plat_arm.h>
 #include <platform_def.h>
-#include <sp_helpers.h>
+#include <sprt_client.h>
+#include <sprt_svc.h>
 #include <std_svc.h>
 
 #include "cactus.h"
@@ -50,6 +53,38 @@ static void cactus_print_memory_layout(void)
 		(void *)(CACTUS_TEST_MEM_BASE + CACTUS_TEST_MEM_SIZE));
 }
 
+static void cactus_message_handler(struct sprt_queue_entry_message *message)
+{
+	u_register_t ret0 = 0U, ret1 = 0U, ret2 = 0U, ret3 = 0U;
+
+	if (message->type == SPRT_MSG_TYPE_SERVICE_REQUEST) {
+		switch (message->args[1]) {
+
+		case CACTUS_PRINT_MAGIC:
+			INFO("Cactus: Magic: 0x%x\n", CACTUS_MAGIC_NUMBER);
+			ret0 = SPRT_SUCCESS;
+			break;
+
+		case CACTUS_GET_MAGIC:
+			ret1 = CACTUS_MAGIC_NUMBER;
+			ret0 = SPRT_SUCCESS;
+			break;
+
+		default:
+			NOTICE("Cactus: Unhandled Service ID 0x%x\n",
+			       (unsigned int)message->args[1]);
+			ret0 = SPRT_NOT_SUPPORTED;
+			break;
+		}
+	} else {
+		NOTICE("Cactus: Unhandled Service type 0x%x\n",
+		       (unsigned int)message->type);
+		ret0 = SPRT_NOT_SUPPORTED;
+	}
+
+	sprt_message_end(message, ret0, ret1, ret2, ret3);
+}
+
 void __dead2 cactus_main(void)
 {
 	console_init(PL011_UART2_BASE,
@@ -76,5 +111,34 @@ void __dead2 cactus_main(void)
 	/*
 	 * Handle secure service requests.
 	 */
-	secure_services_loop();
+	sprt_initialize_queues((void *)CACTUS_SPM_BUF_BASE);
+
+	while (1) {
+		struct sprt_queue_entry_message message;
+
+		/*
+		 * Try to fetch a message from the blocking requests queue. If
+		 * it is empty, try to fetch from the non-blocking requests
+		 * queue. Repeat until both of them are empty.
+		 */
+		while (1) {
+			int err = sprt_get_next_message(&message,
+					SPRT_QUEUE_NUM_BLOCKING);
+			if (err == -ENOENT) {
+				err = sprt_get_next_message(&message,
+						SPRT_QUEUE_NUM_NON_BLOCKING);
+				if (err == -ENOENT) {
+					break;
+				} else {
+					assert(err == 0);
+					cactus_message_handler(&message);
+				}
+			} else {
+				assert(err == 0);
+				cactus_message_handler(&message);
+			}
+		}
+
+		sprt_wait_for_messages();
+	}
 }

@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <sp_helpers.h>
 #include <spm_svc.h>
+#include <sprt_client.h>
+#include <sprt_svc.h>
 #include <types.h>
 
 #include "cactus.h"
@@ -25,15 +27,26 @@ void misc_tests(void)
 
 	announce_test_section_start(test_sect_desc);
 
-	const char *test_version = "SPM version check";
+	const char *test_version_spm = "SPM version check";
 
-	announce_test_start(test_version);
+	announce_test_start(test_version_spm);
 	svc_args svc_values = { SPM_VERSION_AARCH32 };
 	ret = sp_svc(&svc_values);
 	INFO("Version = 0x%x (%u.%u)\n", ret,
-	     (ret >> 16) & 0x7FFF, ret & 0xFFFF);
+	     (ret >> SPM_VERSION_MAJOR_SHIFT) & SPM_VERSION_MAJOR_MASK,
+	     ret & SPM_VERSION_MINOR_MASK);
 	expect(ret, SPM_VERSION_COMPILED);
-	announce_test_end(test_version);
+	announce_test_end(test_version_spm);
+
+	const char *test_version_sprt = "SPRT version check";
+
+	announce_test_start(test_version_sprt);
+	ret = sprt_version();
+	INFO("Version = 0x%x (%u.%u)\n", ret,
+	     (ret >> SPRT_VERSION_MAJOR_SHIFT) & SPRT_VERSION_MAJOR_MASK,
+	     ret & SPRT_VERSION_MINOR_MASK);
+	expect(ret, SPRT_VERSION_COMPILED);
+	announce_test_end(test_version_sprt);
 
 	announce_test_section_end(test_sect_desc);
 }

@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+include lib/sprt/sprt_client.mk
+
 CACTUS_INCLUDES :=					\
 	-Iinclude					\
 	-Iinclude/common				\
@@ -14,18 +16,19 @@ CACTUS_INCLUDES :=					\
 	-Iinclude/lib/${ARCH}				\
 	-Iinclude/lib/stdlib				\
 	-Iinclude/lib/stdlib/sys			\
+	-Iinclude/lib/sprt				\
 	-Iinclude/lib/utils				\
 	-Iinclude/lib/xlat_tables			\
 	-Iinclude/runtime_services			\
 	-Iinclude/runtime_services/secure_el0_payloads	\
 	-Ispm/cactus					\
 	-Ispm/common					\
+	${SPRT_LIB_INCLUDES}
 
 CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
 		aarch64/cactus_entrypoint.S		\
 		cactus_main.c				\
-		cactus_service_loop.c			\
 		cactus_tests_memory_attributes.c	\
 		cactus_tests_misc.c			\
 		cactus_tests_system_setup.c		\
@@ -53,7 +56,8 @@ CACTUS_SOURCES	+=					\
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/cache_helpers.S			\
 			lib/${ARCH}/misc_helpers.S			\
-			${STDLIB_SOURCES}
+			${STDLIB_SOURCES}				\
+			${SPRT_LIB_SOURCES}
 
 CACTUS_LINKERFILE	:=	spm/cactus/cactus.ld.S
 

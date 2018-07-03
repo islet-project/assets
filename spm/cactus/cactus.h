@@ -26,10 +26,4 @@ extern uintptr_t __BSS_START__, __BSS_END__;
 #define CACTUS_BSS_START	((uintptr_t)&__BSS_START__)
 #define CACTUS_BSS_END		((uintptr_t)&__BSS_END__)
 
-/*
- * Once Cactus has finished its initialisation, this is the function it will
- * jump to to handle runtime services for the rest of its lifetime.
- */
-__dead2 void secure_services_loop(void);
-
 #endif /* __CACTUS_H__ */
