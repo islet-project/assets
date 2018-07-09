@@ -317,6 +317,24 @@ unsigned int tftf_topology_next_cpu(unsigned int cpu_node)
 	return PWR_DOMAIN_INIT;
 }
 
+unsigned int tftf_get_parent_node_from_mpidr(unsigned int mpidr, unsigned int pwrlvl)
+{
+	unsigned int core_pos = platform_get_core_pos(mpidr);
+	unsigned int node, i;
+
+	if (core_pos >= PLATFORM_CORE_COUNT)
+		return PWR_DOMAIN_INIT;
+
+	if (pwrlvl > PLAT_MAX_PWR_LEVEL)
+		return PWR_DOMAIN_INIT;
+
+	node = tftf_pwr_domain_start_idx[0] + core_pos;
+
+	for (i = 1; i <= pwrlvl; i++)
+		node = tftf_pd_nodes[node].parent_node;
+
+	return node;
+}
 
 unsigned int tftf_get_mpidr_from_node(unsigned int cpu_node)
 {
