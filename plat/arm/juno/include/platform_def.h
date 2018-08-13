@@ -171,8 +171,13 @@
 /*******************************************************************************
  * Platform specific page table and MMU setup constants
  ******************************************************************************/
+#if AARCH64
+#define PLAT_PHY_ADDR_SPACE_SIZE	(ULL(1) << 34)
+#define PLAT_VIRT_ADDR_SPACE_SIZE	(ULL(1) << 34)
+#else
 #define PLAT_PHY_ADDR_SPACE_SIZE	(ULL(1) << 32)
 #define PLAT_VIRT_ADDR_SPACE_SIZE	(ULL(1) << 32)
+#endif
 
 #if IMAGE_TFTF
 /* For testing xlat tables lib v2 */
