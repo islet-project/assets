@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 set -e
 
@@ -31,16 +31,28 @@ armdbg --cdb-entry "$juno_cdb_entry" --browse \
 tail -n +2 $connections_list > ${connections_list}_stripped
 mv ${connections_list}_stripped ${connections_list}
 
-# Use first available connection
-read connection < $connections_list || true
-rm $connections_list
-
-if [ -z "$connection" ] ; then
-  echo "ERROR: Found no connection"
-  exit 1
+if [ ! -s $connections_list ] ; then
+	echo "ERROR: Found no connection"
+	exit 1
 fi
 
+# Ask the user which connection to use.
+echo
+cat -n $connections_list
+echo -n "Which one do you want to connect to? "
+read connection_id
+
+# Extract the corresponding connection name from the file.
+connection=$(((sed -n "${connection_id}p") | sed 's/^ *//') < $connections_list)
+if [ -z "$connection" ] ; then
+	echo "ERROR: Invalid connection"
+	exit 1
+fi
+
+rm $connections_list
+
 # Run DS-5 script
+echo
 echo "Connecting to $connection..."
 armdbg \
 	--cdb-entry "$juno_cdb_entry" \
