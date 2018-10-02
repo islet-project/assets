@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-TESTS ?= common
+TESTS ?= standard
 
 TESTS_FILE	:= tftf/tests/tests-${TESTS}.xml
 TESTS_MAKEFILE	:= tftf/tests/tests-${TESTS}.mk
