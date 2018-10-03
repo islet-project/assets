@@ -8,6 +8,7 @@
 #include <arm_gic.h>
 #include <debug.h>
 #include <events.h>
+#include <gic_common.h>
 #include <gic_v2.h>
 #include <irq.h>
 #include <plat_topology.h>
@@ -53,8 +54,8 @@ static int test_spurious_handler(void *data)
 	return 0;
 }
 
-/* Helper function for test_juno_multicore_spurious_interrupt. */
-static test_result_t test_juno_multicore_spurious_interrupt_non_lead_fn(void)
+/* Helper function for test_multicore_spurious_interrupt. */
+static test_result_t test_multicore_spurious_interrupt_non_lead_fn(void)
 {
 	test_result_t result = TEST_RESULT_SUCCESS;
 	u_register_t mpid = read_mpidr_el1() & MPID_MASK;
@@ -134,7 +135,7 @@ static test_result_t test_juno_multicore_spurious_interrupt_non_lead_fn(void)
  *
  * Returns SUCCESS if all steps succeed, else failure.
  */
-test_result_t test_juno_multicore_spurious_interrupt(void)
+test_result_t test_multicore_spurious_interrupt(void)
 {
 	int i, j;
 	u_register_t cpu_mpid;
@@ -147,6 +148,11 @@ test_result_t test_juno_multicore_spurious_interrupt(void)
 	SKIP_TEST_IF_LESS_THAN_N_CPUS(2);
 
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
+
+	if (is_gicv3_mode()) {
+		tftf_testcase_printf("Detected GICv3. Need GICv2.\n");
+		return TEST_RESULT_SKIPPED;
+	}
 
 	ret = tftf_irq_register_handler(GIC_SPURIOUS_INTERRUPT,
 					     test_spurious_handler);
@@ -178,7 +184,7 @@ test_result_t test_juno_multicore_spurious_interrupt(void)
 			continue;
 
 		psci_ret = tftf_cpu_on(cpu_mpid,
-			(uintptr_t)test_juno_multicore_spurious_interrupt_non_lead_fn, 0);
+			(uintptr_t)test_multicore_spurious_interrupt_non_lead_fn, 0);
 		if (psci_ret != PSCI_E_SUCCESS) {
 			tftf_testcase_printf(
 				"Failed to power on CPU 0x%x (%d)\n",

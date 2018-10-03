@@ -18,8 +18,6 @@ PLAT_SOURCES	:=	drivers/arm/gic/arm_gic_v2.c			\
 			plat/arm/board/juno/juno_mem_prot.c		\
 			plat/arm/board/juno/plat_setup.c
 
-TESTS_SOURCES	+=	tftf/tests/runtime_services/trusted_os/tsp/test_irq_spurious_gicv2.c
-
 # Some tests are not supported on Juno AArch32.
 ifeq (${ARCH},aarch32)
 PLAT_TESTS_SKIP_LIST	:=	plat/arm/board/juno/juno32_tests_to_skip.txt

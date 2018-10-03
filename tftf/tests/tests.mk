@@ -71,6 +71,7 @@ TESTS_SOURCES	:=	$(addprefix tftf/tests/,			\
 	runtime_services/standard_service/sdei/system_tests/test_sdei.c \
 	runtime_services/standard_service/sdei/system_tests/test_sdei_state.c \
 	runtime_services/trusted_os/tsp/test_irq_preempted_std_smc.c \
+	runtime_services/trusted_os/tsp/test_irq_spurious_gicv2.c \
 	runtime_services/trusted_os/tsp/test_normal_int_switch.c \
 	runtime_services/trusted_os/tsp/test_smc_tsp_std_fn_call.c \
 	runtime_services/trusted_os/tsp/test_tsp_fast_smc.c \

@@ -21,6 +21,7 @@
     <testcase name="Resume STD SMC from different CPUs" function="test_resume_different_cpu_preempted_std_smc" />
     <testcase name="Resume preempted STD SMC after PSCI CPU OFF/ON cycle" function="test_psci_cpu_on_off_preempted_std_smc" />
     <testcase name="Resume preempted STD SMC after PSCI SYSTEM SUSPEND" function="test_psci_system_suspend_preempted_std_smc" />
+    <testcase name="Multicore spurious interrupt test" function="test_multicore_spurious_interrupt" />
   </testsuite>
 
   <testsuite name="TSP handler standard functions result test" description="Validate TSP SMC standard function call">
