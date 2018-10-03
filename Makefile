@@ -107,7 +107,7 @@ all: msg_start
 .PHONY: msg_start
 msg_start:
 	@echo "Building ${PLAT}"
-	@echo "Using the following tests file: ${TESTS_FILE}"
+	@echo "Selected set of tests: ${TESTS}"
 
 # Include test images makefiles.
 include tftf/framework/framework.mk

@@ -6,6 +6,14 @@
 
 TESTS ?= standard
 
+tests_files	:= $(wildcard tftf/tests/*.xml)
+tests_sets	:= $(patsubst tftf/tests/tests-%.xml,%,${tests_files})
+
+PHONY: help_tests
+help_tests:
+	@echo "Available sets of tests:"
+	@$(foreach t, ${tests_sets}, printf " - %s\n" ${t};)
+
 TESTS_FILE	:= tftf/tests/tests-${TESTS}.xml
 TESTS_MAKEFILE	:= tftf/tests/tests-${TESTS}.mk
 
