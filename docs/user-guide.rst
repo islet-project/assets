@@ -380,9 +380,15 @@ TFTF build options
    multiple reports: 'uart:raw semihosting:junit'. The files stored on
    semihosting are named 'tftf_report_junit.xml' and 'tftf_report_raw.txt'.
 
--  ``TESTS_FILE``: Path to the XML file listing the tests to run. Default is
-   ``plat/<platform>/tests.xml`` if it exists, otherwise it falls back to
-   ``tftf/tests/tests-common.xml``.
+-  ``TESTS``: Set of tests to run. Use the following command to list all
+   possible sets of tests:
+
+   ::
+
+     make help_tests
+
+   If no set of tests is specified, the standard tests will be selected (see
+   ``tftf/tests/tests-standard.xml``).
 
 -  ``USE_NVM``: Used to select the location of test results. It can take either 0
    (RAM) or 1 (non-volatile memory like flash) as test results storage. Default
