@@ -27,6 +27,8 @@
  * successfully mapped.
  */
 
+#define STRESS_TEST_ITERATIONS		1000
+
 #define SIZE_L1		XLAT_BLOCK_SIZE(1)
 #define SIZE_L2		XLAT_BLOCK_SIZE(2)
 #define SIZE_L3		XLAT_BLOCK_SIZE(3) /* PAGE_SIZE */
@@ -203,6 +205,196 @@ static int remove_region(uintptr_t base_va, size_t size)
 	return ret;
 }
 
+/*
+ * Number of individual chunks of memory that can be mapped and unmaped in the
+ * region that we use for testing. The size of each block is total_size /
+ * num_blocks. The test tries to allocate as much memory as possible.
+ */
+#define STRESS_TEST_NUM_BLOCKS		1024
+
+/* Memory region to be used by the stress test */
+static uintptr_t memory_base_va;
+static size_t memory_size;
+/* Block size to be used by the stress test */
+static size_t block_size;
+/*
+ * Each element of the array can have one of the following states:
+ * - 0: Free
+ * - 1: Used
+ * - 2: Used, and it is the start of a region
+ */
+static int block_used[STRESS_TEST_NUM_BLOCKS];
+
+/* Returns -1 if error, 1 if chunk added, 0 if not added */
+static int alloc_random_chunk(void)
+{
+	int rc;
+	int start = rand() % STRESS_TEST_NUM_BLOCKS;
+	int blocks = rand() % STRESS_TEST_NUM_BLOCKS;
+	bool is_free = true;
+
+	if (start + blocks > STRESS_TEST_NUM_BLOCKS) {
+		blocks = STRESS_TEST_NUM_BLOCKS - start;
+	}
+
+	/* Check if it's free */
+	for (int i = start; i < start + blocks; i++) {
+		if (block_used[i] != 0) {
+			is_free = false;
+			break;
+		}
+	}
+
+	uintptr_t base_va = memory_base_va + start * block_size;
+	unsigned long long base_pa = base_va;
+	size_t size = blocks * block_size;
+
+	if (is_free) {
+		/*
+		 * Allocate a region, it should succeed. Use a non 1:1 mapping
+		 * by adding an arbitrary offset to the base PA.
+		 */
+		rc = add_region(base_pa + 0x20000U, base_va, size, MT_DEVICE);
+		if ((rc == -ENOMEM) || (rc == -EPERM)) {
+			/*
+			 * Not enough memory or partial overlap, don't consider
+			 * this a hard failure.
+			 */
+			return 0;
+		} else if (rc != 0) {
+			tftf_testcase_printf("%d: add_region failed: %d\n",
+					     __LINE__, rc);
+			return -1;
+		}
+
+		/* Flag as used */
+		block_used[start] = 2;
+		for (int i = start + 1; i < start + blocks; i++)
+			block_used[i] = 1;
+
+		return 1;
+	} else {
+		/* Allocate, it should fail */
+		rc = add_region(base_pa, base_va, size, MT_DEVICE);
+		if (rc == 0) {
+			tftf_testcase_printf("%d: add_region succeeded\n",
+					     __LINE__);
+			return -1;
+		}
+
+		return 0;
+	}
+}
+
+/* Returns -1 if error, 1 if chunk removed, 0 if not removed */
+static int free_random_chunk(void)
+{
+	int start = -1;
+	int end = -1;
+	int seek = rand() % STRESS_TEST_NUM_BLOCKS;
+	int i = seek;
+
+	for (;;) {
+		if (start == -1) { /* Look for the start of a block */
+
+			/* Search the start of a chunk */
+			if (block_used[i] == 2) {
+				start = i;
+			}
+
+		} else { /* Look for the end of the block */
+
+			/* Search free space or the start of another chunk */
+			if (block_used[i] != 1) {
+				end = i;
+				break;
+			}
+		}
+
+		i++;
+
+		if (start == -1) { /* Look for the start of a block */
+
+			/* Looking for the start of a block so wrap around */
+			if (i == STRESS_TEST_NUM_BLOCKS) {
+				i = 0;
+			}
+
+		} else { /* Look for the end of the block */
+
+			/* If the end of the region is reached, this must be
+			 * the end of the chunk as well.*/
+			if (i == STRESS_TEST_NUM_BLOCKS) {
+				end = i;
+				break;
+			}
+		}
+
+		/* Back to the starting point of the search: no chunk found */
+		if (i == seek) {
+			break;
+		}
+	}
+
+	/* No chunks found */
+	if ((start == -1) || (end == -1)) {
+		return 0;
+	}
+
+	int blocks = end - start;
+
+	bool is_correct_size = true;
+
+	if ((rand() % 5) == 0) { /* Make it fail sometimes */
+		blocks++;
+		is_correct_size = false;
+	}
+
+	uintptr_t base_va = memory_base_va + start * block_size;
+	size_t size = blocks * block_size;
+
+	if (is_correct_size) {
+		/* Remove, it should succeed */
+		int rc = remove_region(base_va, size);
+		if (rc != 0) {
+			tftf_testcase_printf("%d: remove_region failed: %d\n",
+					     __LINE__, rc);
+			return 1;
+		}
+
+		/* Flag as unused */
+		for (int i = start; i < start + blocks; i++) {
+			block_used[i] = 0;
+		}
+
+		return 1;
+	} else {
+		/* Remove, it should fail */
+		int rc = remove_region(base_va, size);
+		if (rc == 0) {
+			tftf_testcase_printf("%d: remove_region succeeded\n",
+					     __LINE__);
+			return 1;
+		}
+
+		return 0;
+	}
+}
+
+/* Returns number of allocated chunks */
+static int get_num_chunks(void)
+{
+	int count = 0;
+
+	for (int i = 0; i < STRESS_TEST_NUM_BLOCKS; i++) {
+		if (block_used[i] == 2) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
 /**
  * @Test_Aim@ Perform dynamic translation tables API basic tests
  *
@@ -376,4 +568,92 @@ test_result_t xlat_lib_v2_basic_test(void)
 	}
 
 	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * @Test_Aim@ Perform dynamic translation tables API stress tests
+ *
+ * This test performs a stress test in the library APIs.
+ */
+test_result_t xlat_lib_v2_stress_test(void)
+{
+	test_result_t test_result = TEST_RESULT_SUCCESS;
+	uintptr_t memory_base;
+	int rc;
+
+	/*
+	 * 1) Try to allocate an invalid region. It should fail, but it will
+	 * return the address of memory that can be used for the following
+	 * tests.
+	 */
+	rc = add_region_alloc_va(0, &memory_base, SIZE_MAX, MT_DEVICE);
+	if (rc == 0) {
+		tftf_testcase_printf("%d: add_region_alloc_va() didn't fail\n",
+				     __LINE__);
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Get address of memory region over the max used VA that is aligned to
+	 * a L1 block for the next tests.
+	 */
+	memory_base = (memory_base + SIZE_L1 - 1UL) & ~MASK_L1;
+
+	INFO("Using 0x%lx as base address for tests.\n", memory_base);
+
+	/* 2) Get a region of memory that we can use for testing. */
+
+	/*
+	 * Try with blocks 64 times the size of a page and reduce the size until
+	 * it fits. PAGE_SIZE can only be 4, 16 or 64KB.
+	 */
+	block_size = PAGE_SIZE * 64;
+	for (;;) {
+		memory_size = block_size * STRESS_TEST_NUM_BLOCKS;
+		rc = add_region(memory_base, memory_base, memory_size,
+				MT_DEVICE);
+		if (rc == 0) {
+			break;
+		}
+
+		block_size >>= 1;
+		if (block_size < PAGE_SIZE) {
+			tftf_testcase_printf("%d: Couldn't allocate enough memory\n",
+					     __LINE__);
+			return TEST_RESULT_FAIL;
+		}
+	}
+
+	rc = remove_region(memory_base, memory_size);
+	if (rc != 0) {
+		tftf_testcase_printf("%d: remove_region: %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
+	/* 3) Start stress test with the calculated top VA and space */
+
+	memset(block_used, 0, sizeof(block_used));
+
+	for (int i = 0; i < STRESS_TEST_ITERATIONS; i++) {
+		if ((rand() % 4) > 0) {
+			rc = alloc_random_chunk();
+		} else {
+			rc = free_random_chunk();
+		}
+
+		if (rc == -1) {
+			test_result = TEST_RESULT_FAIL;
+			break;
+		}
+	}
+
+	/* Cleanup of regions left allocated by the stress test */
+	while (get_num_chunks() > 0) {
+		rc = free_random_chunk();
+		if (rc == -1) {
+			test_result = TEST_RESULT_FAIL;
+		}
+	}
+
+	return test_result;
 }
