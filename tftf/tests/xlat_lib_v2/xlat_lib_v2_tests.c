@@ -37,6 +37,23 @@
 #define MASK_L2		XLAT_BLOCK_MASK(2)
 #define MASK_L3		XLAT_BLOCK_MASK(3)
 
+static const struct {
+	size_t size;
+	size_t expected_va_mask;
+} mem_tests[] = {
+	{ SIZE_L1 + 2 * SIZE_L2 + 2 * SIZE_L3,	MASK_L3 },
+	{ SIZE_L1 + SIZE_L2 + SIZE_L3,		MASK_L3 },
+	{ SIZE_L1 + 2 * SIZE_L2,		MASK_L2 },
+	{ SIZE_L1 + SIZE_L2,			MASK_L2 },
+	{ SIZE_L1 + 2 * SIZE_L3,		MASK_L3 },
+	{ SIZE_L1 + SIZE_L3,			MASK_L3 },
+	{ SIZE_L1,				MASK_L1 },
+	{ SIZE_L2 + 2 * SIZE_L3,		MASK_L3 },
+	{ SIZE_L2 + SIZE_L3,			MASK_L3 },
+	{ SIZE_L2,				MASK_L2 },
+	{ SIZE_L3,				MASK_L3 }
+};
+
 /*
  * Translate the given virtual address into a physical address in the current
  * translation regime. Returns the resulting physical address on success,
@@ -564,6 +581,187 @@ test_result_t xlat_lib_v2_basic_test(void)
 			tftf_testcase_printf("%d: remove_region: %d\n",
 					     __LINE__, rc);
 			return TEST_RESULT_FAIL;
+		}
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * @Test_Aim@ Perform dynamic translation tables API alignment tests
+ *
+ * This test makes sure that the alloc VA APIs return addresses aligned as
+ * expected.
+ */
+test_result_t xlat_lib_v2_alignment_test(void)
+{
+	uintptr_t memory_base_va;
+	unsigned long long memory_base_pa;
+	int rc, i;
+
+	/*
+	 * 1) Try to allocate an invalid region. It should fail, but it will
+	 * return the address of memory that can be used for the following
+	 * tests.
+	 */
+
+	rc = add_region_alloc_va(0, &memory_base_va, SIZE_MAX, MT_DEVICE);
+	if (rc == 0) {
+		tftf_testcase_printf("%d: add_region_alloc_va() didn't fail\n",
+				     __LINE__);
+
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Get address of memory region over the max used VA that is aligned to
+	 * a L1 block for the next tests.
+	 */
+	memory_base_pa = (memory_base_va + SIZE_L1 - 1ULL) & ~MASK_L1;
+
+	INFO("Using 0x%llx as base address for tests.\n", memory_base_pa);
+
+	/*
+	 * 2) Try to allocate regions that have an unaligned base VA or PA, or
+	 * a size that isn't multiple of PAGE_SIZE.
+	 */
+
+	rc = add_region(memory_base_va + 1, memory_base_va, PAGE_SIZE, MT_DEVICE);
+	if (rc != -EINVAL) {
+		tftf_testcase_printf("%d: add_region: %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
+	rc = add_region(memory_base_va, memory_base_va + 1, PAGE_SIZE, MT_DEVICE);
+	if (rc != -EINVAL) {
+		tftf_testcase_printf("%d: add_region: %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
+	rc = add_region(memory_base_va, memory_base_va, PAGE_SIZE + 1, MT_DEVICE);
+	if (rc != -EINVAL) {
+		tftf_testcase_printf("%d: add_region: %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
+#if AARCH64
+	/*
+	 * 3) Try to allocate at least 1 GB aligned. There is only room for this
+	 * in AArch64.
+	 */
+
+	rc = add_region_alloc_va(memory_base_pa, &memory_base_va, SIZE_L1,
+				 MT_DEVICE);
+	if (rc == -ENOMEM) {
+		tftf_testcase_printf("%d: Not enough memory\n", __LINE__);
+		return TEST_RESULT_FAIL;
+	} else if (rc != 0) {
+		tftf_testcase_printf("%d: add_region_alloc_va: %d\n",
+				     __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
+	rc = remove_region(memory_base_va, SIZE_L1);
+	if (rc != 0) {
+		tftf_testcase_printf("%d: remove_region: %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+#else
+	/*
+	 * 4) Try to allocate an absurdly large amount of misaligned memory,
+	 * which should fail. In AArch64 there's enough memory to map 4GB of
+	 * virtual memory so skip it.
+	 */
+	rc = add_region_alloc_va(memory_base_pa + PAGE_SIZE, &memory_base_va,
+		 PLAT_VIRT_ADDR_SPACE_SIZE - (memory_base_pa + PAGE_SIZE),
+		 MT_DEVICE);
+	if (rc != -ENOMEM) {
+		tftf_testcase_printf("%d: add_region_alloc_va: %d\n",
+				     __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+#endif
+
+	/*
+	 * 5) Try to allocate hand-picked regions of different sizes and make
+	 * sure that the resulting address is aligned to the correct boundary.
+	 */
+
+	for (i = 0; i < ARRAY_SIZE(mem_tests); i++) {
+		/* Allocate to a correct PA boundary. */
+
+		unsigned long long base_pa = memory_base_pa;
+
+		rc = add_region_alloc_va(base_pa, &memory_base_va,
+					 mem_tests[i].size, MT_DEVICE);
+		if ((rc == -ENOMEM) || (rc == -ERANGE)) {
+			/*
+			 * Skip regions that are too big for the address space.
+			 * This is a problem specially in AArch32, when the max
+			 * virtual address space width is 32 bit.
+			 */
+			WARN("%d: Not enough memory for case %d\n",
+			     __LINE__, i);
+			continue;
+		} else if (rc != 0) {
+			tftf_testcase_printf("%d: add_region_alloc_va: %d\n",
+					     __LINE__, rc);
+			return TEST_RESULT_FAIL;
+		}
+
+		rc = remove_region(memory_base_va, mem_tests[i].size);
+		if (rc != 0) {
+			tftf_testcase_printf("%d: remove_region: %d\n",
+					     __LINE__, rc);
+			return TEST_RESULT_FAIL;
+		}
+
+		if (memory_base_va & mem_tests[i].expected_va_mask) {
+			tftf_testcase_printf("%d: Invalid alignment for case %d\n",
+					     __LINE__, i);
+			return TEST_RESULT_FAIL;
+		}
+
+		/*
+		 * Try to allocate to an incorrect PA boundary (a smaller one).
+		 * This only makes sense for regions that are aligned to
+		 * boundaries bigger than 4 KB, as there cannot be an incorrect
+		 * alignment for 4 KB aligned regions.
+		 */
+
+		if (mem_tests[i].expected_va_mask != MASK_L3) {
+
+			base_pa = memory_base_pa;
+
+			if (mem_tests[i].expected_va_mask == MASK_L1) {
+				base_pa += SIZE_L2;
+			} else if (mem_tests[i].expected_va_mask == MASK_L2) {
+				base_pa += SIZE_L3;
+			}
+
+			rc = add_region_alloc_va(base_pa, &memory_base_va,
+						 mem_tests[i].size, MT_DEVICE);
+			if (rc == 0) {
+
+				rc = remove_region(memory_base_va,
+						   mem_tests[i].size);
+				if (rc != 0) {
+					tftf_testcase_printf("%d: remove_region: %d\n",
+							     __LINE__, rc);
+					return TEST_RESULT_FAIL;
+				}
+
+			} else if ((rc != -ENOMEM) && (rc != -ERANGE)) {
+				/*
+				 * It could happen that we run out of memory, so
+				 * it doesn't make sense to fail because of
+				 * that. However, any other error is a
+				 * legitimate error.
+				 */
+				tftf_testcase_printf("%d: add_region_alloc_va: %d\n",
+						     __LINE__, rc);
+				return TEST_RESULT_FAIL;
+			}
 		}
 	}
 

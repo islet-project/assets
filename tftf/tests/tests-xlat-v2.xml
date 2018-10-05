@@ -11,6 +11,7 @@
     <testsuite name="Translation tables library v2 tests"
                description="Unit tests to validate the translation tables library v2">
     <testcase name="xlat v2: Basic tests" function="xlat_lib_v2_basic_test" />
+    <testcase name="xlat v2: Alignment tests" function="xlat_lib_v2_alignment_test" />
     <testcase name="xlat v2: Stress test" function="xlat_lib_v2_stress_test" />
   </testsuite>
 
