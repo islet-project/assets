@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <!--
+      Strictly speaking, this testsuite is not testing PSCI but we put it here
+      nonetheless to avoid having it alone in a separate XML file.
+  -->
+  <testsuite name="Query runtime services" description="Generic queries as defined by the SMCCC">
+    <testcase name="Unknown SMC" function="test_unknown_smc" />
+    <testcase name="Query Standard Service" function="test_query_std_svc" />
+  </testsuite>
+
+  <testsuite name="PSCI Version" description="Check the version of PSCI implemented">
+    <testcase name="PSCI Version" function="test_psci_version" />
+  </testsuite>
+
+  <testsuite name="PSCI Affinity Info" description="Test PSCI AFFINITY_INFO support">
+    <testcase name="Affinity info level0 on" function="test_affinity_info_level0_on" />
+    <testcase name="Affinity info level0 off" function="test_affinity_info_level0_off" />
+    <testcase name="Affinity info level1 on" function="test_affinity_info_level1_on" />
+    <testcase name="Affinity info level1 off" function="test_affinity_info_level1_off" />
+    <testcase name="Affinity info level2" function="test_affinity_info_level2" />
+    <testcase name="Affinity info level3" function="test_affinity_info_level3" />
+    <testcase name="Affinity info level0 powerdown" function="test_affinity_info_level0_powerdown" />
+  </testsuite>
+
+  <testsuite name="CPU Hotplug" description="Test PSCI CPU Hotplug support">
+    <testcase name="CPU hotplug" function="test_psci_cpu_hotplug" />
+    <testcase name="CPU already on" function="test_psci_cpu_hotplug_plugged" />
+    <testcase name="Context ID passing" function="test_context_ids" />
+    <testcase name="Invalid CPU" function="test_psci_cpu_hotplug_invalid_cpu" />
+    <testcase name="Invalid entry point" function="test_psci_cpu_hotplug_invalid_ep" />
+  </testsuite>
+
+  <testsuite name="PSCI CPU Suspend" description="Test PSCI CPU Suspend support">
+    <testcase name="CPU suspend to powerdown at level 0" function="test_psci_suspend_powerdown_level0" />
+    <testcase name="CPU suspend to powerdown at level 1" function="test_psci_suspend_powerdown_level1" />
+    <testcase name="CPU suspend to powerdown at level 2" function="test_psci_suspend_powerdown_level2" />
+    <testcase name="CPU suspend to powerdown at level 3" function="test_psci_suspend_powerdown_level3" />
+
+    <testcase name="CPU suspend to standby at level 0" function="test_psci_suspend_standby_level0" />
+    <testcase name="CPU suspend to standby at level 1" function="test_psci_suspend_standby_level1" />
+    <testcase name="CPU suspend to standby at level 2" function="test_psci_suspend_standby_level2" />
+    <testcase name="CPU suspend to standby at level 3" function="test_psci_suspend_standby_level3" />
+  </testsuite>
+
+  <testsuite name="PSCI STAT" description="Test PSCI STAT support Core level">
+    <testcase name="for valid composite state CPU suspend" function="test_psci_stat_all_power_states" />
+    <testcase name="Stats test cases for CPU OFF" function="test_psci_stats_cpu_off" />
+    <testcase name="Stats test cases after system suspend" function="test_psci_stats_system_suspend" />
+  </testsuite>
+
+  <testsuite name="PSCI NODE_HW_STATE" description="Test PSCI NODE_HW_STATE API">
+    <testcase name="Tests for NODE_HW_STATE" function="test_psci_node_hw_state" />
+    <testcase name="Tests for NODE_HW_STATE on multicluster" function="test_psci_node_hw_state_multi" />
+  </testsuite>
+
+  <testsuite name="PSCI Features" description="Check the PSCI features implemented">
+    <testcase name="PSCI Features" function="test_psci_features" />
+    <testcase name="PSCI Invalid Features" function="test_psci_features_invalid_id" />
+  </testsuite>
+
+  <testsuite name="PSCI MIGRATE_INFO_TYPE" description="Test MIGRATE_INFO_TYPE support">
+     <testcase name="PSCI MIGRATE_INFO_TYPE" function="test_migrate_info_type" />
+  </testsuite>
+
+  <testsuite name="PSCI mem_protect_check" description="Check the mem_protect_check_range feature">
+    <testcase name="PSCI mem_protect_check" function="test_mem_protect_check" />
+  </testsuite>
+
+  <testsuite name="PSCI System Suspend Validation" description="Validate PSCI System Suspend API">
+     <testcase name="System suspend multiple times" function="test_psci_sys_susp_multiple_iteration" />
+     <testcase name="system suspend from all cores" function="test_system_suspend_from_all_cores" />
+     <testcase name="System suspend with cores on" function="test_psci_sys_susp_with_cores_on" />
+     <testcase name="Suspend system with cores in suspend" function="test_psci_sys_susp_with_cores_in_suspend" />
+     <testcase name="Validate suspend to RAM functionality" function="test_psci_sys_susp_validate_ram" />
+     <testcase name="System suspend with invalid entrypoint address" function="test_system_suspend_invalid_entrypoint" />
+     <testcase name="System suspend with pending IRQ" function="test_psci_sys_susp_pending_irq" />
+  </testsuite>
+
+</testsuites>

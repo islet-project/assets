@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="fwu toc test" description="Validate FWU TOC invalid scenario">
+     <testcase name="FWU TOC Invalid" function="test_fwu_toc" />
+  </testsuite>
+
+  <testsuite name="fwu auth test" description="Validate FWU AUTH Failure scenario">
+     <testcase name="FWU AUTH Failure" function="test_fwu_auth" />
+  </testsuite>
+
+</testsuites>

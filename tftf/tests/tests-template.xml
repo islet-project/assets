@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+  <!--
+     The "template" testsuite aims at providing template test code as a
+     starting point for developing new tests. These tests don't do anything
+     useful in terms of testing.
+  -->
+  <testsuite name="Template" description="Template test code">
+     <testcase name="Single core test" function="test_template_single_core" />
+     <testcase name="Multi core test" function="test_template_multi_core" />
+  </testsuite>
+
+</testsuites>

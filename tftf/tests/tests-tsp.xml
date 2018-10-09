@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="IRQ support in TSP" description="Test the normal IRQ preemption support in TSP.">
+    <testcase name="TSP preempt by IRQ and resume" function="tsp_int_and_resume" />
+    <testcase name="Fast SMC while TSP preempted" function="test_fast_smc_when_tsp_preempted" />
+    <testcase name="STD SMC resumption while TSP preempted" function="test_std_smc_when_tsp_preempted_resume" />
+    <testcase name="STD SMC abortion while TSP preempted" function="test_std_smc_when_tsp_preempted_abort" />
+    <testcase name="Resume SMC without TSP preemption" function="test_resume_smc_without_preemption" />
+    <testcase name="Stress TSP preemption and resumption" function="tsp_int_and_resume_stress" />
+    <testcase name="Test Secure FIQ while TSP is preempted" function="tsp_fiq_while_int" />
+    <testcase name="Resume preempted STD SMC" function="test_irq_preempted_std_smc" />
+    <testcase name="Resume preempted STD SMC from other CPUs" function="test_resume_preempted_std_smc_other_cpus" />
+    <testcase name="Resume STD SMC from different CPUs" function="test_resume_different_cpu_preempted_std_smc" />
+    <testcase name="Resume preempted STD SMC after PSCI CPU OFF/ON cycle" function="test_psci_cpu_on_off_preempted_std_smc" />
+    <testcase name="Resume preempted STD SMC after PSCI SYSTEM SUSPEND" function="test_psci_system_suspend_preempted_std_smc" />
+  </testsuite>
+
+  <testsuite name="TSP handler standard functions result test" description="Validate TSP SMC standard function call">
+     <testcase name="TestSecurePayload standard functions service call" function="test_smc_tsp_std_fns_call" />
+  </testsuite>
+
+  <testsuite name="Stress test TSP functionality" description="Validate TSP functionality">
+     <testcase name="Stress test TSP functionality" function="test_tsp_fast_smc_operations" />
+  </testsuite>
+
+</testsuites>

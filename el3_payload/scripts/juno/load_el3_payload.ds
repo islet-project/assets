@@ -1,0 +1,11 @@
+# Stop target
+interrupt
+
+# Load EL3 payload
+load build/juno/el3_payload.elf
+
+# Jump over BL1 infinite loop
+set var $pc = $pc + 4
+
+# Resume execution
+continue

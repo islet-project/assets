@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="EL3 power state parser validation" description="Validation of EL3 power state parsing algorithm">
+    <testcase name="Create all power states and validate EL3 power state parsing" function="test_psci_validate_pstate" />
+    <testcase name="Create only local power state and validate EL3 power state parsing" function="test_psci_valid_local_pstate" />
+    <testcase name="Create invalid local power state at all levels and validate EL3 power state parsing" function="test_psci_invalid_stateID" />
+    <testcase name="Create invalid power state type and validate EL3 power state parsing" function="test_psci_invalid_state_type" />
+    <testcase name="Create invalid power level and validate EL3 power state parsing for original state format" function="test_psci_invalid_power_level" />
+    <testcase name="Create a power state with valid and invalid local state ID at different levels and validate power state parsing" function="test_psci_mixed_state_id" />
+  </testsuite>
+
+</testsuites>

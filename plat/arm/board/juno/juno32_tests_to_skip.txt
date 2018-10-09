@@ -1,0 +1,11 @@
+#
+# Copyright (c) 2018, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+# System suspend is not supported on AArch32 Juno.
+PSCI System Suspend Validation
+PSCI STAT/Stats test cases after system suspend
+IRQ support in TSP/Resume preempted STD SMC after PSCI SYSTEM SUSPEND
+PSCI SYSTEM SUSPEND stress tests

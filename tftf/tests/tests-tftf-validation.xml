@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="Framework Validation" description="Validate the core features of the test framework">
+    <testcase name="NVM support" function="test_validation_nvm" />
+    <testcase name="NVM serialisation" function="test_validate_nvm_serialisation" />
+    <testcase name="Events API" function="test_validation_events" />
+    <testcase name="IRQ handling" function="test_validation_irq" />
+    <testcase name="SGI support" function="test_validation_sgi" />
+  </testsuite>
+
+  <testsuite name="Timer framework Validation" description="Validate the timer driver and timer framework">
+     <testcase name="Verify the timer interrupt generation" function="test_timer_framework_interrupt" />
+     <testcase name="Target timer to a power down cpu" function="test_timer_target_power_down_cpu" />
+     <testcase name="Test scenario where multiple CPUs call same timeout" function="test_timer_target_multiple_same_interval" />
+     <testcase name="Stress test the timer framework" function="stress_test_timer_framework" />
+  </testsuite>
+
+</testsuites>

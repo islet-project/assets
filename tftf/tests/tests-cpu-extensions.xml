@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="CPU extensions" description="Various CPU extensions tests">
+    <testcase name="AMUv1 non-zero counters" function="test_amu_nonzero_ctr" />
+    <testcase name="AMUv1 suspend/resume" function="test_amu_suspend_resume" />
+  </testsuite>
+
+  <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">
+     <testcase name="SMCCC_ARCH_WORKAROUND_1 test" function="test_smccc_arch_workaround_1" />
+     <testcase name="SMCCC_ARCH_WORKAROUND_2 test" function="test_smccc_arch_workaround_2" />
+  </testsuite>
+
+</testsuites>

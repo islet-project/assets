@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="Runtime Instrumentation Validation" description="Validate PMF Runtime Instrumentation">
+     <testcase name="Suspend to deepest power level on all cores in parallel" function="test_rt_instr_susp_deep_parallel" />
+     <testcase name="Suspend to deepest power level on all cores in sequence" function="test_rt_instr_susp_deep_serial" />
+     <testcase name="CPU suspend on all cores in parallel" function="test_rt_instr_cpu_susp_parallel" />
+     <testcase name="CPU suspend on all cores in sequence" function="test_rt_instr_cpu_susp_serial" />
+     <testcase name="CPU off on all non-lead cores in sequence and suspend lead to deepest power level" function="test_rt_instr_cpu_off_serial" />
+     <testcase name="PSCI version call on all cores in parallel" function="test_rt_instr_psci_version_parallel" />
+  </testsuite>
+
+</testsuites>

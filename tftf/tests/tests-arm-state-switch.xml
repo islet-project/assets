@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+  <!--
+      Test suite exercising execution state switch SiP service.
+
+      'test_exec_state_switch_reset_before' must execute first in the suite, and
+      'test_exec_state_switch_after_cpu_on' the last. See comments in
+      test_exec_state_switch.c for details.
+  -->
+  <testsuite name="State switch" description="Test ARM SiP State Switch service">
+    <testcase name="System reset before state switch" function="test_exec_state_switch_reset_before" />
+    <testcase name="Request state switch with invalid PC" function="test_exec_state_switch_invalid_pc" />
+    <testcase name="Request state switch with invalid context" function="test_exec_state_switch_invalid_ctx" />
+    <testcase name="Request a valid state switch" function="test_exec_state_switch_valid" />
+    <testcase name="Request a valid state switch after CPU_ON" function="test_exec_state_switch_after_cpu_on" />
+  </testsuite>
+
+</testsuites>

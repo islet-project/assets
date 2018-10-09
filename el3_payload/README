@@ -1,0 +1,141 @@
+EL3 test payload
+================
+
+This program is a very simple EL3 baremetal application. It has been developed
+to test the ability of the Trusted Firmware-A to load an EL3 payload. All it
+does is making sure that all CPUs enter this image and if so, reports it through
+the UART.
+
+
+Building
+--------
+
+$ make PLAT=juno
+or
+$ make PLAT=fvp
+
+
+Preparing Juno board configuration files
+----------------------------------------
+
+You should have the following line in your 'SITE1/HBI0262X/board.txt' Juno
+configuration file on the SD card (where X depends on the revision of your Juno
+board):
+
+  SCC: 0x0F4 0x000003F8
+
+This:
+ - ensures all CPUs are powered on at reset;
+ - designates the Cortex-A53 #0 as the primary CPU.
+
+See the 'Assumptions' section below' for more details.
+
+
+Running on Juno
+---------------
+
+The Trusted Firmware-A must be compiled with SPIN_ON_BL1_EXIT=1. This will
+introduce an infinite loop in BL1 that gives you some time to load and run the
+EL3 payload over JTAG.
+
+Boot the board and wait until you see the following messages on the UART.
+(Note that the "INFO" messages appear only in a debug build of the Trusted
+Firmware but you should see the "NOTICE" messages in any case.)
+
+  NOTICE:  BL1: Booting BL31
+  INFO:    BL1: BL31 address = 0x80000000
+  INFO:    BL1: BL31 spsr = 0x3cd
+  INFO:    BL1: BL31 params address = 0x0
+  INFO:    BL1: BL31 plat params address = 0xf1e2d3c4b5a6978
+  INFO:    BL1: BL31 address = 0x80000000
+  INFO:    BL1: BL31 spsr = 0x3cd
+  INFO:    BL1: BL31 params address = 0x0
+  INFO:    BL1: BL31 plat params address = 0xf1e2d3c4b5a6978
+  NOTICE:  BL1: Debug loop, spinning forever
+  NOTICE:  BL1: Please connect the debugger to jump over it
+
+TODO: Update the above messages.
+
+At this point, type the following command in a shell from the EL3 test payload
+top directory:
+
+$ make PLAT=juno run
+
+You should see something like this in your shell (it takes a few seconds):
+
+  Trying to detect your DSTREAM unit...
+  Available connections:
+    USB:000765
+  Connecting to USB:000765...
+  Connected to running target Cortex-A53_0
+  Execution stopped in EL3h mode at EL3:0x000000000BEC2548
+  EL3:0x000000000BEC2548   B        {pc} ; 0xbec2548
+  Loaded section ro: EL3:0x0000000080000000 ~ EL3:0x0000000080000123 (size 0x124)
+  Loaded section .data: EL3:0x0000000080000128 ~ EL3:0x0000000080000197 (size 0x70)
+  Entry point EL3:0x0000000080000000
+  Disconnected from running target Cortex-A53_0
+
+And on the Juno UART, this should print the following messages:
+
+  Booting the EL3 test payload
+  All CPUs booted!
+
+
+Running on FVP (AEMv8A)
+-----------------------
+
+First, copy the "bl1.bin" and "fip.bin" files into the current directory.
+Alternatively, symbolic links might be created.
+
+Then run:
+
+$ make PLAT=fvp run
+
+Note: The EL3 payload does not work on the Foundation FVP.
+(This is because it expects 8 CPUs and the Foundation FVP has maximum 4.)
+
+
+How does it work?
+-----------------
+
+There is a per-cpu array. Each entry is initialised to a "dead" value.  On entry
+into the payload, each CPU writes its MPID to its entry, which allows it to
+signal its presence.
+
+Secondary CPUs then spin forever.
+
+The primary CPU carries on.
+  1) It prints a "welcome" string.
+  2) It waits for each entry in the CPUs array to be updated.
+  3) Once all CPUs have been detected in that way, it prints a success message.
+  4) Finally, it spins forever.
+
+
+Assumptions
+-----------
+
+- All CPUs enter the EL3 test payload at some point.
+  The order doesn't matter, though.
+  If some CPU doesn't boot then the EL3 payload will wait forever.
+
+- On FVP, the number of cores is hard-coded to 8.
+  If the FVP model is configured to disable some CPUs then the EL3 payload will
+  hang, waiting forever for absent CPUs.
+  For the same reason, the EL3 payload hangs on the Foundation FVP (which has
+  4 CPUs only).
+
+- The UART is already configured.
+
+- On Juno, the primary CPU is hard-coded to the Cortex-A53 #0.
+  Any CPU could be the primary CPU, though. However, the DS-5 scripts launched
+  by 'make run' assumes the Cortex-A53 #0 is the primary CPU.
+
+  On FVP, the primary CPU is hard-coded to the CPU with MPID 0x0.
+
+  Designating a CPU as the primary one simplifies the code, More particularly,
+  only the primary CPU accesses the UART, which removes the need for
+  synchronisation locks to avoid interleaved messages.
+
+- The EL3 test pyaload runs from RAM.
+  It can't execute from flash, as we would need to relocate the .data section
+  in RAM at run-time and this is not implemented for now.

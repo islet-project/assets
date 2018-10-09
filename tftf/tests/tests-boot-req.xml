@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="Boot requirement tests" description="Tests for boot requirement according to ARM ARM and PSCI">
+      <testcase name="CNTFRQ compare test" function="test_cntfrq_check" />
+  </testsuite>
+
+</testsuites>

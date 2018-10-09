@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+
+<!-- External references to all individual tests files. -->
+<!DOCTYPE testsuites [
+  <!ENTITY tests-psci-extensive SYSTEM "tests-psci-extensive.xml">
+
+  <!ENTITY tests-tftf-validation SYSTEM "tests-tftf-validation.xml">
+  <!ENTITY tests-psci SYSTEM "tests-psci.xml">
+  <!ENTITY tests-sdei SYSTEM "tests-sdei.xml">
+  <!ENTITY tests-rt-instr SYSTEM "tests-runtime-instrumentation.xml">
+  <!ENTITY tests-tsp SYSTEM "tests-tsp.xml">
+  <!ENTITY tests-el3-pstate SYSTEM "tests-el3-power-state.xml">
+  <!ENTITY tests-state-switch SYSTEM "tests-arm-state-switch.xml">
+  <!ENTITY tests-cpu-extensions SYSTEM "tests-cpu-extensions.xml">
+  <!ENTITY tests-performance SYSTEM "tests-performance.xml">
+]>
+
+<testsuites>
+
+  &tests-psci-extensive;
+
+  &tests-tftf-validation;
+  &tests-psci;
+  &tests-sdei;
+  &tests-rt-instr;
+  &tests-tsp;
+  &tests-el3-pstate;
+  &tests-state-switch;
+  &tests-cpu-extensions;
+  &tests-performance;
+
+</testsuites>

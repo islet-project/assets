@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+  <testsuite name="Single fault" description="Single fault injection">
+     <testcase name="Inject SError and wait" function="test_single_fault" />
+  </testsuite>
+</testsuites>
