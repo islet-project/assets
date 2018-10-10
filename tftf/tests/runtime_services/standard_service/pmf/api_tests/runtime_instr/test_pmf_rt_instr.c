@@ -122,7 +122,7 @@ static test_result_t get_ts(void)
 }
 
 /* Dump suspend statistics for the suspend/cpu off test. */
-static int dump_suspend_stats(const char *msg)
+static int dump_suspend_stats(const char *func_name)
 {
 	u_register_t *ts;
 	u_register_t target_mpid;
@@ -159,7 +159,8 @@ static int dump_suspend_stats(const char *msg)
 			return TEST_RESULT_FAIL;
 		}
 
-		printf("<RT_INSTR:%s\t%d\t%02llu\t%02llu\t%02llu/>\n", msg, pos,
+		printf("<RT_INSTR:%s\t%d\t%02llu\t%02llu\t%02llu/>\n",
+		    func_name, pos,
 		    (unsigned long long)period[0],
 		    (unsigned long long)period[1],
 		    (unsigned long long)period[2]);
@@ -169,7 +170,7 @@ static int dump_suspend_stats(const char *msg)
 }
 
 /* Dump statistics for a PSCI version call. */
-static int dump_psci_version_stats(const char *msg)
+static int dump_psci_version_stats(const char *func_name)
 {
 	u_register_t *ts;
 	u_register_t target_mpid;
@@ -192,7 +193,7 @@ static int dump_psci_version_stats(const char *msg)
 			return TEST_RESULT_FAIL;
 		}
 
-		printf("<RT_INSTR:%s\t%d\t%02llu/>\n", msg, pos,
+		printf("<RT_INSTR:%s\t%d\t%02llu/>\n", func_name, pos,
 		    (unsigned long long)period);
 	}
 
@@ -301,7 +302,7 @@ static int is_rt_instr_supported(void)
  * Then a suspend to the deepest power level supported on the
  * platform is initiated on all cores in parallel.
  */
-static test_result_t test_rt_instr_susp_parallel(void)
+static test_result_t test_rt_instr_susp_parallel(const char *func_name)
 {
 	u_register_t lead_mpid, target_mpid;
 	int cpu_node, ret;
@@ -345,7 +346,7 @@ static test_result_t test_rt_instr_susp_parallel(void)
 	cpu_count--;
 	assert(cpu_count == 0);
 
-	return dump_suspend_stats(__func__);
+	return dump_suspend_stats(func_name);
 }
 
 /*
@@ -356,7 +357,7 @@ static test_result_t test_rt_instr_susp_parallel(void)
  * powers off because it will be the only core active in the cluster.
  * The lead core will also be suspended in a similar fashion.
  */
-static test_result_t test_rt_instr_susp_serial(void)
+static test_result_t test_rt_instr_susp_serial(const char *func_name)
 {
 	u_register_t lead_mpid, target_mpid;
 	int cpu_node, ret;
@@ -396,7 +397,7 @@ static test_result_t test_rt_instr_susp_serial(void)
 	cpu_count--;
 	assert(cpu_count == 0);
 
-	return dump_suspend_stats(__func__);
+	return dump_suspend_stats(func_name);
 }
 
 /*
@@ -408,7 +409,12 @@ static test_result_t test_rt_instr_susp_serial(void)
 test_result_t test_rt_instr_susp_deep_parallel(void)
 {
 	target_pwrlvl = PLAT_MAX_PWR_LEVEL;
-	return test_rt_instr_susp_parallel();
+	/*
+	 * The test name needs to be passed all the way down to
+	 * the output functions to differentiate the results.
+	 * Ditto, for all cases below.
+	 */
+	return test_rt_instr_susp_parallel(__func__);
 }
 
 /*
@@ -421,7 +427,7 @@ test_result_t test_rt_instr_susp_deep_parallel(void)
 test_result_t test_rt_instr_cpu_susp_parallel(void)
 {
 	target_pwrlvl = 0;
-	return test_rt_instr_susp_parallel();
+	return test_rt_instr_susp_parallel(__func__);
 }
 
 /*
@@ -433,7 +439,7 @@ test_result_t test_rt_instr_cpu_susp_parallel(void)
 test_result_t test_rt_instr_susp_deep_serial(void)
 {
 	target_pwrlvl = PLAT_MAX_PWR_LEVEL;
-	return test_rt_instr_susp_serial();
+	return test_rt_instr_susp_serial(__func__);
 }
 
 /*
@@ -445,7 +451,7 @@ test_result_t test_rt_instr_susp_deep_serial(void)
 test_result_t test_rt_instr_cpu_susp_serial(void)
 {
 	target_pwrlvl = 0;
-	return test_rt_instr_susp_serial();
+	return test_rt_instr_susp_serial(__func__);
 }
 
 /*
