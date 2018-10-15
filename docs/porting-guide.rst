@@ -298,6 +298,47 @@ Function : plat_arm_gic_init() [mandatory]
 
 This function initializes the ARM Generic Interrupt Controller (GIC).
 
+Function : platform_get_core_pos() [mandatory]
+``````````````````````````````````````````````
+
+::
+
+    Argument : u_register_t
+    Return   : unsigned int
+
+This function returns a linear core ID from a MPID.
+
+Function : plat_crash_console_init() [mandatory]
+````````````````````````````````````````````````
+
+::
+
+    Argument : void
+    Return   : int
+
+This function initializes a platform-specific console for crash reporting.
+
+Function : plat_crash_console_putc() [mandatory]
+````````````````````````````````````````````````
+
+::
+
+    Argument : int
+    Return   : int
+
+This function prints a character on the platform-specific crash console.
+
+Function : plat_crash_console_flush() [mandatory]
+`````````````````````````````````````````````````
+
+::
+
+    Argument : void
+    Return   : int
+
+This function waits until all the characters of the platform-specific crash
+console have been actually printed.
+
 Optional modifications
 ----------------------
 
@@ -349,17 +390,6 @@ This function resets the platform.
 The default implementation uses the ARM watchdog peripheral (`SP805`_) to
 generate a watchdog timeout interrupt. This interrupt remains deliberately
 unserviced, which eventually asserts the reset signal.
-
-Function : tftf_platform_setup()
-````````````````````````````````
-
-::
-
-    Argument : void
-    Return   : void
-
-Setup code for platform hardware. The default implementation initializes the IO
-and GIC.
 
 Storage abstraction layer
 -------------------------

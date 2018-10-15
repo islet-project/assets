@@ -47,7 +47,6 @@ NS_BL1U_SOURCES	+=	drivers/io/io_fip.c				\
 			lib/utils/uuid.c				\
 			${XLAT_TABLES_LIB_SRCS}				\
 			plat/arm/common/arm_fwu_io_storage.c		\
-			plat/common/${ARCH}/platform_helpers.S		\
 			plat/common/${ARCH}/platform_up_stack.S 	\
 			plat/common/image_loader.c			\
 			plat/common/plat_common.c

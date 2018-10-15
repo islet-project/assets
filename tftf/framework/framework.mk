@@ -80,7 +80,6 @@ FRAMEWORK_SOURCES	+=						\
 	lib/utils/mp_printf.c						\
 	lib/utils/uuid.c						\
 	${XLAT_TABLES_LIB_SRCS}						\
-	plat/common/${ARCH}/platform_helpers.S				\
 	plat/common/${ARCH}/platform_mp_stack.S 			\
 	plat/common/plat_common.c					\
 	plat/common/plat_state_id.c					\

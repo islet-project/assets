@@ -53,7 +53,6 @@ CACTUS_SOURCES	+=					\
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/cache_helpers.S			\
 			lib/${ARCH}/misc_helpers.S			\
-			plat/common/${ARCH}/platform_helpers.S		\
 			${STDLIB_SOURCES}
 
 CACTUS_LINKERFILE	:=	spm/cactus/cactus.ld.S

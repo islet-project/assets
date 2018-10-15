@@ -56,6 +56,14 @@ void tftf_platform_end(void);
 void tftf_platform_watchdog_set(void);
 void tftf_platform_watchdog_reset(void);
 
+/* Helper that returns a linear core ID from a MPID */
+unsigned int platform_get_core_pos(u_register_t mpid);
+
+/* Crash console functions */
+int plat_crash_console_init(void);
+int plat_crash_console_putc(int c);
+int plat_crash_console_flush(void);
+
 /* Gets a handle for the initialised IO entity */
 void plat_get_nvm_handle(uintptr_t *handle);
 
@@ -153,11 +161,7 @@ typedef struct mem_region mem_region_t;
  * Optional functions. A default, weak implementation of those functions is
  * provided, it may be overridden by platform code.
  ******************************************************************************/
-unsigned int platform_get_core_pos(unsigned long mpid);
 unsigned long platform_get_stack(unsigned long mpidr);
-int plat_crash_console_init(void);
-int plat_crash_console_putc(int c);
-int plat_crash_console_flush(void);
 /*
  * plat_get_prot_regions: It returns a pointer to a
  * set of regions used to test mem_protect_check.

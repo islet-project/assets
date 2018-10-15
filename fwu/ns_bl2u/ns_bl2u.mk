@@ -45,7 +45,6 @@ NS_BL2U_SOURCES	+=	fwu/ns_bl2u/${ARCH}/ns_bl2u_entrypoint.S	\
 			lib/utils/uuid.c				\
 			${XLAT_TABLES_LIB_SRCS}				\
 			plat/arm/common/arm_fwu_io_storage.c		\
-			plat/common/${ARCH}/platform_helpers.S		\
 			plat/common/${ARCH}/platform_up_stack.S 	\
 			plat/common/fwu_nvm_accessors.c			\
 			plat/common/plat_common.c			\
