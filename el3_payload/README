@@ -10,6 +10,9 @@ the UART.
 Building
 --------
 
+The environment variable CROSS_COMPILE must point to the cross compiler. Refer
+to section 4 of the User Guide for the exact version this software has been tested with.
+
 $ make PLAT=juno
 or
 $ make PLAT=fvp

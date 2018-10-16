@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-CROSS_COMPILE	:=	aarch64-linux-gnu-
 CC		:=	${CROSS_COMPILE}gcc
 AS		:=	${CROSS_COMPILE}as
 LD		:=	${CROSS_COMPILE}ld
