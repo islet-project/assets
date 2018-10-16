@@ -159,6 +159,25 @@
 #define ID_AA64MMFR0_EL1_PARANGE_SHIFT	U(0)
 #define ID_AA64MMFR0_EL1_PARANGE_MASK	ULL(0xf)
 
+/* ID_AA64ISAR1_EL1 definitions */
+#define ID_AA64ISAR1_GPI_SHIFT	U(28)
+#define ID_AA64ISAR1_GPI_WIDTH	U(4)
+#define ID_AA64ISAR1_GPA_SHIFT	U(24)
+#define ID_AA64ISAR1_GPA_WIDTH	U(4)
+#define ID_AA64ISAR1_API_SHIFT	U(8)
+#define ID_AA64ISAR1_API_WIDTH	U(4)
+#define ID_AA64ISAR1_APA_SHIFT	U(4)
+#define ID_AA64ISAR1_APA_WIDTH	U(4)
+
+#define ID_AA64ISAR1_GPI_MASK \
+	(((ULL(1) << ID_AA64ISAR1_GPI_WIDTH) - ULL(1)) << ID_AA64ISAR1_GPI_SHIFT)
+#define ID_AA64ISAR1_GPA_MASK \
+	(((ULL(1) << ID_AA64ISAR1_GPA_WIDTH) - ULL(1)) << ID_AA64ISAR1_GPA_SHIFT)
+#define ID_AA64ISAR1_API_MASK \
+	(((ULL(1) << ID_AA64ISAR1_API_WIDTH) - ULL(1)) << ID_AA64ISAR1_API_SHIFT)
+#define ID_AA64ISAR1_APA_MASK \
+	(((ULL(1) << ID_AA64ISAR1_APA_WIDTH) - ULL(1)) << ID_AA64ISAR1_APA_SHIFT)
+
 #define PARANGE_0000	U(32)
 #define PARANGE_0001	U(36)
 #define PARANGE_0010	U(40)
@@ -617,5 +636,10 @@
 #define ERXPFGCTL_UC_BIT	(1 << 1)
 #define ERXPFGCTL_UEU_BIT	(1 << 2)
 #define ERXPFGCTL_CDEN_BIT	(1 << 31)
+
+/*******************************************************************************
+ * Armv8.3 Pointer Authentication Registers
+ *******************************************************************************/
+#define APGAKeyLo_EL1		S3_0_C2_C3_0
 
 #endif /* __ARCH_H__ */

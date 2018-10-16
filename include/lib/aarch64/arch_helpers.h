@@ -128,6 +128,7 @@ void disable_mmu_icache(void);
  ******************************************************************************/
 
 DEFINE_SYSREG_READ_FUNC(id_pfr1_el1)
+DEFINE_SYSREG_READ_FUNC(id_aa64isar1_el1)
 DEFINE_SYSREG_READ_FUNC(id_aa64pfr0_el1)
 DEFINE_SYSREG_READ_FUNC(CurrentEl)
 DEFINE_SYSREG_READ_FUNC(ctr_el0)
@@ -322,6 +323,9 @@ DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenclr0_el0, AMCNTENCLR0_EL0)
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenset0_el0, AMCNTENSET0_EL0)
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenclr1_el0, AMCNTENCLR1_EL0)
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenset1_el0, AMCNTENSET1_EL0)
+
+/* Armv8.3 Pointer Authentication Registers */
+DEFINE_RENAME_SYSREG_RW_FUNCS(apgakeylo_el1, APGAKeyLo_EL1)
 
 #define IS_IN_EL(x) \
 	(GET_EL(read_CurrentEl()) == MODE_EL##x)
