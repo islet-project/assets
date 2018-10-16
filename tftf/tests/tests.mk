@@ -18,72 +18,28 @@ ifeq (,$(wildcard ${TESTS_FILE}))
   $(error "The file TESTS_FILE points to cannot be found")
 endif
 
-SPM_TESTS_SOURCES	:=						\
-	$(addprefix tftf/tests/runtime_services/secure_service/,	\
-		secure_service_helpers.c				\
-		test_secure_service_handle.c 				\
-		test_secure_service_interrupts.c			\
-	)
+# Initialize variable before including all sub-makefiles that will append source
+# files to it.
+TESTS_SOURCES   :=
 
-FWU_TESTS_SOURCES	:=						\
-	tftf/tests/fwu_tests/test_fwu_toc.c				\
-	tftf/tests/fwu_tests/test_fwu_auth.c				\
-	plat/common/fwu_nvm_accessors.c
+include tftf/tests/tests-arm-state-switch.mk
+include tftf/tests/tests-boot-req.mk
+include tftf/tests/tests-cpu-extensions.mk
+include tftf/tests/tests-el3-power-state.mk
+include tftf/tests/tests-fwu.mk
+include tftf/tests/tests-manual.mk
+include tftf/tests/tests-performance.mk
+include tftf/tests/tests-psci-extensive.mk
+include tftf/tests/tests-psci.mk
+include tftf/tests/tests-runtime-instrumentation.mk
+include tftf/tests/tests-sdei.mk
+include tftf/tests/tests-single-fault.mk
+include tftf/tests/tests-spm.mk
+include tftf/tests/tests-template.mk
+include tftf/tests/tests-tftf-validation.mk
+include tftf/tests/tests-tsp.mk
+include tftf/tests/tests-uncontainable.mk
 
-TESTS_SOURCES	:=	$(addprefix tftf/tests/,			\
-	extensions/amu/test_amu.c					\
-	framework_validation_tests/test_timer_framework.c		\
-	framework_validation_tests/test_validation_events.c	\
-	framework_validation_tests/test_validation_irq.c		\
-	framework_validation_tests/test_validation_nvm.c		\
-	framework_validation_tests/test_validation_sgi.c		\
-	misc_tests/inject_serror.S \
-	misc_tests/test_single_fault.c \
-	misc_tests/test_uncontainable.c \
-	performance_tests/smc_latencies.c				\
-	misc_tests/boot_req_tests/test_cntfrq.c			\
-	runtime_services/arm_arch_svc/smccc_arch_workaround_1.c		\
-	runtime_services/arm_arch_svc/smccc_arch_workaround_2.c		\
-	runtime_services/sip_service/test_exec_state_switch.c	\
-	runtime_services/sip_service/test_exec_state_switch_asm.S \
-	runtime_services/standard_service/pmf/api_tests/runtime_instr/test_pmf_rt_instr.c	\
-	runtime_services/standard_service/psci/api_tests/affinity_info/test_psci_affinity_info.c	\
-	runtime_services/standard_service/psci/api_tests/cpu_hotplug/test_psci_hotplug.c	\
-	runtime_services/standard_service/psci/api_tests/cpu_hotplug/test_psci_hotplug_invalid.c \
-	runtime_services/standard_service/psci/api_tests/cpu_suspend/test_suspend.c	\
-	runtime_services/standard_service/psci/api_tests/migrate_info_type/test_migrate_info_type.c \
-	runtime_services/standard_service/psci/api_tests/psci_features/test_psci_features.c \
-	runtime_services/standard_service/psci/api_tests/psci_node_hw_state/test_node_hw_state.c \
-	runtime_services/standard_service/psci/api_tests/psci_stat/test_psci_stat.c	\
-	runtime_services/standard_service/psci/api_tests/psci_version/test_psci_version.c	\
-	runtime_services/standard_service/psci/api_tests/system_off/test_system_off.c \
-	runtime_services/standard_service/psci/api_tests/system_suspend/test_psci_system_suspend.c \
-	runtime_services/standard_service/psci/api_tests/validate_power_state/test_validate_power_state.c \
-	runtime_services/standard_service/psci/system_tests/test_psci_hotplug_stress.c		\
-	runtime_services/standard_service/psci/system_tests/test_psci_on_off_suspend_stress.c		\
-	runtime_services/standard_service/psci/system_tests/test_psci_system_suspend_stress.c	\
-	runtime_services/standard_service/psci/api_tests/mem_protect/test_mem_protect.c	\
-	runtime_services/standard_service/psci/api_tests/mem_protect_check/mem_protect_check.c \
-	runtime_services/standard_service/psci/api_tests/reset2/reset2.c \
-	runtime_services/standard_service/query_std_svc.c \
-	runtime_services/standard_service/unknown_smc.c \
-	runtime_services/standard_service/sdei/system_tests/sdei_entrypoint.S \
-	runtime_services/standard_service/sdei/system_tests/test_sdei.c \
-	runtime_services/standard_service/sdei/system_tests/test_sdei_state.c \
-	runtime_services/trusted_os/tsp/test_irq_preempted_std_smc.c \
-	runtime_services/trusted_os/tsp/test_irq_spurious_gicv2.c \
-	runtime_services/trusted_os/tsp/test_normal_int_switch.c \
-	runtime_services/trusted_os/tsp/test_smc_tsp_std_fn_call.c \
-	runtime_services/trusted_os/tsp/test_tsp_fast_smc.c \
-)
-
-TESTS_SOURCES	+=	${SPM_TESTS_SOURCES} \
-			${FWU_TESTS_SOURCES}
-
-# The following source files are part of the "template" testsuite, which aims
-# at providing template test code as a starting point for developing new tests.
-# They don't do anything useful in terms of testing so they are disabled by
-# default. Uncomment those lines along with the corresponding test suite XML
-# node in the tests/tests.xml file to enable them.
-# TESTS_SOURCES	+=	tftf/tests/template_tests/test_template_single_core.c		\
-#			tftf/tests/template_tests/test_template_multi_core.c
+# Some source files might be included by several test makefiles.
+# Remove duplicate ones.
+TESTS_SOURCES := $(sort ${TESTS_SOURCES})
