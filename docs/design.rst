@@ -76,8 +76,10 @@ the top level or under the ``tftf/`` directory):
 
 -  **Library code.**
 
-   Some examples of APIs provided in ``include/lib/`` follow, this list might
-   not be exhaustive.
+   Firstly, there is ``include/stdlib/`` which provides standard C library
+   functions like ``memcpy()``, ``printf()`` and so on.
+   Additionally, various other APIs are provided under ``include/lib/``. The
+   below list gives some examples but might not be exhaustive.
 
    -  ``aarch64/``
 
@@ -128,9 +130,6 @@ the top level or under the ``tftf/`` directory):
       Low-level IO operations. Tests are not expected to use these APIs
       directly. They should use higher-level APIs like ``tftf_nvm_read()``
       and ``tftf_nvm_write()``.
-
-  ``include/stdlib/`` provides standard C library functions (``memcpy()``,
-  ``printf()``, and so on).
 
 -  **Platform specific.**
 
@@ -262,5 +261,5 @@ state.
 
 *Copyright (c) 2018, Arm Limited. All rights reserved.*
 
-.. _Summary of build options: user-guide.html#summary-of-build-options
+.. _Summary of build options: user-guide.rst#summary-of-build-options
 .. _Firmware Update: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/firmware-update.rst

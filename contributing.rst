@@ -82,8 +82,8 @@ Submitting Changes
 .. _maintainers: maintainers.rst
 .. _license.rst: license.rst
 .. _Developer Certificate of Origin (DCO): dco.txt
-.. _Checking source code style: ../docs/user-guide.rst#checking-source-code-style
-.. _Running the TF-A Tests: ../docs/user-guide.rst#running-the-tf-a-tests
+.. _Checking source code style: docs/user-guide.rst#checking-source-code-style
+.. _Running the TF-A Tests: docs/user-guide.rst#running-the-tf-a-tests
 
 .. _Git guidelines: http://git-scm.com/book/ch5-2.html
 .. _Linux coding style: https://www.kernel.org/doc/html/latest/process/coding-style.html

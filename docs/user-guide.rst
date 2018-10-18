@@ -218,22 +218,22 @@ the firmware was successfully updated.
 To sum up, 3 images must be built out of the TF-A Tests repository in order to
 test the TF-A Firmware Update feature:
 
-  -  ``ns_bl1u.bin``
-  -  ``ns_bl2u.bin``
-  -  ``tftf.bin``
+-  ``ns_bl1u.bin``
+-  ``ns_bl2u.bin``
+-  ``tftf.bin``
 
 Once that's done, they must be combined in the right way.
 
-  -  ``ns_bl1u.bin`` is a standalone image and does not require any further
-     processing.
+-  ``ns_bl1u.bin`` is a standalone image and does not require any further
+   processing.
 
-  -  ``ns_bl2u.bin`` must be injected into the ``FWU_FIP`` image. This might be
-     achieved by setting ``NS_BL2U=ns_bl2u.bin`` when building the ``FWU_FIP``
-     image out of the TF-A repository. Please refer to the section `Building FIP
-     images with support for Trusted Board Boot`_ in the TF-A User Guide.
+-  ``ns_bl2u.bin`` must be injected into the ``FWU_FIP`` image. This might be
+   achieved by setting ``NS_BL2U=ns_bl2u.bin`` when building the ``FWU_FIP``
+   image out of the TF-A repository. Please refer to the section `Building FIP
+   images with support for Trusted Board Boot`_ in the TF-A User Guide.
 
-  -  ``tftf.bin`` must be injected in the standard FIP image, as explained
-     in section `TFTF test image`_.
+-  ``tftf.bin`` must be injected in the standard FIP image, as explained
+   in section `TFTF test image`_.
 
 Additionally, on Juno platform, the FWU FIP must contain a ``SCP_BL2U`` image.
 This image can simply be a copy of the standard ``SCP_BL2`` image if no specific
@@ -327,14 +327,14 @@ payload, whose simplistic build system is mostly independent.
 -  ``ENABLE_ASSERTIONS``: This option controls whether calls to ``assert()`` are
    compiled out.
 
-  -  For debug builds, this option defaults to 1, and calls to ``assert()`` are
-     compiled in.
-  -  For release builds, this option defaults to 0 and calls to ``assert()``
-     are compiled out.
+   -  For debug builds, this option defaults to 1, and calls to ``assert()`` are
+      compiled in.
+   -  For release builds, this option defaults to 0 and calls to ``assert()``
+      are compiled out.
 
-  This option can be set independently of ``DEBUG``. It can also be used to
-  hide any auxiliary code that is only required for the assertion and does not
-  fit in the assertion itself.
+   This option can be set independently of ``DEBUG``. It can also be used to
+   hide any auxiliary code that is only required for the assertion and does not
+   fit in the assertion itself.
 
 -  ``LOG_LEVEL``: Chooses the log level, which controls the amount of console log
    output compiled into the build. This should be one of the following:
@@ -453,11 +453,12 @@ In other words, only the following software images are needed:
 -  ``BL1`` firmware image;
 
 -  ``FIP`` image containing the following images:
-    -  ``BL2``;
-    -  ``SCP_BL2`` if required by the platform (e.g. Juno);
-    -  ``BL31``;
-    -  ``BL32`` (optional);
-    -  ``tftf.bin`` (standing as the BL33 image).
+
+   -  ``BL2``;
+   -  ``SCP_BL2`` if required by the platform (e.g. Juno);
+   -  ``BL31``;
+   -  ``BL32`` (optional);
+   -  ``tftf.bin`` (standing as the BL33 image).
 
 Running the FWU tests
 `````````````````````
