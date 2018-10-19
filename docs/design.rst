@@ -139,42 +139,42 @@ the top level or under the ``tftf/`` directory):
 
 -  **Tests.**
 
-The tests are divided into the following categories (present as directories in
-the ``tftf/tests/`` directory):
+   The tests are divided into the following categories (present as directories in
+   the ``tftf/tests/`` directory):
 
--  **Framework validation tests.**
+   -  **Framework validation tests.**
 
-   Tests that exercise the core features of the framework. Verify that the test
-   framework itself works properly.
+      Tests that exercise the core features of the framework. Verify that the test
+      framework itself works properly.
 
--  **Runtime services tests.**
+   -  **Runtime services tests.**
 
-   Tests that exercise the runtime services offered by the EL3 Firmware to the
-   Normal World software. For example, this includes tests for the Standard
-   Service (to which PSCI belongs to), the Trusted OS service or the SiP
-   service.
+      Tests that exercise the runtime services offered by the EL3 Firmware to the
+      Normal World software. For example, this includes tests for the Standard
+      Service (to which PSCI belongs to), the Trusted OS service or the SiP
+      service.
 
--  **CPU extensions tests.**
+   -  **CPU extensions tests.**
 
-   Tests some CPU extensions features. For example, the AMU tests ensure that
-   the counters provided by the Activity Monitor Unit are behaving correctly.
+      Tests some CPU extensions features. For example, the AMU tests ensure that
+      the counters provided by the Activity Monitor Unit are behaving correctly.
 
--  **Firmware Update tests.**
+   -  **Firmware Update tests.**
 
-   Tests that exercise the `Firmware Update`_ feature of TF-A.
+      Tests that exercise the `Firmware Update`_ feature of TF-A.
 
--  **Template tests.**
+   -  **Template tests.**
 
-   Sample test code showing how to write tests in practice. Serves as
-   documentation.
+      Sample test code showing how to write tests in practice. Serves as
+      documentation.
 
--  **Performance tests.**
+   -  **Performance tests.**
 
-   Simple tests measuring the latency of an SMC call.
+      Simple tests measuring the latency of an SMC call.
 
--  **Miscellaneous tests.**
+   -  **Miscellaneous tests.**
 
-   Tests for RAS support, correct system setup, ...
+      Tests for RAS support, correct system setup, ...
 
 All assembler files have the ``.S`` extension. The linker source file has the
 extension ``.ld.S``. This is processed by GCC to create the linker script which
