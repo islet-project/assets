@@ -36,7 +36,7 @@
 
 #define PLAT_VIRT_ADDR_SPACE_SIZE	(1ULL << 32)
 #define PLAT_PHY_ADDR_SPACE_SIZE	(1ULL << 32)
-#define MAX_XLAT_TABLES			3
+#define MAX_XLAT_TABLES			8
 #define MAX_MMAP_REGIONS		16
 
 #define DRAM_BASE			0x0
@@ -58,6 +58,24 @@
 #define GICD_REG_BASE			0xE82B1000
 #define GICC_REG_BASE			0xE82B2000
 
+/*
+ * Memory mapped devices that we must create MMU mappings for them
+ */
+#define GIC_BASE			0xE82B0000
+#define GIC_SIZE			0x8000
+#define SP805_WDOG_BASE			0xE8A06000
+#define SP805_WDOG_SIZE			0x1000
+#define SYS_CNT_BASE1			0xfff14000
+#define SYS_CNT_SIZE			0x1000
+
+
+/* ARM PL011 UART */
+#define PL011_UART6_BASE		0xFFF32000
+#define CRASH_CONSOLE_BASE		PL011_UART6_BASE
+#define CRASH_CONSOLE_SIZE		0x1000
+#define PL011_BAUDRATE			115200
+#define PL011_UART_CLK_IN_HZ		19200000
+
 /*******************************************************************************
  * Non-Secure Software Generated Interupts IDs
  ******************************************************************************/
@@ -76,13 +94,6 @@
 #define IRQ_CNTPSIRQ1			80
 
 #define PLAT_MAX_SPI_OFFSET_ID		343
-#define SYS_CNT_BASE1			0xfff14000
-#define SP805_WDOG_BASE			0xE8A06000
-
-/* ARM PL011 UART */
-#define CRASH_CONSOLE_BASE		0xFFF32000
-#define PL011_BAUDRATE			115200
-#define PL011_UART_CLK_IN_HZ		19200000
 
 /*
  * Times(in ms) used by test code for completion of different events. Kept the
