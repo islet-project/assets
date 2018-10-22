@@ -23,7 +23,7 @@ check_file backup_fip.bin ||
 # Chosen topology: 2 clusters of 4 cores each.
 # Power on core 0 only.
 # Load all binaries at the right addresses.
-FVP_Base_RevC-2xAEMv8A					\
+FVP_Base_AEMv8A-AEMv8A					\
     -C cluster0.NUM_CORES=4				\
     -C cluster1.NUM_CORES=4				\
     -C pctl.startup=0.0.0.0				\

@@ -191,6 +191,9 @@ Tests
 FWU images
 ``````````
 
+-  The FWU tests do not work on the revC of the Base AEM FVP. They only work on
+   the revB.
+
 -  NS-BL1U and NS-BL2U images reuse TFTF-specific code for legacy reasons. This
    is not a clean design and may cause confusion.
 
