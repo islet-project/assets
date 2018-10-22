@@ -74,6 +74,7 @@ void tftf_early_platform_setup(void)
 void tftf_platform_setup(void)
 {
 	gicv2_init(GICC_REG_BASE, GICD_REG_BASE);
+	gicv2_setup_distif();
 	gicv2_probe_gic_cpu_id();
 	gicv2_setup_cpuif();
 }
