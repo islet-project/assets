@@ -19,11 +19,11 @@ func ns_bl1u_entrypoint
 	stcopr	r0, HVBAR
 
 	/* --------------------------------------------------------------------
-	 * Enable the instruction cache and data access alignment checks.
+	 * Enable the instruction cache.
 	 * --------------------------------------------------------------------
 	 */
 	ldcopr	r0, HSCTLR
-	ldr	r1, =(HSCTLR_I_BIT | HSCTLR_A_BIT)
+	ldr	r1, =HSCTLR_I_BIT
 	orr	r0, r0, r1
 	stcopr	r0, HSCTLR
 	isb

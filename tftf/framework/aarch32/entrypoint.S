@@ -24,11 +24,11 @@ func tftf_entrypoint
 	stcopr	r0, HVBAR
 
 	/* --------------------------------------------------------------------
-	 * Enable the instruction cache and asynchronous interrupts.
+	 * Enable the instruction cache.
 	 * --------------------------------------------------------------------
 	 */
 	ldcopr	r0, HSCTLR
-	ldr	r1, =(HSCTLR_I_BIT | HSCTLR_A_BIT)
+	ldr	r1, =HSCTLR_I_BIT
 	orr	r0, r0, r1
 	stcopr	r0, HSCTLR
 	isb
@@ -103,11 +103,11 @@ func tftf_hotplug_entry
 	stcopr	r0, HVBAR
 
 	/* --------------------------------------------------------------------
-	 * Enable the instruction cache and asynchronous interrupts.
+	 * Enable the instruction cache.
 	 * --------------------------------------------------------------------
 	 */
 	ldcopr	r0, HSCTLR
-	ldr	r1, =(HSCTLR_I_BIT | HSCTLR_A_BIT)
+	ldr	r1, =HSCTLR_I_BIT
 	orr	r0, r0, r1
 	stcopr	r0, HSCTLR
 	isb
