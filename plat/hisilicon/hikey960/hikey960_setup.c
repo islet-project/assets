@@ -28,9 +28,14 @@ const unsigned char hikey960_power_domain_tree_desc[] = {
 	/* Number of clusters */
 	PLATFORM_CLUSTER_COUNT,
 	/* Number of children for the first cluster node */
-	PLATFORM_CORE_COUNT_PER_CLUSTER,
+	PLATFORM_CORE_COUNT_PER_CLUSTER
+	/*
+	 * TODO: Re-enable this code once power management issues on Hikey [1]
+	 * are resolved.
+	 * [1] https://bugs.96boards.org/show_bug.cgi?id=783
+	 */
 	/* Number of children for the second cluster node */
-	PLATFORM_CORE_COUNT_PER_CLUSTER,
+	/* PLATFORM_CORE_COUNT_PER_CLUSTER, */
 };
 
 

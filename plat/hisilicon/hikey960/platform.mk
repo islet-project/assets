@@ -19,6 +19,8 @@ PLAT_SOURCES	:=	${HIKEY960_PATH}/hikey960_setup.c		\
 			drivers/arm/timer/private_timer.c		\
 			plat/arm/common/arm_timers.c
 
+TFTF_CFLAGS		+= -Wno-maybe-uninitialized
+
 ifeq ($(USE_NVM),1)
 $(error "Hikey960 port of TFTF doesn't currently support USE_NVM=1")
 endif

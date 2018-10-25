@@ -18,9 +18,13 @@
 
 #define CACHE_WRITEBACK_GRANULE		0x40
 
-
-#define PLATFORM_CLUSTER_COUNT		2
-#define PLATFORM_CORE_COUNT_PER_CLUSTER	4
+/*
+ * hikey960 has an unresolved power management bug, so for now we can only
+ * run single core tests.
+ * TODO:Update these values when power management bug is resolved
+ */
+#define PLATFORM_CLUSTER_COUNT		1
+#define PLATFORM_CORE_COUNT_PER_CLUSTER	1
 #define PLATFORM_CORE_COUNT		(PLATFORM_CLUSTER_COUNT * \
 					PLATFORM_CORE_COUNT_PER_CLUSTER)
 #define PLATFORM_NUM_AFFS		(PLATFORM_CORE_COUNT + \
