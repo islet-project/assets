@@ -44,7 +44,7 @@ int program_systimer(unsigned long time_out_ms)
 	if (count_val < mmio_read_64(g_systimer_base + CNTPCT_LO))
 		panic();
 
-	VERBOSE("%s : interrupt requested at sys_counter: %lld "
+	VERBOSE("%s : interrupt requested at sys_counter: %llu "
 		"time_out_ms: %ld\n", __func__, count_val, time_out_ms);
 
 	return 0;
