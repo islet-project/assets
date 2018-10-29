@@ -159,8 +159,9 @@ static int dump_suspend_stats(const char *func_name)
 			return TEST_RESULT_FAIL;
 		}
 
-		printf("<RT_INSTR:%s\t%d\t%02llu\t%02llu\t%02llu/>\n",
-		    func_name, pos,
+		printf("<RT_INSTR:%s\t%llu\t%llu\t%02llu\t%02llu\t%02llu/>\n", func_name,
+		    (unsigned long long)MPIDR_CLUSTER_ID(target_mpid),
+		    (unsigned long long)MPIDR_CPU_ID(target_mpid),
 		    (unsigned long long)period[0],
 		    (unsigned long long)period[1],
 		    (unsigned long long)period[2]);
@@ -193,7 +194,9 @@ static int dump_psci_version_stats(const char *func_name)
 			return TEST_RESULT_FAIL;
 		}
 
-		printf("<RT_INSTR:%s\t%d\t%02llu/>\n", func_name, pos,
+		printf("<RT_INSTR:%s\t%llu\t%llu\t%02llu/>\n", func_name,
+		    (unsigned long long)MPIDR_CLUSTER_ID(target_mpid),
+		    (unsigned long long)MPIDR_CPU_ID(target_mpid),
 		    (unsigned long long)period);
 	}
 
