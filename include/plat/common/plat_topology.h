@@ -126,34 +126,34 @@ unsigned int tftf_topology_next_cpu(unsigned int cpu_node);
 /*
  * Iterate over every CPU. Skip absent CPUs.
  * cpu: unsigned integer corresponding to the index of the cpu in
- * the topology array. After the loop, cpu is equal to PWR_DOMAIN_INIT.
+ * the topology array.
  */
-#define for_each_cpu(cpu)				\
-	for ((cpu) = PWR_DOMAIN_INIT;			\
-		(cpu) = tftf_topology_next_cpu(cpu),	\
-		(cpu) != PWR_DOMAIN_INIT;)
+#define for_each_cpu(cpu)					\
+	for (cpu = tftf_topology_next_cpu(PWR_DOMAIN_INIT);	\
+		cpu != PWR_DOMAIN_INIT;				\
+		cpu = tftf_topology_next_cpu(cpu))
 
 /*
  * Iterate over every power domain idx for a given level.
- * - idx: unsigned integer corresponding to the power domain index. After the
- *   loop, idx is equal to PWR_DOMAIN_INIT.
+ * - idx: unsigned integer corresponding to the power domain index.
  * - lvl: level
  */
-#define for_each_power_domain_idx(idx, lvl)		\
-	for (idx = PWR_DOMAIN_INIT;			\
-	     idx = tftf_get_next_peer_domain(idx, lvl),	\
-		idx != PWR_DOMAIN_INIT;)
+#define for_each_power_domain_idx(idx, lvl)				\
+	for (idx = tftf_get_next_peer_domain(PWR_DOMAIN_INIT, (lvl));	\
+		idx != PWR_DOMAIN_INIT;					\
+		idx = tftf_get_next_peer_domain(idx, (lvl)))
 
 /*
  * Iterate over every CPU in a power domain idx.
+ * - cpu_idx: CPU index.
  * - pwr_domain_idx: unsigned integer corresponding to the power domain index.
- *   After the loop, idx is equal to PWR_DOMAIN_INIT.
- * - cpu_idx: CPU index
  */
-#define for_each_cpu_in_power_domain(pwr_domain_idx, cpu_idx)			\
-	for (cpu_idx = PWR_DOMAIN_INIT;						\
-	     cpu_idx = tftf_get_next_cpu_in_pwr_domain(pwr_domain_idx, cpu_idx),\
-		cpu_idx != PWR_DOMAIN_INIT;)
+#define for_each_cpu_in_power_domain(cpu_idx, pwr_domain_idx)		\
+	for (cpu_idx = tftf_get_next_cpu_in_pwr_domain(			\
+			(pwr_domain_idx), PWR_DOMAIN_INIT);		\
+		cpu_idx != PWR_DOMAIN_INIT;				\
+		cpu_idx = tftf_get_next_cpu_in_pwr_domain(		\
+			(pwr_domain_idx), cpu_idx))
 
 /*
  * Returns the MPIDR of the CPU power domain node indexed by `cpu_node`
