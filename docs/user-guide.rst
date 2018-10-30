@@ -279,13 +279,13 @@ the TF-A root directory:
 
 ::
 
-    BL32=cactus.bin make PLAT=fvp fip
+    BL32=cactus.bin make PLAT=fvp ENABLE_SPM=1 fip
 
 Please refer to the `TF-A User guide`_ for further details.
 
 To run the full set of tests in Cactus, it should be used in conjunction with
 the TFTF image, as the latter sends the Management Mode requests that Cactus
-services.
+services. The TFTF has to be built with `TESTS=spm` to run the SPM tests.
 
 Summary of build options
 ````````````````````````
