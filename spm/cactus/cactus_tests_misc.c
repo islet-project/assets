@@ -27,17 +27,6 @@ void misc_tests(void)
 
 	announce_test_section_start(test_sect_desc);
 
-	const char *test_version_spm = "SPM version check";
-
-	announce_test_start(test_version_spm);
-	svc_args svc_values = { SPM_VERSION_AARCH32 };
-	ret = sp_svc(&svc_values);
-	INFO("Version = 0x%x (%u.%u)\n", ret,
-	     (ret >> SPM_VERSION_MAJOR_SHIFT) & SPM_VERSION_MAJOR_MASK,
-	     ret & SPM_VERSION_MINOR_MASK);
-	expect(ret, SPM_VERSION_COMPILED);
-	announce_test_end(test_version_spm);
-
 	const char *test_version_sprt = "SPRT version check";
 
 	announce_test_start(test_version_sprt);
