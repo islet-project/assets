@@ -10,7 +10,7 @@
 #include <platform_def.h>
 #include <secure_partition.h>
 #include <sp_helpers.h>
-#include <spm_svc.h>
+#include <sprt_svc.h>
 #include <stdio.h>
 #include <types.h>
 #include <xlat_tables_defs.h>
@@ -25,20 +25,7 @@ static uintptr_t cactus_tests_end;
 static uintptr_t cactus_tests_size;
 
 /*
- * Given the required instruction and data access permissions,
- * create a memory access controls value that is formatted as expected
- * by the SP_MEMORY_ATTRIBUTES_SET_AARCH64 SMC.
- */
-static inline uint32_t mem_access_perm(int instr_access_perm,
-				int data_access_perm)
-{
-	return instr_access_perm |
-		((data_access_perm & SP_MEMORY_ATTRIBUTES_ACCESS_MASK)
-			<< SP_MEMORY_ATTRIBUTES_ACCESS_SHIFT);
-}
-
-/*
- * Send an SP_MEMORY_ATTRIBUTES_SET_AARCH64 SVC with the given arguments.
+ * Send an SPRT_MEMORY_PERM_ATTR_SET_AARCH64 SVC with the given arguments.
  * Return the return value of the SVC.
  */
 static int32_t request_mem_attr_changes(uintptr_t base_address,
@@ -50,7 +37,7 @@ static int32_t request_mem_attr_changes(uintptr_t base_address,
 	INFO("  Number of pages: %i\n", pages_count);
 	INFO("  Attributes     : 0x%x\n", memory_access_controls);
 
-	svc_args svc_values = { SP_MEMORY_ATTRIBUTES_SET_AARCH64,
+	svc_args svc_values = { SPRT_MEMORY_PERM_ATTR_SET_AARCH64,
 				base_address,
 				pages_count,
 				memory_access_controls };
@@ -58,7 +45,7 @@ static int32_t request_mem_attr_changes(uintptr_t base_address,
 }
 
 /*
- * Send an SP_MEMORY_ATTRIBUTES_GET_AARCH64 SVC with the given arguments.
+ * Send an SPRT_MEMORY_PERM_ATTR_GET_AARCH64 SVC with the given arguments.
  * Return the return value of the SVC.
  */
 static int32_t request_get_mem_attr(uintptr_t base_address)
@@ -66,7 +53,7 @@ static int32_t request_get_mem_attr(uintptr_t base_address)
 	INFO("Requesting memory attributes\n");
 	INFO("  Base address  : %p\n", (void *) base_address);
 
-	svc_args svc_values = { SP_MEMORY_ATTRIBUTES_GET_AARCH64,
+	svc_args svc_values = { SPRT_MEMORY_PERM_ATTR_GET_AARCH64,
 				base_address };
 	return sp_svc(&svc_values);
 }
@@ -101,17 +88,17 @@ static void mem_attr_changes_unittest(uintptr_t addr, int pages_count)
 	assert(addr >= cactus_tests_start);
 	assert(end_addr < (cactus_tests_start + cactus_tests_size));
 
-	old_attr = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RO);
+	old_attr = SPRT_MEMORY_PERM_ATTR_RO;
 	/* Memory was read-only, let's try changing that to RW */
-	new_attr = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
+	new_attr = SPRT_MEMORY_PERM_ATTR_RW;
 
 	ret = request_mem_attr_changes(addr, pages_count, new_attr);
-	expect(ret, SPM_SUCCESS);
+	expect(ret, SPRT_SUCCESS);
 	printf("Successfully changed memory attributes\n");
 
 	/* The attributes should be the ones we have just written. */
 	ret = request_get_mem_attr(addr);
-	expect(ret, new_attr);
+	expect(ret, SPRT_SUCCESS | (new_attr << SPRT_MEMORY_PERM_ATTR_SHIFT));
 
 	/* If it worked, we should be able to write to this memory now! */
 	for (unsigned char *data = (unsigned char *) addr;
@@ -123,12 +110,12 @@ static void mem_attr_changes_unittest(uintptr_t addr, int pages_count)
 
 	/* Let's revert back to the original attributes for the next test */
 	ret = request_mem_attr_changes(addr, pages_count, old_attr);
-	expect(ret, SPM_SUCCESS);
+	expect(ret, SPRT_SUCCESS);
 	printf("Successfully restored the old attributes\n");
 
 	/* The attributes should be the original ones again. */
 	ret = request_get_mem_attr(addr);
-	expect(ret, old_attr);
+	expect(ret, SPRT_SUCCESS | (old_attr << SPRT_MEMORY_PERM_ATTR_SHIFT));
 
 	announce_test_end(test_desc);
 }
@@ -153,48 +140,48 @@ void mem_attr_changes_tests(void)
 	/*
 	 * Start with error cases, i.e. requests that are expected to be denied
 	 */
-	const char *test_desc1 = "Read-write, executable";
+	const char *test_desc1 = "Reserved attributes value";
 
 	announce_test_start(test_desc1);
-	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
+	attributes = U(3);
 	ret = request_mem_attr_changes(cactus_tests_start, 1, attributes);
-	expect(ret, SPM_INVALID_PARAMETER);
+	expect(ret, SPRT_INVALID_PARAMETER);
 	announce_test_end(test_desc1);
 
 	const char *test_desc2 = "Size == 0";
 
 	announce_test_start(test_desc2);
-	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
+	attributes = SPRT_MEMORY_PERM_ATTR_RW;
 	ret = request_mem_attr_changes(cactus_tests_start, 0, attributes);
-	expect(ret, SPM_INVALID_PARAMETER);
+	expect(ret, SPRT_INVALID_PARAMETER);
 	announce_test_end(test_desc2);
 
 	const char *test_desc3 = "Unaligned address";
 
 	announce_test_start(test_desc3);
-	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
+	attributes = SPRT_MEMORY_PERM_ATTR_RW;
 	/* Choose an address not aligned to a page boundary. */
 	addr = cactus_tests_start + 5;
 	ret = request_mem_attr_changes(addr, 1, attributes);
-	expect(ret, SPM_INVALID_PARAMETER);
+	expect(ret, SPRT_INVALID_PARAMETER);
 	announce_test_end(test_desc3);
 
 	const char *test_desc4 = "Unmapped memory region";
 
 	announce_test_start(test_desc4);
 	addr = cactus_tests_end + 2 * PAGE_SIZE;
-	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
+	attributes = SPRT_MEMORY_PERM_ATTR_RW;
 	ret = request_mem_attr_changes(addr, 3, attributes);
-	expect(ret, SPM_INVALID_PARAMETER);
+	expect(ret, SPRT_INVALID_PARAMETER);
 	announce_test_end(test_desc4);
 
 	const char *test_desc5 = "Partially unmapped memory region";
 
 	announce_test_start(test_desc5);
 	addr = cactus_tests_end - 2 * PAGE_SIZE;
-	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
+	attributes = SPRT_MEMORY_PERM_ATTR_RW;
 	ret = request_mem_attr_changes(addr, 6, attributes);
-	expect(ret, SPM_INVALID_PARAMETER);
+	expect(ret, SPRT_INVALID_PARAMETER);
 	announce_test_end(test_desc5);
 
 	const char *test_desc6 = "Memory region mapped with the wrong granularity";
@@ -207,9 +194,9 @@ void mem_attr_changes_tests(void)
 	 * and we would get the error message.
 	 */
 	addr = ((uintptr_t)PLAT_ARM_UART_BASE + 0x200000ULL) & ~(0x200000ULL - 1ULL);
-	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
+	attributes = SPRT_MEMORY_PERM_ATTR_RW;
 	ret = request_mem_attr_changes(addr, 1, attributes);
-	expect(ret, SPM_INVALID_PARAMETER);
+	expect(ret, SPRT_INVALID_PARAMETER);
 	announce_test_end(test_desc6);
 
 	const char *test_desc7 = "Try some valid memory change requests";
