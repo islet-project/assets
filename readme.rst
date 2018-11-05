@@ -150,7 +150,7 @@ tracker <TODO: insert link>.
 .. _SDEI: http://infocenter.arm.com/help/topic/com.arm.doc.den0054a/ARM_DEN0054A_Software_Delegated_Exception_Interface.pdf
 .. _SMC Calling Convention: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf
 
-.. _trustedfirmware.org: https://git.trustedfirmware.org/tf-a-tests.git
+.. _trustedfirmware.org: https://git.trustedfirmware.org/TF-A/tf-a-tests.git
 
 .. _Trusted Firmware-A (TF-A): TF-A_
 .. _TF-A: https://www.github.com/ARM-software/arm-trusted-firmware

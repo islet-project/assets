@@ -90,7 +90,7 @@ Submitting Changes
 
 .. _developer.trustedfirmware.org: https://developer.trustedfirmware.org
 .. _task: https://developer.trustedfirmware.org/maniphest/query/open/
-.. _tf-a-tests project page: https://review.trustedfirmware.org/#/admin/projects/tf-a-tests
+.. _tf-a-tests project page: https://review.trustedfirmware.org/#/admin/projects/TF-A/tf-a-tests
 .. _Gerrit documentation: https://review.trustedfirmware.org/Documentation/user-upload.html
 .. _Gerrit Signed-off-by Lines guidelines: https://review.trustedfirmware.org/Documentation/user-signedoffby.html
 .. _Gerrit Change-Ids documentation: https://review.trustedfirmware.org/Documentation/user-changeid.html

@@ -48,7 +48,7 @@ Download the TF-A Tests source code using the following command:
 
 ::
 
-    git clone https://git.trustedfirmware.org/tf-a-tests.git
+    git clone https://git.trustedfirmware.org/TF-A/tf-a-tests.git
 
 Building TF-A Tests
 -------------------
