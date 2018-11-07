@@ -372,14 +372,6 @@ TFTF build options
    each CPU write part of the message in a different color. It can take either
    0 (disabled) or 1 (enabled) as values. 0 is the default.
 
--  ``TEST_REPORTS``: List of desired test reports. Test reports are described by
-   a space-separated list of colon-separated pairs of report destination and
-   report type. Valid destinations are: 'uart' and 'semihosting'. Valid report
-   types are 'raw' (text output) or 'junit' (XML Junit format). The default is
-   'uart:raw', that is a text report printed on the UART. Here's an example of
-   multiple reports: 'uart:raw semihosting:junit'. The files stored on
-   semihosting are named 'tftf_report_junit.xml' and 'tftf_report_raw.txt'.
-
 -  ``TESTS``: Set of tests to run. Use the following command to list all
    possible sets of tests:
 

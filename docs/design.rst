@@ -21,17 +21,7 @@ structures.
 Then the test session begins. The TF-A tests are executed one after the
 other. Tests results are saved in non-volatile memory as we go along.
 
-Once all tests have completed, a report is generated. The TF-A tests currently
-supports 2 report formats:
-
--  Raw output, i.e. text messages over serial console.
-
--  Junit output, i.e. XML file generated over semihosting. This is useful when a
-   post-processing tool needs to parse the test report, as it is more
-   machine-friendly than the raw output.
-
-The report format to use is chosen at build time. For more information,
-refer to the section `Summary of build options`_ in the User Guide.
+Once all tests have completed, a report is printed over the serial console.
 
 Global Code Structure
 ---------------------

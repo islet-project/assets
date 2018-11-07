@@ -94,21 +94,6 @@ TFTF_LINKERFILE		:=	tftf/framework/tftf.ld.S
 
 TFTF_DEFINES :=
 
-TEST_REPORTS ?= uart:raw
-$(info Selected reports: $(TEST_REPORTS))
-ifneq (,$(findstring uart:raw,$(TEST_REPORTS)))
-  TFTF_DEFINES += -DTEST_REPORT_UART_RAW
-endif
-ifneq (,$(findstring uart:junit,$(TEST_REPORTS)))
-  TFTF_DEFINES += -DTEST_REPORT_UART_JUNIT
-endif
-ifneq (,$(findstring semihosting:raw,$(TEST_REPORTS)))
-  TFTF_DEFINES += -DTEST_REPORT_SEMIHOSTING_RAW
-endif
-ifneq (,$(findstring semihosting:junit,$(TEST_REPORTS)))
-  TFTF_DEFINES += -DTEST_REPORT_SEMIHOSTING_JUNIT
-endif
-
 # Enable dynamic translation tables
 PLAT_XLAT_TABLES_DYNAMIC := 1
 $(eval $(call add_define,TFTF_DEFINES,PLAT_XLAT_TABLES_DYNAMIC))
