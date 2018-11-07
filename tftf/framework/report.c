@@ -6,70 +6,97 @@
 
 #include <assert.h>
 #include <debug.h>
-#include <platform_def.h>  /* For TESTCASE_OUTPUT_MAX_SIZE */
 #include <stdio.h>
-#include <string.h>
+#include <stdbool.h>
 #include <tftf.h>
-
-static unsigned int total_tests;
-static unsigned int tests_stats[TEST_RESULT_MAX];
-
-static void tftf_update_tests_statistics(test_result_t result)
-{
-	assert(TEST_RESULT_IS_VALID(result));
-	total_tests++;
-	tests_stats[result]++;
-}
 
 static const char *test_result_strings[TEST_RESULT_MAX] = {
 	"Skipped", "Passed", "Failed", "Crashed",
 };
 
-const char *test_result_to_string(test_result_t result)
+static const char *test_result_to_string(test_result_t result)
 {
 	assert(TEST_RESULT_IS_VALID(result));
 	return test_result_strings[result];
 }
 
-void tftf_report_generate(void)
+void print_testsuite_start(const test_suite_t *testsuite)
 {
-	unsigned i, j;
-	const test_case_t *testcases;
-	TESTCASE_RESULT testcase_result;
-	char test_output[TESTCASE_OUTPUT_MAX_SIZE];
-	STATUS status;
+	mp_printf("--\n");
+	mp_printf("Running test suite '%s'\n", testsuite->name);
+	mp_printf("Description: %s\n", testsuite->description);
+	mp_printf("\n");
+}
 
-	/* Extract the result of all the testcases */
-	printf("========== TEST REPORT ==========\n");
-	for (i = 0; testsuites[i].name != NULL; i++) {
-		printf("# Test suite '%s':\n", testsuites[i].name);
-		testcases = testsuites[i].testcases;
+void print_test_start(const test_case_t *test)
+{
+	mp_printf("> Executing '%s'\n", test->name);
+}
 
-		for (j = 0; testcases[j].name != NULL; j++) {
-			status = tftf_testcase_get_result(&testcases[j], &testcase_result, test_output);
-			if (status != STATUS_SUCCESS) {
-				printf("Failed to get test result.\n");
+void print_test_end(const test_case_t *test)
+{
+	TESTCASE_RESULT result;
+	char output[TESTCASE_OUTPUT_MAX_SIZE];
+
+	tftf_testcase_get_result(test, &result, output);
+
+	mp_printf("  TEST COMPLETE %54s\n",
+		  test_result_to_string(result.result));
+	if (strlen(output) != 0) {
+		mp_printf("%s", output);
+	}
+	mp_printf("\n");
+}
+
+void print_tests_summary(void)
+{
+	int total_tests = 0;
+	int tests_stats[TEST_RESULT_MAX] = { 0 };
+
+	mp_printf("******************************* Summary *******************************\n");
+
+	/* Go through the list of test suites. */
+	for (int i = 0; testsuites[i].name != NULL; i++) {
+		bool passed = true;
+
+		mp_printf("> Test suite '%s'\n", testsuites[i].name);
+
+		const test_case_t *testcases = testsuites[i].testcases;
+
+		/* Go through the list of tests inside this test suite. */
+		for (int j = 0; testcases[j].name != NULL; j++) {
+			TESTCASE_RESULT result;
+			char output[TESTCASE_OUTPUT_MAX_SIZE];
+
+			if (tftf_testcase_get_result(&testcases[j], &result,
+					output) != STATUS_SUCCESS) {
+				mp_printf("Failed to get test result.\n");
 				continue;
 			}
 
-			tftf_update_tests_statistics(testcase_result.result);
-			/* TODO: print test duration */
-			printf("\t - %s: %s\n", testcases[j].name,
-				test_result_to_string(testcase_result.result));
+			assert(TEST_RESULT_IS_VALID(result.result));
 
-			if (strlen(test_output) != 0) {
-				printf("--- output ---\n");
-				printf("%s", test_output);
-				printf("--------------\n");
+			/*
+			 * Consider that a test suite passed if all of its
+			 * tests passed or were skipped.
+			 */
+			if ((result.result != TEST_RESULT_SUCCESS) &&
+			    (result.result != TEST_RESULT_SKIPPED)) {
+				passed = false;
 			}
-		}
-	}
-	printf("=================================\n");
 
-	for (i = TEST_RESULT_MIN; i < TEST_RESULT_MAX; i++) {
-		printf("Tests %-8s: %d\n",
+			total_tests++;
+			tests_stats[result.result]++;
+		}
+		mp_printf("%70s\n", passed ? "Passed" : "Failed");
+	}
+
+	mp_printf("=================================\n");
+
+	for (int i = TEST_RESULT_MIN; i < TEST_RESULT_MAX; i++) {
+		mp_printf("Tests %-8s: %d\n",
 			test_result_to_string(i), tests_stats[i]);
 	}
-	printf("%-14s: %d\n", "Total tests", total_tests);
-	printf("=================================\n");
+	mp_printf("%-14s: %d\n", "Total tests", total_tests);
+	mp_printf("=================================\n");
 }

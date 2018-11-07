@@ -36,8 +36,6 @@ typedef enum {
 	TEST_RESULT_MAX
 } test_result_t;
 
-const char *test_result_to_string(test_result_t result);
-
 #define TEST_RESULT_IS_VALID(result) \
 	((result >= TEST_RESULT_MIN) && (result < TEST_RESULT_MAX))
 
