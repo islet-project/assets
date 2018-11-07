@@ -111,10 +111,6 @@ the top level or under the ``tftf/`` directory):
       a string in the test report, macros to skip tests on platforms that do not
       meet topology requirements, etc.
 
-   -  ``semihosting.h``
-
-      Semihosting support.
-
    -  ``io_storage.h``
 
       Low-level IO operations. Tests are not expected to use these APIs
