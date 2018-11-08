@@ -28,7 +28,8 @@ TFTF_INCLUDES	:= 					\
 	-Iinclude/runtime_services			\
 	-Iinclude/runtime_services/secure_el0_payloads	\
 	-Iinclude/runtime_services/secure_el1_payloads	\
-	-Ispm/cactus
+	-Ispm/cactus					\
+	-Ispm/ivy
 
 # Standard C library source files
 STD_LIB_SOURCES		:=	lib/stdlib/abort.c			\

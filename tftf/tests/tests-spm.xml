@@ -14,6 +14,14 @@
      <testcase name="SPCI handle open and close"
                function="test_spci_handle_open" />
 
+     <testcase name="SPCI non-blocking requests"
+               function="test_spci_request" />
+
+     <testcase name="SPCI blocking requests multicore"
+               function="test_spci_blocking_request_multicore" />
+     <testcase name="SPCI non-blocking requests multicore"
+               function="test_spci_request_multicore" />
+
   </testsuite>
 
 </testsuites>
