@@ -55,6 +55,8 @@ IVY_SOURCES	+=					\
 IVY_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/cache_helpers.S			\
 			lib/${ARCH}/misc_helpers.S			\
+			lib/locks/${ARCH}/spinlock.S			\
+			lib/utils/mp_printf.c				\
 			${STDLIB_SOURCES}				\
 			${SPRT_LIB_SOURCES}
 
