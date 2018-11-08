@@ -35,8 +35,6 @@ static spinlock_t printf_lock;
 
 void mp_printf(const char *fmt, ...)
 {
-	va_list ap;
-	char str[256];
 	/*
 	 * As part of testing Firmware Update feature on Cortex-A57 CPU, an
 	 * issue was discovered while printing in NS_BL1U stage. The issue
@@ -53,20 +51,13 @@ void mp_printf(const char *fmt, ...)
 	 */
 	volatile unsigned int mpid = read_mpidr_el1() & 0xFFFF;
 
-	/*
-	 * TODO: It would be simpler to use vprintf() instead of
-	 * vsnprintf() + printf(), we wouldn't need to declare a static buffer
-	 * for storing the product of vsnprintf(). Unfortunately our C library
-	 * doesn't provide vprintf() at the moment.
-	 * Import vprintf() code from FreeBSD C library to our local C library.
-	 */
+	va_list ap;
 	va_start(ap, fmt);
-	vsnprintf(str, sizeof(str), fmt, ap);
-	str[sizeof(str) - 1] = 0;
-	va_end(ap);
 
 	spin_lock(&printf_lock);
 	PRINT_MPID_HDR(mpid);
-	printf("%s", str);
+	vprintf(fmt, ap);
 	spin_unlock(&printf_lock);
+
+	va_end(ap);
 }
