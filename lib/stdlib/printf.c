@@ -9,28 +9,34 @@
 
 /* Choose max of 512 chars for now. */
 #define PRINT_BUFFER_SIZE 512
-int printf(const char *fmt, ...)
+
+int vprintf(const char *fmt, va_list args)
 {
-	va_list args;
 	char buf[PRINT_BUFFER_SIZE];
 	int count;
 
-	va_start(args, fmt);
 	vsnprintf(buf, sizeof(buf) - 1, fmt, args);
-	va_end(args);
+	buf[PRINT_BUFFER_SIZE - 1] = '\0';
 
 	/* Use putchar directly as 'puts()' adds a newline. */
-	buf[PRINT_BUFFER_SIZE - 1] = '\0';
 	count = 0;
-	while (buf[count])
-	{
-		if (putchar(buf[count]) != EOF) {
-			count++;
-		} else {
-			count = EOF;
-			break;
+	while (buf[count] != 0) {
+		if (putchar(buf[count]) == EOF) {
+			return EOF;
 		}
+		count++;
 	}
+
+	return count;
+}
+
+int printf(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	int count = vprintf(fmt, args);
+	va_end(args);
 
 	return count;
 }
