@@ -22,6 +22,9 @@
      <testcase name="SPCI non-blocking requests multicore"
                function="test_spci_request_multicore" />
 
+     <testcase name="SPCI blocking request while busy"
+               function="test_spci_blocking_while_busy" />
+
   </testsuite>
 
 </testsuites>
