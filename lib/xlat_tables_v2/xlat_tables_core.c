@@ -10,8 +10,8 @@
 #include <errno.h>
 #include <platform_def.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
-#include <types.h>
 #include <utils_def.h>
 #include <xlat_tables_defs.h>
 #include <xlat_tables_v2.h>
@@ -861,7 +861,7 @@ static void mmap_alloc_va_align_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 	 * the addresses and size are aligned to PAGE_SIZE are inside
 	 * mmap_add_region.
 	 */
-	for (int level = ctx->base_level; level <= 2; ++level) {
+	for (unsigned int level = ctx->base_level; level <= 2U; ++level) {
 
 		if (align_check & XLAT_BLOCK_MASK(level))
 			continue;
@@ -889,7 +889,7 @@ void mmap_add_ctx(xlat_ctx_t *ctx, const mmap_region_t *mm)
 {
 	const mmap_region_t *mm_cursor = mm;
 
-	while (mm_cursor->size != 0U) {
+	while (mm_cursor->granularity != 0U) {
 		mmap_add_region_ctx(ctx, mm_cursor);
 		mm_cursor++;
 	}
@@ -1103,7 +1103,7 @@ int mmap_remove_dynamic_region_ctx(xlat_ctx_t *ctx, uintptr_t base_va,
 
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
-void init_xlat_tables_ctx(xlat_ctx_t *ctx)
+void __init init_xlat_tables_ctx(xlat_ctx_t *ctx)
 {
 	assert(ctx != NULL);
 	assert(!ctx->initialized);
