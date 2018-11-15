@@ -31,6 +31,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/_types.h>
+#include <sys/types.h>
 
 #include <machine/_stdint.h>
 #include <sys/_stdint.h>

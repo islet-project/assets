@@ -36,6 +36,9 @@
 #ifndef	_SYS_CDEFS_H_
 #define	_SYS_CDEFS_H_
 
+/* Defined here for compatibility with the Trusted Firmware source code */
+#define __init
+
 #if defined(__cplusplus)
 #define	__BEGIN_DECLS	extern "C" {
 #define	__END_DECLS	}
