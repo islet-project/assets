@@ -19,6 +19,7 @@
   <!ENTITY tests-state-switch SYSTEM "tests-arm-state-switch.xml">
   <!ENTITY tests-cpu-extensions SYSTEM "tests-cpu-extensions.xml">
   <!ENTITY tests-performance SYSTEM "tests-performance.xml">
+  <!ENTITY tests-smc SYSTEM "tests-smc.xml">
 ]>
 
 <testsuites>
@@ -33,5 +34,6 @@
   &tests-state-switch;
   &tests-cpu-extensions;
   &tests-performance;
+  &tests-smc;
 
 </testsuites>

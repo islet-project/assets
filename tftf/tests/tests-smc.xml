@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="SMC calling convention"
+	     description="Test different flavours of the SMC calling convention">
+     <testcase name="Fast SMC32"	function="smc32_fast" />
+     <testcase name="Fast SMC64"	function="smc64_fast" />
+     <testcase name="Yielding SMC32"	function="smc32_yielding" />
+     <testcase name="Yielding SMC64"	function="smc64_yielding" />
+  </testsuite>
+
+</testsuites>

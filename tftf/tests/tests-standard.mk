@@ -16,6 +16,7 @@ TESTS_MAKEFILE := $(addprefix tftf/tests/,	\
 	tests-runtime-instrumentation.mk	\
 	tests-sdei.mk				\
 	tests-single-fault.mk			\
+	tests-smc.mk 				\
 	tests-spm.mk				\
 	tests-template.mk			\
 	tests-tftf-validation.mk		\
