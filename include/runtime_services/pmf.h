@@ -7,13 +7,6 @@
 #ifndef __PMF_H__
 #define __PMF_H__
 
-#ifndef __ASSEMBLY__
-#include <assert.h>
-#include <platform_def.h>
-#include <stdbool.h>
-#include <stdint.h>
-#endif
-
 /*
  * Constants used for/by PMF services.
  */
