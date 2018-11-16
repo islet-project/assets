@@ -132,22 +132,24 @@ void waitus(uint64_t us);
  * specify it.
  */
 typedef struct {
-  u_register_t	arg0;
-  u_register_t	arg1;
-  u_register_t	arg2;
-  u_register_t	arg3;
-  u_register_t	arg4;
-  u_register_t	arg5;
-  u_register_t	arg6;
-  u_register_t	arg7;
+	/* Function identifier. Identifies which function is being invoked. */
+	uint32_t	arg0;
+
+	u_register_t	arg1;
+	u_register_t	arg2;
+	u_register_t	arg3;
+	u_register_t	arg4;
+	u_register_t	arg5;
+	u_register_t	arg6;
+	u_register_t	arg7;
 } smc_args;
 
 /* SMC calls can return up to 4 register values */
 typedef struct {
-  u_register_t	ret0;
-  u_register_t	ret1;
-  u_register_t	ret2;
-  u_register_t	ret3;
+	u_register_t	ret0;
+	u_register_t	ret1;
+	u_register_t	ret2;
+	u_register_t	ret3;
 } smc_ret_values;
 
 /*

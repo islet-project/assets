@@ -12,14 +12,14 @@
 
 
 /* ---------------------------------------------------------------------------
- * smc_ret_values asm_tftf_smc64(uint64_t arg0,
- *					      uint64_t arg1,
- *					      uint64_t arg2,
- *					      uint64_t arg3,
- *					      uint64_t arg4,
- *					      uint64_t arg5,
- *					      uint64_t arg6,
- *					      uint64_t arg7);
+ * smc_ret_values asm_tftf_smc64(uint32_t arg0,
+ *				 u_register_t arg1,
+ *				 u_register_t arg2,
+ *				 u_register_t arg3,
+ *				 u_register_t arg4,
+ *				 u_register_t arg5,
+ *				 u_register_t arg6,
+ *				 u_register_t arg7);
  * ---------------------------------------------------------------------------
  */
 func asm_tftf_smc64
