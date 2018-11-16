@@ -19,9 +19,6 @@
 	| (((uint32_t)(_minor) & SMCCC_VERSION_MINOR_MASK) << \
 						SMCCC_VERSION_MINOR_SHIFT))
 
-#define SMCCC_MAJOR_VERSION		1
-#define SMCCC_MINOR_VERSION		1
-
 #define SMC_UNKNOWN			-1
 
 /* TODO: Import SMCCC 2.0 properly instead of having this */
