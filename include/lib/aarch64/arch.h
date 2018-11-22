@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2018, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __ARCH_H__
-#define __ARCH_H__
+#ifndef ARCH_H
+#define ARCH_H
 
 #include <utils_def.h>
 
@@ -58,12 +58,9 @@
  */
 #define MPIDR_MAX_AFFLVL	U(2)
 
-/* Constant to highlight the assumption that MPIDR allocation starts from 0 */
-#define FIRST_MPIDR		ULL(0)
-
-#define MPID_MASK		(MPIDR_MT_MASK				|\
-				 (MPIDR_AFFLVL_MASK << MPIDR_AFF2_SHIFT)|\
-				 (MPIDR_AFFLVL_MASK << MPIDR_AFF1_SHIFT)|\
+#define MPID_MASK		(MPIDR_MT_MASK				 | \
+				 (MPIDR_AFFLVL_MASK << MPIDR_AFF2_SHIFT) | \
+				 (MPIDR_AFFLVL_MASK << MPIDR_AFF1_SHIFT) | \
 				 (MPIDR_AFFLVL_MASK << MPIDR_AFF0_SHIFT))
 
 #define MPIDR_AFF_ID(mpid, n)					\
@@ -76,7 +73,7 @@
  * An invalid MPID. This value can be used by functions that return an MPID to
  * indicate an error.
  */
-#define INVALID_MPID		0xFFFFFFFF
+#define INVALID_MPID		U(0xFFFFFFFF)
 
 /*******************************************************************************
  * Definitions for CPU system register interface to GICv3
@@ -138,6 +135,8 @@
 #define ID_AA64PFR0_SVE_SHIFT	U(32)
 #define ID_AA64PFR0_SVE_MASK	ULL(0xf)
 #define ID_AA64PFR0_SVE_LENGTH	U(4)
+#define ID_AA64PFR0_MPAM_SHIFT	U(40)
+#define ID_AA64PFR0_MPAM_MASK	ULL(0xf)
 #define ID_AA64PFR0_CSV2_SHIFT	U(56)
 #define ID_AA64PFR0_CSV2_MASK	ULL(0xf)
 #define ID_AA64PFR0_CSV2_LENGTH	U(4)
@@ -201,6 +200,12 @@
 #define ID_AA64MMFR0_EL1_TGRAN16_SUPPORTED	ULL(0x1)
 #define ID_AA64MMFR0_EL1_TGRAN16_NOT_SUPPORTED	ULL(0x0)
 
+/* ID_PFR1_EL1 definitions */
+#define ID_PFR1_VIRTEXT_SHIFT	U(12)
+#define ID_PFR1_VIRTEXT_MASK	U(0xf)
+#define GET_VIRT_EXT(id)	(((id) >> ID_PFR1_VIRTEXT_SHIFT) \
+				 & ID_PFR1_VIRTEXT_MASK)
+
 /* SCTLR definitions */
 #define SCTLR_EL2_RES1	((U(1) << 29) | (U(1) << 28) | (U(1) << 23) | \
 			 (U(1) << 22) | (U(1) << 18) | (U(1) << 16) | \
@@ -208,6 +213,13 @@
 
 #define SCTLR_EL1_RES1	((U(1) << 29) | (U(1) << 28) | (U(1) << 23) | \
 			 (U(1) << 22) | (U(1) << 20) | (U(1) << 11))
+#define SCTLR_AARCH32_EL1_RES1 \
+			((U(1) << 23) | (U(1) << 22) | (U(1) << 11) | \
+			 (U(1) << 4) | (U(1) << 3))
+
+#define SCTLR_EL3_RES1	((U(1) << 29) | (U(1) << 28) | (U(1) << 23) | \
+			(U(1) << 22) | (U(1) << 18) | (U(1) << 16) | \
+			(U(1) << 11) | (U(1) << 5) | (U(1) << 4))
 
 #define SCTLR_M_BIT		(U(1) << 0)
 #define SCTLR_A_BIT		(U(1) << 1)
@@ -243,6 +255,8 @@
 /* SCR definitions */
 #define SCR_RES1_BITS		((U(1) << 4) | (U(1) << 5))
 #define SCR_FIEN_BIT		(U(1) << 21)
+#define SCR_API_BIT		(U(1) << 17)
+#define SCR_APK_BIT		(U(1) << 16)
 #define SCR_TWE_BIT		(U(1) << 13)
 #define SCR_TWI_BIT		(U(1) << 12)
 #define SCR_ST_BIT		(U(1) << 11)
@@ -257,16 +271,67 @@
 #define SCR_VALID_BIT_MASK	U(0x2f8f)
 #define SCR_RESET_VAL		SCR_RES1_BITS
 
+/* MDCR_EL3 definitions */
+#define MDCR_SPD32(x)		((x) << 14)
+#define MDCR_SPD32_LEGACY	U(0x0)
+#define MDCR_SPD32_DISABLE	U(0x2)
+#define MDCR_SPD32_ENABLE	U(0x3)
+#define MDCR_SDD_BIT		(U(1) << 16)
+#define MDCR_NSPB(x)		((x) << 12)
+#define MDCR_NSPB_EL1		U(0x3)
+#define MDCR_TDOSA_BIT		(U(1) << 10)
+#define MDCR_TDA_BIT		(U(1) << 9)
+#define MDCR_TPM_BIT		(U(1) << 6)
+#define MDCR_EL3_RESET_VAL	U(0x0)
+
+/* MDCR_EL2 definitions */
+#define MDCR_EL2_TPMS		(U(1) << 14)
+#define MDCR_EL2_E2PB(x)	((x) << 12)
+#define MDCR_EL2_E2PB_EL1	U(0x3)
+#define MDCR_EL2_TDRA_BIT	(U(1) << 11)
+#define MDCR_EL2_TDOSA_BIT	(U(1) << 10)
+#define MDCR_EL2_TDA_BIT	(U(1) << 9)
+#define MDCR_EL2_TDE_BIT	(U(1) << 8)
+#define MDCR_EL2_HPME_BIT	(U(1) << 7)
+#define MDCR_EL2_TPM_BIT	(U(1) << 6)
+#define MDCR_EL2_TPMCR_BIT	(U(1) << 5)
+#define MDCR_EL2_RESET_VAL	U(0x0)
+
+/* HSTR_EL2 definitions */
+#define HSTR_EL2_RESET_VAL	U(0x0)
+#define HSTR_EL2_T_MASK		U(0xff)
+
+/* CNTHP_CTL_EL2 definitions */
+#define CNTHP_CTL_ENABLE_BIT	(U(1) << 0)
+#define CNTHP_CTL_RESET_VAL	U(0x0)
+
+/* VTTBR_EL2 definitions */
+#define VTTBR_RESET_VAL		ULL(0x0)
+#define VTTBR_VMID_MASK		ULL(0xff)
+#define VTTBR_VMID_SHIFT	U(48)
+#define VTTBR_BADDR_MASK	ULL(0xffffffffffff)
+#define VTTBR_BADDR_SHIFT	U(0)
+
 /* HCR definitions */
-#define HCR_RW_BIT		(1ull << 31)
-#define HCR_TGE_BIT		(1 << 27)
-#define HCR_AMO_BIT		(1 << 5)
-#define HCR_IMO_BIT		(1 << 4)
-#define HCR_FMO_BIT		(1 << 3)
+#define HCR_API_BIT		(ULL(1) << 41)
+#define HCR_APK_BIT		(ULL(1) << 40)
+#define HCR_TGE_BIT		(ULL(1) << 27)
+#define HCR_RW_SHIFT		U(31)
+#define HCR_RW_BIT		(ULL(1) << HCR_RW_SHIFT)
+#define HCR_AMO_BIT		(ULL(1) << 5)
+#define HCR_IMO_BIT		(ULL(1) << 4)
+#define HCR_FMO_BIT		(ULL(1) << 3)
+
+/* ISR definitions */
+#define ISR_A_SHIFT		U(8)
+#define ISR_I_SHIFT		U(7)
+#define ISR_F_SHIFT		U(6)
 
 /* CNTHCTL_EL2 definitions */
-#define EL1PCEN_BIT		(1 << 1)
-#define EL1PCTEN_BIT		(1 << 0)
+#define CNTHCTL_RESET_VAL	U(0x0)
+#define EVNTEN_BIT		(U(1) << 2)
+#define EL1PCEN_BIT		(U(1) << 1)
+#define EL1PCTEN_BIT		(U(1) << 0)
 
 /* CNTKCTL_EL1 definitions */
 #define EL0PTEN_BIT		(U(1) << 9)
@@ -278,10 +343,22 @@
 #define EVNTI_SHIFT		U(4)
 #define EVNTI_MASK		U(0xf)
 
+/* CPTR_EL3 definitions */
+#define TCPAC_BIT		(U(1) << 31)
+#define TAM_BIT			(U(1) << 30)
+#define TTA_BIT			(U(1) << 20)
+#define TFP_BIT			(U(1) << 10)
+#define CPTR_EZ_BIT		(U(1) << 8)
+#define CPTR_EL3_RESET_VAL	U(0x0)
+
 /* CPTR_EL2 definitions */
-#define TCPAC_BIT		(1 << 31)
-#define TTA_BIT			(1 << 20)
-#define TFP_BIT			(1 << 10)
+#define CPTR_EL2_RES1		((U(1) << 13) | (U(1) << 12) | (U(0x3ff)))
+#define CPTR_EL2_TCPAC_BIT	(U(1) << 31)
+#define CPTR_EL2_TAM_BIT	(U(1) << 30)
+#define CPTR_EL2_TTA_BIT	(U(1) << 20)
+#define CPTR_EL2_TFP_BIT	(U(1) << 10)
+#define CPTR_EL2_TZ_BIT		(U(1) << 8)
+#define CPTR_EL2_RESET_VAL	CPTR_EL2_RES1
 
 /* CPSR/SPSR definitions */
 #define DAIF_FIQ_BIT		(U(1) << 0)
@@ -315,10 +392,21 @@
 #define DISABLE_INTERRUPTS	(DAIF_FIQ_BIT | DAIF_IRQ_BIT)
 
 /*
+ * RMR_EL3 definitions
+ */
+#define RMR_EL3_RR_BIT		(U(1) << 1)
+#define RMR_EL3_AA64_BIT	(U(1) << 0)
+
+/*
+ * HI-VECTOR address for AArch32 state
+ */
+#define HI_VECTOR_BASE		U(0xFFFF0000)
+
+/*
  * TCR defintions
  */
+#define TCR_EL3_RES1		((ULL(1) << 31) | (ULL(1) << 23))
 #define TCR_EL2_RES1		((ULL(1) << 31) | (ULL(1) << 23))
-#define TCR_EL3_RES1		((U(1) << 31) | (U(1) << 23))
 #define TCR_EL1_IPS_SHIFT	U(32)
 #define TCR_EL2_PS_SHIFT	U(16)
 #define TCR_EL3_PS_SHIFT	U(16)
@@ -416,27 +504,43 @@
  */
 #define TTBR_CNP_BIT		ULL(0x1)
 
+/*
+ * CTR_EL0 definitions
+ */
+#define CTR_CWG_SHIFT		U(24)
+#define CTR_CWG_MASK		U(0xf)
+#define CTR_ERG_SHIFT		U(20)
+#define CTR_ERG_MASK		U(0xf)
+#define CTR_DMINLINE_SHIFT	U(16)
+#define CTR_DMINLINE_MASK	U(0xf)
+#define CTR_L1IP_SHIFT		U(14)
+#define CTR_L1IP_MASK		U(0x3)
+#define CTR_IMINLINE_SHIFT	U(0)
+#define CTR_IMINLINE_MASK	U(0xf)
+
+#define MAX_CACHE_LINE_SIZE	U(0x800) /* 2KB */
+
 /* Physical timer control register bit fields shifts and masks */
-#define CNTP_CTL_ENABLE_SHIFT   0
-#define CNTP_CTL_IMASK_SHIFT    1
-#define CNTP_CTL_ISTATUS_SHIFT  2
+#define CNTP_CTL_ENABLE_SHIFT   U(0)
+#define CNTP_CTL_IMASK_SHIFT    U(1)
+#define CNTP_CTL_ISTATUS_SHIFT  U(2)
 
-#define CNTP_CTL_ENABLE_MASK    1
-#define CNTP_CTL_IMASK_MASK     1
-#define CNTP_CTL_ISTATUS_MASK   1
+#define CNTP_CTL_ENABLE_MASK    U(1)
+#define CNTP_CTL_IMASK_MASK     U(1)
+#define CNTP_CTL_ISTATUS_MASK   U(1)
 
-#define get_cntp_ctl_enable(x)  ((x >> CNTP_CTL_ENABLE_SHIFT) & \
+#define get_cntp_ctl_enable(x)  (((x) >> CNTP_CTL_ENABLE_SHIFT) & \
 					CNTP_CTL_ENABLE_MASK)
-#define get_cntp_ctl_imask(x)   ((x >> CNTP_CTL_IMASK_SHIFT) & \
+#define get_cntp_ctl_imask(x)   (((x) >> CNTP_CTL_IMASK_SHIFT) & \
 					CNTP_CTL_IMASK_MASK)
-#define get_cntp_ctl_istatus(x) ((x >> CNTP_CTL_ISTATUS_SHIFT) & \
+#define get_cntp_ctl_istatus(x) (((x) >> CNTP_CTL_ISTATUS_SHIFT) & \
 					CNTP_CTL_ISTATUS_MASK)
 
-#define set_cntp_ctl_enable(x)  (x |= 1 << CNTP_CTL_ENABLE_SHIFT)
-#define set_cntp_ctl_imask(x)   (x |= 1 << CNTP_CTL_IMASK_SHIFT)
+#define set_cntp_ctl_enable(x)  ((x) |= (U(1) << CNTP_CTL_ENABLE_SHIFT))
+#define set_cntp_ctl_imask(x)   ((x) |= (U(1) << CNTP_CTL_IMASK_SHIFT))
 
-#define clr_cntp_ctl_enable(x)  (x &= ~(1 << CNTP_CTL_ENABLE_SHIFT))
-#define clr_cntp_ctl_imask(x)   (x &= ~(1 << CNTP_CTL_IMASK_SHIFT))
+#define clr_cntp_ctl_enable(x)  ((x) &= ~(U(1) << CNTP_CTL_ENABLE_SHIFT))
+#define clr_cntp_ctl_imask(x)   ((x) &= ~(U(1) << CNTP_CTL_IMASK_SHIFT))
 
 /* Exception Syndrome register bits and bobs */
 #define ESR_EC_SHIFT			U(26)
@@ -469,7 +573,17 @@
 #define EC_AARCH64_FP			U(0x2c)
 #define EC_SERROR			U(0x2f)
 
-#define EC_BITS(x)			(x >> ESR_EC_SHIFT) & ESR_EC_MASK
+/*
+ * External Abort bit in Instruction and Data Aborts synchronous exception
+ * syndromes.
+ */
+#define ESR_ISS_EABORT_EA_BIT		U(9)
+
+#define EC_BITS(x)			(((x) >> ESR_EC_SHIFT) & ESR_EC_MASK)
+
+/* Reset bit inside the Reset management register for EL3 (RMR_EL3) */
+#define RMR_RESET_REQUEST_SHIFT 	U(0x1)
+#define RMR_WARM_RESET_CPU		(U(1) << RMR_RESET_REQUEST_SHIFT)
 
 /*******************************************************************************
  * Definitions of register offsets, fields and macros for CPU system
@@ -481,17 +595,55 @@
 #define TLBI_ADDR(x)		(((x) >> TLBI_ADDR_SHIFT) & TLBI_ADDR_MASK)
 
 /*******************************************************************************
+ * Definitions of register offsets and fields in the CNTCTLBase Frame of the
+ * system level implementation of the Generic Timer.
+ ******************************************************************************/
+#define CNTCTLBASE_CNTFRQ	U(0x0)
+#define CNTNSAR			U(0x4)
+#define CNTNSAR_NS_SHIFT(x)	(x)
+
+#define CNTACR_BASE(x)		(U(0x40) + ((x) << 2))
+#define CNTACR_RPCT_SHIFT	U(0x0)
+#define CNTACR_RVCT_SHIFT	U(0x1)
+#define CNTACR_RFRQ_SHIFT	U(0x2)
+#define CNTACR_RVOFF_SHIFT	U(0x3)
+#define CNTACR_RWVT_SHIFT	U(0x4)
+#define CNTACR_RWPT_SHIFT	U(0x5)
+
+/*******************************************************************************
  * Definitions of register offsets and fields in the CNTBaseN Frame of the
  * system level implementation of the Generic Timer.
  ******************************************************************************/
 /* Physical Count register. */
-#define CNTPCT_LO		0x0
+#define CNTPCT_LO		U(0x0)
 /* Counter Frequency register. */
-#define CNTBASEN_CNTFRQ		0x10
+#define CNTBASEN_CNTFRQ		U(0x10)
 /* Physical Timer CompareValue register. */
-#define CNTP_CVAL_LO		0x20
+#define CNTP_CVAL_LO		U(0x20)
 /* Physical Timer Control register. */
-#define CNTP_CTL		0x2c
+#define CNTP_CTL		U(0x2c)
+
+/* PMCR_EL0 definitions */
+#define PMCR_EL0_RESET_VAL	U(0x0)
+#define PMCR_EL0_N_SHIFT	U(11)
+#define PMCR_EL0_N_MASK		U(0x1f)
+#define PMCR_EL0_N_BITS		(PMCR_EL0_N_MASK << PMCR_EL0_N_SHIFT)
+#define PMCR_EL0_LC_BIT		(U(1) << 6)
+#define PMCR_EL0_DP_BIT		(U(1) << 5)
+#define PMCR_EL0_X_BIT		(U(1) << 4)
+#define PMCR_EL0_D_BIT		(U(1) << 3)
+
+/*******************************************************************************
+ * Definitions for system register interface to SVE
+ ******************************************************************************/
+#define ZCR_EL3			S3_6_C1_C2_0
+#define ZCR_EL2			S3_4_C1_C2_0
+
+/* ZCR_EL3 definitions */
+#define ZCR_EL3_LEN_MASK	U(0xf)
+
+/* ZCR_EL2 definitions */
+#define ZCR_EL2_LEN_MASK	U(0xf)
 
 /*******************************************************************************
  * Definitions of MAIR encodings for device and normal memory
@@ -540,13 +692,27 @@
 
 #define MAIR_NORM_OUTER_SHIFT	U(4)
 
-#define MAKE_MAIR_NORMAL_MEMORY(inner, outer)	((inner) | ((outer) << MAIR_NORM_OUTER_SHIFT))
+#define MAKE_MAIR_NORMAL_MEMORY(inner, outer)	\
+		((inner) | ((outer) << MAIR_NORM_OUTER_SHIFT))
 
 /* PAR_EL1 fields */
 #define PAR_F_SHIFT	U(0)
 #define PAR_F_MASK	ULL(0x1)
 #define PAR_ADDR_SHIFT	U(12)
 #define PAR_ADDR_MASK	(BIT(40) - ULL(1)) /* 40-bits-wide page address */
+
+/*******************************************************************************
+ * Definitions for system register interface to SPE
+ ******************************************************************************/
+#define PMBLIMITR_EL1		S3_0_C9_C10_0
+
+/*******************************************************************************
+ * Definitions for system register interface to MPAM
+ ******************************************************************************/
+#define MPAMIDR_EL1		S3_0_C10_C4_4
+#define MPAM2_EL2		S3_4_C10_C5_0
+#define MPAMHCR_EL2		S3_4_C10_C4_0
+#define MPAM3_EL3		S3_6_C10_C5_0
 
 /*******************************************************************************
  * Definitions for system register interface to AMU for ARMv8.4 onwards
@@ -613,6 +779,11 @@
 #define AMCGCR_EL0_CG1NC_LENGTH	U(8)
 #define AMCGCR_EL0_CG1NC_MASK	U(0xff)
 
+/* MPAM register definitions */
+#define MPAM3_EL3_MPAMEN_BIT		(ULL(1) << 63)
+
+#define MPAMIDR_HAS_HCR_BIT		(ULL(1) << 17)
+
 /*******************************************************************************
  * RAS system registers
  *******************************************************************************/
@@ -624,22 +795,27 @@
 
 #define ERRSELR_EL1		S3_0_C5_C3_1
 
-/* Fault injection registers */
-#define ERXPFGF_EL1		S3_0_C5_C4_4
+/* System register access to Standard Error Record registers */
+#define ERXFR_EL1		S3_0_C5_C4_0
 #define ERXCTLR_EL1		S3_0_C5_C4_1
+#define ERXSTATUS_EL1		S3_0_C5_C4_2
+#define ERXADDR_EL1		S3_0_C5_C4_3
+#define ERXPFGF_EL1		S3_0_C5_C4_4
 #define ERXPFGCTL_EL1		S3_0_C5_C4_5
 #define ERXPFGCDN_EL1		S3_0_C5_C4_6
+#define ERXMISC0_EL1		S3_0_C5_C5_0
+#define ERXMISC1_EL1		S3_0_C5_C5_1
 
-#define ERXCTLR_ED_BIT		(1 << 0)
-#define ERXCTLR_UE_BIT		(1 << 4)
+#define ERXCTLR_ED_BIT		(U(1) << 0)
+#define ERXCTLR_UE_BIT		(U(1) << 4)
 
-#define ERXPFGCTL_UC_BIT	(1 << 1)
-#define ERXPFGCTL_UEU_BIT	(1 << 2)
-#define ERXPFGCTL_CDEN_BIT	(1 << 31)
+#define ERXPFGCTL_UC_BIT	(U(1) << 1)
+#define ERXPFGCTL_UEU_BIT	(U(1) << 2)
+#define ERXPFGCTL_CDEN_BIT	(U(1) << 31)
 
 /*******************************************************************************
  * Armv8.3 Pointer Authentication Registers
  *******************************************************************************/
 #define APGAKeyLo_EL1		S3_0_C2_C3_0
 
-#endif /* __ARCH_H__ */
+#endif /* ARCH_H */

@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2018, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __ARCH_H__
-#define __ARCH_H__
+#ifndef ARCH_H
+#define ARCH_H
 
 #include <utils_def.h>
 
@@ -46,15 +46,13 @@
 		(((mpidr) >> MPIDR_AFF1_SHIFT) & MPIDR_AFFLVL_MASK)
 #define MPIDR_AFFLVL2_VAL(mpidr) \
 		(((mpidr) >> MPIDR_AFF2_SHIFT) & MPIDR_AFFLVL_MASK)
+#define MPIDR_AFFLVL3_VAL(mpidr)	U(0)
 
 #define MPIDR_AFF_ID(mpid, n)					\
 	(((mpid) >> MPIDR_AFF_SHIFT(n)) & MPIDR_AFFLVL_MASK)
 
 #define MPIDR_CLUSTER_ID(mpid)	MPIDR_AFF_ID(mpid, 1)
 #define MPIDR_CPU_ID(mpid)	MPIDR_AFF_ID(mpid, 0)
-
-/* Constant to highlight the assumption that MPIDR allocation starts from 0 */
-#define FIRST_MPIDR		U(0)
 
 #define MPID_MASK		(MPIDR_MT_MASK				|\
 				 (MPIDR_AFFLVL_MASK << MPIDR_AFF2_SHIFT)|\
@@ -113,9 +111,13 @@
 #define ID_PFR1_GIC_MASK	U(0xf)
 
 /* SCTLR definitions */
-#define SCTLR_RES1		((U(1) << 23) | (U(1) << 22) | (U(1) << 11) | \
-				 (U(1) << 4) | (U(1) << 3) | SCTLR_CP15BEN_BIT \
-				 | SCTLR_NTWI_BIT | SCTLR_NTWE_BIT)
+#define SCTLR_RES1_DEF		((U(1) << 23) | (U(1) << 22) | (U(1) << 4) | \
+				 (U(1) << 3))
+#if ARM_ARCH_MAJOR == 7
+#define SCTLR_RES1		SCTLR_RES1_DEF
+#else
+#define SCTLR_RES1		(SCTLR_RES1_DEF | (U(1) << 11))
+#endif
 #define SCTLR_M_BIT		(U(1) << 0)
 #define SCTLR_A_BIT		(U(1) << 1)
 #define SCTLR_C_BIT		(U(1) << 2)
@@ -133,12 +135,21 @@
 #define SCTLR_TRE_BIT		(U(1) << 28)
 #define SCTLR_AFE_BIT		(U(1) << 29)
 #define SCTLR_TE_BIT		(U(1) << 30)
+#define SCTLR_RESET_VAL         (SCTLR_RES1 | SCTLR_NTWE_BIT |		\
+				SCTLR_NTWI_BIT | SCTLR_CP15BEN_BIT)
+
+/* SDCR definitions */
+#define SDCR_SPD(x)		((x) << 14)
+#define SDCR_SPD_LEGACY		U(0x0)
+#define SDCR_SPD_DISABLE	U(0x2)
+#define SDCR_SPD_ENABLE		U(0x3)
+#define SDCR_RESET_VAL		U(0x0)
 
 /* HSCTLR definitions */
 #define HSCTLR_RES1	((U(1) << 29) | (U(1) << 28) | (U(1) << 23) | \
 			 (U(1) << 22) | (U(1) << 18) | (U(1) << 16) | \
-			 (U(1) << 11) | (U(1) << 4) | (U(1) << 3) | \
-			 HSCTLR_CP15BEN_BIT)
+			 (U(1) << 11) | (U(1) << 4) | (U(1) << 3))
+
 #define HSCTLR_M_BIT		(U(1) << 0)
 #define HSCTLR_A_BIT		(U(1) << 1)
 #define HSCTLR_C_BIT		(U(1) << 2)
@@ -183,7 +194,6 @@
 
 /* CNTHCTL definitions */
 #define CNTHCTL_RESET_VAL	U(0x0)
-#define EVNTEN_BIT		(U(1) << 2)
 #define PL1PCEN_BIT		(U(1) << 1)
 #define PL1PCTEN_BIT		(U(1) << 0)
 
@@ -206,7 +216,23 @@
 #define TCP10_BIT		(U(1) << 10)
 #define HCPTR_RESET_VAL		HCPTR_RES1
 
-/* NASCR definitions */
+/* VTTBR defintions */
+#define VTTBR_RESET_VAL		ULL(0x0)
+#define VTTBR_VMID_MASK		ULL(0xff)
+#define VTTBR_VMID_SHIFT	U(48)
+#define VTTBR_BADDR_MASK	ULL(0xffffffffffff)
+#define VTTBR_BADDR_SHIFT	U(0)
+
+/* HDCR definitions */
+#define HDCR_RESET_VAL		U(0x0)
+
+/* HSTR definitions */
+#define HSTR_RESET_VAL		U(0x0)
+
+/* CNTHP_CTL definitions */
+#define CNTHP_CTL_RESET_VAL	U(0x0)
+
+/* NSACR definitions */
 #define NSASEDIS_BIT		(U(1) << 15)
 #define NSTRCDIS_BIT		(U(1) << 20)
 #define NSACR_CP11_BIT		(U(1) << 11)
@@ -255,7 +281,6 @@
 /*
  * TTBCR definitions
  */
-/* The translation tables library uses the long descriptor format */
 #define TTBCR_EAE_BIT		(U(1) << 31)
 
 #define TTBCR_SH1_NON_SHAREABLE		(U(0x0) << 28)
@@ -301,24 +326,24 @@
 /*
  * HTCR definitions
  */
-#define HTCR_RES1			((1 << 31) | (1 << 23))
+#define HTCR_RES1			((U(1) << 31) | (U(1) << 23))
 
-#define HTCR_SH0_NON_SHAREABLE		(0x0 << 12)
-#define HTCR_SH0_OUTER_SHAREABLE	(0x2 << 12)
-#define HTCR_SH0_INNER_SHAREABLE	(0x3 << 12)
+#define HTCR_SH0_NON_SHAREABLE		(U(0x0) << 12)
+#define HTCR_SH0_OUTER_SHAREABLE	(U(0x2) << 12)
+#define HTCR_SH0_INNER_SHAREABLE	(U(0x3) << 12)
 
-#define HTCR_RGN0_OUTER_NC	(0x0 << 10)
-#define HTCR_RGN0_OUTER_WBA	(0x1 << 10)
-#define HTCR_RGN0_OUTER_WT	(0x2 << 10)
-#define HTCR_RGN0_OUTER_WBNA	(0x3 << 10)
+#define HTCR_RGN0_OUTER_NC	(U(0x0) << 10)
+#define HTCR_RGN0_OUTER_WBA	(U(0x1) << 10)
+#define HTCR_RGN0_OUTER_WT	(U(0x2) << 10)
+#define HTCR_RGN0_OUTER_WBNA	(U(0x3) << 10)
 
-#define HTCR_RGN0_INNER_NC	(0x0 << 8)
-#define HTCR_RGN0_INNER_WBA	(0x1 << 8)
-#define HTCR_RGN0_INNER_WT	(0x2 << 8)
-#define HTCR_RGN0_INNER_WBNA	(0x3 << 8)
+#define HTCR_RGN0_INNER_NC	(U(0x0) << 8)
+#define HTCR_RGN0_INNER_WBA	(U(0x1) << 8)
+#define HTCR_RGN0_INNER_WT	(U(0x2) << 8)
+#define HTCR_RGN0_INNER_WBNA	(U(0x3) << 8)
 
-#define HTCR_T0SZ_SHIFT	0
-#define HTCR_T0SZ_MASK        (0x7)
+#define HTCR_T0SZ_SHIFT		U(0)
+#define HTCR_T0SZ_MASK		U(0x7)
 
 #define MODE_RW_SHIFT		U(0x4)
 #define MODE_RW_MASK		U(0x1)
@@ -348,7 +373,31 @@
 /*
  * TTBR definitions
  */
-#define TTBR_CNP_BIT		U(0x1)
+#define TTBR_CNP_BIT		ULL(0x1)
+
+/*
+ * CTR definitions
+ */
+#define CTR_CWG_SHIFT		U(24)
+#define CTR_CWG_MASK		U(0xf)
+#define CTR_ERG_SHIFT		U(20)
+#define CTR_ERG_MASK		U(0xf)
+#define CTR_DMINLINE_SHIFT	U(16)
+#define CTR_DMINLINE_WIDTH	U(4)
+#define CTR_DMINLINE_MASK	((U(1) << 4) - U(1))
+#define CTR_L1IP_SHIFT		U(14)
+#define CTR_L1IP_MASK		U(0x3)
+#define CTR_IMINLINE_SHIFT	U(0)
+#define CTR_IMINLINE_MASK	U(0xf)
+
+#define MAX_CACHE_LINE_SIZE	U(0x800) /* 2KB */
+
+/* PMCR definitions */
+#define PMCR_N_SHIFT		U(11)
+#define PMCR_N_MASK		U(0x1f)
+#define PMCR_N_BITS		(PMCR_N_MASK << PMCR_N_SHIFT)
+#define PMCR_LC_BIT		(U(1) << 6)
+#define PMCR_DP_BIT		(U(1) << 5)
 
 /*******************************************************************************
  * Definitions of register offsets, fields and macros for CPU system
@@ -360,26 +409,42 @@
 #define TLBI_ADDR(x)		(((x) >> TLBI_ADDR_SHIFT) & TLBI_ADDR_MASK)
 
 /*******************************************************************************
+ * Definitions of register offsets and fields in the CNTCTLBase Frame of the
+ * system level implementation of the Generic Timer.
+ ******************************************************************************/
+#define CNTCTLBASE_CNTFRQ	U(0x0)
+#define CNTNSAR			U(0x4)
+#define CNTNSAR_NS_SHIFT(x)	(x)
+
+#define CNTACR_BASE(x)		(U(0x40) + ((x) << 2))
+#define CNTACR_RPCT_SHIFT	U(0x0)
+#define CNTACR_RVCT_SHIFT	U(0x1)
+#define CNTACR_RFRQ_SHIFT	U(0x2)
+#define CNTACR_RVOFF_SHIFT	U(0x3)
+#define CNTACR_RWVT_SHIFT	U(0x4)
+#define CNTACR_RWPT_SHIFT	U(0x5)
+
+/*******************************************************************************
  * Definitions of register offsets and fields in the CNTBaseN Frame of the
  * system level implementation of the Generic Timer.
  ******************************************************************************/
 /* Physical Count register. */
-#define CNTPCT_LO		0x0
+#define CNTPCT_LO		U(0x0)
 /* Counter Frequency register. */
-#define CNTBASEN_CNTFRQ		0x10
+#define CNTBASEN_CNTFRQ		U(0x10)
 /* Physical Timer CompareValue register. */
-#define CNTP_CVAL_LO		0x20
+#define CNTP_CVAL_LO		U(0x20)
 /* Physical Timer Control register. */
-#define CNTP_CTL		0x2c
+#define CNTP_CTL		U(0x2c)
 
 /* Physical timer control register bit fields shifts and masks */
 #define CNTP_CTL_ENABLE_SHIFT   0
 #define CNTP_CTL_IMASK_SHIFT    1
 #define CNTP_CTL_ISTATUS_SHIFT  2
 
-#define CNTP_CTL_ENABLE_MASK    1
-#define CNTP_CTL_IMASK_MASK     1
-#define CNTP_CTL_ISTATUS_MASK   1
+#define CNTP_CTL_ENABLE_MASK    U(1)
+#define CNTP_CTL_IMASK_MASK     U(1)
+#define CNTP_CTL_ISTATUS_MASK   U(1)
 
 #define get_cntp_ctl_enable(x)  ((x >> CNTP_CTL_ENABLE_SHIFT) & \
 					CNTP_CTL_ENABLE_MASK)
@@ -401,6 +466,8 @@
 /* System register defines The format is: coproc, opt1, CRn, CRm, opt2 */
 #define SCR		p15, 0, c1, c1, 0
 #define SCTLR		p15, 0, c1, c0, 0
+#define ACTLR		p15, 0, c1, c0, 1
+#define SDCR		p15, 0, c1, c3, 1
 #define MPIDR		p15, 0, c0, c0, 5
 #define MIDR		p15, 0, c0, c0, 0
 #define HVBAR		p15, 4, c12, c0, 0
@@ -432,10 +499,13 @@
 #define TLBIMVAHIS	p15, 4, c8, c3, 1
 #define BPIALLIS	p15, 0, c7, c1, 6
 #define BPIALL		p15, 0, c7, c5, 6
+#define ICIALLU		p15, 0, c7, c5, 0
 #define HSCTLR		p15, 4, c1, c0, 0
 #define HCR		p15, 4, c1, c1, 0
 #define HCPTR		p15, 4, c1, c1, 2
+#define HSTR		p15, 4, c1, c1, 3
 #define CNTHCTL		p15, 4, c14, c1, 0
+#define CNTKCTL		p15, 0, c14, c1, 0
 #define VPIDR		p15, 4, c0, c0, 0
 #define VMPIDR		p15, 4, c0, c0, 5
 #define ISR		p15, 0, c12, c1, 0
@@ -444,8 +514,20 @@
 #define CCSIDR		p15, 1, c0, c0, 0
 #define HTCR		p15, 4, c2, c0, 2
 #define HMAIR0		p15, 4, c10, c2, 0
-#define CNTHP_CTL	p15, 4, c14, c2, 1
+#define ATS1CPR		p15, 0, c7, c8, 0
+#define ATS1HR		p15, 4, c7, c8, 0
+#define DBGOSDLR	p14, 0, c1, c3, 4
+
+/* Debug register defines. The format is: coproc, opt1, CRn, CRm, opt2 */
+#define HDCR		p15, 4, c1, c1, 1
+#define PMCR		p15, 0, c9, c12, 0
 #define CNTHP_TVAL	p15, 4, c14, c2, 0
+#define CNTHP_CTL	p15, 4, c14, c2, 1
+
+/* AArch32 coproc registers for 32bit MMU descriptor support */
+#define PRRR		p15, 0, c10, c2, 0
+#define NMRR		p15, 0, c10, c2, 1
+#define DACR		p15, 0, c3, c0, 0
 
 /* GICv3 CPU Interface system register defines. The format is: coproc, opt1, CRn, CRm, opt2 */
 #define ICC_IAR1	p15, 0, c12, c12, 0
@@ -476,6 +558,7 @@
 #define CNTPCT_64	p15, 0, c14
 #define HTTBR_64	p15, 4, c2
 #define CNTHP_CVAL_64	p15, 6, c14
+#define PAR_64		p15, 0, c7
 
 /* 64 bit GICv3 CPU Interface system register defines. The format is: coproc, opt1, CRm */
 #define ICC_SGI1R_EL1_64	p15, 0, c12
@@ -531,6 +614,12 @@
 
 #define MAKE_MAIR_NORMAL_MEMORY(inner, outer)	\
 		((inner) | ((outer) << MAIR_NORM_OUTER_SHIFT))
+
+/* PAR fields */
+#define PAR_F_SHIFT	U(0)
+#define PAR_F_MASK	ULL(0x1)
+#define PAR_ADDR_SHIFT	U(12)
+#define PAR_ADDR_MASK	(BIT_64(40) - ULL(1)) /* 40-bits-wide page address */
 
 /*******************************************************************************
  * Definitions for system register interface to AMU for ARMv8.4 onwards
@@ -592,4 +681,4 @@
 #define AMEVTYPER1E	p15, 0, c13, c15, 6
 #define AMEVTYPER1F	p15, 0, c13, c15, 7
 
-#endif /* __ARCH_H__ */
+#endif /* ARCH_H */

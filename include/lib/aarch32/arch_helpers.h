@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __ARCH_HELPERS_H__
-#define __ARCH_HELPERS_H__
+#ifndef ARCH_HELPERS_H
+#define ARCH_HELPERS_H
 
-#include <arch.h>	/* for additional register definitions */
-#include <misc_utils.h>
+#include <arch.h>
+#include <cdefs.h>
 #include <stdint.h>
-#include <types.h>
+#include <string.h>
 
 /**********************************************************************
  * Macros which create inline functions to read or write CPU system
@@ -73,6 +73,10 @@ static inline void write_ ## _name(const u_register_t v)		\
 #define DEFINE_COPROCR_READ_FUNC(_name, ...) 				\
 	_DEFINE_COPROCR_READ_FUNC(_name, __VA_ARGS__)
 
+/* Define write function for coproc register */
+#define DEFINE_COPROCR_WRITE_FUNC(_name, ...) 				\
+	_DEFINE_COPROCR_WRITE_FUNC(_name, __VA_ARGS__)
+
 /* Define read & write function for coproc register */
 #define DEFINE_COPROCR_RW_FUNCS(_name, ...) 				\
 	_DEFINE_COPROCR_READ_FUNC(_name, __VA_ARGS__)			\
@@ -107,16 +111,16 @@ static inline void tlbi##_op(void)					\
 	__asm__ volatile ("mcr "#coproc","#opc1",%0,"#CRn","#CRm","#opc2 : : "r" (v));\
 }
 
-#define _DEFINE_TLBIOP_PARAM_FUNC(_op, coproc, opc1, CRn, CRm, opc2)	\
-static inline void tlbi##_op(u_register_t v)				\
-{									\
-	__asm__ volatile ("mcr "#coproc","#opc1",%0,"#CRn","#CRm","#opc2 : : "r" (v));\
-}
-
 #define _DEFINE_BPIOP_FUNC(_op, coproc, opc1, CRn, CRm, opc2)		\
 static inline void bpi##_op(void)					\
 {									\
 	u_register_t v = 0;						\
+	__asm__ volatile ("mcr "#coproc","#opc1",%0,"#CRn","#CRm","#opc2 : : "r" (v));\
+}
+
+#define _DEFINE_TLBIOP_PARAM_FUNC(_op, coproc, opc1, CRn, CRm, opc2)	\
+static inline void tlbi##_op(u_register_t v)				\
+{									\
 	__asm__ volatile ("mcr "#coproc","#opc1",%0,"#CRn","#CRm","#opc2 : : "r" (v));\
 }
 
@@ -182,6 +186,13 @@ DEFINE_SYSOP_FUNC(wfe)
 DEFINE_SYSOP_FUNC(sev)
 DEFINE_SYSOP_TYPE_FUNC(dsb, sy)
 DEFINE_SYSOP_TYPE_FUNC(dmb, sy)
+DEFINE_SYSOP_TYPE_FUNC(dmb, st)
+
+/* dmb ld is not valid for armv7/thumb machines */
+#if ARM_ARCH_MAJOR != 7
+DEFINE_SYSOP_TYPE_FUNC(dmb, ld)
+#endif
+
 DEFINE_SYSOP_TYPE_FUNC(dsb, ish)
 DEFINE_SYSOP_TYPE_FUNC(dsb, ishst)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ish)
@@ -203,7 +214,9 @@ DEFINE_COPROCR_READ_FUNC(clidr, CLIDR)
 DEFINE_COPROCR_READ_FUNC_64(cntpct, CNTPCT_64)
 
 DEFINE_COPROCR_RW_FUNCS(scr, SCR)
+DEFINE_COPROCR_RW_FUNCS(ctr, CTR)
 DEFINE_COPROCR_RW_FUNCS(sctlr, SCTLR)
+DEFINE_COPROCR_RW_FUNCS(actlr, ACTLR)
 DEFINE_COPROCR_RW_FUNCS(hsctlr, HSCTLR)
 DEFINE_COPROCR_RW_FUNCS(hcr, HCR)
 DEFINE_COPROCR_RW_FUNCS(hcptr, HCPTR)
@@ -224,6 +237,7 @@ DEFINE_COPROCR_RW_FUNCS_64(vttbr, VTTBR_64)
 DEFINE_COPROCR_RW_FUNCS_64(ttbr1, TTBR1_64)
 DEFINE_COPROCR_RW_FUNCS_64(cntvoff, CNTVOFF_64)
 DEFINE_COPROCR_RW_FUNCS(csselr, CSSELR)
+DEFINE_COPROCR_RW_FUNCS(hstr, HSTR)
 DEFINE_COPROCR_RW_FUNCS(cnthp_ctl_el2, CNTHP_CTL)
 DEFINE_COPROCR_RW_FUNCS(cnthp_tval_el2, CNTHP_TVAL)
 DEFINE_COPROCR_RW_FUNCS_64(cnthp_cval_el2, CNTHP_CVAL_64)
@@ -232,6 +246,7 @@ DEFINE_COPROCR_RW_FUNCS(icc_sre_el1, ICC_SRE)
 DEFINE_COPROCR_RW_FUNCS(icc_sre_el2, ICC_HSRE)
 DEFINE_COPROCR_RW_FUNCS(icc_sre_el3, ICC_MSRE)
 DEFINE_COPROCR_RW_FUNCS(icc_pmr_el1, ICC_PMR)
+DEFINE_COPROCR_RW_FUNCS(icc_rpr_el1, ICC_RPR)
 DEFINE_COPROCR_RW_FUNCS(icc_igrpen1_el3, ICC_MGRPEN1)
 DEFINE_COPROCR_RW_FUNCS(icc_igrpen1_el1, ICC_IGRPEN1)
 DEFINE_COPROCR_RW_FUNCS(icc_igrpen0_el1, ICC_IGRPEN0)
@@ -241,7 +256,26 @@ DEFINE_COPROCR_RW_FUNCS(icc_iar0_el1, ICC_IAR0)
 DEFINE_COPROCR_RW_FUNCS(icc_iar1_el1, ICC_IAR1)
 DEFINE_COPROCR_RW_FUNCS(icc_eoir0_el1, ICC_EOIR0)
 DEFINE_COPROCR_RW_FUNCS(icc_eoir1_el1, ICC_EOIR1)
+DEFINE_COPROCR_RW_FUNCS_64(icc_sgi0r_el1, ICC_SGI0R_EL1_64)
 DEFINE_COPROCR_WRITE_FUNC_64(icc_sgi1r, ICC_SGI1R_EL1_64)
+
+DEFINE_COPROCR_RW_FUNCS(hdcr, HDCR)
+DEFINE_COPROCR_RW_FUNCS(cnthp_ctl, CNTHP_CTL)
+DEFINE_COPROCR_READ_FUNC(pmcr, PMCR)
+
+/*
+ * Address translation
+ */
+DEFINE_COPROCR_WRITE_FUNC(ats1cpr, ATS1CPR)
+DEFINE_COPROCR_WRITE_FUNC(ats1hr, ATS1HR)
+DEFINE_COPROCR_RW_FUNCS_64(par, PAR_64)
+
+DEFINE_COPROCR_RW_FUNCS(nsacr, NSACR)
+
+/* AArch32 coproc registers for 32bit MMU descriptor support */
+DEFINE_COPROCR_RW_FUNCS(prrr, PRRR)
+DEFINE_COPROCR_RW_FUNCS(nmrr, NMRR)
+DEFINE_COPROCR_RW_FUNCS(dacr, DACR)
 
 DEFINE_COPROCR_RW_FUNCS(amcntenset0, AMCNTENSET0)
 DEFINE_COPROCR_RW_FUNCS(amcntenset1, AMCNTENSET1)
@@ -274,6 +308,69 @@ DEFINE_BPIOP_FUNC(allis, BPIALLIS)
 DEFINE_DCOP_PARAM_FUNC(civac, DCCIMVAC)
 DEFINE_DCOP_PARAM_FUNC(ivac, DCIMVAC)
 DEFINE_DCOP_PARAM_FUNC(cvac, DCCMVAC)
+
+/* Previously defined accessor functions with incomplete register names  */
+#define dsb()			dsbsy()
+#define dmb()			dmbsy()
+
+/* dmb ld is not valid for armv7/thumb machines, so alias it to dmb */
+#if ARM_ARCH_MAJOR == 7
+#define	dmbld()			dmb()
+#endif
+
+#define IS_IN_SECURE() \
+	(GET_NS_BIT(read_scr()) == 0)
+
+#define IS_IN_HYP()	(GET_M32(read_cpsr()) == MODE32_hyp)
+#define IS_IN_SVC()	(GET_M32(read_cpsr()) == MODE32_svc)
+#define IS_IN_MON()	(GET_M32(read_cpsr()) == MODE32_mon)
+#define IS_IN_EL2()	IS_IN_HYP()
+/* If EL3 is AArch32, then secure PL1 and monitor mode correspond to EL3 */
+#define IS_IN_EL3() \
+	((GET_M32(read_cpsr()) == MODE32_mon) ||	\
+		(IS_IN_SECURE() && (GET_M32(read_cpsr()) != MODE32_usr)))
+
+static inline unsigned int get_current_el(void)
+{
+	if (IS_IN_EL3()) {
+		return 3U;
+	} else if (IS_IN_EL2()) {
+		return 2U;
+	} else {
+		return 1U;
+	}
+}
+
+/* Macros for compatibility with AArch64 system registers */
+#define read_mpidr_el1()	read_mpidr()
+
+#define read_scr_el3()		read_scr()
+#define write_scr_el3(_v)	write_scr(_v)
+
+#define read_hcr_el2()		read_hcr()
+#define write_hcr_el2(_v)	write_hcr(_v)
+
+#define read_cpacr_el1()	read_cpacr()
+#define write_cpacr_el1(_v)	write_cpacr(_v)
+
+#define read_cntfrq_el0()	read_cntfrq()
+#define write_cntfrq_el0(_v)	write_cntfrq(_v)
+#define read_isr_el1()		read_isr()
+
+#define read_cntpct_el0()	read64_cntpct()
+
+#define read_ctr_el0()		read_ctr()
+
+#define write_icc_sgi0r_el1(_v)	write64_icc_sgi0r_el1(_v)
+
+#define read_daif()		read_cpsr()
+#define write_daif(flags)	write_cpsr(flags)
+
+#define read_cnthp_cval_el2()	read64_cnthp_cval_el2()
+#define write_cnthp_cval_el2(v)	write64_cnthp_cval_el2(v)
+
+#define read_amcntenset0_el0()	read_amcntenset0()
+#define read_amcntenset1_el0()	read_amcntenset1()
 
 /* Helper functions to manipulate CPSR */
 static inline void enable_irq(void)
@@ -330,29 +427,6 @@ static inline void disable_fiq(void)
 	isb();
 }
 
-/* Previously defined accessor functions with incomplete register names  */
-#define dsb()			dsbsy()
-
-/*
- * Helper function to detect the processor mode.
- */
-#define IS_IN_HYP()	(GET_M32(read_cpsr()) == MODE32_hyp)
-#define IS_IN_SVC()	(GET_M32(read_cpsr()) == MODE32_svc)
-#define IS_IN_MON()	(GET_M32(read_cpsr()) == MODE32_mon)
-#define IS_IN_EL2()	IS_IN_HYP()
-
-/* Accessor functions defined for compatibility with AArch32 register names  */
-
-#define read_mpidr_el1()	read_mpidr()
-#define read_daif()		read_cpsr()
-#define write_daif(flags)	write_cpsr(flags)
-#define read_cntfrq_el0()	read_cntfrq()
-#define read_cntpct_el0()	read64_cntpct()
-#define read_cnthp_cval_el2()	read64_cnthp_cval_el2()
-#define write_cnthp_cval_el2(v)	write64_cnthp_cval_el2(v)
-#define read_amcntenset0_el0()	read_amcntenset0()
-#define read_amcntenset1_el0()	read_amcntenset1()
-
 void disable_mmu_icache(void);
 
-#endif /* __ARCH_HELPERS_H__ */
+#endif /* ARCH_HELPERS_H */

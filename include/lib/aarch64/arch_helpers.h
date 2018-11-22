@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2018, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __ARCH_HELPERS_H__
-#define __ARCH_HELPERS_H__
+#ifndef ARCH_HELPERS_H
+#define ARCH_HELPERS_H
 
-#include <arch.h>	/* for additional register definitions */
-#include <cdefs.h>	/* For __dead2 */
-#include <misc_utils.h>
+#include <arch.h>
+#include <cdefs.h>
+#include <stdbool.h>
 #include <stdint.h>
-#include <sys/types.h>
+#include <string.h>
 
 /**********************************************************************
  * Macros which create inline functions to read or write CPU system
@@ -86,20 +86,56 @@ static inline void _op ## _type(uint64_t v)		\
  * TLB maintenance accessor prototypes
  ******************************************************************************/
 
+#if ERRATA_A57_813419
+/*
+ * Define function for TLBI instruction with type specifier that implements
+ * the workaround for errata 813419 of Cortex-A57.
+ */
+#define DEFINE_TLBIOP_ERRATA_A57_813419_TYPE_FUNC(_type)\
+static inline void tlbi ## _type(void)			\
+{							\
+	__asm__("tlbi " #_type "\n"			\
+		"dsb ish\n"				\
+		"tlbi " #_type);			\
+}
+
+/*
+ * Define function for TLBI instruction with register parameter that implements
+ * the workaround for errata 813419 of Cortex-A57.
+ */
+#define DEFINE_TLBIOP_ERRATA_A57_813419_TYPE_PARAM_FUNC(_type)	\
+static inline void tlbi ## _type(uint64_t v)			\
+{								\
+	__asm__("tlbi " #_type ", %0\n"				\
+		"dsb ish\n"					\
+		"tlbi " #_type ", %0" : : "r" (v));		\
+}
+#endif /* ERRATA_A57_813419 */
+
 DEFINE_SYSOP_TYPE_FUNC(tlbi, alle1)
 DEFINE_SYSOP_TYPE_FUNC(tlbi, alle1is)
 DEFINE_SYSOP_TYPE_FUNC(tlbi, alle2)
 DEFINE_SYSOP_TYPE_FUNC(tlbi, alle2is)
+#if ERRATA_A57_813419
+DEFINE_TLBIOP_ERRATA_A57_813419_TYPE_FUNC(alle3)
+DEFINE_TLBIOP_ERRATA_A57_813419_TYPE_FUNC(alle3is)
+#else
 DEFINE_SYSOP_TYPE_FUNC(tlbi, alle3)
 DEFINE_SYSOP_TYPE_FUNC(tlbi, alle3is)
+#endif
 DEFINE_SYSOP_TYPE_FUNC(tlbi, vmalle1)
 
 DEFINE_SYSOP_TYPE_PARAM_FUNC(tlbi, vaae1is)
 DEFINE_SYSOP_TYPE_PARAM_FUNC(tlbi, vaale1is)
 DEFINE_SYSOP_TYPE_PARAM_FUNC(tlbi, vae2is)
 DEFINE_SYSOP_TYPE_PARAM_FUNC(tlbi, vale2is)
+#if ERRATA_A57_813419
+DEFINE_TLBIOP_ERRATA_A57_813419_TYPE_PARAM_FUNC(vae3is)
+DEFINE_TLBIOP_ERRATA_A57_813419_TYPE_PARAM_FUNC(vale3is)
+#else
 DEFINE_SYSOP_TYPE_PARAM_FUNC(tlbi, vae3is)
 DEFINE_SYSOP_TYPE_PARAM_FUNC(tlbi, vale3is)
+#endif
 
 /*******************************************************************************
  * Cache maintenance accessor prototypes
@@ -112,6 +148,17 @@ DEFINE_SYSOP_TYPE_PARAM_FUNC(dc, ivac)
 DEFINE_SYSOP_TYPE_PARAM_FUNC(dc, civac)
 DEFINE_SYSOP_TYPE_PARAM_FUNC(dc, cvau)
 DEFINE_SYSOP_TYPE_PARAM_FUNC(dc, zva)
+
+/*******************************************************************************
+ * Address translation accessor prototypes
+ ******************************************************************************/
+DEFINE_SYSOP_TYPE_PARAM_FUNC(at, s12e1r)
+DEFINE_SYSOP_TYPE_PARAM_FUNC(at, s12e1w)
+DEFINE_SYSOP_TYPE_PARAM_FUNC(at, s12e0r)
+DEFINE_SYSOP_TYPE_PARAM_FUNC(at, s12e0w)
+DEFINE_SYSOP_TYPE_PARAM_FUNC(at, s1e1r)
+DEFINE_SYSOP_TYPE_PARAM_FUNC(at, s1e2r)
+DEFINE_SYSOP_TYPE_PARAM_FUNC(at, s1e3r)
 
 void flush_dcache_range(uintptr_t addr, size_t size);
 void clean_dcache_range(uintptr_t addr, size_t size);
@@ -127,24 +174,34 @@ void disable_mmu_icache(void);
  * Misc. accessor prototypes
  ******************************************************************************/
 
+#define write_daifclr(val) SYSREG_WRITE_CONST(daifclr, val)
+#define write_daifset(val) SYSREG_WRITE_CONST(daifset, val)
+
+DEFINE_SYSREG_RW_FUNCS(par_el1)
 DEFINE_SYSREG_READ_FUNC(id_pfr1_el1)
 DEFINE_SYSREG_READ_FUNC(id_aa64isar1_el1)
 DEFINE_SYSREG_READ_FUNC(id_aa64pfr0_el1)
+DEFINE_SYSREG_READ_FUNC(id_aa64dfr0_el1)
 DEFINE_SYSREG_READ_FUNC(CurrentEl)
 DEFINE_SYSREG_READ_FUNC(ctr_el0)
 DEFINE_SYSREG_RW_FUNCS(daif)
 DEFINE_SYSREG_RW_FUNCS(spsr_el1)
 DEFINE_SYSREG_RW_FUNCS(spsr_el2)
+DEFINE_SYSREG_RW_FUNCS(spsr_el3)
 DEFINE_SYSREG_RW_FUNCS(elr_el1)
 DEFINE_SYSREG_RW_FUNCS(elr_el2)
+DEFINE_SYSREG_RW_FUNCS(elr_el3)
 
 DEFINE_SYSOP_FUNC(wfi)
 DEFINE_SYSOP_FUNC(wfe)
 DEFINE_SYSOP_FUNC(sev)
 DEFINE_SYSOP_TYPE_FUNC(dsb, sy)
+DEFINE_SYSOP_TYPE_FUNC(dmb, sy)
+DEFINE_SYSOP_TYPE_FUNC(dmb, st)
+DEFINE_SYSOP_TYPE_FUNC(dmb, ld)
 DEFINE_SYSOP_TYPE_FUNC(dsb, ish)
+DEFINE_SYSOP_TYPE_FUNC(dsb, nsh)
 DEFINE_SYSOP_TYPE_FUNC(dsb, ishst)
-DEFINE_SYSOP_FUNC(isb)
 DEFINE_SYSOP_TYPE_FUNC(dmb, oshld)
 DEFINE_SYSOP_TYPE_FUNC(dmb, oshst)
 DEFINE_SYSOP_TYPE_FUNC(dmb, osh)
@@ -154,12 +211,7 @@ DEFINE_SYSOP_TYPE_FUNC(dmb, nsh)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ishld)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ishst)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ish)
-DEFINE_SYSOP_TYPE_FUNC(dmb, ld)
-DEFINE_SYSOP_TYPE_FUNC(dmb, st)
-DEFINE_SYSOP_TYPE_FUNC(dmb, sy)
-
-#define write_daifclr(val) SYSREG_WRITE_CONST(daifclr, val)
-#define write_daifset(val) SYSREG_WRITE_CONST(daifset, val)
+DEFINE_SYSOP_FUNC(isb)
 
 static inline void enable_irq(void)
 {
@@ -244,10 +296,12 @@ DEFINE_SYSREG_READ_FUNC(midr_el1)
 DEFINE_SYSREG_READ_FUNC(mpidr_el1)
 DEFINE_SYSREG_READ_FUNC(id_aa64mmfr0_el1)
 
+DEFINE_SYSREG_RW_FUNCS(scr_el3)
 DEFINE_SYSREG_RW_FUNCS(hcr_el2)
 
 DEFINE_SYSREG_RW_FUNCS(vbar_el1)
 DEFINE_SYSREG_RW_FUNCS(vbar_el2)
+DEFINE_SYSREG_RW_FUNCS(vbar_el3)
 
 DEFINE_SYSREG_RW_FUNCS(sctlr_el1)
 DEFINE_SYSREG_RW_FUNCS(sctlr_el2)
@@ -255,40 +309,54 @@ DEFINE_SYSREG_RW_FUNCS(sctlr_el3)
 
 DEFINE_SYSREG_RW_FUNCS(actlr_el1)
 DEFINE_SYSREG_RW_FUNCS(actlr_el2)
+DEFINE_SYSREG_RW_FUNCS(actlr_el3)
 
 DEFINE_SYSREG_RW_FUNCS(esr_el1)
 DEFINE_SYSREG_RW_FUNCS(esr_el2)
+DEFINE_SYSREG_RW_FUNCS(esr_el3)
 
 DEFINE_SYSREG_RW_FUNCS(afsr0_el1)
 DEFINE_SYSREG_RW_FUNCS(afsr0_el2)
+DEFINE_SYSREG_RW_FUNCS(afsr0_el3)
 
 DEFINE_SYSREG_RW_FUNCS(afsr1_el1)
 DEFINE_SYSREG_RW_FUNCS(afsr1_el2)
+DEFINE_SYSREG_RW_FUNCS(afsr1_el3)
 
 DEFINE_SYSREG_RW_FUNCS(far_el1)
 DEFINE_SYSREG_RW_FUNCS(far_el2)
+DEFINE_SYSREG_RW_FUNCS(far_el3)
 
 DEFINE_SYSREG_RW_FUNCS(mair_el1)
 DEFINE_SYSREG_RW_FUNCS(mair_el2)
+DEFINE_SYSREG_RW_FUNCS(mair_el3)
 
 DEFINE_SYSREG_RW_FUNCS(amair_el1)
 DEFINE_SYSREG_RW_FUNCS(amair_el2)
+DEFINE_SYSREG_RW_FUNCS(amair_el3)
 
 DEFINE_SYSREG_READ_FUNC(rvbar_el1)
 DEFINE_SYSREG_READ_FUNC(rvbar_el2)
+DEFINE_SYSREG_READ_FUNC(rvbar_el3)
 
 DEFINE_SYSREG_RW_FUNCS(rmr_el1)
 DEFINE_SYSREG_RW_FUNCS(rmr_el2)
+DEFINE_SYSREG_RW_FUNCS(rmr_el3)
 
 DEFINE_SYSREG_RW_FUNCS(tcr_el1)
 DEFINE_SYSREG_RW_FUNCS(tcr_el2)
+DEFINE_SYSREG_RW_FUNCS(tcr_el3)
 
 DEFINE_SYSREG_RW_FUNCS(ttbr0_el1)
 DEFINE_SYSREG_RW_FUNCS(ttbr0_el2)
+DEFINE_SYSREG_RW_FUNCS(ttbr0_el3)
 
 DEFINE_SYSREG_RW_FUNCS(ttbr1_el1)
 
+DEFINE_SYSREG_RW_FUNCS(vttbr_el2)
+
 DEFINE_SYSREG_RW_FUNCS(cptr_el2)
+DEFINE_SYSREG_RW_FUNCS(cptr_el3)
 
 DEFINE_SYSREG_RW_FUNCS(cpacr_el1)
 DEFINE_SYSREG_RW_FUNCS(cntfrq_el0)
@@ -304,25 +372,64 @@ DEFINE_SYSREG_RW_FUNCS(cntp_cval_el0)
 DEFINE_SYSREG_READ_FUNC(cntpct_el0)
 DEFINE_SYSREG_RW_FUNCS(cnthctl_el2)
 
+DEFINE_SYSREG_RW_FUNCS(tpidr_el3)
+
+DEFINE_SYSREG_RW_FUNCS(cntvoff_el2)
+
 DEFINE_SYSREG_RW_FUNCS(vpidr_el2)
 DEFINE_SYSREG_RW_FUNCS(vmpidr_el2)
+
+DEFINE_SYSREG_READ_FUNC(isr_el1)
+
+DEFINE_SYSREG_RW_FUNCS(mdcr_el2)
+DEFINE_SYSREG_RW_FUNCS(mdcr_el3)
+DEFINE_SYSREG_RW_FUNCS(hstr_el2)
+DEFINE_SYSREG_RW_FUNCS(pmcr_el0)
 
 /* GICv3 System Registers */
 
 DEFINE_RENAME_SYSREG_RW_FUNCS(icc_sre_el1, ICC_SRE_EL1)
 DEFINE_RENAME_SYSREG_RW_FUNCS(icc_sre_el2, ICC_SRE_EL2)
+DEFINE_RENAME_SYSREG_RW_FUNCS(icc_sre_el3, ICC_SRE_EL3)
 DEFINE_RENAME_SYSREG_RW_FUNCS(icc_pmr_el1, ICC_PMR_EL1)
+DEFINE_RENAME_SYSREG_READ_FUNC(icc_rpr_el1, ICC_RPR_EL1)
+DEFINE_RENAME_SYSREG_RW_FUNCS(icc_igrpen1_el3, ICC_IGRPEN1_EL3)
 DEFINE_RENAME_SYSREG_RW_FUNCS(icc_igrpen1_el1, ICC_IGRPEN1_EL1)
-DEFINE_RENAME_SYSREG_RW_FUNCS(icc_sgi1r, ICC_SGI1R)
+DEFINE_RENAME_SYSREG_RW_FUNCS(icc_igrpen0_el1, ICC_IGRPEN0_EL1)
+DEFINE_RENAME_SYSREG_READ_FUNC(icc_hppir0_el1, ICC_HPPIR0_EL1)
 DEFINE_RENAME_SYSREG_READ_FUNC(icc_hppir1_el1, ICC_HPPIR1_EL1)
+DEFINE_RENAME_SYSREG_READ_FUNC(icc_iar0_el1, ICC_IAR0_EL1)
 DEFINE_RENAME_SYSREG_READ_FUNC(icc_iar1_el1, ICC_IAR1_EL1)
+DEFINE_RENAME_SYSREG_WRITE_FUNC(icc_eoir0_el1, ICC_EOIR0_EL1)
 DEFINE_RENAME_SYSREG_WRITE_FUNC(icc_eoir1_el1, ICC_EOIR1_EL1)
+DEFINE_RENAME_SYSREG_WRITE_FUNC(icc_sgi0r_el1, ICC_SGI0R_EL1)
+DEFINE_RENAME_SYSREG_RW_FUNCS(icc_sgi1r, ICC_SGI1R)
 
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcgcr_el0, AMCGCR_EL0)
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenclr0_el0, AMCNTENCLR0_EL0)
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenset0_el0, AMCNTENSET0_EL0)
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenclr1_el0, AMCNTENCLR1_EL0)
 DEFINE_RENAME_SYSREG_RW_FUNCS(amcntenset1_el0, AMCNTENSET1_EL0)
+
+DEFINE_RENAME_SYSREG_READ_FUNC(mpamidr_el1, MPAMIDR_EL1)
+DEFINE_RENAME_SYSREG_RW_FUNCS(mpam3_el3, MPAM3_EL3)
+DEFINE_RENAME_SYSREG_RW_FUNCS(mpam2_el2, MPAM2_EL2)
+DEFINE_RENAME_SYSREG_RW_FUNCS(mpamhcr_el2, MPAMHCR_EL2)
+
+DEFINE_RENAME_SYSREG_RW_FUNCS(pmblimitr_el1, PMBLIMITR_EL1)
+
+DEFINE_RENAME_SYSREG_WRITE_FUNC(zcr_el3, ZCR_EL3)
+DEFINE_RENAME_SYSREG_WRITE_FUNC(zcr_el2, ZCR_EL2)
+
+DEFINE_RENAME_SYSREG_READ_FUNC(erridr_el1, ERRIDR_EL1)
+DEFINE_RENAME_SYSREG_WRITE_FUNC(errselr_el1, ERRSELR_EL1)
+
+DEFINE_RENAME_SYSREG_READ_FUNC(erxfr_el1, ERXFR_EL1)
+DEFINE_RENAME_SYSREG_RW_FUNCS(erxctlr_el1, ERXCTLR_EL1)
+DEFINE_RENAME_SYSREG_RW_FUNCS(erxstatus_el1, ERXSTATUS_EL1)
+DEFINE_RENAME_SYSREG_READ_FUNC(erxaddr_el1, ERXADDR_EL1)
+DEFINE_RENAME_SYSREG_READ_FUNC(erxmisc0_el1, ERXMISC0_EL1)
+DEFINE_RENAME_SYSREG_READ_FUNC(erxmisc1_el1, ERXMISC1_EL1)
 
 /* Armv8.3 Pointer Authentication Registers */
 DEFINE_RENAME_SYSREG_RW_FUNCS(apgakeylo_el1, APGAKeyLo_EL1)
@@ -332,5 +439,25 @@ DEFINE_RENAME_SYSREG_RW_FUNCS(apgakeylo_el1, APGAKeyLo_EL1)
 
 #define IS_IN_EL1() IS_IN_EL(1)
 #define IS_IN_EL2() IS_IN_EL(2)
+#define IS_IN_EL3() IS_IN_EL(3)
 
-#endif /* __ARCH_HELPERS_H__ */
+static inline unsigned int get_current_el(void)
+{
+	return GET_EL(read_CurrentEl());
+}
+
+/*
+ * Check if an EL is implemented from AA64PFR0 register fields.
+ */
+static inline uint64_t el_implemented(unsigned int el)
+{
+	if (el > 3U) {
+		return EL_IMPL_NONE;
+	} else {
+		unsigned int shift = ID_AA64PFR0_EL1_SHIFT * el;
+
+		return (read_id_aa64pfr0_el1() >> shift) & ID_AA64PFR0_ELX_MASK;
+	}
+}
+
+#endif /* ARCH_HELPERS_H */
