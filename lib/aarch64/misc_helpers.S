@@ -8,9 +8,6 @@
 #include <asm_macros.S>
 #include <assert_macros.S>
 
-	.globl	get_afflvl_shift
-	.globl	mpidr_mask_lower_afflvls
-	.globl	eret
 	.globl	smc
 
 	.globl	zeromem16
@@ -18,29 +15,6 @@
 
 	.globl	disable_mmu
 	.globl	disable_mmu_icache
-
-func get_afflvl_shift
-	cmp	x0, #3
-	cinc	x0, x0, eq
-	mov	x1, #MPIDR_AFFLVL_SHIFT
-	lsl	x0, x0, x1
-	ret
-endfunc get_afflvl_shift
-
-func mpidr_mask_lower_afflvls
-	cmp	x1, #3
-	cinc	x1, x1, eq
-	mov	x2, #MPIDR_AFFLVL_SHIFT
-	lsl	x2, x1, x2
-	lsr	x0, x0, x2
-	lsl	x0, x0, x2
-	ret
-endfunc mpidr_mask_lower_afflvls
-
-
-func eret
-	eret
-endfunc eret
 
 func smc
 	smc	#0
