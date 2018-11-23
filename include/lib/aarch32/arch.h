@@ -446,19 +446,6 @@
 #define CNTP_CTL_IMASK_MASK     U(1)
 #define CNTP_CTL_ISTATUS_MASK   U(1)
 
-#define get_cntp_ctl_enable(x)  ((x >> CNTP_CTL_ENABLE_SHIFT) & \
-					CNTP_CTL_ENABLE_MASK)
-#define get_cntp_ctl_imask(x)   ((x >> CNTP_CTL_IMASK_SHIFT) & \
-					CNTP_CTL_IMASK_MASK)
-#define get_cntp_ctl_istatus(x) ((x >> CNTP_CTL_ISTATUS_SHIFT) & \
-					CNTP_CTL_ISTATUS_MASK)
-
-#define set_cntp_ctl_enable(x)  (x |= 1 << CNTP_CTL_ENABLE_SHIFT)
-#define set_cntp_ctl_imask(x)   (x |= 1 << CNTP_CTL_IMASK_SHIFT)
-
-#define clr_cntp_ctl_enable(x)  (x &= ~(1 << CNTP_CTL_ENABLE_SHIFT))
-#define clr_cntp_ctl_imask(x)   (x &= ~(1 << CNTP_CTL_IMASK_SHIFT))
-
 /* MAIR macros */
 #define MAIR0_ATTR_SET(attr, index)	((attr) << ((index) << U(3)))
 #define MAIR1_ATTR_SET(attr, index)	((attr) << (((index) - U(3)) << U(3)))
