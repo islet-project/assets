@@ -51,9 +51,6 @@
 #define MPIDR_AFF_ID(mpid, n)					\
 	(((mpid) >> MPIDR_AFF_SHIFT(n)) & MPIDR_AFFLVL_MASK)
 
-#define MPIDR_CLUSTER_ID(mpid)	MPIDR_AFF_ID(mpid, 1)
-#define MPIDR_CPU_ID(mpid)	MPIDR_AFF_ID(mpid, 0)
-
 #define MPID_MASK		(MPIDR_MT_MASK				|\
 				 (MPIDR_AFFLVL_MASK << MPIDR_AFF2_SHIFT)|\
 				 (MPIDR_AFFLVL_MASK << MPIDR_AFF1_SHIFT)|\

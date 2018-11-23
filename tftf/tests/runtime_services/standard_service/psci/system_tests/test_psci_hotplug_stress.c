@@ -19,6 +19,10 @@
 
 #define STRESS_TEST_COUNT 1000
 
+/* TODO: Remove assumption that affinity levels always map to power levels. */
+#define MPIDR_CLUSTER_ID(mpid)	MPIDR_AFF_ID(mpid, 1)
+#define MPIDR_CPU_ID(mpid)	MPIDR_AFF_ID(mpid, 0)
+
 static event_t cpu_booted[PLATFORM_CORE_COUNT];
 static event_t cluster_booted;
 

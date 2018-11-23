@@ -67,9 +67,6 @@
 #define MPIDR_AFF_ID(mpid, n)					\
 	(((mpid) >> MPIDR_AFF_SHIFT(n)) & MPIDR_AFFLVL_MASK)
 
-#define MPIDR_CLUSTER_ID(mpid)	MPIDR_AFF_ID(mpid, 1)
-#define MPIDR_CPU_ID(mpid)	MPIDR_AFF_ID(mpid, 0)
-
 /*
  * An invalid MPID. This value can be used by functions that return an MPID to
  * indicate an error.

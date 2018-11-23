@@ -27,6 +27,10 @@
 #define SUSPEND_TIME_10_SECS 10000
 #define TEST_ITERATION_COUNT 0x5
 
+/* TODO: Remove assumption that affinity levels always map to power levels. */
+#define MPIDR_CLUSTER_ID(mpid)	MPIDR_AFF_ID(mpid, 1)
+#define MPIDR_CPU_ID(mpid)	MPIDR_AFF_ID(mpid, 0)
+
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp64_supported()	\
 	(tftf_get_psci_feature_info(SMC_PSCI_SYSTEM_SUSPEND64) != \
