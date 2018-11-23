@@ -35,7 +35,8 @@ func sdei_entrypoint_resume
 
 	/* Calculate address of event completion variable */
 	mrs	x0, mpidr_el1
-	and	x0, x0, #MPID_MASK
+	mov_imm	x1, MPID_MASK
+	and	x0, x0, x1
 	bl	platform_get_core_pos
 	lsl	x0, x0, #2
 	adrp	x1, event_handled
@@ -59,7 +60,8 @@ func sdei_handler_done
 
 	/* Calculate address of event completion variable */
 	mrs	x0, mpidr_el1
-	and	x0, x0, #MPID_MASK
+	mov_imm	x1, MPID_MASK
+	and	x0, x0, x1
 	mov	x29, x30
 	bl	platform_get_core_pos
 	mov	x30, x29
@@ -93,7 +95,8 @@ func sdei_state_entrypoint
 
 	/* Calculate address of event completion variable */
 	mrs	x0, mpidr_el1
-	and	x0, x0, #MPID_MASK
+	mov_imm	x1, MPID_MASK
+	and	x0, x0, x1
 	bl	platform_get_core_pos
 	lsl	x0, x0, #2
 	adrp	x1, event_handled

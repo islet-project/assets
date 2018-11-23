@@ -142,7 +142,8 @@ func tftf_hotplug_entry
 	 * --------------------------------------------------------------------
 	 */
 	mrs	x0, mpidr_el1
-	and	x0, x0, #MPID_MASK
+	mov_imm x1, MPID_MASK
+	and	x0, x0, x1
 	bl	platform_get_core_pos
 
 	mov	x1, x19
@@ -167,7 +168,7 @@ func save_primary_mpid
 	mov	w2, #INVALID_MPID
 	cmp	w0, w2
 	b.ne	panic
-	mov	x2, #MPID_MASK
+	mov_imm	x2, MPID_MASK
 	mrs	x0, mpidr_el1
 	and	x0, x0, x2
 	str	w0, [x1, :lo12:tftf_primary_core]
