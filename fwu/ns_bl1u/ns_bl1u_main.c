@@ -6,6 +6,7 @@
 
 #include <arch_helpers.h>
 #include <assert.h>
+#include <bl1.h>
 #include <debug.h>
 #include <errno.h>
 #include <image_loader.h>

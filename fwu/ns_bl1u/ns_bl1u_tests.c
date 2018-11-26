@@ -9,6 +9,7 @@
  * BL1.
  ******************************************************************************/
 
+#include <bl1.h>
 #include <debug.h>
 #include <errno.h>
 #include <io_fip.h>
@@ -17,12 +18,6 @@
 #include <status.h>
 #include <tftf.h>
 #include <tftf_lib.h>
-
-/* Expected number of SMC calls supported in BL1 */
-#define BL1_NUM_SMC_CALLS	11
-
-/* Expected version of BL1 SMC implementation */
-#define BL1_SMC_VER_VALUE	1
 
 typedef struct {
 	/* Description to print before sending the SMC */
@@ -49,7 +44,7 @@ static const ns_bl1u_test_t tests[] = {
 	{
 		.description	= "BL1_SMC_VERSION",
 		.args		= { BL1_SMC_VERSION, 0, 0, 0, 0 },
-		.expect		= BL1_SMC_VER_VALUE,
+		.expect		= BL1_VERSION,
 	},
 
 	{

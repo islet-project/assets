@@ -5,6 +5,7 @@
  */
 
 #include <arch_helpers.h>
+#include <bl1.h>
 #include <debug.h>
 #include <firmware_image_package.h>
 #include <fwu_nvm.h>

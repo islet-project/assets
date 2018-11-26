@@ -76,21 +76,6 @@
 #define NSRAM_SIZE				(0x00008000)
 
 /*******************************************************************************
- * Corresponds to the function ID of the BL1 SMC handler for FWU process.
- ******************************************************************************/
-#define BL1_SMC_CALL_COUNT		0x0
-#define BL1_SMC_UID			0x1
-/* SMC #0x2 reserved */
-#define BL1_SMC_VERSION			0x3
-#define FWU_SMC_IMAGE_COPY		0x10
-#define FWU_SMC_IMAGE_AUTH		0x11
-#define FWU_SMC_IMAGE_EXECUTE		0x12
-#define FWU_SMC_IMAGE_RESUME		0x13
-#define FWU_SMC_SEC_IMAGE_DONE		0x14
-#define FWU_SMC_UPDATE_DONE		0x15
-#define FWU_SMC_IMAGE_RESET		0x16
-
-/*******************************************************************************
  * NS_BL1U specific defines.
  * NS_BL1U RW data is relocated from NS-ROM to NS-RAM at runtime so we
  * need 2 sets of addresses.
