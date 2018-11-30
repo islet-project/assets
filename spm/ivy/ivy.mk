@@ -6,6 +6,8 @@
 
 include lib/sprt/sprt_client.mk
 
+IVY_DTB		:= $(BUILD_PLAT)/ivy.dtb
+
 IVY_INCLUDES :=					\
 	-Iinclude					\
 	-Iinclude/common				\
@@ -70,4 +72,13 @@ else
         $(eval $(call add_define,IVY_DEFINES,AARCH64))
 endif
 
-ivy: ${AUTOGEN_DIR}/tests_list.h
+$(IVY_DTB) : $(BUILD_PLAT)/ivy $(BUILD_PLAT)/ivy/ivy.elf
+$(IVY_DTB) : spm/ivy/ivy.dts
+	@echo "  DTBGEN  spm/ivy/ivy.dts"
+	${Q}tools/generate_dtb/generate_dtb.sh \
+		ivy spm/ivy/ivy.dts $(BUILD_PLAT)
+	@echo
+	@echo "Built $@ successfully"
+	@echo
+
+ivy: $(IVY_DTB) $(AUTOGEN_DIR)/tests_list.h
