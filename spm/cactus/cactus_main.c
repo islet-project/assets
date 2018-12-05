@@ -10,9 +10,7 @@
 #include <pl011.h>
 #include <plat_arm.h>
 #include <platform_def.h>
-#include <secure_partition.h>
 #include <sp_helpers.h>
-#include <spm_svc.h>
 #include <std_svc.h>
 
 #include "cactus.h"

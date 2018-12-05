@@ -7,7 +7,6 @@
 #ifndef __CACTUS_H__
 #define __CACTUS_H__
 
-#include <secure_partition.h>
 #include <types.h>
 
 /* Linker symbols used to figure out the memory layout of Cactus. */

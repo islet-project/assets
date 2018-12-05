@@ -8,14 +8,9 @@
 
 <testsuites>
 
-  <testsuite name="SPM tests"
+  <testsuite name="Secure Partition Manager"
              description="Test SPM APIs">
-    <testcase name="SPM NS interrupts test"
-              function="test_secure_partition_interrupt_by_ns" />
-    <testcase name="SPM secondary CPUs sequential test"
-              function="test_secure_partition_secondary_cores_seq" />
-    <testcase name="SPM secondary CPUs simultaneous test"
-              function="test_secure_partition_secondary_cores_sim" />
+
   </testsuite>
 
 </testsuites>

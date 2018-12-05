@@ -6,7 +6,4 @@
 
 TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/secure_service/,	\
-		secure_service_helpers.c				\
-		test_secure_service_handle.c 				\
-		test_secure_service_interrupts.c			\
 	)
