@@ -23,7 +23,7 @@
 	(((irq_num) >= MIN_SPI_ID) &&					\
 	 ((irq_num) <= MIN_SPI_ID + PLAT_MAX_SPI_OFFSET_ID))
 
-static spi_desc spi_desc_table[PLAT_MAX_SPI_OFFSET_ID - MIN_SPI_ID];
+static spi_desc spi_desc_table[PLAT_MAX_SPI_OFFSET_ID + 1];
 static ppi_desc ppi_desc_table[PLATFORM_CORE_COUNT][
 				(MAX_PPI_ID + 1) - MIN_PPI_ID];
 static sgi_desc sgi_desc_table[PLATFORM_CORE_COUNT][MAX_SGI_ID + 1];
