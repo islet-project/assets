@@ -19,9 +19,9 @@ extern uintptr_t __RODATA_START__, __RODATA_END__;
 #define CACTUS_RODATA_START	((uintptr_t)&__RODATA_START__)
 #define CACTUS_RODATA_END	((uintptr_t)&__RODATA_END__)
 
-extern uintptr_t __RWDATA_START__, __RWDATA_END__;
-#define CACTUS_RWDATA_START	((uintptr_t)&__RWDATA_START__)
-#define CACTUS_RWDATA_END	((uintptr_t)&__RWDATA_END__)
+extern uintptr_t __DATA_START__, __DATA_END__;
+#define CACTUS_DATA_START	((uintptr_t)&__DATA_START__)
+#define CACTUS_DATA_END		((uintptr_t)&__DATA_END__)
 
 extern uintptr_t __BSS_START__, __BSS_END__;
 #define CACTUS_BSS_START	((uintptr_t)&__BSS_START__)

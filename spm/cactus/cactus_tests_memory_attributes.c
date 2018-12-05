@@ -156,7 +156,7 @@ void mem_attr_changes_tests(const secure_partition_boot_info_t *boot_info)
 
 	announce_test_start(test_desc1);
 	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
-	ret = request_mem_attr_changes(CACTUS_RWDATA_START, 1, attributes);
+	ret = request_mem_attr_changes(cactus_tests_start, 1, attributes);
 	expect(ret, SPM_INVALID_PARAMETER);
 	announce_test_end(test_desc1);
 
@@ -164,7 +164,7 @@ void mem_attr_changes_tests(const secure_partition_boot_info_t *boot_info)
 
 	announce_test_start(test_desc2);
 	attributes = mem_access_perm(SP_MEMORY_ATTRIBUTES_NON_EXEC, SP_MEMORY_ATTRIBUTES_ACCESS_RW);
-	ret = request_mem_attr_changes(CACTUS_RWDATA_START, 0, attributes);
+	ret = request_mem_attr_changes(cactus_tests_start, 0, attributes);
 	expect(ret, SPM_INVALID_PARAMETER);
 	announce_test_end(test_desc2);
 

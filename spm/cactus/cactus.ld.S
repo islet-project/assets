@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <cactus_def.h>
 #include <platform_def.h>
 #include <xlat_tables_defs.h>
 
@@ -33,20 +34,20 @@ SECTIONS
         __RODATA_END__ = .;
     }
 
-
     .data : {
         . = ALIGN(PAGE_SIZE);
-        __RWDATA_START__ = .;
+        __DATA_START__ = .;
         *(.data*)
+        . = NEXT(PAGE_SIZE);
+        __DATA_END__ = .;
     }
 
-    .bss : {
-        . = ALIGN(16);
+    .bss (NOLOAD) : {
+        . = ALIGN(PAGE_SIZE);
         __BSS_START__ = .;
         *(SORT_BY_ALIGNMENT(.bss*))
         *(COMMON)
         . = NEXT(PAGE_SIZE);
         __BSS_END__ = .;
-        __RWDATA_END__ = .;
     }
 }
