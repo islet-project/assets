@@ -91,6 +91,15 @@ The AArch32 build has been tested on the following `FVP`_\ s:
 
 NOTE: Unless otherwise stated, the model version is version 11.4, build 37.
 
+System Guidance for Infrastructure Fixed Virtual Platforms
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+The AArch64 build has been tested on the following SGI Fixed Virtual Platforms
+(`FVP`_):
+-  ``FVP_CSS_SGI-575``
+
+NOTE: For ``FVP_CSS_SGI-575``, the model version is 11.4, build 40
+
 Still to come
 `````````````
 
