@@ -115,6 +115,7 @@ include tftf/tests/tests.mk
 include fwu/ns_bl1u/ns_bl1u.mk
 include fwu/ns_bl2u/ns_bl2u.mk
 include spm/cactus/cactus.mk
+include spm/ivy/ivy.mk
 
 # Include platform specific makefile last because:
 # - the platform makefile may use all previous definitions in this file.
@@ -223,6 +224,11 @@ CACTUS_CFLAGS		+= ${COMMON_CFLAGS}
 CACTUS_ASFLAGS		+= ${COMMON_ASFLAGS}
 CACTUS_LDFLAGS		+= ${COMMON_LDFLAGS}
 
+IVY_INCLUDES		+= ${PLAT_INCLUDES}
+IVY_CFLAGS		+= ${COMMON_CFLAGS}
+IVY_ASFLAGS		+= ${COMMON_ASFLAGS}
+IVY_LDFLAGS		+= ${COMMON_LDFLAGS}
+
 .PHONY: locate-checkpatch
 locate-checkpatch:
 ifndef CHECKPATCH
@@ -287,6 +293,11 @@ endif
 ifneq (${ARCH}-${PLAT},aarch64-fvp)
 .PHONY: cactus
 cactus:
+	@echo "ERROR: $@ is supported only on AArch64 FVP."
+	@exit 1
+
+.PHONY: ivy
+ivy:
 	@echo "ERROR: $@ is supported only on AArch64 FVP."
 	@exit 1
 endif
@@ -415,6 +426,7 @@ endif
 
 ifeq (${ARCH}-${PLAT},aarch64-fvp)
   $(eval $(call MAKE_IMG,cactus))
+  $(eval $(call MAKE_IMG,ivy))
 endif
 
 # The EL3 test payload is only supported in AArch64. It has an independent build
@@ -436,7 +448,7 @@ cscope:
 
 .PHONY: help
 help:
-	@echo "usage: ${MAKE} PLAT=<${PLATFORMS}> <all|tftf|ns_bl1u|ns_bl2u|cactus|el3_payload|distclean|clean|checkcodebase|checkpatch>"
+	@echo "usage: ${MAKE} PLAT=<${PLATFORMS}> <all|tftf|ns_bl1u|ns_bl2u|cactus|ivy|el3_payload|distclean|clean|checkcodebase|checkpatch>"
 	@echo ""
 	@echo "PLAT is used to specify which platform you wish to build."
 	@echo "If no platform is specified, PLAT defaults to: ${DEFAULT_PLAT}"
@@ -448,6 +460,7 @@ help:
 	@echo "  ns_bl1u        Build the NS_BL1U image"
 	@echo "  ns_bl2u        Build the NS_BL2U image"
 	@echo "  cactus         Build the Cactus image (Test S-EL0 payload)."
+	@echo "  ivy            Build the Ivy image (Test S-EL0 payload)."
 	@echo "  el3_payload    Build the EL3 test payload"
 	@echo "  checkcodebase  Check the coding style of the entire source tree"
 	@echo "  checkpatch     Check the coding style on changes in the current"

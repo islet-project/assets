@@ -11,7 +11,7 @@
 
 /* TODO: Deal with per-image printf functions in a cleaner way. */
 
-#ifdef IMAGE_CACTUS
+#if defined(IMAGE_CACTUS) || defined(IMAGE_IVY)
 /*
  * The register MPIDR_EL1 can't be read from EL0, which means that mp_printf()
  * can't be used.
