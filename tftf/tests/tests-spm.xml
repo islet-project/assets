@@ -11,6 +11,9 @@
   <testsuite name="Secure Partition Manager"
              description="Test SPM APIs">
 
+     <testcase name="SPCI handle open and close"
+               function="test_spci_handle_open" />
+
   </testsuite>
 
 </testsuites>

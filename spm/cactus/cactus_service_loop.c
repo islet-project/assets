@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <debug.h>
-#include <mm_svc.h>
 #include <sp_helpers.h>
 #include <sprt_svc.h>
 #include <spm_svc.h>
@@ -23,10 +22,10 @@ __dead2 void secure_services_loop(void)
 	 * secure service requests.
 	 */
 	NOTICE("Cactus: Signal end of init to SPM\n");
-	event_status_code = SPM_SUCCESS;
+	event_status_code = SPRT_SUCCESS;
 
 	while (1) {
-		svc_values.arg0 = SP_EVENT_COMPLETE_AARCH64;
+		svc_values.arg0 = SPRT_REQUEST_COMPLETE_BLOCKING_AARCH64;
 		svc_values.arg1 = event_status_code;
 		int32_t event_id = sp_svc(&svc_values);
 
@@ -34,7 +33,7 @@ __dead2 void secure_services_loop(void)
 
 		default:
 			NOTICE("Unhandled Service ID 0x%x\n", event_id);
-			event_status_code = SPM_NOT_SUPPORTED;
+			event_status_code = SPRT_NOT_SUPPORTED;
 			break;
 		}
 	}

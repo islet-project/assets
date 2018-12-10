@@ -9,6 +9,7 @@
 
 #include <plat_topology.h>
 #include <psci.h>
+#include <spci_svc.h>
 #include <tftf_lib.h>
 #include <trusted_os.h>
 #include <tsp.h>
@@ -111,6 +112,27 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		VERBOSE("MM_VERSION returned %d.%d\n",				\
 			version >> MM_VERSION_MAJOR_SHIFT,			\
 			version & MM_VERSION_MINOR_MASK);			\
+	} while (0)
+
+#define SKIP_TEST_IF_SPCI_VERSION_LESS_THAN(major, minor)			\
+	do {									\
+		smc_args version_smc = { SPCI_VERSION };			\
+		smc_ret_values smc_ret = tftf_smc(&version_smc);		\
+		uint32_t version = smc_ret.ret0;				\
+										\
+		if (version == SMC_UNKNOWN) {					\
+			tftf_testcase_printf("SPM not detected.\n");		\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+										\
+		if (version < SPCI_VERSION_FORM(major, minor)) {		\
+			tftf_testcase_printf("SPCI_VERSION returned %d.%d\n"	\
+					     "The required version is %d.%d\n",	\
+					     version >> SPCI_VERSION_MAJOR_SHIFT,\
+					     version & SPCI_VERSION_MINOR_MASK,	\
+					     major, minor);			\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
 	} while (0)
 
 /* Helper macro to verify if system suspend API is supported */
