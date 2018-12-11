@@ -72,11 +72,11 @@ The AArch64 build of this release has been tested on variants r0, r1 and r2 of
 the `Juno Arm Development Platform`_. The AArch32 build has only been tested on
 variant r0.
 
-Arm Fixed Virtual Platforms
-'''''''''''''''''''''''''''
+Armv8 Architecture Fixed Virtual Platforms
+''''''''''''''''''''''''''''''''''''''''''
 
-The AArch64 build has been tested on the following Arm Fixed Virtual Platforms
-(`FVP`_):
+The AArch64 build has been tested on the following Armv8 Architecture Fixed
+Virtual Platforms (`FVP`_):
 
 -  ``FVP_Base_AEMv8A-AEMv8A``
 -  ``FVP_Base_Cortex-A35x4``
