@@ -159,7 +159,6 @@ static int flash_erase_block(const io_nor_flash_spec_t *device,
 	int err = IO_SUCCESS;
 	uint32_t status_register;
 
-	VERBOSE("%s : 0x%x\n", __func__, block_offset);
 	/* Request a block erase and then confirm it */
 	nor_send_cmd(block_offset, NOR_CMD_BLOCK_ERASE);
 	nor_send_cmd(block_offset, NOR_CMD_BLOCK_ERASE_ACK);
@@ -359,7 +358,6 @@ int flash_block_write(file_state_t *fp, uint32_t offset,
 	/* address passed should be block aligned */
 	assert(!(offset % fp->block_spec->block_size));
 
-	VERBOSE("%s : 0x%x\n", __func__, flash_pos);
 	/* Unlock block */
 	flash_unlock_block_if_necessary(fp->block_spec, block_offset);
 
@@ -398,7 +396,6 @@ int flash_block_write(file_state_t *fp, uint32_t offset,
 		*written = fp->block_spec->block_size;
 
 lock_block:
-	VERBOSE("%s : 0x%x\n", __func__, block_offset);
 	/* Lock the block once done */
 	flash_perform_lock_operation(fp->block_spec,
 					block_offset,
