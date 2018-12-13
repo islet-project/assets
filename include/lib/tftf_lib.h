@@ -131,7 +131,7 @@ void waitus(uint64_t us);
  */
 typedef struct {
 	/* Function identifier. Identifies which function is being invoked. */
-	uint32_t	arg0;
+	uint32_t	fid;
 
 	u_register_t	arg1;
 	u_register_t	arg2;

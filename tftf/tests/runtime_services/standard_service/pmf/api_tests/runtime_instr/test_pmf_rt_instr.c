@@ -55,7 +55,7 @@ static u_register_t pmf_get_ts(u_register_t tid, u_register_t *v)
 	smc_args args = { 0 };
 	smc_ret_values ret;
 
-	args.arg0 = PMF_SMC_GET_TIMESTAMP;
+	args.fid = PMF_SMC_GET_TIMESTAMP;
 	args.arg1 = tid;
 	args.arg2 = read_mpidr_el1();
 	ret = tftf_smc(&args);

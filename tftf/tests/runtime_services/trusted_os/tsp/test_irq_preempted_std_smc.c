@@ -125,7 +125,7 @@ static int preempt_std_smc_on_this_cpu(void)
 	 * Invoke an STD SMC. Should be pre-empted because of the SGI
 	 * that is waiting.
 	 */
-	std_smc_args.arg0 = TSP_STD_FID(TSP_ADD);
+	std_smc_args.fid = TSP_STD_FID(TSP_ADD);
 	std_smc_args.arg1 = TEST_VALUE_1;
 	std_smc_args.arg2 = TEST_VALUE_2;
 	smc_ret = tftf_smc(&std_smc_args);
@@ -163,7 +163,7 @@ static int resume_std_smc_on_this_cpu(void)
 	unsigned int core_pos = platform_get_core_pos(core_mpid);
 
 	/* Resume the STD SMC. Verify result. */
-	std_smc_args.arg0 = TSP_FID_RESUME;
+	std_smc_args.fid = TSP_FID_RESUME;
 	smc_ret = tftf_smc(&std_smc_args);
 	if ((smc_ret.ret0 != 0) || (smc_ret.ret1 != TEST_VALUE_1 * 2)
 	    || (smc_ret.ret2 != TEST_VALUE_2 * 2)) {
@@ -191,7 +191,7 @@ static int resume_fail_std_smc_on_this_cpu(void)
 	unsigned int core_pos = platform_get_core_pos(core_mpid);
 
 	/* Resume the STD SMC. Verify result. */
-	std_smc_args.arg0 = TSP_FID_RESUME;
+	std_smc_args.fid = TSP_FID_RESUME;
 	smc_ret = tftf_smc(&std_smc_args);
 	if (smc_ret.ret0 != SMC_UNKNOWN) {
 		tftf_testcase_printf(
@@ -304,7 +304,7 @@ static test_result_t test_resume_preempted_std_smc_other_cpus_non_lead_fn(void)
 	 */
 
 	smc_args std_smc_args;
-	std_smc_args.arg0 = TSP_FID_RESUME;
+	std_smc_args.fid = TSP_FID_RESUME;
 	smc_ret_values smc_ret = tftf_smc(&std_smc_args);
 	if (smc_ret.ret0 != SMC_UNKNOWN) {
 		tftf_testcase_printf(
@@ -427,7 +427,7 @@ static test_result_t test_resume_different_cpu_preempted_std_smc_non_lead_fn(voi
 	 * waiting. It has to be different than the one invoked from the lead
 	 * CPU.
 	 */
-	std_smc_args.arg0 = TSP_STD_FID(TSP_MUL);
+	std_smc_args.fid = TSP_STD_FID(TSP_MUL);
 	std_smc_args.arg1 = TEST_VALUE_1;
 	std_smc_args.arg2 = TEST_VALUE_2;
 	smc_ret = tftf_smc(&std_smc_args);
@@ -458,7 +458,7 @@ static test_result_t test_resume_different_cpu_preempted_std_smc_non_lead_fn(voi
 	}
 
 	/* Resume the STD SMC. Verify result. */
-	std_smc_args.arg0 = TSP_FID_RESUME;
+	std_smc_args.fid = TSP_FID_RESUME;
 	smc_ret = tftf_smc(&std_smc_args);
 	if ((smc_ret.ret0 != 0) || (smc_ret.ret1 != TEST_VALUE_1*TEST_VALUE_1)
 	    || (smc_ret.ret2 != TEST_VALUE_2*TEST_VALUE_2)) {
@@ -474,7 +474,7 @@ static test_result_t test_resume_different_cpu_preempted_std_smc_non_lead_fn(voi
 	}
 
 	/* Try to resume the lead CPU STD SMC. Verify result. */
-	std_smc_args.arg0 = TSP_FID_RESUME;
+	std_smc_args.fid = TSP_FID_RESUME;
 	smc_ret = tftf_smc(&std_smc_args);
 	if (smc_ret.ret0 != SMC_UNKNOWN) {
 		tftf_testcase_printf(
@@ -536,7 +536,7 @@ test_result_t test_resume_different_cpu_preempted_std_smc(void)
 	 * Invoke an STD SMC. Should be pre-empted because of the SGI that is
 	 * waiting.
 	 */
-	std_smc_args.arg0 = TSP_STD_FID(TSP_ADD);
+	std_smc_args.fid = TSP_STD_FID(TSP_ADD);
 	std_smc_args.arg1 = TEST_VALUE_1;
 	std_smc_args.arg2 = TEST_VALUE_2;
 	smc_ret = tftf_smc(&std_smc_args);
@@ -589,7 +589,7 @@ test_result_t test_resume_different_cpu_preempted_std_smc(void)
 	 * Try to resume the STD SMC from the lead CPU. It should be able resume
 	 * the one it generated before and to return the correct result.
 	 */
-	std_smc_args.arg0 = TSP_FID_RESUME;
+	std_smc_args.fid = TSP_FID_RESUME;
 	smc_ret = tftf_smc(&std_smc_args);
 	if ((smc_ret.ret0 != 0) || (smc_ret.ret1 != TEST_VALUE_1 * 2) ||
 	    (smc_ret.ret2 != TEST_VALUE_2 * 2)) {

@@ -41,7 +41,7 @@ test_result_t test_query_std_svc(void)
 	test_result_t test_result = TEST_RESULT_SUCCESS;
 
 	/* Standard Service Call UID */
-	std_svc_args.arg0 = SMC_STD_SVC_UID;
+	std_svc_args.fid = SMC_STD_SVC_UID;
 	ret = tftf_smc(&std_svc_args);
 
 	make_uuid_from_4words(&std_svc_uuid,
@@ -55,7 +55,7 @@ test_result_t test_query_std_svc(void)
 	}
 
 	/* Standard Service Call Count */
-	std_svc_args.arg0 = SMC_STD_SVC_CALL_COUNT;
+	std_svc_args.fid = SMC_STD_SVC_CALL_COUNT;
 	ret = tftf_smc(&std_svc_args);
 
 	if (ret.ret0 == SMC_UNKNOWN) {
@@ -68,7 +68,7 @@ test_result_t test_query_std_svc(void)
 	}
 
 	/* Standard Service Call Revision details */
-	std_svc_args.arg0 = SMC_STD_SVC_REVISION;
+	std_svc_args.fid = SMC_STD_SVC_REVISION;
 	ret = tftf_smc(&std_svc_args);
 
 	if ((ret.ret0 != STD_SVC_REVISION_MAJOR) ||

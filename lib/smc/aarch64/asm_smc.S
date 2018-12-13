@@ -12,7 +12,7 @@
 
 
 /* ---------------------------------------------------------------------------
- * smc_ret_values asm_tftf_smc64(uint32_t arg0,
+ * smc_ret_values asm_tftf_smc64(uint32_t fid,
  *				 u_register_t arg1,
  *				 u_register_t arg2,
  *				 u_register_t arg3,

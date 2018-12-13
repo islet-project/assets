@@ -130,7 +130,7 @@ test_result_t test_exec_state_switch_invalid_pc(void)
 	int ret;
 
 	smc_args args = {
-		.arg0 = ARM_SIP_SVC_EXE_STATE_SWITCH,
+		.fid = ARM_SIP_SVC_EXE_STATE_SWITCH,
 		.arg1 = (u_register_t) -1,
 		.arg2 = LO32(&state_switch_a32_entry),
 		.arg3 = HI32(&state_switch_cookie),
@@ -163,7 +163,7 @@ test_result_t test_exec_state_switch_invalid_ctx(void)
 	int ret;
 
 	smc_args args = {
-		.arg0 = ARM_SIP_SVC_EXE_STATE_SWITCH,
+		.fid = ARM_SIP_SVC_EXE_STATE_SWITCH,
 		.arg1 = HI32(&state_switch_a32_entry),
 		.arg2 = LO32(&state_switch_a32_entry),
 		.arg3 = -1,
@@ -195,7 +195,7 @@ test_result_t test_exec_state_switch_valid(void)
 	int ret;
 
 	smc_args args = {
-		.arg0 = ARM_SIP_SVC_EXE_STATE_SWITCH,
+		.fid = ARM_SIP_SVC_EXE_STATE_SWITCH,
 		.arg1 = HI32(&state_switch_a32_entry),
 		.arg2 = LO32(&state_switch_a32_entry),
 		.arg3 = HI32(&state_switch_cookie),
@@ -259,7 +259,7 @@ test_result_t test_exec_state_switch_after_cpu_on(void)
 	int ret;
 
 	smc_args args = {
-		.arg0 = ARM_SIP_SVC_EXE_STATE_SWITCH,
+		.fid = ARM_SIP_SVC_EXE_STATE_SWITCH,
 		.arg1 = HI32(&state_switch_a32_entry),
 		.arg2 = LO32(&state_switch_a32_entry),
 		.arg3 = HI32(&state_switch_cookie),

@@ -29,7 +29,7 @@ test_result_t test_smc_tsp_std_fns_call(void)
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
 	/* TrustedOS Service Call Count */
-	std_svc_args.arg0 = SMC_TOS_CALL_COUNT;
+	std_svc_args.fid = SMC_TOS_CALL_COUNT;
 	ret = tftf_smc(&std_svc_args);
 	if (ret.ret0 != TSP_NUM_FID) {
 		tftf_testcase_printf("Wrong Call Count: expected %u,\n"
@@ -39,7 +39,7 @@ test_result_t test_smc_tsp_std_fns_call(void)
 	}
 
 	/* TrustedOS Service Call Revision details */
-	std_svc_args.arg0 = SMC_TOS_REVISION;
+	std_svc_args.fid = SMC_TOS_REVISION;
 	ret = tftf_smc(&std_svc_args);
 	if ((ret.ret0 != TSP_REVISION_MAJOR) ||
 		 ret.ret1 != TSP_REVISION_MINOR) {

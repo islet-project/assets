@@ -43,7 +43,7 @@ static test_result_t test_smccc_entrypoint(void)
 	/* Check if SMCCC version is at least v1.1 */
 	expected_ver = MAKE_SMCCC_VERSION(1, 1);
 	memset(&args, 0, sizeof(args));
-	args.arg0 = SMCCC_VERSION;
+	args.fid = SMCCC_VERSION;
 	ret = tftf_smc(&args);
 	if ((int32_t)ret.ret0 < expected_ver) {
 		tftf_testcase_printf("Unexpected SMCCC version: 0x%x\n",
@@ -53,7 +53,7 @@ static test_result_t test_smccc_entrypoint(void)
 
 	/* Check if SMCCC_ARCH_WORKAROUND_2 is required or not */
 	memset(&args, 0, sizeof(args));
-	args.arg0 = SMCCC_ARCH_FEATURES;
+	args.fid = SMCCC_ARCH_FEATURES;
 	args.arg1 = SMCCC_ARCH_WORKAROUND_2;
 	ret = tftf_smc(&args);
 	if ((int)ret.ret0 == -1) {
@@ -87,7 +87,7 @@ static test_result_t test_smccc_entrypoint(void)
 
 	/* Invoke the workaround to make sure nothing nasty happens */
 	memset(&args, 0, sizeof(args));
-	args.arg0 = SMCCC_ARCH_WORKAROUND_2;
+	args.fid = SMCCC_ARCH_WORKAROUND_2;
 	tftf_smc(&args);
 	return TEST_RESULT_SUCCESS;
 }

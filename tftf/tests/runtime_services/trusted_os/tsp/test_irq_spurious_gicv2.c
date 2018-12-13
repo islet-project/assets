@@ -70,7 +70,7 @@ static test_result_t test_multicore_spurious_interrupt_non_lead_fn(void)
 		smc_ret_values smc_ret;
 
 		/* Invoke an STD SMC. */
-		std_smc_args.arg0 = TSP_STD_FID(TSP_ADD);
+		std_smc_args.fid = TSP_STD_FID(TSP_ADD);
 		std_smc_args.arg1 = TEST_VALUE_1;
 		std_smc_args.arg2 = TEST_VALUE_2;
 		smc_ret = tftf_smc(&std_smc_args);
@@ -93,7 +93,7 @@ static test_result_t test_multicore_spurious_interrupt_non_lead_fn(void)
 				}
 			} else if (smc_ret.ret0 == TSP_SMC_PREEMPTED) {
 				/* Resume the STD SMC. */
-				std_smc_args.arg0 = TSP_FID_RESUME;
+				std_smc_args.fid = TSP_FID_RESUME;
 				smc_ret = tftf_smc(&std_smc_args);
 				preempted_count[core_pos]++;
 			} else {

@@ -129,7 +129,7 @@ test_result_t tsp_int_and_resume(void)
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
 	/* Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_ADD);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_ADD);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 	res = preempt_tsp_via_SGI(&tsp_svc_params, 0);
@@ -137,7 +137,7 @@ test_result_t tsp_int_and_resume(void)
 		return res;
 
 	/* Now that we have ensured preemption, issue RESUME */
-	tsp_svc_params.arg0 = TSP_FID_RESUME;
+	tsp_svc_params.fid = TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	/* Check the result of the addition */
@@ -153,7 +153,7 @@ test_result_t tsp_int_and_resume(void)
 	}
 
 	/* Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_SUB);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_SUB);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 	res = preempt_tsp_via_SGI(&tsp_svc_params, 0);
@@ -161,7 +161,7 @@ test_result_t tsp_int_and_resume(void)
 		return res;
 
 	/* Now that we have ensured preemption, issue RESUME */
-	tsp_svc_params.arg0 = TSP_FID_RESUME;
+	tsp_svc_params.fid = TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	/* Check the result of the substraction */
@@ -176,7 +176,7 @@ test_result_t tsp_int_and_resume(void)
 	}
 
 	/* Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_MUL);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_MUL);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 	res = preempt_tsp_via_SGI(&tsp_svc_params, 0);
@@ -184,7 +184,7 @@ test_result_t tsp_int_and_resume(void)
 		return res;
 
 	/* Now that we have ensured preemption, issue RESUME */
-	tsp_svc_params.arg0 = TSP_FID_RESUME;
+	tsp_svc_params.fid = TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	/* Check the result of the multiplication */
@@ -199,7 +199,7 @@ test_result_t tsp_int_and_resume(void)
 	}
 
 	/* Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_DIV);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_DIV);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 	res = preempt_tsp_via_SGI(&tsp_svc_params, 0);
@@ -207,7 +207,7 @@ test_result_t tsp_int_and_resume(void)
 		return res;
 
 	/* Now that we have ensured preemption, issue RESUME */
-	tsp_svc_params.arg0 = TSP_FID_RESUME;
+	tsp_svc_params.fid = TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	/* Check the result of the division */
@@ -241,7 +241,7 @@ test_result_t test_fast_smc_when_tsp_preempted(void)
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
 	/* Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_ADD);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_ADD);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 	res = preempt_tsp_via_SGI(&tsp_svc_params, 0);
@@ -249,7 +249,7 @@ test_result_t test_fast_smc_when_tsp_preempted(void)
 		return res;
 
 	/* Now that we have ensured preemption, issue Fast SMC */
-	tsp_svc_params.arg0 = TSP_FAST_FID(TSP_ADD);
+	tsp_svc_params.fid = TSP_FAST_FID(TSP_ADD);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 
@@ -262,7 +262,7 @@ test_result_t test_fast_smc_when_tsp_preempted(void)
 	}
 
 	/* Issue RESUME */
-	tsp_svc_params.arg0 = TSP_FID_RESUME;
+	tsp_svc_params.fid = TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	/* Check the result of the addition */
@@ -302,7 +302,7 @@ static test_result_t test_std_smc_when_tsp_preempted(int abort_smc)
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
 	/* Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_ADD);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_ADD);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 	res = preempt_tsp_via_SGI(&tsp_svc_params, 0);
@@ -310,7 +310,7 @@ static test_result_t test_std_smc_when_tsp_preempted(int abort_smc)
 		return res;
 
 	/* Now that we have ensured preemption, issue Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_ADD);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_ADD);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 
@@ -322,7 +322,7 @@ static test_result_t test_std_smc_when_tsp_preempted(int abort_smc)
 	}
 
 	/* Issue ABORT or RESUME */
-	tsp_svc_params.arg0 = abort_smc ? TSP_FID_ABORT : TSP_FID_RESUME;
+	tsp_svc_params.fid = abort_smc ? TSP_FID_ABORT : TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	/*
@@ -370,7 +370,7 @@ test_result_t test_resume_smc_without_preemption(void)
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
 	/* Issue RESUME */
-	tsp_svc_params.arg0 = TSP_FID_RESUME;
+	tsp_svc_params.fid = TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	if (tsp_result.ret0 != SMC_UNKNOWN) {
@@ -403,7 +403,7 @@ test_result_t tsp_int_and_resume_stress(void)
 	while ((count < STRESS_COUNT) &&
 			(res == TEST_RESULT_SUCCESS)) {
 		/* Standard SMC */
-		tsp_svc_params.arg0 = TSP_STD_FID(TSP_ADD);
+		tsp_svc_params.fid = TSP_STD_FID(TSP_ADD);
 		tsp_svc_params.arg1 = 4;
 		tsp_svc_params.arg2 = 6;
 		/* Try to preempt TSP via IRQ */
@@ -412,7 +412,7 @@ test_result_t tsp_int_and_resume_stress(void)
 			return res;
 
 		/* Issue RESUME */
-		tsp_svc_params.arg0 = TSP_FID_RESUME;
+		tsp_svc_params.fid = TSP_FID_RESUME;
 		tsp_result = tftf_smc(&tsp_svc_params);
 
 		/* Check the result of the addition */
@@ -454,7 +454,7 @@ test_result_t tsp_fiq_while_int(void)
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
 	/* Standard SMC */
-	tsp_svc_params.arg0 = TSP_STD_FID(TSP_ADD);
+	tsp_svc_params.fid = TSP_STD_FID(TSP_ADD);
 	tsp_svc_params.arg1 = 4;
 	tsp_svc_params.arg2 = 6;
 	res = preempt_tsp_via_SGI(&tsp_svc_params, 1);
@@ -462,7 +462,7 @@ test_result_t tsp_fiq_while_int(void)
 		return res;
 
 	/* Now that we have ensured preemption, issue RESUME */
-	tsp_svc_params.arg0 = TSP_FID_RESUME;
+	tsp_svc_params.fid = TSP_FID_RESUME;
 	tsp_result = tftf_smc(&tsp_svc_params);
 
 	/* Check the result of the addition */

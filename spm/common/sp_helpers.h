@@ -11,7 +11,7 @@
 #include <sys/types.h>
 
 typedef struct {
-	u_register_t arg0;
+	u_register_t fid;
 	u_register_t arg1;
 	u_register_t arg2;
 	u_register_t arg3;
@@ -28,7 +28,7 @@ typedef struct {
  * structure. The return values of the SVC call will be stored in the same
  * structure (overriding the input arguments).
  *
- * Return the first return value. It is equivalent to args.arg0 but is also
+ * Return the first return value. It is equivalent to args.fid but is also
  * provided as the return value for convenience.
  */
 u_register_t sp_svc(svc_args *args);

@@ -20,7 +20,7 @@ test_result_t test_unknown_smc(void)
 	smc_args unk_smc;
 	smc_ret_values ret;
 
-	unk_smc.arg0 = INVALID_FID;
+	unk_smc.fid = INVALID_FID;
 	ret = tftf_smc(&unk_smc);
 
 	if (ret.ret0 != SMC_UNKNOWN) {

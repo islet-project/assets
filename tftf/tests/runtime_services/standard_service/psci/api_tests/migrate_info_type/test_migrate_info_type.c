@@ -43,7 +43,7 @@ test_result_t test_migrate_info_type(void)
 	int32_t migrate_ret;
 
 	/* Identify the level of multicore support present in the Trusted OS */
-	args.arg0 = SMC_PSCI_MIG_INFO_TYPE;
+	args.fid = SMC_PSCI_MIG_INFO_TYPE;
 	ret = tftf_smc(&args);
 	mp_support = (int32_t) ret.ret0;
 
@@ -84,7 +84,7 @@ test_result_t test_migrate_info_type(void)
 	 * Either there is no Trusted OS or the Trusted OS is the TSP.
 	 * In both cases, the MIGRATE call should not be supported.
 	 */
-	args.arg0 = SMC_PSCI_MIG;
+	args.fid = SMC_PSCI_MIG;
 	/*
 	 * Pass a valid MPID so that the MIGRATE call doesn't fail because of
 	 * invalid parameters

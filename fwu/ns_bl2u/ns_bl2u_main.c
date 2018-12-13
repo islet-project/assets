@@ -52,7 +52,7 @@ void ns_bl2u_main(void)
 
 	/* Call FWU_SMC_UPDATE_DONE to indicate image update done. */
 	INFO("NS_BL2U: Calling FWU_SMC_UPDATE_DONE\n");
-	fwu_params.arg0 = FWU_SMC_UPDATE_DONE;
+	fwu_params.fid = FWU_SMC_UPDATE_DONE;
 	fwu_result = tftf_smc(&fwu_params);
 	ERROR("NS_BL2U: Unexpected return from FWU process (%d)\n",
 			(int)fwu_result.ret0);
