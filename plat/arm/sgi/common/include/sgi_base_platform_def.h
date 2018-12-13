@@ -7,8 +7,6 @@
 #ifndef SGI_BASE_PLATFORM_DEF_H
 #define SGI_BASE_PLATFORM_DEF_H
 
-#include <arm_def.h>
-
 /* Platform binary types for linking */
 #define PLATFORM_LINKER_FORMAT		"elf64-littleaarch64"
 #define PLATFORM_LINKER_ARCH		aarch64
