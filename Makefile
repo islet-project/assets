@@ -133,7 +133,6 @@ $(eval $(call assert_boolean,ENABLE_ASSERTIONS))
 $(eval $(call assert_boolean,FIRMWARE_UPDATE))
 $(eval $(call assert_boolean,FWU_BL_TEST))
 $(eval $(call assert_boolean,NEW_TEST_SESSION))
-$(eval $(call assert_boolean,SHELL_COLOR))
 $(eval $(call assert_boolean,USE_NVM))
 
 ################################################################################
@@ -148,7 +147,6 @@ $(eval $(call add_define,TFTF_DEFINES,ENABLE_ASSERTIONS))
 $(eval $(call add_define,TFTF_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,TFTF_DEFINES,NEW_TEST_SESSION))
 $(eval $(call add_define,TFTF_DEFINES,PLAT_${PLAT}))
-$(eval $(call add_define,TFTF_DEFINES,SHELL_COLOR))
 $(eval $(call add_define,TFTF_DEFINES,USE_NVM))
 
 ifeq (${ARCH},aarch32)
