@@ -29,7 +29,7 @@ Install the required packages to build TF-A Tests with the following command:
 
 ::
 
-    sudo apt-get install build-essential make git perl libxml-libxml-perl
+    sudo apt-get install device-tree-compiler build-essential make git perl libxml-libxml-perl
 
 Download and install the GNU cross-toolchain from Linaro. The TF-A Tests have
 been tested with version 6.2-2016.11 (gcc 6.2):
