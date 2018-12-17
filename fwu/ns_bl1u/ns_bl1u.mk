@@ -28,7 +28,6 @@ NS_BL1U_INCLUDES := 					\
 NS_BL1U_SOURCES := $(addprefix tftf/framework/,		\
 	${ARCH}/arch.c					\
 	${ARCH}/asm_debug.S				\
-	${ARCH}/exceptions.S				\
 	debug.c						\
 )
 
