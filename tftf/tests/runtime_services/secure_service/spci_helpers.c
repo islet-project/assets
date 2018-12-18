@@ -55,3 +55,125 @@ int spci_service_handle_close(uint16_t client_id, uint16_t handle)
 
 	return (int32_t)(uint32_t)smc_ret.ret0;
 }
+
+/* Returns a SPCI error code. On success, it also returns a token. */
+int spci_service_request_start(u_register_t x1, u_register_t x2,
+			       u_register_t x3, u_register_t x4,
+			       u_register_t x5, u_register_t x6,
+			       uint16_t client_id, uint16_t handle,
+			       uint32_t *token)
+{
+	int32_t ret;
+
+	smc_args request_smc_args = {
+		SPCI_SERVICE_REQUEST_START_AARCH64,
+		x1, x2, x3, x4, x5, x6,
+		client_id | (handle << 16)
+	};
+
+	smc_ret_values smc_ret = tftf_smc(&request_smc_args);
+
+	ret = (int32_t)(uint32_t)smc_ret.ret0;
+	if (ret != SPCI_SUCCESS)
+		return ret;
+
+	*token = smc_ret.ret1;
+
+	return SPCI_SUCCESS;
+}
+
+/*
+ * Returns a SPCI error code. On success, it also returns x1-x3. Any of the
+ * pointers x1-x3 may be NULL in case the caller doesn't need that value.
+ */
+int spci_service_request_resume(uint16_t client_id, uint16_t handle,
+				uint32_t token, u_register_t *x1,
+				u_register_t *x2, u_register_t *x3)
+{
+	int32_t ret;
+
+	smc_args request_resume_smc = {
+		SPCI_SERVICE_REQUEST_RESUME_AARCH64,
+		token, 0, 0, 0, 0, 0,
+		client_id | (handle << 16)
+	};
+
+	smc_ret_values smc_ret = tftf_smc(&request_resume_smc);
+
+	ret = (int32_t)(uint32_t)smc_ret.ret0;
+	if (ret != SPCI_SUCCESS)
+		return ret;
+
+	if (x1 != NULL)
+		*x1 = smc_ret.ret1;
+	if (x2 != NULL)
+		*x2 = smc_ret.ret2;
+	if (x3 != NULL)
+		*x3 = smc_ret.ret3;
+
+	return SPCI_SUCCESS;
+}
+
+/*
+ * Returns a SPCI error code. On success, it also returns x1-x3. Any of the
+ * pointers x1-x3 may be NULL in case the caller doesn't need that value.
+ */
+int spci_service_get_response(uint16_t client_id, uint16_t handle,
+			      uint32_t token, u_register_t *x1,
+			      u_register_t *x2, u_register_t *x3)
+{
+	int32_t ret;
+
+	smc_args get_response_smc = {
+		SPCI_SERVICE_GET_RESPONSE_AARCH64,
+		token, 0, 0, 0, 0, 0,
+		client_id | (handle << 16)
+	};
+
+	smc_ret_values smc_ret = tftf_smc(&get_response_smc);
+
+	ret = (int32_t)(uint32_t)smc_ret.ret0;
+	if (ret != SPCI_SUCCESS)
+		return ret;
+
+	if (x1 != NULL)
+		*x1 = smc_ret.ret1;
+	if (x2 != NULL)
+		*x2 = smc_ret.ret2;
+	if (x3 != NULL)
+		*x3 = smc_ret.ret3;
+
+	return SPCI_SUCCESS;
+}
+
+/* Returns a SPCI error code. On success, it also returns the returned values. */
+int spci_service_request_blocking(u_register_t x1, u_register_t x2,
+				  u_register_t x3, u_register_t x4,
+				  u_register_t x5, u_register_t x6,
+				  uint16_t client_id, uint16_t handle,
+				  u_register_t *rx1, u_register_t *rx2,
+				  u_register_t *rx3)
+{
+	int32_t ret;
+
+	smc_args request_smc_args = {
+		SPCI_SERVICE_REQUEST_BLOCKING_AARCH64,
+		x1, x2, x3, x4, x5, x6,
+		client_id | (handle << 16)
+	};
+
+	smc_ret_values smc_ret = tftf_smc(&request_smc_args);
+
+	ret = (int32_t)(uint32_t)smc_ret.ret0;
+	if (ret != SPCI_SUCCESS)
+		return ret;
+
+	if (rx1 != NULL)
+		*rx1 = smc_ret.ret1;
+	if (rx2 != NULL)
+		*rx2 = smc_ret.ret2;
+	if (rx3 != NULL)
+		*rx3 = smc_ret.ret3;
+
+	return SPCI_SUCCESS;
+}
