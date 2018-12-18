@@ -6,6 +6,7 @@
 
 #include <arch_helpers.h>
 #include <arm_gic.h>
+#include <console.h>
 #include <debug.h>
 #include <platform.h>
 #include <power_management.h>
@@ -50,6 +51,9 @@ int32_t tftf_enter_suspend(const suspend_info_t *info,
 	 * Flush the context that must be retrieved with MMU off
 	 */
 	flush_dcache_range((u_register_t)ctx, sizeof(*ctx));
+
+	/* Make sure any outstanding message is printed. */
+	console_flush();
 
 	if (info->psci_api == SMC_PSCI_CPU_SUSPEND)
 		rc = tftf_smc(&cpu_suspend_args);
