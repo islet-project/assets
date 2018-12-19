@@ -130,7 +130,10 @@ STATUS tftf_testcase_set_result(const test_case_t *testcase,
 */
 STATUS tftf_testcase_get_result(const test_case_t *testcase, TESTCASE_RESULT *result, char *test_output);
 
-void tftf_report_generate(void);
+void print_testsuite_start(const test_suite_t *testsuite);
+void print_test_start(const test_case_t *test);
+void print_test_end(const test_case_t *test);
+void print_tests_summary(void);
 
 /*
  * Exit the TFTF.

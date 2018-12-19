@@ -148,8 +148,14 @@ static void prepare_next_test(void)
 	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; ++i)
 		test_results[i] = TEST_RESULT_NA;
 
-	NOTICE("Starting unittest '%s - %s'\n",
-		current_testsuite()->name, current_testcase()->name);
+	/* If we're starting a new testsuite, announce it. */
+	test_ref_t test_to_run;
+	tftf_get_test_to_run(&test_to_run);
+	if (test_to_run.testcase_idx == 0) {
+		print_testsuite_start(current_testsuite());
+	}
+
+	print_test_start(current_testcase());
 
 	/* Program the watchdog */
 	tftf_platform_watchdog_set();
@@ -263,21 +269,18 @@ static unsigned int close_test(void)
 	assert(tftf_get_ref_cnt() == 0);
 
 	/* Save test result in NVM */
-	test_result_t overall_test_result = get_overall_test_result();
 	tftf_testcase_set_result(current_testcase(),
-				overall_test_result,
+				get_overall_test_result(),
 				0);
 
-	NOTICE("Unittest '%s - %s' complete. Result: %s\n",
-	       current_testsuite()->name, current_testcase()->name,
-	       test_result_to_string(overall_test_result));
+	print_test_end(current_testcase());
 
 	/* The test is finished, let's move to the next one (if any) */
 	next_test = advance_to_next_test();
 
 	/* If this was the last test then report all results */
 	if (!next_test) {
-		tftf_report_generate();
+		print_tests_summary();
 		tftf_clean_nvm();
 		return 1;
 	} else {
@@ -551,7 +554,7 @@ void __dead2 tftf_cold_boot_main(void)
 		NOTICE("Resuming interrupted test session\n");
 		rc = resume_test_session();
 		if (rc < 0) {
-			tftf_report_generate();
+			print_tests_summary();
 			tftf_clean_nvm();
 			tftf_exit();
 		}
