@@ -442,4 +442,16 @@ static inline void disable_fiq(void)
 
 void disable_mmu_icache(void);
 
+/* Read the count value of the system counter. */
+static inline uint64_t syscounter_read(void)
+{
+	/*
+	 * The instruction barrier is needed to guarantee that we read an
+	 * accurate value. Otherwise, the CPU might speculatively read it and
+	 * return a stale value.
+	 */
+	isb();
+	return read64_cntpct();
+}
+
 #endif /* ARCH_HELPERS_H */

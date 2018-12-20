@@ -468,4 +468,16 @@ static inline uint64_t el_implemented(unsigned int el)
 	}
 }
 
+/* Read the count value of the system counter. */
+static inline uint64_t syscounter_read(void)
+{
+	/*
+	 * The instruction barrier is needed to guarantee that we read an
+	 * accurate value. Otherwise, the CPU might speculatively read it and
+	 * return a stale value.
+	 */
+	isb();
+	return read_cntpct_el0();
+}
+
 #endif /* ARCH_HELPERS_H */
