@@ -5,22 +5,14 @@
  */
 
 #include <arch_helpers.h>
-#include <tftf.h>
 
 void waitus(uint64_t us)
 {
-	uint64_t cntp_ct_val_base;
-	uint32_t cnt_frq;
-	uint64_t wait_cycles;
+	uint64_t start_count_val = syscounter_read();
+	uint64_t wait_cycles = (us * read_cntfrq_el0()) / 1000000;
 
-	cnt_frq = read_cntfrq_el0();
-	cntp_ct_val_base = read_cntpct_el0();
-
-	/* Waitms in terms of counter freq */
-	wait_cycles = (us * cnt_frq) / 1000000;
-
-	while (read_cntpct_el0() - cntp_ct_val_base < wait_cycles)
-		;
+	while ((syscounter_read() - start_count_val) < wait_cycles)
+		/* Busy wait... */;
 }
 
 void waitms(uint64_t ms)
