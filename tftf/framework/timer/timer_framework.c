@@ -71,15 +71,11 @@ static inline unsigned long long get_current_prog_time(void)
 
 int tftf_initialise_timer(void)
 {
-	int rc;
-	unsigned int i;
-
 	/*
 	 * Get platform specific timer information
 	 */
-	rc = plat_initialise_timer_ops(&plat_timer_info);
-	if (rc) {
-		ERROR("%s %d: No timer data found\n", __func__, __LINE__);
+	int rc = plat_initialise_timer_ops(&plat_timer_info);
+	if (rc != 0) {
 		return rc;
 	}
 
@@ -87,7 +83,7 @@ int tftf_initialise_timer(void)
 	assert(TIMER_STEP_VALUE);
 
 	/* Initialise the array to max possible time */
-	for (i = 0; i < PLATFORM_CORE_COUNT; i++)
+	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; i++)
 		interrupt_req_time[i] = INVALID_TIME;
 
 	tftf_irq_register_handler(TIMER_IRQ, tftf_timer_framework_handler);

@@ -9,34 +9,15 @@
 
 #include <stdio.h>
 
-/* TODO: Deal with per-image printf functions in a cleaner way. */
-
-#if defined(IMAGE_CACTUS) || defined(IMAGE_IVY)
-/*
- * The register MPIDR_EL1 can't be read from EL0, which means that mp_printf()
- * can't be used.
- */
-#define mp_printf	printf
-#else
 /*
  * Print a formatted string on the UART.
  *
  * Does the same thing as the standard libc's printf() function but in a MP-safe
  * manner, i.e. it can be called from several CPUs simultaneously without
  * getting interleaved messages.
- *
- * The messages printed using mp_printf() won't be saved in the test results
- * (use tftf_testcase_output() instead for that). mp_printf() is meant to be
- * used for debug traces only. Unlike messages stored in the tests output which
- * appear only at the end of the test session in the test report, messages
- * printed using mp_printf() will be displayed straight away.
- *
- * Messaged will be prefixed by the CPU MPID issuing the call, like that:
- *   [cpu 0x0002] Sending SGI #1 to cpu 0
  */
 __attribute__((format(printf, 1, 2)))
 void mp_printf(const char *fmt, ...);
-#endif
 
 /*
  * The log output macros print output to the console. These macros produce
@@ -44,8 +25,8 @@ void mp_printf(const char *fmt, ...);
  * make command line) is greater or equal than the level required for that
  * type of log output.
  * The format expected is similar to printf(). For example:
- * INFO("Info %s.\n", "message")    -> [cpu 0xxx] INFO: Info message.
- * WARN("Warning %s.\n", "message") -> [cpu 0xxx] WARNING: Warning message.
+ * INFO("Info %s.\n", "message")    -> INFO: Info message.
+ * WARN("Warning %s.\n", "message") -> WARNING: Warning message.
  */
 #define LOG_LEVEL_NONE                  0
 #define LOG_LEVEL_ERROR                 10

@@ -182,7 +182,6 @@ static test_result_t get_overall_test_result(void)
 
 		switch (test_results[core_pos]) {
 		case TEST_RESULT_NA:
-			VERBOSE("CPU%u not involved in the test\n", core_pos);
 			/* Ignoring */
 			break;
 
@@ -191,7 +190,6 @@ static test_result_t get_overall_test_result(void)
 			 * If at least one CPU skipped the test, consider the
 			 * whole test as skipped as well.
 			 */
-			NOTICE("CPU%u skipped the test\n", core_pos);
 			return TEST_RESULT_SKIPPED;
 
 		case TEST_RESULT_SUCCESS:
@@ -199,7 +197,6 @@ static test_result_t get_overall_test_result(void)
 			break;
 
 		case TEST_RESULT_FAIL:
-			ERROR("CPU%u failed the test\n", core_pos);
 			return TEST_RESULT_FAIL;
 
 		case TEST_RESULT_CRASHED:
@@ -211,7 +208,6 @@ static test_result_t get_overall_test_result(void)
 			 * If at least one CPU crashed, consider the whole test
 			 * as crashed as well.
 			 */
-			ERROR("CPU%u never returned from the test!\n", core_pos);
 			return TEST_RESULT_CRASHED;
 
 		default:

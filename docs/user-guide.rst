@@ -367,11 +367,6 @@ TFTF build options
    session was interrupted and resume it. It can take either 1 (always
    start new session) or 0 (resume session as appropriate). 1 is the default.
 
--  ``SHELL_COLOR``: Choose whether text messages should use shell's color escape
-   sequences to ease identifying which CPU displays it. If enabled, this makes
-   each CPU write part of the message in a different color. It can take either
-   0 (disabled) or 1 (enabled) as values. 0 is the default.
-
 -  ``TESTS``: Set of tests to run. Use the following command to list all
    possible sets of tests:
 

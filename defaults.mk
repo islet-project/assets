@@ -37,9 +37,6 @@ FWU_BL_TEST := 1
 # framework should try to resume a previous one if it was interrupted
 NEW_TEST_SESSION	:= 1
 
-# Use of shell colors
-SHELL_COLOR		:= 0
-
 # Use non volatile memory for storing results
 USE_NVM			:= 0
 
