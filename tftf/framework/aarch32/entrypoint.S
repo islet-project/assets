@@ -16,22 +16,7 @@
  * ----------------------------------------------------------------------------
  */
 func tftf_entrypoint
-	/* --------------------------------------------------------------------
-	 * Set the exception vectors
-	 * --------------------------------------------------------------------
-	 */
-	ldr	r0, =tftf_vector
-	stcopr	r0, HVBAR
-
-	/* --------------------------------------------------------------------
-	 * Enable the instruction cache.
-	 * --------------------------------------------------------------------
-	 */
-	ldcopr	r0, HSCTLR
-	ldr	r1, =HSCTLR_I_BIT
-	orr	r0, r0, r1
-	stcopr	r0, HSCTLR
-	isb
+	bl	arch_init
 
 	/* --------------------------------------------------------------------
 	 * This code is expected to be executed only by the primary CPU.
@@ -95,22 +80,7 @@ func tftf_hotplug_entry
 	 */
 	mov	r4, r0
 
-	/* --------------------------------------------------------------------
-	 * Set the exception vectors
-	 * --------------------------------------------------------------------
-	 */
-	ldr	r0, =tftf_vector
-	stcopr	r0, HVBAR
-
-	/* --------------------------------------------------------------------
-	 * Enable the instruction cache.
-	 * --------------------------------------------------------------------
-	 */
-	ldcopr	r0, HSCTLR
-	ldr	r1, =HSCTLR_I_BIT
-	orr	r0, r0, r1
-	stcopr	r0, HSCTLR
-	isb
+	bl	arch_init
 
 	/* --------------------------------------------------------------------
 	 * Give ourselves a small coherent stack to ease the pain of
@@ -152,6 +122,23 @@ func tftf_hotplug_entry
 	 */
 	b	tftf_warm_boot_main
 endfunc tftf_hotplug_entry
+
+/* ----------------------------------------------------------------------------
+ * Initialize architectural state.
+ * ----------------------------------------------------------------------------
+ */
+func arch_init
+	/* Set the exception vectors. */
+	ldr	r0, =tftf_vector
+	stcopr	r0, HVBAR
+
+	/* Enable the instruction cache. */
+	ldr     r0, =(HSCTLR_RES1 | HSCTLR_I_BIT)
+	stcopr	r0, HSCTLR
+
+	isb
+	bx	lr
+endfunc arch_init
 
 /* ----------------------------------------------------------------------------
  * Saves the mpid of the primary core and if the primary core

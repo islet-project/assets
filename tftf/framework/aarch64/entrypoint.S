@@ -17,22 +17,7 @@
  * ----------------------------------------------------------------------------
  */
 func tftf_entrypoint
-	/* --------------------------------------------------------------------
-	 * Set the exception vectors
-	 * --------------------------------------------------------------------
-	 */
-	adr	x0, tftf_vector
-	asm_write_vbar_el1_or_el2 x1
-
-	/* --------------------------------------------------------------------
-	 * Enable the instruction cache and stack pointer alignment checks.
-	 * --------------------------------------------------------------------
-	 */
-	mov	x1, #(SCTLR_I_BIT | SCTLR_SA_BIT)
-	asm_read_sctlr_el1_or_el2
-	orr	x0, x0, x1
-	asm_write_sctlr_el1_or_el2 x1
-	isb
+	bl	arch_init
 
 	/* --------------------------------------------------------------------
 	 * This code is expected to be executed only by the primary CPU.
@@ -81,9 +66,6 @@ func tftf_entrypoint
 	 * --------------------------------------------------------------------
 	 */
 	b	tftf_cold_boot_main
-
-dead:
-	b	dead
 endfunc tftf_entrypoint
 
 /* ----------------------------------------------------------------------------
@@ -92,29 +74,13 @@ endfunc tftf_entrypoint
  * ----------------------------------------------------------------------------
  */
 func tftf_hotplug_entry
-
 	/* --------------------------------------------------------------------
 	 * Preserve the context_id in a callee-saved register
 	 * --------------------------------------------------------------------
 	 */
 	mov	x19, x0
 
-	/* --------------------------------------------------------------------
-	 * Set the exception vectors
-	 * --------------------------------------------------------------------
-	 */
-	adr	x0, tftf_vector
-	asm_write_vbar_el1_or_el2 x1
-
-	/* --------------------------------------------------------------------
-	 * Enable the instruction cache and stack pointer alignment checks.
-	 * --------------------------------------------------------------------
-	 */
-	mov	x1, #(SCTLR_I_BIT | SCTLR_SA_BIT)
-	asm_read_sctlr_el1_or_el2
-	orr	x0, x0, x1
-	asm_write_sctlr_el1_or_el2 x1
-	isb
+	bl	arch_init
 
 	/* --------------------------------------------------------------------
 	 * Give ourselves a small coherent stack to ease the pain of
@@ -178,3 +144,34 @@ panic:
 	b	.
 	ret
 endfunc save_primary_mpid
+
+/* Initialize architectural state. */
+func arch_init
+	mrs	x0, CurrentEL
+	cmp	x0, #(MODE_EL1 << MODE_EL_SHIFT)
+	b.eq	el1_setup
+
+el2_setup:
+	/* Set the exception vectors. */
+	adr	x0, tftf_vector
+	msr	vbar_el2, x0
+
+	/* Enable the instruction cache and stack pointer alignment checks. */
+	mov_imm	x0, (SCTLR_EL2_RES1 | SCTLR_I_BIT | SCTLR_SA_BIT)
+	msr	sctlr_el2, x0
+
+	isb
+	ret
+
+el1_setup:
+	/* Set the exception vectors. */
+	adr	x0, tftf_vector
+	msr	vbar_el1, x0
+
+	/* Enable the instruction cache and stack pointer alignment checks. */
+	mov_imm	x0, (SCTLR_EL1_RES1 | SCTLR_I_BIT | SCTLR_SA_BIT)
+	msr	sctlr_el1, x0
+
+	isb
+	ret
+endfunc arch_init
