@@ -24,10 +24,8 @@
  * Detect whether a Trusted OS is present in the software stack.
  * This is implemented using the Trusted OS UID SMC call.
  *
- * If a Trusted OS is detected then this function returns 1
- * and populates 'tos_uuid' with the UUID of the detected Trusted OS.
- * Otherwise, this function returns 0 and the value pointed by 'tos_uuid'
- * should be ignored.
+ * Return 1 if a Trusted OS is detected, else 0. Additionally, the caller may
+ * get the UUID of the Trusted OS if he passes a non-null 'tos_uuid' pointer.
  */
 unsigned int is_trusted_os_present(uuid_t *tos_uuid);
 
