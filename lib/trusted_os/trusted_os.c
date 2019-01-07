@@ -14,7 +14,6 @@ unsigned int is_trusted_os_present(uuid_t *tos_uuid)
 {
 	smc_args tos_uid_args = { SMC_TOS_UID };
 	smc_ret_values ret;
-	uint32_t *tos_uuid32;
 
 	ret = tftf_smc(&tos_uid_args);
 
@@ -23,11 +22,13 @@ unsigned int is_trusted_os_present(uuid_t *tos_uuid)
 	     (ret.ret3 == 0)))
 		return 0;
 
-	tos_uuid32 = (uint32_t *) tos_uuid;
-	tos_uuid32[0] = ret.ret0;
-	tos_uuid32[1] = ret.ret1;
-	tos_uuid32[2] = ret.ret2;
-	tos_uuid32[3] = ret.ret3;
+	if (tos_uuid != NULL) {
+		uint32_t *tos_uuid32 = (uint32_t *) tos_uuid;
+		tos_uuid32[0] = ret.ret0;
+		tos_uuid32[1] = ret.ret1;
+		tos_uuid32[2] = ret.ret2;
+		tos_uuid32[3] = ret.ret3;
+	}
 
 	return 1;
 }
