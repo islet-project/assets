@@ -7,8 +7,10 @@
 #include <psci.h>
 #include <smccc.h>
 #include <std_svc.h>
+#include <stdio.h>
 #include <string.h>
 #include <tftf_lib.h>
+#include <trusted_os.h>
 #include <tsp.h>
 #include <utils_def.h>
 
@@ -60,6 +62,49 @@ static bool smc_check_eq(const smc_args *args, const smc_ret_values *expect)
 			ret.ret0, ret.ret1, ret.ret2, ret.ret3,
 			expect->ret0, expect->ret1, expect->ret2, expect->ret3);
 		return false;
+	}
+}
+
+/*
+ * Send an SMC with the specified arguments.
+ * Check that the values it returns match the expected ones. The do_check[]
+ * array indicates which ones should be checked and provides some flexibility
+ * to ignore some of them.
+ * If the values do not match, write an error message in the test report.
+ */
+static bool smc_check_match(const smc_args *args, const smc_ret_values *expect,
+			    const bool do_check[4])
+{
+	smc_ret_values ret = tftf_smc(args);
+
+	if ((do_check[0] && (ret.ret0 != expect->ret0)) ||
+	    (do_check[1] && (ret.ret1 != expect->ret1)) ||
+	    (do_check[2] && (ret.ret2 != expect->ret2)) ||
+	    (do_check[3] && (ret.ret3 != expect->ret3))) {
+		/*
+		 * Build an error message where unchecked SMC return values are
+		 * displayed as '*'.
+		 */
+		char expect_str[4][20];
+#define BUILD_STR(_buf, _do_check, _expect)			\
+		if (_do_check) {				\
+			snprintf(_buf, 20, "0x%lx", _expect);	\
+		} else {					\
+			strncpy(_buf, "*", 2);			\
+		}
+		BUILD_STR(expect_str[0], do_check[0], expect->ret0);
+		BUILD_STR(expect_str[1], do_check[1], expect->ret1);
+		BUILD_STR(expect_str[2], do_check[2], expect->ret2);
+		BUILD_STR(expect_str[3], do_check[3], expect->ret3);
+#undef BUILD_STR
+		tftf_testcase_printf(
+			"Got {0x%lx,0x%lx,0x%lx,0x%lx}, expected {%s,%s,%s,%s}.\n",
+			ret.ret0, ret.ret1, ret.ret2, ret.ret3,
+			expect_str[0], expect_str[1], expect_str[2], expect_str[3]);
+
+		return false;
+	} else {
+		return true;
 	}
 }
 
@@ -118,9 +163,20 @@ test_result_t smc64_yielding(void)
 	const smc_args args3 = {
 		make_smc_fid(SMC_TYPE_STD, SMC_64, OEN_TOS_START, INVALID_FN),
 		0x44444444, 0x55555555, 0x66666666 };
-	const smc_ret_values ret3
-		= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
-	FAIL_IF(!smc_check_eq(&args3, &ret3));
+
+	if (is_trusted_os_present(NULL)) {
+		/*
+		 * The Trusted OS is free to return any error code in x0 but it
+		 * should at least preserve the values of x1-x3.
+		 */
+		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666 };
+		const bool check[4] = { false, true, true, true };
+		FAIL_IF(!smc_check_match(&args3, &ret3, check));
+	} else {
+		const smc_ret_values ret3
+			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
+		FAIL_IF(!smc_check_eq(&args3, &ret3));
+	}
 
 	return TEST_RESULT_SUCCESS;
 }
@@ -218,9 +274,20 @@ test_result_t smc32_yielding(void)
 	const smc_args args3 = {
 		make_smc_fid(SMC_TYPE_STD, SMC_32, OEN_TOS_START, INVALID_FN),
 		0x44444444, 0x55555555, 0x66666666 };
-	const smc_ret_values ret3
-		= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
-	FAIL_IF(!smc_check_eq(&args3, &ret3));
+
+	if (is_trusted_os_present(NULL)) {
+		/*
+		 * The Trusted OS is free to return any error code in x0 but it
+		 * should at least preserve the values of x1-x3.
+		 */
+		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666 };
+		const bool check[4] = { false, true, true, true };
+		FAIL_IF(!smc_check_match(&args3, &ret3, check));
+	} else {
+		const smc_ret_values ret3
+			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
+		FAIL_IF(!smc_check_eq(&args3, &ret3));
+	}
 
 	return TEST_RESULT_SUCCESS;
 }
