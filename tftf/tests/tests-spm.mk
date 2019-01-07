@@ -10,4 +10,7 @@ TESTS_SOURCES	+=							\
 		test_spci_handle_open.c					\
 		test_spci_blocking_request.c				\
 		test_spci_non_blocking_request.c			\
+		test_spci_blocking_while_busy.c				\
+		test_spci_blocking_interrupt.c				\
+		test_spci_non_blocking_interrupt.c			\
 	)

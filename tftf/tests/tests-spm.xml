@@ -22,6 +22,14 @@
      <testcase name="SPCI non-blocking requests multicore"
                function="test_spci_request_multicore" />
 
+     <testcase name="SPCI blocking request while busy"
+               function="test_spci_blocking_while_busy" />
+
+     <testcase name="SPCI blocking request fail to preempt"
+               function="test_spci_blocking_interrupt_by_ns" />
+     <testcase name="SPCI non-blocking request succeed to preempt"
+               function="test_spci_non_blocking_interrupt_by_ns" />
+
   </testsuite>
 
 </testsuites>
