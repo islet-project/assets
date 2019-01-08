@@ -95,11 +95,14 @@ NOTE: Unless otherwise stated, the model version is version 11.4, build 37.
 System Guidance for Infrastructure Fixed Virtual Platforms
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-The AArch64 build has been tested on the following SGI Fixed Virtual Platforms
+The AArch64 build has been tested on the following Fixed Virtual Platforms
 (`FVP`_):
 -  ``FVP_CSS_SGI-575``
+-  ``FVP_RD_N1Edge``
 
-NOTE: For ``FVP_CSS_SGI-575``, the model version is 11.4, build 40
+NOTE:
+-  For ``FVP_CSS_SGI-575``, the model version is 11.4, build 40
+-  For ``FVP_RD_N1Edge``, the model version is 11.6, build 29
 
 Still to come
 `````````````
