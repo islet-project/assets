@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2019, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="Unstable PSCI tests" description="Need to be fixed">
+    <testcase name="PSCI CPU ON OFF SUSPEND stress test" function="psci_cpu_on_off_suspend_stress" />
+    <testcase name="Verify PSCI CPU ON race" function="psci_verify_cpu_on_race" />
+  </testsuite>
+
+  <testsuite name="Unstable PSCI SYSTEM SUSPEND stress tests" description="Need to be fixed">
+    <testcase name="Stress test PSCI_SYSTEM_SUSPEND" function="psci_sys_susp_on_off_stress_test" />
+  </testsuite>
+
+</testsuites>

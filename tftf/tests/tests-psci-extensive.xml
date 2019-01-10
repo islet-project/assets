@@ -11,19 +11,13 @@
   <testsuite name="PSCI CPU ON OFF Stress Tests" description="Stress-test hotplug">
     <testcase name="Repeated shutdown of all cores to stress test CPU_ON, CPU_SUSPEND and CPU_OFF"
               function="psci_on_off_suspend_coherency_test" />
-    <!-- testcase name="Verify PSCI CPU ON race" function="psci_verify_cpu_on_race" / -->
     <testcase name="PSCI CPU ON OFF stress test" function="psci_cpu_on_off_stress" />
-    <testcase name="PSCI CPU ON OFF SUSPEND stress test" function="psci_cpu_on_off_suspend_stress" />
     <testcase name="Repeated hotplug of all cores to stress test CPU_ON and CPU_OFF"
               function="psci_hotplug_stress_test" />
     <testcase name="Random hotplug cores in a large iteration to stress boot path code"
               function="psci_hotplug_single_core_stress_test" />
     <testcase name="Hotplug a cluster in a large iteration to stress cluster on and off functionality"
               function="psci_cluster_hotplug_stress_test" />
-  </testsuite>
-
-  <testsuite name="PSCI SYSTEM SUSPEND stress tests" description="Stress-test SYSTEM SUSPEND">
-    <testcase name="Stress test PSCI_SYSTEM_SUSPEND" function="psci_sys_susp_on_off_stress_test" />
   </testsuite>
 
 </testsuites>
