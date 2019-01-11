@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -135,6 +135,10 @@
 #define ID_AA64PFR0_SVE_LENGTH	U(4)
 #define ID_AA64PFR0_MPAM_SHIFT	U(40)
 #define ID_AA64PFR0_MPAM_MASK	ULL(0xf)
+#define ID_AA64PFR0_DIT_SHIFT	U(48)
+#define ID_AA64PFR0_DIT_MASK	ULL(0xf)
+#define ID_AA64PFR0_DIT_LENGTH	U(4)
+#define ID_AA64PFR0_DIT_SUPPORTED	U(1)
 #define ID_AA64PFR0_CSV2_SHIFT	U(56)
 #define ID_AA64PFR0_CSV2_MASK	ULL(0xf)
 #define ID_AA64PFR0_CSV2_LENGTH	U(4)
@@ -151,10 +155,6 @@
 #define ID_AA64PFR0_GIC_SHIFT	U(24)
 #define ID_AA64PFR0_GIC_WIDTH	U(4)
 #define ID_AA64PFR0_GIC_MASK	((ULL(1) << ID_AA64PFR0_GIC_WIDTH) - ULL(1))
-
-/* ID_AA64MMFR0_EL1 definitions */
-#define ID_AA64MMFR0_EL1_PARANGE_SHIFT	U(0)
-#define ID_AA64MMFR0_EL1_PARANGE_MASK	ULL(0xf)
 
 /* ID_AA64ISAR1_EL1 definitions */
 #define ID_AA64ISAR1_GPI_SHIFT	U(28)
@@ -174,6 +174,10 @@
 	(((ULL(1) << ID_AA64ISAR1_API_WIDTH) - ULL(1)) << ID_AA64ISAR1_API_SHIFT)
 #define ID_AA64ISAR1_APA_MASK \
 	(((ULL(1) << ID_AA64ISAR1_APA_WIDTH) - ULL(1)) << ID_AA64ISAR1_APA_SHIFT)
+
+/* ID_AA64MMFR0_EL1 definitions */
+#define ID_AA64MMFR0_EL1_PARANGE_SHIFT	U(0)
+#define ID_AA64MMFR0_EL1_PARANGE_MASK	ULL(0xf)
 
 #define PARANGE_0000	U(32)
 #define PARANGE_0001	U(36)
@@ -198,6 +202,17 @@
 #define ID_AA64MMFR0_EL1_TGRAN16_SUPPORTED	ULL(0x1)
 #define ID_AA64MMFR0_EL1_TGRAN16_NOT_SUPPORTED	ULL(0x0)
 
+/* ID_AA64MMFR2_EL1 definitions */
+#define ID_AA64MMFR2_EL1		S3_0_C0_C7_2
+#define ID_AA64MMFR2_EL1_CNP_SHIFT	U(0)
+#define ID_AA64MMFR2_EL1_CNP_MASK	ULL(0xf)
+
+/* ID_AA64PFR1_EL1 definitions */
+#define ID_AA64PFR1_EL1_SSBS_SHIFT	U(4)
+#define ID_AA64PFR1_EL1_SSBS_MASK	ULL(0xf)
+
+#define SSBS_UNAVAILABLE	ULL(0)	/* No architectural SSBS support */
+
 /* ID_PFR1_EL1 definitions */
 #define ID_PFR1_VIRTEXT_SHIFT	U(12)
 #define ID_PFR1_VIRTEXT_MASK	U(0xf)
@@ -219,29 +234,30 @@
 			(U(1) << 22) | (U(1) << 18) | (U(1) << 16) | \
 			(U(1) << 11) | (U(1) << 5) | (U(1) << 4))
 
-#define SCTLR_M_BIT		(U(1) << 0)
-#define SCTLR_A_BIT		(U(1) << 1)
-#define SCTLR_C_BIT		(U(1) << 2)
-#define SCTLR_SA_BIT		(U(1) << 3)
-#define SCTLR_SA0_BIT		(U(1) << 4)
-#define SCTLR_CP15BEN_BIT	(U(1) << 5)
-#define SCTLR_ITD_BIT		(U(1) << 7)
-#define SCTLR_SED_BIT		(U(1) << 8)
-#define SCTLR_UMA_BIT		(U(1) << 9)
-#define SCTLR_I_BIT		(U(1) << 12)
-#define SCTLR_V_BIT		(U(1) << 13)
-#define SCTLR_DZE_BIT		(U(1) << 14)
-#define SCTLR_UCT_BIT		(U(1) << 15)
-#define SCTLR_NTWI_BIT		(U(1) << 16)
-#define SCTLR_NTWE_BIT		(U(1) << 18)
-#define SCTLR_WXN_BIT		(U(1) << 19)
-#define SCTLR_UWXN_BIT		(U(1) << 20)
-#define SCTLR_E0E_BIT		(U(1) << 24)
-#define SCTLR_EE_BIT		(U(1) << 25)
-#define SCTLR_UCI_BIT		(U(1) << 26)
-#define SCTLR_TRE_BIT		(U(1) << 28)
-#define SCTLR_AFE_BIT		(U(1) << 29)
-#define SCTLR_TE_BIT		(U(1) << 30)
+#define SCTLR_M_BIT		(ULL(1) << 0)
+#define SCTLR_A_BIT		(ULL(1) << 1)
+#define SCTLR_C_BIT		(ULL(1) << 2)
+#define SCTLR_SA_BIT		(ULL(1) << 3)
+#define SCTLR_SA0_BIT		(ULL(1) << 4)
+#define SCTLR_CP15BEN_BIT	(ULL(1) << 5)
+#define SCTLR_ITD_BIT		(ULL(1) << 7)
+#define SCTLR_SED_BIT		(ULL(1) << 8)
+#define SCTLR_UMA_BIT		(ULL(1) << 9)
+#define SCTLR_I_BIT		(ULL(1) << 12)
+#define SCTLR_V_BIT		(ULL(1) << 13)
+#define SCTLR_DZE_BIT		(ULL(1) << 14)
+#define SCTLR_UCT_BIT		(ULL(1) << 15)
+#define SCTLR_NTWI_BIT		(ULL(1) << 16)
+#define SCTLR_NTWE_BIT		(ULL(1) << 18)
+#define SCTLR_WXN_BIT		(ULL(1) << 19)
+#define SCTLR_UWXN_BIT		(ULL(1) << 20)
+#define SCTLR_E0E_BIT		(ULL(1) << 24)
+#define SCTLR_EE_BIT		(ULL(1) << 25)
+#define SCTLR_UCI_BIT		(ULL(1) << 26)
+#define SCTLR_TRE_BIT		(ULL(1) << 28)
+#define SCTLR_AFE_BIT		(ULL(1) << 29)
+#define SCTLR_TE_BIT		(ULL(1) << 30)
+#define SCTLR_DSSBS_BIT		(ULL(1) << 44)
 #define SCTLR_RESET_VAL		SCTLR_EL3_RES1
 
 /* CPACR_El1 definitions */
@@ -771,7 +787,7 @@
 
 /*******************************************************************************
  * RAS system registers
- *******************************************************************************/
+ ******************************************************************************/
 #define DISR_EL1		S3_0_C12_C1_1
 #define DISR_A_BIT		U(31)
 
@@ -800,7 +816,13 @@
 
 /*******************************************************************************
  * Armv8.3 Pointer Authentication Registers
- *******************************************************************************/
+ ******************************************************************************/
 #define APGAKeyLo_EL1		S3_0_C2_C3_0
+
+/*******************************************************************************
+ * Armv8.4 Data Independent Timing Registers
+ ******************************************************************************/
+#define DIT			S3_3_C4_C2_5
+#define DIT_BIT			BIT(24)
 
 #endif /* ARCH_H */
