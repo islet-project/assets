@@ -37,16 +37,7 @@ vector_entry SynchronousExceptionSPx
 end_vector_entry SynchronousExceptionSPx
 
 vector_entry IrqSPx
-	/*
-	 * TODO: Investigate whether the Trusted Firmware-A code for context
-	 * save/restore could be reused
-	 */
-	stp	x29, x30, [sp, #-0x10]!
-	bl	save_regs
-	bl	tftf_irq_handler_dispatcher
-	bl	restore_regs
-	ldp	x29, x30, [sp], #0x10
-	eret
+	b	irq_vector_entry
 end_vector_entry IrqSPx
 
 vector_entry FiqSPx
@@ -95,10 +86,11 @@ vector_entry SErrorA32
 	b	SErrorA32
 end_vector_entry SErrorA32
 
-
-// Note: Exceptions will always be from the same EL, so no need to save spsr
-func save_regs
-	sub	sp, sp, #0x100
+/*
+ * Exceptions will always be from the same exception level so no need to save
+ * and restore SPSR.
+ */
+.macro save_gp_regs
 	stp	x0, x1, [sp, #0x0]
 	stp	x2, x3, [sp, #0x10]
 	stp	x4, x5, [sp, #0x20]
@@ -113,18 +105,15 @@ func save_regs
 	stp	x22, x23, [sp, #0xb0]
 	stp	x24, x25, [sp, #0xc0]
 	stp	x26, x27, [sp, #0xd0]
+	stp	x28, x29, [sp, #0xe0]
 	mrs     x0, sp_el0
-	stp	x28, x0, [sp, #0xe0]
-	str	x0, [sp, #0xf0]
-	ret
-endfunc save_regs
+	stp	x30, x0, [sp, #0xf0]
+.endm
 
-
-// Note: Exceptions will always be from the same EL, so no need to restore spsr
-func restore_regs
-	ldr	x9, [sp, #0xf0]
-	ldp	x28, x9, [sp, #0xe0]
-	msr	sp_el0, x9
+.macro restore_gp_regs
+	ldp	x30, x0, [sp, #0xf0]
+	msr	sp_el0, x0
+	ldp	x28, x29, [sp, #0xe0]
 	ldp	x26, x27, [sp, #0xd0]
 	ldp	x24, x25, [sp, #0xc0]
 	ldp	x22, x23, [sp, #0xb0]
@@ -139,6 +128,13 @@ func restore_regs
 	ldp	x4, x5, [sp, #0x20]
 	ldp	x2, x3, [sp, #0x10]
 	ldp	x0, x1, [sp, #0x0]
+.endm
+
+func irq_vector_entry
+	sub	sp, sp, #0x100
+	save_gp_regs
+	bl	tftf_irq_handler_dispatcher
+	restore_gp_regs
 	add	sp, sp, #0x100
-	ret
-endfunc restore_regs
+	eret
+endfunc irq_vector_entry
