@@ -6,41 +6,31 @@
 
 #include <asm_macros.S>
 
+	.global exception_stubs
+
 /*
  * Simplistic exceptions vector table.
  * All entries spin, which means all types of exceptions are unrecoverable.
  */
-	.global exception_stubs
+	.macro vector_entry_spin name
+	vector_entry \name
+	b \name
+	.endm
+
 vector_base exception_stubs
-vector_entry SynchronousExceptionSP0
-	b	.
-vector_entry IrqSP0
-	b	.
-vector_entry FiqSP0
-	b	.
-vector_entry SErrorSP0
-	b	.
-vector_entry SynchronousExceptionSPx
-	b	.
-vector_entry IrqSPx
-	b	.
-vector_entry FiqSPx
-	b	.
-vector_entry SErrorSPx
-	b	.
-vector_entry SynchronousExceptionA64
-	b	.
-vector_entry IrqA64
-	b	.
-vector_entry FiqA64
-	b	.
-vector_entry SErrorA64
-	b	.
-vector_entry SynchronousExceptionA32
-	b	.
-vector_entry IrqA32
-	b	.
-vector_entry FiqA32
-	b	.
-vector_entry SErrorA32
-	b	.
+vector_entry_spin SynchronousExceptionSP0
+vector_entry_spin IrqSP0
+vector_entry_spin FiqSP0
+vector_entry_spin SErrorSP0
+vector_entry_spin SynchronousExceptionSPx
+vector_entry_spin IrqSPx
+vector_entry_spin FiqSPx
+vector_entry_spin SErrorSPx
+vector_entry_spin SynchronousExceptionA64
+vector_entry_spin IrqA64
+vector_entry_spin FiqA64
+vector_entry_spin SErrorA64
+vector_entry_spin SynchronousExceptionA32
+vector_entry_spin IrqA32
+vector_entry_spin FiqA32
+vector_entry_spin SErrorA32
