@@ -6,9 +6,9 @@
 
 #include <assert.h>
 #include <debug.h>
+#include <drivers/arm/sp805.h>
 #include <mmio.h>
 #include <platform_def.h>
-#include <sp805.h>
 #include <stdint.h>
 
 static inline uint32_t sp805_read_wdog_load(unsigned long base)

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <console.h>
 #include <debug.h>
+#include <drivers/console.h>
 
 void __attribute__((__noreturn__)) do_panic(const char *file, int line)
 {

@@ -8,7 +8,7 @@
 #include <arch_helpers.h>
 #include <assert.h>
 #include <debug.h>
-#include <gic_v2.h>
+#include <drivers/arm/gic_v2.h>
 
 void arm_gic_enable_interrupts_local(void)
 {

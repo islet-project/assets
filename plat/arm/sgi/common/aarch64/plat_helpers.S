@@ -5,7 +5,7 @@
  */
 
 #include <asm_macros.S>
-#include <pl011.h>
+#include <drivers/arm/pl011.h>
 #include <platform_def.h>
 
 	.globl	platform_get_core_pos

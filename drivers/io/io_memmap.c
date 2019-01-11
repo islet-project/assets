@@ -6,7 +6,7 @@
 
 #include <assert.h>
 #include <debug.h>
-#include <io_driver.h>
+#include <drivers/io/io_driver.h>
 #include <io_storage.h>
 #include <string.h>
 

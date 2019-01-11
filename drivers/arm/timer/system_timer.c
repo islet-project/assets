@@ -6,13 +6,13 @@
 
 #include <arch.h>
 #include <arch_helpers.h>
-#include <arm_gic.h>
 #include <assert.h>
+#include <drivers/arm/arm_gic.h>
+#include <drivers/arm/gic_v2.h>
+#include <drivers/arm/system_timer.h>
 #include <debug.h>
-#include <gic_v2.h>
 #include <irq.h>
 #include <mmio.h>
-#include <system_timer.h>
 
 static uintptr_t g_systimer_base;
 

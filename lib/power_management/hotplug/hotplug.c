@@ -5,11 +5,11 @@
  */
 
 #include <arch_helpers.h>
-#include <arm_gic.h>
 #include <assert.h>
 #include <cdefs.h>		/* For __dead2 */
-#include <console.h>
 #include <debug.h>
+#include <drivers/arm/arm_gic.h>
+#include <drivers/console.h>
 #include <irq.h>
 #include <platform.h>
 #include <platform_def.h>

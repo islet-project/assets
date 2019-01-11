@@ -7,6 +7,8 @@
 #ifndef __SP804_H__
 #define __SP804_H__
 
+#include <stdint.h>
+
 #define SP804_LOAD_OFFSET		0x0
 #define SP804_CURRENT_VALUE_OFFSET	0x4
 #define SP804_CTRL_OFFSET		0x8

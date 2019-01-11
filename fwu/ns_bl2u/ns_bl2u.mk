@@ -10,11 +10,9 @@ include lib/compiler-rt/compiler-rt.mk
 NS_BL2U_INCLUDES :=					\
 	-I${AUTOGEN_DIR}				\
 	-Itftf/framework/include			\
+	-Iinclude					\
 	-Iinclude/common				\
 	-Iinclude/common/${ARCH}			\
-	-Iinclude/drivers				\
-	-Iinclude/drivers/arm				\
-	-Iinclude/drivers/io				\
 	-Iinclude/lib					\
 	-Iinclude/lib/${ARCH}				\
 	-Iinclude/lib/stdlib				\

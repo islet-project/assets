@@ -5,10 +5,10 @@
  */
 
 #include <arch_helpers.h>
-#include <console.h>
 #include <debug.h>
+#include <drivers/arm/sp805.h>
+#include <drivers/console.h>
 #include <platform.h>
-#include <sp805.h>
 #include <xlat_tables_v2.h>
 
 /*

@@ -5,11 +5,11 @@
  */
 
 #include <assert.h>
-#include <console.h>
 #include <debug.h>
+#include <drivers/console.h>
+#include <drivers/arm/pl011.h>
 #include <errno.h>
 #include <ivy_def.h>
-#include <pl011.h>
 #include <plat_arm.h>
 #include <platform_def.h>
 #include <sp_helpers.h>

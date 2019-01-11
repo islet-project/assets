@@ -12,8 +12,6 @@ CACTUS_INCLUDES :=					\
 	-Iinclude					\
 	-Iinclude/common				\
 	-Iinclude/common/${ARCH}			\
-	-Iinclude/drivers				\
-	-Iinclude/drivers/arm				\
 	-Iinclude/lib					\
 	-Iinclude/lib/${ARCH}				\
 	-Iinclude/lib/stdlib				\

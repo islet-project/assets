@@ -6,8 +6,8 @@
 
 #include <arch.h>
 #include <arch_helpers.h>
-#include <arm_gic.h>
 #include <debug.h>
+#include <drivers/arm/arm_gic.h>
 #include <errno.h>
 #include <irq.h>
 #include <mmio.h>

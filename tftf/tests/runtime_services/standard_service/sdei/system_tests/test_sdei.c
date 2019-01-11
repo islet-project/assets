@@ -6,11 +6,11 @@
 
 #include <arch_helpers.h>
 #include <debug.h>
+#include <drivers/arm/private_timer.h>
 #include <events.h>
 #include <plat_topology.h>
 #include <platform.h>
 #include <power_management.h>
-#include <private_timer.h>
 #include <sdei.h>
 #include <tftf_lib.h>
 #include <timer.h>

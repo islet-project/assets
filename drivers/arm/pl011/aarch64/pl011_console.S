@@ -3,10 +3,11 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
 #include <arch.h>
 #include <asm_macros.S>
-#include <console.h>
-#include <pl011.h>
+#include <drivers/arm/pl011.h>
+#include <drivers/console.h>
 
 	.globl	console_init
 	.globl	console_putc

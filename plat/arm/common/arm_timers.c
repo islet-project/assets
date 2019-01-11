@@ -5,9 +5,9 @@
  */
 
 #include <assert.h>
+#include <drivers/arm/system_timer.h>
 #include <platform.h>
 #include <stddef.h>
-#include <system_timer.h>
 #include <timer.h>
 
 #pragma weak plat_initialise_timer_ops

@@ -6,11 +6,11 @@
 
 #include <arch.h>
 #include <arch_helpers.h>
-#include <arm_gic.h>
 #include <assert.h>
 #include <debug.h>
-#include <gic_common.h>
-#include <gic_v3.h>
+#include <drivers/arm/arm_gic.h>
+#include <drivers/arm/gic_common.h>
+#include <drivers/arm/gic_v3.h>
 #include <mmio.h>
 #include <platform.h>
 

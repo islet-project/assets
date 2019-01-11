@@ -6,11 +6,11 @@
 
 #include <arch.h>
 #include <arch_helpers.h>
-#include <arm_gic.h>
 #include <assert.h>
 #include <debug.h>
+#include <drivers/arm/arm_gic.h>
+#include <drivers/arm/gic_v2.h>
 #include <events.h>
-#include <gic_v2.h>
 #include <irq.h>
 #include <plat_topology.h>
 #include <platform.h>

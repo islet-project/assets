@@ -7,6 +7,8 @@
 #ifndef __SYSTEM_TIMER_H__
 #define __SYSTEM_TIMER_H__
 
+#include <stdint.h>
+
 /*
  * Program systimer to fire an interrupt after time_out_ms
  *

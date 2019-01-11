@@ -5,8 +5,8 @@
  */
 
 #include <assert.h>
-#include <io_driver.h>
-#include <io_nor_flash.h>
+#include <drivers/io/io_driver.h>
+#include <drivers/io/io_nor_flash.h>
 #include <io_storage.h>
 #include <platform.h>
 #include <tftf.h>

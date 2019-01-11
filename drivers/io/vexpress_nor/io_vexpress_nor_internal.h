@@ -7,8 +7,8 @@
 #ifndef __IO_VEXPRESS_NOR_INTERNAL_H__
 #define __IO_VEXPRESS_NOR_INTERNAL_H__
 
-#include <io_driver.h>
-#include <io_nor_flash.h>
+#include <drivers/io/io_driver.h>
+#include <drivers/io/io_nor_flash.h>
 #include <io_storage.h>
 
 #define IS_FLASH_ADDRESS_BLOCK_ALIGNED(fp, addr) \

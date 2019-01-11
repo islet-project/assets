@@ -8,9 +8,9 @@
 #include <assert.h>
 #include <bl1.h>
 #include <debug.h>
+#include <drivers/io/io_fip.h>
 #include <errno.h>
 #include <image_loader.h>
-#include <io_fip.h>
 #include <io_storage.h>
 #include <mmio.h>
 #include <nvm.h>

@@ -5,8 +5,8 @@
  */
 
 #include <arch_helpers.h>
-#include <arm_gic.h>
 #include <debug.h>
+#include <drivers/arm/arm_gic.h>
 #include <irq.h>
 #include <platform.h>
 #include <power_management.h>

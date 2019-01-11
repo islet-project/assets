@@ -6,8 +6,8 @@
 
 #include <arch.h>
 #include <arch_helpers.h>
-#include <arm_gic.h>
 #include <assert.h>
+#include <drivers/arm/arm_gic.h>
 #include <events.h>
 #include <irq.h>
 #include <plat_topology.h>

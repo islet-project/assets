@@ -8,9 +8,9 @@
 #include <arch_helpers.h>
 #include <assert.h>
 #include <debug.h>
-#include <gic_common.h>
-#include <gic_v2.h>
-#include <gic_v3.h>
+#include <drivers/arm/gic_common.h>
+#include <drivers/arm/gic_v2.h>
+#include <drivers/arm/gic_v3.h>
 
 /* Record whether a GICv3 was detected on the system */
 static unsigned int gicv3_detected;

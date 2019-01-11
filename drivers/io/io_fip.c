@@ -6,11 +6,11 @@
 
 #include <assert.h>
 #include <debug.h>
+#include <drivers/io/io_driver.h>
+#include <drivers/io/io_fip.h>
 #include <errno.h>
 #include <firmware_image_package.h>
 #include <image_loader.h>
-#include <io_driver.h>
-#include <io_fip.h>
 #include <io_storage.h>
 #include <platform.h>
 #include <platform_def.h>

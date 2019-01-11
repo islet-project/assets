@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <arm_gic.h>
 #include <assert.h>
+#include <drivers/arm/arm_gic.h>
 #include <sdei.h>
 #include <smccc.h>
 #include <stdint.h>

@@ -6,10 +6,10 @@
 
 #include <assert.h>
 #include <cactus_def.h>
-#include <console.h>
 #include <debug.h>
+#include <drivers/arm/pl011.h>
+#include <drivers/console.h>
 #include <errno.h>
-#include <pl011.h>
 #include <plat_arm.h>
 #include <platform_def.h>
 #include <sp_helpers.h>

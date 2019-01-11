@@ -11,8 +11,8 @@
 
 #include <bl1.h>
 #include <debug.h>
+#include <drivers/io/io_fip.h>
 #include <errno.h>
-#include <io_fip.h>
 #include <platform_def.h>
 #include <smccc.h>
 #include <status.h>

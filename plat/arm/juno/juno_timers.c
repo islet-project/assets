@@ -5,9 +5,9 @@
  */
 
 #include <assert.h>
+#include <drivers/arm/sp804.h>
 #include <platform.h>
 #include <platform_def.h>
-#include <sp804.h>
 #include <stddef.h>
 #include <timer.h>
 

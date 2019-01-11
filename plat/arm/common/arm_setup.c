@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <arm_gic.h>
-#include <console.h>
 #include <debug.h>
+#include <drivers/arm/arm_gic.h>
+#include <drivers/arm/pl011.h>
+#include <drivers/console.h>
 #include <io_storage.h>
-#include <pl011.h>
 #include <plat_arm.h>
 #include <platform.h>
 #include <platform_def.h>

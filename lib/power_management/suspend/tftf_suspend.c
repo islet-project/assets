@@ -5,9 +5,9 @@
  */
 
 #include <arch_helpers.h>
-#include <arm_gic.h>
-#include <console.h>
 #include <debug.h>
+#include <drivers/arm/arm_gic.h>
+#include <drivers/console.h>
 #include <platform.h>
 #include <power_management.h>
 #include <psci.h>
