@@ -9,9 +9,10 @@
 	.globl	tftf_vector
 
 vector_base tftf_vector
-	//-----------------------------------------------------
-	// Current EL with SP0 : 0x0 - 0x180
-	//-----------------------------------------------------
+
+	/*
+	 * Current EL with SP0 : 0x0 - 0x200.
+	 */
 vector_entry SynchronousExceptionSP0
 	b	SynchronousExceptionSP0
 	check_vector_size SynchronousExceptionSP0
@@ -28,9 +29,9 @@ vector_entry SErrorSP0
 	b	SErrorSP0
 	check_vector_size SErrorSP0
 
-	//-----------------------------------------------------
-	// Current EL with SPx: 0x200 - 0x380
-	//-----------------------------------------------------
+	/*
+	 * Current EL with SPx : 0x200 - 0x400.
+	 */
 vector_entry SynchronousExceptionSPx
 	b	SynchronousExceptionSPx
 	check_vector_size SynchronousExceptionSPx
@@ -56,9 +57,9 @@ vector_entry SErrorSPx
 	b	SErrorSPx
 	check_vector_size SErrorSPx
 
-	//-----------------------------------------------------
-	// Lower EL using AArch64 : 0x400 - 0x580
-	//-----------------------------------------------------
+	/*
+	 * Lower EL using AArch64 : 0x400 - 0x600.
+	 */
 vector_entry SynchronousExceptionA64
 	b	SynchronousExceptionA64
 	check_vector_size SynchronousExceptionA64
@@ -75,9 +76,9 @@ vector_entry SErrorA64
 	b	SErrorA64
 	check_vector_size SErrorA64
 
-	//-----------------------------------------------------
- 	// Lower EL using AArch32 : 0x0 - 0x180
-	//-----------------------------------------------------
+	/*
+	 * Lower EL using AArch32 : 0x600 - 0x800.
+	 */
 vector_entry SynchronousExceptionA32
 	b	SynchronousExceptionA32
 	check_vector_size SynchronousExceptionA32
