@@ -15,6 +15,7 @@
 	.macro vector_entry_spin name
 	vector_entry \name
 	b \name
+	end_vector_entry \name
 	.endm
 
 vector_base exception_stubs

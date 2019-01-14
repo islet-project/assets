@@ -15,26 +15,26 @@ vector_base tftf_vector
 	 */
 vector_entry SynchronousExceptionSP0
 	b	SynchronousExceptionSP0
-	check_vector_size SynchronousExceptionSP0
+end_vector_entry SynchronousExceptionSP0
 
 vector_entry IrqSP0
 	b	IrqSP0
-	check_vector_size IrqSP0
+end_vector_entry IrqSP0
 
 vector_entry FiqSP0
 	b	FiqSP0
-	check_vector_size FiqSP0
+end_vector_entry FiqSP0
 
 vector_entry SErrorSP0
 	b	SErrorSP0
-	check_vector_size SErrorSP0
+end_vector_entry SErrorSP0
 
 	/*
 	 * Current EL with SPx : 0x200 - 0x400.
 	 */
 vector_entry SynchronousExceptionSPx
 	b	SynchronousExceptionSPx
-	check_vector_size SynchronousExceptionSPx
+end_vector_entry SynchronousExceptionSPx
 
 vector_entry IrqSPx
 	/*
@@ -47,53 +47,53 @@ vector_entry IrqSPx
 	bl	restore_regs
 	ldp	x29, x30, [sp], #0x10
 	eret
-	check_vector_size IrqSPx
+end_vector_entry IrqSPx
 
 vector_entry FiqSPx
 	b	FiqSPx
-	check_vector_size FiqSPx
+end_vector_entry FiqSPx
 
 vector_entry SErrorSPx
 	b	SErrorSPx
-	check_vector_size SErrorSPx
+end_vector_entry SErrorSPx
 
 	/*
 	 * Lower EL using AArch64 : 0x400 - 0x600.
 	 */
 vector_entry SynchronousExceptionA64
 	b	SynchronousExceptionA64
-	check_vector_size SynchronousExceptionA64
+end_vector_entry SynchronousExceptionA64
 
 vector_entry IrqA64
 	b	IrqA64
-	check_vector_size IrqA64
+end_vector_entry IrqA64
 
 vector_entry FiqA64
 	b	FiqA64
-	check_vector_size FiqA64
+end_vector_entry FiqA64
 
 vector_entry SErrorA64
 	b	SErrorA64
-	check_vector_size SErrorA64
+end_vector_entry SErrorA64
 
 	/*
 	 * Lower EL using AArch32 : 0x600 - 0x800.
 	 */
 vector_entry SynchronousExceptionA32
 	b	SynchronousExceptionA32
-	check_vector_size SynchronousExceptionA32
+end_vector_entry SynchronousExceptionA32
 
 vector_entry IrqA32
 	b	IrqA32
-	check_vector_size IrqA32
+end_vector_entry IrqA32
 
 vector_entry FiqA32
 	b	FiqA32
-	check_vector_size FiqA32
+end_vector_entry FiqA32
 
 vector_entry SErrorA32
 	b	SErrorA32
-	check_vector_size SErrorA32
+end_vector_entry SErrorA32
 
 
 // Note: Exceptions will always be from the same EL, so no need to save spsr
