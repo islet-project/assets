@@ -8,10 +8,13 @@
 
 	.globl	tftf_vector
 
-/* Exception vector code for unhandled exceptions. Loops forever. */
+/*
+ * Exception vector code for unhandled exceptions.
+ * Print a crash dump on the UART and loops forever.
+ */
 .macro unhandled_exception name
 	vector_entry \name
-	b \name
+	b crash_dump
 	end_vector_entry \name
 .endm
 
@@ -53,10 +56,6 @@ unhandled_exception IrqA32
 unhandled_exception FiqA32
 unhandled_exception SErrorA32
 
-/*
- * Exceptions will always be from the same exception level so no need to save
- * and restore SPSR.
- */
 .macro save_gp_regs
 	stp	x0, x1, [sp, #0x0]
 	stp	x2, x3, [sp, #0x10]
@@ -73,13 +72,12 @@ unhandled_exception SErrorA32
 	stp	x24, x25, [sp, #0xc0]
 	stp	x26, x27, [sp, #0xd0]
 	stp	x28, x29, [sp, #0xe0]
-	mrs     x0, sp_el0
-	stp	x30, x0, [sp, #0xf0]
+	/* We push xzr simply to keep the stack 16-byte aligned. */
+	stp	x30, xzr, [sp, #0xf0]
 .endm
 
 .macro restore_gp_regs
-	ldp	x30, x0, [sp, #0xf0]
-	msr	sp_el0, x0
+	ldp	x30, xzr, [sp, #0xf0]
 	ldp	x28, x29, [sp, #0xe0]
 	ldp	x26, x27, [sp, #0xd0]
 	ldp	x24, x25, [sp, #0xc0]
@@ -105,3 +103,17 @@ func irq_vector_entry
 	add	sp, sp, #0x100
 	eret
 endfunc irq_vector_entry
+
+func crash_dump
+	/* Save general-purpose registers on the stack. */
+	sub	sp, sp, #0x100
+	save_gp_regs
+
+	/* Save original stack pointer value on the stack. */
+	add	x1, sp, #0x100
+	str	x1, [sp, #0xf8]
+
+	/* Print the saved CPU context on the UART. */
+	mov	x0, sp
+	b	print_exception
+endfunc crash_dump
