@@ -61,20 +61,21 @@
 	 */
 	.macro vector_entry  label
 	.section .vectors, "ax"
+	.cfi_sections .debug_frame
 	.align 7, 0
+	.type \label, %function
+	.cfi_startproc
 	\label:
 	.endm
 
 	/*
-	 * This macro verifies that the a given vector doesn't exceed the
-	 * architectural limit of 32 instructions. This is meant to be placed
-	 * immedately after the last instruction in the vector. It takes the
-	 * vector entry as the parameter
+	 * Add the bytes until fill the full exception vector, whose size is always
+	 * 32 instructions. If there are more than 32 instructions in the
+	 * exception vector then an error is emitted.
 	 */
-	.macro check_vector_size since
-	  .if (. - \since) > (32 * 4)
-	    .error "Vector exceeds 32 instructions"
-	  .endif
+	.macro end_vector_entry label
+	.cfi_endproc
+	.fill	\label + (32 * 4) - .
 	.endm
 
 	/*
