@@ -66,23 +66,13 @@ void mp_printf(const char *fmt, ...);
 #endif
 
 /*
- * For the moment this Panic function is very basic, Report an error and
+ * For the moment this panic function is very basic: report an error and
  * spin. This can be expanded in the future to provide more information.
  */
-#if DEBUG
 void __attribute__((__noreturn__)) do_panic(const char *file, int line);
 #define panic()	do_panic(__FILE__, __LINE__)
 
 void __attribute__((__noreturn__)) do_bug_unreachable(const char *file, int line);
 #define bug_unreachable() do_bug_unreachable(__FILE__, __LINE__)
-
-#else
-void __attribute__((__noreturn__)) do_panic(void);
-#define panic()	do_panic()
-
-void __attribute__((__noreturn__)) do_bug_unreachable(void);
-#define bug_unreachable()	do_bug_unreachable()
-
-#endif
 
 #endif /* __DEBUG_H__ */
