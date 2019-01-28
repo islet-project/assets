@@ -201,6 +201,7 @@ DEFINE_SYSOP_FUNC(isb)
 
 DEFINE_SYSREG_RW_FUNCS(spsr)
 DEFINE_SYSREG_RW_FUNCS(cpsr)
+DEFINE_SYSREG_RW_FUNCS(elr_hyp)
 
 /*******************************************************************************
  * System register accessor prototypes
@@ -213,6 +214,7 @@ DEFINE_COPROCR_READ_FUNC(id_pfr1, ID_PFR1)
 DEFINE_COPROCR_READ_FUNC(isr, ISR)
 DEFINE_COPROCR_READ_FUNC(clidr, CLIDR)
 DEFINE_COPROCR_READ_FUNC_64(cntpct, CNTPCT_64)
+DEFINE_COPROCR_READ_FUNC(hsr, HSR)
 
 DEFINE_COPROCR_RW_FUNCS(scr, SCR)
 DEFINE_COPROCR_RW_FUNCS(ctr, CTR)

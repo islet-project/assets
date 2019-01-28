@@ -514,6 +514,7 @@
 #define ATS1CPR		p15, 0, c7, c8, 0
 #define ATS1HR		p15, 4, c7, c8, 0
 #define DBGOSDLR	p14, 0, c1, c3, 4
+#define HSR		p15, 4, c5, c2, 0
 
 /* Debug register defines. The format is: coproc, opt1, CRn, CRm, opt2 */
 #define HDCR		p15, 4, c1, c1, 1

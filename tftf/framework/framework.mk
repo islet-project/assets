@@ -51,6 +51,7 @@ FRAMEWORK_SOURCES	+=	$(addprefix tftf/,			\
 	framework/${ARCH}/asm_debug.S					\
 	framework/${ARCH}/entrypoint.S					\
 	framework/${ARCH}/exceptions.S					\
+	framework/${ARCH}/exception_report.c				\
 	framework/debug.c						\
 	framework/main.c						\
 	framework/nvm_results_helpers.c					\
