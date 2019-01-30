@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -20,13 +20,6 @@
 						SMCCC_VERSION_MINOR_SHIFT))
 
 #define SMC_UNKNOWN			-1
-
-/* TODO: Import SMCCC 2.0 properly instead of having this */
-#define FUNCID_NAMESPACE_SHIFT		U(28)
-#define FUNCID_NAMESPACE_MASK		U(0x3)
-#define FUNCID_NAMESPACE_WIDTH		U(2)
-#define FUNCID_NAMESPACE_SPRT		U(2)
-#define FUNCID_NAMESPACE_SPCI		U(3)
 
 /*******************************************************************************
  * Bit definitions inside the function id as per the SMC calling convention
