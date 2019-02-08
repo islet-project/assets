@@ -10,7 +10,6 @@ TESTS_MAKEFILE := $(addprefix tftf/tests/,	\
 	tests-cpu-extensions.mk			\
 	tests-el3-power-state.mk		\
 	tests-fwu.mk				\
-	tests-manual.mk				\
 	tests-performance.mk			\
 	tests-psci.mk				\
 	tests-runtime-instrumentation.mk	\
