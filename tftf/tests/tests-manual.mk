@@ -11,3 +11,11 @@ TESTS_SOURCES	+=							\
 		reset2/reset2.c 					\
 		system_off/test_system_off.c 				\
 	)
+
+ifeq (${USE_NVM},0)
+$(error Manual tests require USE_NVM=1 to persist test results across reboots)
+endif
+
+ifeq (${NEW_TEST_SESSION},1)
+$(error Manual tests require NEW_TEST_SESSION=0 to persist test results across reboots)
+endif
