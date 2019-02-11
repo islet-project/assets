@@ -18,8 +18,6 @@ TFTF_INCLUDES	:= 					\
 	-Iinclude/lib					\
 	-Iinclude/lib/${ARCH}				\
 	-Iinclude/lib/extensions			\
-	-Iinclude/lib/stdlib				\
-	-Iinclude/lib/stdlib/sys			\
 	-Iinclude/lib/utils				\
 	-Iinclude/lib/xlat_tables			\
 	-Iinclude/plat/common				\
@@ -28,21 +26,6 @@ TFTF_INCLUDES	:= 					\
 	-Iinclude/runtime_services/secure_el1_payloads	\
 	-Ispm/cactus					\
 	-Ispm/ivy
-
-# Standard C library source files
-STD_LIB_SOURCES		:=	lib/stdlib/abort.c			\
-				lib/stdlib/assert.c			\
-				lib/stdlib/mem.c			\
-				lib/stdlib/printf.c			\
-				lib/stdlib/putchar.c			\
-				lib/stdlib/puts.c			\
-				lib/stdlib/rand.c			\
-				lib/stdlib/strchr.c			\
-				lib/stdlib/strcmp.c			\
-				lib/stdlib/strlen.c			\
-				lib/stdlib/strncmp.c			\
-				lib/stdlib/strncpy.c			\
-				lib/stdlib/subr_prf.c
 
 FRAMEWORK_SOURCES	:=	${AUTOGEN_DIR}/tests_list.c
 
@@ -76,7 +59,6 @@ FRAMEWORK_SOURCES	+=						\
 	lib/sdei/sdei.c							\
 	lib/smc/${ARCH}/asm_smc.S					\
 	lib/smc/${ARCH}/smc.c						\
-	${STD_LIB_SOURCES}						\
 	lib/trusted_os/trusted_os.c					\
 	lib/utils/mp_printf.c						\
 	lib/utils/uuid.c						\

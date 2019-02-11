@@ -41,8 +41,9 @@ described in the `Contributing Guidelines`_.
 This project contains code from other projects as listed below. The original
 license text is included in those source files.
 
--  The libc source code is derived from `FreeBSD`_ code, which uses various BSD
-   licenses, including BSD-3-Clause and BSD-2-Clause.
+-  The libc source code is derived from `FreeBSD`_ and `SCC`_. FreeBSD uses
+   various BSD licenses, including BSD-3-Clause and BSD-2-Clause. The SCC code
+   is used under the BSD-3-Clause license with the author's permission.
 
 -  The `LLVM compiler-rt`_ source code is disjunctively dual licensed
    (NCSA OR MIT). It is used by this project under the terms of the NCSA
@@ -138,7 +139,7 @@ tracker <TODO: insert link>.
 
 --------------
 
-*Copyright (c) 2018, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
 
 .. _Contributing Guidelines: contributing.rst
 .. _license: license.rst
@@ -151,6 +152,7 @@ tracker <TODO: insert link>.
 .. _Juno Arm Development Platform: https://developer.arm.com/products/system-design/development-boards/juno-development-board
 
 .. _FreeBSD: http://www.freebsd.org
+.. _SCC: http://www.simple-cc.org/
 .. _LLVM compiler-rt: https://compiler-rt.llvm.org/
 
 .. _Power State Coordination Interface (PSCI): PSCI_

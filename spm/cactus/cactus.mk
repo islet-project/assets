@@ -14,8 +14,6 @@ CACTUS_INCLUDES :=					\
 	-Iinclude/common/${ARCH}			\
 	-Iinclude/lib					\
 	-Iinclude/lib/${ARCH}				\
-	-Iinclude/lib/stdlib				\
-	-Iinclude/lib/stdlib/sys			\
 	-Iinclude/lib/sprt				\
 	-Iinclude/lib/utils				\
 	-Iinclude/lib/xlat_tables			\
@@ -38,16 +36,6 @@ CACTUS_SOURCES	:=					\
 		sp_helpers.c				\
 	)						\
 
-STDLIB_SOURCES	:=	$(addprefix lib/stdlib/,	\
-	assert.c					\
-	mem.c						\
-	putchar.c					\
-	printf.c					\
-	rand.c						\
-	strlen.c					\
-	subr_prf.c					\
-)
-
 # TODO: Remove dependency on TFTF files.
 CACTUS_SOURCES	+=					\
 	tftf/framework/debug.c				\
@@ -58,7 +46,6 @@ CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/misc_helpers.S			\
 			lib/locks/${ARCH}/spinlock.S			\
 			lib/utils/mp_printf.c				\
-			${STDLIB_SOURCES}				\
 			${SPRT_LIB_SOURCES}
 
 CACTUS_LINKERFILE	:=	spm/cactus/cactus.ld.S

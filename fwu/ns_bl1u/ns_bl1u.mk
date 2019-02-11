@@ -15,8 +15,6 @@ NS_BL1U_INCLUDES := 					\
 	-Iinclude/common/${ARCH}			\
 	-Iinclude/lib					\
 	-Iinclude/lib/${ARCH}				\
-	-Iinclude/lib/stdlib				\
-	-Iinclude/lib/stdlib/sys			\
 	-Iinclude/lib/utils				\
 	-Iinclude/lib/xlat_tables			\
 	-Iinclude/plat/common				\
@@ -39,7 +37,6 @@ NS_BL1U_SOURCES	+=	drivers/io/io_fip.c				\
 			lib/locks/${ARCH}/spinlock.S			\
 			lib/smc/${ARCH}/asm_smc.S			\
 			lib/smc/${ARCH}/smc.c				\
-			${STD_LIB_SOURCES}				\
 			lib/utils/mp_printf.c				\
 			lib/utils/uuid.c				\
 			${XLAT_TABLES_LIB_SRCS}				\

@@ -66,7 +66,7 @@ the top level or under the ``tftf/`` directory):
 
 -  **Library code.**
 
-   Firstly, there is ``include/stdlib/`` which provides standard C library
+   Firstly, there is ``include/libc/`` which provides standard C library
    functions like ``memcpy()``, ``printf()`` and so on.
    Additionally, various other APIs are provided under ``include/lib/``. The
    below list gives some examples but might not be exhaustive.

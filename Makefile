@@ -26,11 +26,11 @@ ENABLE_ASSERTIONS	:= ${DEBUG}
 CHECKCODE_ARGS		:=	--no-patch
 # Do not check the coding style on imported library files or documentation files
 INC_LIB_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
-					include/lib/stdlib,		\
+					include/lib/libc,		\
 					$(wildcard include/lib/*)))
 LIB_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
 					lib/compiler-rt			\
-					lib/stdlib,			\
+					lib/libc,			\
 					$(wildcard lib/*)))
 ROOT_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
 					lib				\
@@ -117,11 +117,15 @@ include fwu/ns_bl2u/ns_bl2u.mk
 include spm/cactus/cactus.mk
 include spm/ivy/ivy.mk
 
+################################################################################
+# Include libc
+################################################################################
+include lib/libc/libc.mk
+
 # Include platform specific makefile last because:
 # - the platform makefile may use all previous definitions in this file.
 # - the platform makefile may wish overwriting some of them.
 include ${PLAT_MAKEFILE_FULL}
-
 
 .SUFFIXES:
 
@@ -175,7 +179,8 @@ COMMON_CFLAGS_aarch32	:=	-march=armv8-a
 
 COMMON_ASFLAGS		+=	-nostdinc -ffreestanding -Wa,--fatal-warnings	\
 				-Werror -Wmissing-include-dirs			\
-				-D__ASSEMBLY__ $(COMMON_ASFLAGS_$(ARCH))
+				-D__ASSEMBLY__ $(COMMON_ASFLAGS_$(ARCH))	\
+				${INCLUDES}
 COMMON_CFLAGS		+=	-nostdinc -ffreestanding -Wall	-Werror 	\
 				-Wmissing-include-dirs $(COMMON_CFLAGS_$(ARCH))	\
 				-std=gnu99 -Os
@@ -183,7 +188,7 @@ COMMON_CFLAGS		+=	-ffunction-sections -fdata-sections
 
 # Get the content of CFLAGS user defined value last so they are appended after
 # the options defined in the Makefile
-COMMON_CFLAGS 		+=	${CFLAGS}
+COMMON_CFLAGS 		+=	${CFLAGS} ${INCLUDES}
 
 COMMON_LDFLAGS		+=	--fatal-warnings -O1 --gc-sections --build-id=none
 
@@ -199,29 +204,31 @@ PP			:=	${CROSS_COMPILE}gcc
 
 ################################################################################
 
-TFTF_SOURCES		:= ${FRAMEWORK_SOURCES}	${TESTS_SOURCES} ${PLAT_SOURCES}
+TFTF_SOURCES		:= ${FRAMEWORK_SOURCES}	${TESTS_SOURCES} ${PLAT_SOURCES} ${LIBC_SRCS}
 TFTF_INCLUDES		+= ${PLAT_INCLUDES}
 TFTF_CFLAGS		+= ${COMMON_CFLAGS}
 TFTF_ASFLAGS		+= ${COMMON_ASFLAGS}
 TFTF_LDFLAGS		+= ${COMMON_LDFLAGS}
 
-NS_BL1U_SOURCES		+= ${PLAT_SOURCES}
+NS_BL1U_SOURCES		+= ${PLAT_SOURCES} ${LIBC_SRCS}
 NS_BL1U_INCLUDES	+= ${PLAT_INCLUDES}
 NS_BL1U_CFLAGS		+= ${COMMON_CFLAGS}
 NS_BL1U_ASFLAGS		+= ${COMMON_ASFLAGS}
 NS_BL1U_LDFLAGS		+= ${COMMON_LDFLAGS}
 
-NS_BL2U_SOURCES		+= ${PLAT_SOURCES}
+NS_BL2U_SOURCES		+= ${PLAT_SOURCES} ${LIBC_SRCS}
 NS_BL2U_INCLUDES	+= ${PLAT_INCLUDES}
 NS_BL2U_CFLAGS		+= ${COMMON_CFLAGS}
 NS_BL2U_ASFLAGS		+= ${COMMON_ASFLAGS}
 NS_BL2U_LDFLAGS		+= ${COMMON_LDFLAGS}
 
+CACTUS_SOURCES		+= ${LIBC_SRCS}
 CACTUS_INCLUDES		+= ${PLAT_INCLUDES}
 CACTUS_CFLAGS		+= ${COMMON_CFLAGS}
 CACTUS_ASFLAGS		+= ${COMMON_ASFLAGS}
 CACTUS_LDFLAGS		+= ${COMMON_LDFLAGS}
 
+IVY_SOURCES		+= ${LIBC_SRCS}
 IVY_INCLUDES		+= ${PLAT_INCLUDES}
 IVY_CFLAGS		+= ${COMMON_CFLAGS}
 IVY_ASFLAGS		+= ${COMMON_ASFLAGS}
@@ -254,14 +261,14 @@ realclean distclean:
 checkcodebase:		locate-checkpatch
 	@echo "  CHECKING STYLE"
 	@if test -d .git ; then						\
-		git ls-files | grep -E -v 'stdlib|docs|\.md|\.rst' |	\
+		git ls-files | grep -E -v 'libc|docs|\.md|\.rst' |	\
 		while read GIT_FILE ;					\
 		do ${CHECKPATCH} ${CHECKCODE_ARGS} -f $$GIT_FILE ;	\
 		done ;							\
 	else								\
 		 find . -type f -not -iwholename "*.git*"		\
 		 -not -iwholename "*build*"				\
-		 -not -iwholename "*stdlib*"				\
+		 -not -iwholename "*libc*"				\
 		 -not -iwholename "*docs*"				\
 		 -not -iwholename "*.md"				\
 		 -not -iwholename "*.rst"				\
