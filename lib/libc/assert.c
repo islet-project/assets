@@ -9,35 +9,9 @@
 #include <stdio.h>
 
 #include <common/debug.h>
-#include <drivers/console.h>
-#include <plat/common/platform.h>
 
-/*
- * Only print the output if PLAT_LOG_LEVEL_ASSERT is higher or equal to
- * LOG_LEVEL_INFO, which is the default value for builds with DEBUG=1.
- */
-
-#if PLAT_LOG_LEVEL_ASSERT >= LOG_LEVEL_VERBOSE
 void __assert(const char *file, unsigned int line, const char *assertion)
 {
 	printf("ASSERT: %s:%d:%s\n", file, line, assertion);
-	backtrace("assert");
-	(void)console_flush();
-	plat_panic_handler();
+	panic();
 }
-#elif PLAT_LOG_LEVEL_ASSERT >= LOG_LEVEL_INFO
-void __assert(const char *file, unsigned int line)
-{
-	printf("ASSERT: %s:%d\n", file, line);
-	backtrace("assert");
-	(void)console_flush();
-	plat_panic_handler();
-}
-#else
-void __assert(void)
-{
-	backtrace("assert");
-	(void)console_flush();
-	plat_panic_handler();
-}
-#endif

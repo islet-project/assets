@@ -19,8 +19,13 @@
 
 #define _ATEXIT_MAX 1
 
+#define	RAND_MAX	0x7ffffffd
+
 extern void abort(void);
 extern int atexit(void (*func)(void));
 extern void exit(int status);
+
+int rand(void);
+void srand(unsigned int seed);
 
 #endif /* STDLIB_H */

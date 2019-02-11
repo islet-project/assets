@@ -16,12 +16,14 @@ LIBC_SRCS	:=	$(addprefix lib/libc/,		\
 			printf.c			\
 			putchar.c			\
 			puts.c				\
+			rand.c				\
 			snprintf.c			\
 			strchr.c			\
 			strcmp.c			\
 			strlcpy.c			\
 			strlen.c			\
 			strncmp.c			\
+			strncpy.c			\
 			strnlen.c			\
 			strrchr.c)
 

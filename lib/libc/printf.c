@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2014-2019, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -21,15 +21,34 @@
 	(((_lcount) == 1) ? va_arg(_args, unsigned long int) :		\
 			    va_arg(_args, unsigned int)))
 
-static int string_print(const char *str)
+static int string_print(const char *str, char padc, int padn)
 {
-	int count = 0;
+	int i = 0, count = 0;
 
 	assert(str != NULL);
+
+	while (str[i] != '\0')
+		i++;
+
+	if (padn > 0) {
+		while (i < padn) {
+			(void)putchar(padc);
+			count++;
+			padn--;
+		}
+	}
 
 	for ( ; *str != '\0'; str++) {
 		(void)putchar(*str);
 		count++;
+	}
+
+	if (padn < 0) {
+		while (i < -padn) {
+			(void)putchar(padc);
+			count++;
+			padn++;
+		}
 	}
 
 	return count;
@@ -41,6 +60,7 @@ static int unsigned_num_print(unsigned long long int unum, unsigned int radix,
 	/* Just need enough space to store 64 bit decimal integer */
 	char num_buf[20];
 	int i = 0, count = 0;
+	int width;
 	unsigned int rem;
 
 	do {
@@ -53,8 +73,10 @@ static int unsigned_num_print(unsigned long long int unum, unsigned int radix,
 		unum /= radix;
 	} while (unum > 0U);
 
+	width = i;
+
 	if (padn > 0) {
-		while (i < padn) {
+		while (width < padn) {
 			(void)putchar(padc);
 			count++;
 			padn--;
@@ -66,11 +88,19 @@ static int unsigned_num_print(unsigned long long int unum, unsigned int radix,
 		count++;
 	}
 
+	if (padn < 0) {
+		while (width < -padn) {
+			(void)putchar(padc);
+			count++;
+			padn++;
+		}
+	}
+
 	return count;
 }
 
 /*******************************************************************
- * Reduced format print for Trusted firmware.
+ * Simplified version of printf() with smaller memory footprint.
  * The following type specifiers are supported by this print
  * %x - hexadecimal format
  * %s - string format
@@ -85,6 +115,8 @@ static int unsigned_num_print(unsigned long long int unum, unsigned int radix,
  *
  * The following padding specifiers are supported by this print
  * %0NN - Left-pad the number with 0s (NN is a decimal number)
+ * %NN - Left-pad the number or string with spaces (NN is a decimal number)
+ * %-NN - Right-pad the number or string with spaces (NN is a decimal number)
  *
  * The print exits on all other formats specifiers other than valid
  * combinations of the above specifiers.
@@ -92,15 +124,18 @@ static int unsigned_num_print(unsigned long long int unum, unsigned int radix,
 int vprintf(const char *fmt, va_list args)
 {
 	int l_count;
+	int left;
 	long long int num;
 	unsigned long long int unum;
 	char *str;
-	char padc = '\0'; /* Padding character */
+	char padc; /* Padding character */
 	int padn; /* Number of characters to pad */
 	int count = 0; /* Number of printed characters */
 
 	while (*fmt != '\0') {
 		l_count = 0;
+		left = 0;
+		padc = '\0';
 		padn = 0;
 
 		if (*fmt == '%') {
@@ -108,6 +143,25 @@ int vprintf(const char *fmt, va_list args)
 			/* Check the format specifier */
 loop:
 			switch (*fmt) {
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				padc = ' ';
+				for (padn = 0; *fmt >= '0' && *fmt <= '9'; fmt++)
+					padn = (padn * 10) + (*fmt - '0');
+				if (left)
+					padn = -padn;
+				goto loop;
+			case '-':
+				left = 1;
+				fmt++;
+				goto loop;
 			case 'i': /* Fall through to next one */
 			case 'd':
 				num = get_num_va_args(args, l_count);
@@ -123,12 +177,12 @@ loop:
 				break;
 			case 's':
 				str = va_arg(args, char *);
-				count += string_print(str);
+				count += string_print(str, padc, padn);
 				break;
 			case 'p':
 				unum = (uintptr_t)va_arg(args, void *);
 				if (unum > 0U) {
-					count += string_print("0x");
+					count += string_print("0x", padc, 0);
 					padn -= 2;
 				}
 
