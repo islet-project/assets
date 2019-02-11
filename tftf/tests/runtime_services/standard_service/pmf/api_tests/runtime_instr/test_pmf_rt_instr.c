@@ -13,7 +13,7 @@
 #include <psci.h>
 #include <smccc.h>
 #include <string.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include <tftf_lib.h>
 #include <timer.h>
 

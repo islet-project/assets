@@ -12,7 +12,7 @@
 #include <sp_helpers.h>
 #include <sprt_svc.h>
 #include <stdio.h>
-#include <types.h>
+#include <stdint.h>
 #include <xlat_tables_defs.h>
 
 #include "cactus.h"

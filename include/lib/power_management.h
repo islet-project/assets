@@ -11,7 +11,6 @@
 #include <psci.h>
 #include <spinlock.h>
 #include <stdint.h>
-#include <types.h>
 
 /* Set of states of an affinity node as seen by the Test Framework */
 typedef enum {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,8 +10,8 @@
 #include <uuid_utils.h>
 
 /* Format string to print a UUID */
-static const char *uuid_str_fmt = "{ 0x%.8x, 0x%.4x, 0x%.4x, 0x%.2x, 0x%.2x, "
-	"0x%.2x, 0x%.2x, 0x%.2x, 0x%.2x, 0x%.2x, 0x%.2x }";
+static const char *uuid_str_fmt = "{ 0x%08x, 0x%04x, 0x%04x, 0x%02x, 0x%02x, "
+	"0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }";
 
 
 unsigned int is_uuid_null(const uuid_t *uuid)

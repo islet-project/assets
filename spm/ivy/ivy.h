@@ -7,7 +7,7 @@
 #ifndef IVY_H
 #define IVY_H
 
-#include <types.h>
+#include <stdint.h>
 
 /* Linker symbols used to figure out the memory layout of Ivy. */
 extern uintptr_t __TEXT_START__, __TEXT_END__;

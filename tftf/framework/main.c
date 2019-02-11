@@ -17,8 +17,8 @@
 #include <power_management.h>
 #include <psci.h>
 #include <sgi.h>
+#include <stdint.h>
 #include <string.h>
-#include <sys/types.h>
 #include <tftf.h>
 #include <tftf_lib.h>
 #include <timer.h>

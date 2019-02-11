@@ -65,6 +65,12 @@ void mp_printf(const char *fmt, ...);
 # define VERBOSE(...)
 #endif
 
+#if ENABLE_BACKTRACE
+void backtrace(const char *cookie);
+#else
+#define backtrace(x)
+#endif
+
 /*
  * For the moment this panic function is very basic: report an error and
  * spin. This can be expanded in the future to provide more information.

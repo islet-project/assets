@@ -7,7 +7,7 @@
 #include <arch_helpers.h>
 #include <debug.h>
 #include <sp_helpers.h>
-#include <types.h>
+#include <stdint.h>
 
 #include "cactus.h"
 

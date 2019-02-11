@@ -18,7 +18,6 @@
 #ifndef __ASSEMBLY__
 
 #include <stdint.h>
-#include <types.h>
 
 int spci_service_handle_open(uint16_t client_id, uint16_t *handle,
 			     uint32_t uuid1, uint32_t uuid2,

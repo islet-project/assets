@@ -7,6 +7,7 @@
 #ifndef __IRQ_H__
 #define  __IRQ_H__
 
+#include <cdefs.h>
 #include <platform_def.h> /* For CACHE_WRITEBACK_GRANULE */
 #include <stdint.h>
 

@@ -7,7 +7,7 @@
 #ifndef __CACTUS_H__
 #define __CACTUS_H__
 
-#include <types.h>
+#include <stdint.h>
 
 /* Linker symbols used to figure out the memory layout of Cactus. */
 extern uintptr_t __TEXT_START__, __TEXT_END__;

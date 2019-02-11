@@ -60,9 +60,8 @@
 #define UNUSED __attribute__((unused))
 #endif
 
-#include <sys/limits.h>
-#include <sys/stdint.h>
-#include <sys/types.h>
+#include <limits.h>
+#include <stdint.h>
 
 /* Include the commonly used internal type definitions. */
 #include "int_types.h"

@@ -4,14 +4,18 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+/*
+ * The include of stdarg.h is not in alphabetical order because it needs to be
+ * included before stdio.h. Fixing this would require further changes.
+ */
 #include <arch_helpers.h>
+#include <stdarg.h>
 #include <assert.h>
 #include <debug.h>
 #include <nvm.h>
 #include <platform.h>
 #include <spinlock.h>
-#include <stdarg.h>
-#include <string.h>
+#include <stdio.h>
 
 /*
  * Temporary buffer to store 1 test output.

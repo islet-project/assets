@@ -8,7 +8,7 @@
 #define SECURE_PARTITION_H
 
 #include <param_header.h>
-#include <types.h>
+#include <stdint.h>
 #include <utils_def.h>
 
 /*

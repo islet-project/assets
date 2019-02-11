@@ -13,7 +13,6 @@
 #include <arch_helpers.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <sys/types.h>
 
 /*
  * Possible error codes for signaling the result of a test

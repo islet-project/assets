@@ -17,7 +17,7 @@
 #include <sgi.h>
 #include <spinlock.h>
 #include <stddef.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <tftf.h>
 #include <timer.h>
 

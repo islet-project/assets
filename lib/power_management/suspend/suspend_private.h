@@ -16,7 +16,6 @@
 #include <power_management.h>
 #include <stdint.h>
 #include <string.h>
-#include <types.h>
 
 #define NR_CTX_REGS 6
 

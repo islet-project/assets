@@ -11,7 +11,7 @@
 #include <spm_svc.h>
 #include <sprt_client.h>
 #include <sprt_svc.h>
-#include <types.h>
+#include <stdint.h>
 
 #include "cactus.h"
 #include "cactus_tests.h"

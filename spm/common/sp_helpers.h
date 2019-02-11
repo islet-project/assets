@@ -8,7 +8,6 @@
 #define SP_HELPERS_H
 
 #include <stdint.h>
-#include <sys/types.h>
 
 typedef struct {
 	u_register_t fid;

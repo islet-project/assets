@@ -14,7 +14,7 @@
 
 #ifndef __ASSEMBLY__
 
-#include <types.h>
+#include <stdint.h>
 
 int console_init(uintptr_t base_addr,
 		unsigned int uart_clk, unsigned int baud_rate);
