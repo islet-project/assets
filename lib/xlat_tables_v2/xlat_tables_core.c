@@ -19,7 +19,7 @@
 #include "xlat_tables_private.h"
 
 /* Helper function that cleans the data cache only if it is enabled. */
-static inline void xlat_clean_dcache_range(uintptr_t addr, size_t size)
+static inline __attribute__((unused)) void xlat_clean_dcache_range(uintptr_t addr, size_t size)
 {
 	if (is_dcache_enabled())
 		clean_dcache_range(addr, size);
@@ -863,7 +863,7 @@ static void mmap_alloc_va_align_ctx(xlat_ctx_t *ctx, mmap_region_t *mm)
 	 */
 	for (unsigned int level = ctx->base_level; level <= 2U; ++level) {
 
-		if (align_check & XLAT_BLOCK_MASK(level))
+		if ((align_check & XLAT_BLOCK_MASK(level)) != 0U)
 			continue;
 
 		mm->base_va = round_up(mm->base_va, XLAT_BLOCK_SIZE(level));
@@ -1101,6 +1101,36 @@ int mmap_remove_dynamic_region_ctx(xlat_ctx_t *ctx, uintptr_t base_va,
 	return 0;
 }
 
+void xlat_setup_dynamic_ctx(xlat_ctx_t *ctx, unsigned long long pa_max,
+			    uintptr_t va_max, struct mmap_region *mmap,
+			    unsigned int mmap_num, uint64_t **tables,
+			    unsigned int tables_num, uint64_t *base_table,
+			    int xlat_regime, int *mapped_regions)
+{
+	ctx->xlat_regime = xlat_regime;
+
+	ctx->pa_max_address = pa_max;
+	ctx->va_max_address = va_max;
+
+	ctx->mmap = mmap;
+	ctx->mmap_num = mmap_num;
+	memset(ctx->mmap, 0, sizeof(struct mmap_region) * mmap_num);
+
+	ctx->tables = (void *) tables;
+	ctx->tables_num = tables_num;
+
+	uintptr_t va_space_size = va_max + 1;
+	ctx->base_level = GET_XLAT_TABLE_LEVEL_BASE(va_space_size);
+	ctx->base_table = base_table;
+	ctx->base_table_entries = GET_NUM_BASE_LEVEL_ENTRIES(va_space_size);
+
+	ctx->tables_mapped_regions = mapped_regions;
+
+	ctx->max_pa = 0;
+	ctx->max_va = 0;
+	ctx->initialized = 0;
+}
+
 #endif /* PLAT_XLAT_TABLES_DYNAMIC */
 
 void __init init_xlat_tables_ctx(xlat_ctx_t *ctx)
@@ -1113,6 +1143,11 @@ void __init init_xlat_tables_ctx(xlat_ctx_t *ctx)
 	assert(!is_mmu_enabled_ctx(ctx));
 
 	mmap_region_t *mm = ctx->mmap;
+
+	assert(ctx->va_max_address >=
+		(xlat_get_min_virt_addr_space_size() - 1U));
+	assert(ctx->va_max_address <= (MAX_VIRT_ADDR_SPACE_SIZE - 1U));
+	assert(IS_POWER_OF_TWO(ctx->va_max_address + 1U));
 
 	xlat_mmap_print(mm);
 
