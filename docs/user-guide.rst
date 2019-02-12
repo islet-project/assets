@@ -447,6 +447,24 @@ In other words, only the following software images are needed:
    -  ``BL32`` (optional);
    -  ``tftf.bin`` (standing as the BL33 image).
 
+Running the manual tests on FVP
+```````````````````````````````
+The manual tests rely on storing state in non-volatile memory (NVM) across
+reboot. On FVP the NVM is not persistent across reboots, so the following
+flag must be used to write the NVM to a file when the model exits.
+
+::
+
+        -C bp.flashloader0.fnameWrite=[filename]
+
+After the model has been shutdown, this file must be fed back in to continue
+the test. Note this flash file includes the FIP image, so the original fip.bin
+does not need to be passed in. The following flag is used:
+
+::
+
+        -C bp.flashloader0.fname=[filename]
+
 Running the FWU tests
 `````````````````````
 
@@ -514,7 +532,7 @@ flash (that is, ``0x08000000``).
 
 --------------
 
-*Copyright (c) 2018, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
 
 .. _Development Studio 5 (DS-5): https://developer.arm.com/products/software-development-tools/ds-5-development-studio
 
