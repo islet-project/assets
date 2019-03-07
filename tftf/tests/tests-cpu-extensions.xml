@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -11,6 +11,7 @@
   <testsuite name="CPU extensions" description="Various CPU extensions tests">
     <testcase name="AMUv1 non-zero counters" function="test_amu_nonzero_ctr" />
     <testcase name="AMUv1 suspend/resume" function="test_amu_suspend_resume" />
+    <testcase name="SVE support" function="test_sve_support" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">

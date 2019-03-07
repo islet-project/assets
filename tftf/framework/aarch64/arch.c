@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -17,6 +17,13 @@ void tftf_arch_setup(void)
 		 * interrupt masks.
 		 */
 		write_hcr_el2(HCR_TGE_BIT);
+
+		/*
+		 * Disable trap of SVE instructions to EL2.
+		 * The fields of the CPTR_EL2 register reset to an
+		 * architecturally UNKNOWN value.
+		 */
+		write_cptr_el2(CPTR_EL2_RES1);
 		isb();
 	}
 }

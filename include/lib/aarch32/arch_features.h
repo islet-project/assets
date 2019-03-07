@@ -17,6 +17,12 @@ static inline bool is_armv7_gentimer_present(void)
 		ID_PFR1_GENTIMER_MASK) != 0U;
 }
 
+static inline bool is_armv8_2_sve_present(void)
+{
+	/* SVE is not usable in aarch32 */
+	return false;
+}
+
 static inline bool is_armv8_2_ttcnp_present(void)
 {
 	return ((read_id_mmfr4() >> ID_MMFR4_CNP_SHIFT) &

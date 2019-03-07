@@ -17,6 +17,12 @@ static inline bool is_armv7_gentimer_present(void)
 	return true;
 }
 
+static inline bool is_armv8_2_sve_present(void)
+{
+	return ((read_id_aa64pfr0_el1() >> ID_AA64PFR0_SVE_SHIFT) &
+		ID_AA64PFR0_SVE_MASK) == 1U;
+}
+
 static inline bool is_armv8_2_ttcnp_present(void)
 {
 	return ((read_id_aa64mmfr2_el1() >> ID_AA64MMFR2_EL1_CNP_SHIFT) &
