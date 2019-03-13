@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <arch_helpers.h>
+#include <arch_features.h>
 #include <assert.h>
 #include <debug.h>
 #include <drivers/arm/arm_gic.h>
@@ -518,6 +519,30 @@ void __dead2 tftf_cold_boot_main(void)
 #endif
 
 	tftf_arch_setup();
+
+	/*
+	 * Enable pointer authentication. tftf_cold_boot_main() never returns,
+	 * so it is safe to do it here. If this function was to return, the
+	 * authentication would fail then.
+	 */
+#if ENABLE_PAUTH
+	assert(is_armv8_3_pauth_apa_api_present());
+
+	uint64_t *apiakey = plat_init_apiakey();
+
+	write_apiakeylo_el1(apiakey[0]);
+	write_apiakeyhi_el1(apiakey[1]);
+
+	if (IS_IN_EL2()) {
+		write_sctlr_el2(read_sctlr_el2() | SCTLR_EnIA_BIT);
+	} else {
+		assert(IS_IN_EL1());
+		write_sctlr_el1(read_sctlr_el1() | SCTLR_EnIA_BIT);
+	}
+
+	isb();
+#endif /* ENABLE_PAUTH */
+
 	tftf_platform_setup();
 	tftf_init_topology();
 

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -22,5 +22,9 @@ CACTUS_SOURCES	+=	plat/arm/fvp/${ARCH}/plat_helpers.S
 
 # Firmware update is implemented on FVP.
 FIRMWARE_UPDATE := 1
+
+ifeq (${ARCH},aarch64)
+PLAT_SOURCES	+=	plat/common/aarch64/pauth.c
+endif
 
 include plat/arm/common/arm_common.mk

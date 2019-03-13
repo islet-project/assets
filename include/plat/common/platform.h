@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -66,6 +66,9 @@ int plat_crash_console_flush(void);
 
 /* Gets a handle for the initialised IO entity */
 void plat_get_nvm_handle(uintptr_t *handle);
+
+/* Initialize and get a pointer to a uint64_t[2] array with a 128-key */
+uint64_t *plat_init_apiakey(void);
 
 /*
  * Returns the platform topology description array. The size of this

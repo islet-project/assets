@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -134,6 +134,7 @@ include ${PLAT_MAKEFILE_FULL}
 ################################################################################
 $(eval $(call assert_boolean,DEBUG))
 $(eval $(call assert_boolean,ENABLE_ASSERTIONS))
+$(eval $(call assert_boolean,ENABLE_PAUTH))
 $(eval $(call assert_boolean,FIRMWARE_UPDATE))
 $(eval $(call assert_boolean,FWU_BL_TEST))
 $(eval $(call assert_boolean,NEW_TEST_SESSION))
@@ -148,6 +149,7 @@ $(eval $(call add_define,TFTF_DEFINES,ARM_ARCH_MAJOR))
 $(eval $(call add_define,TFTF_DEFINES,ARM_ARCH_MINOR))
 $(eval $(call add_define,TFTF_DEFINES,DEBUG))
 $(eval $(call add_define,TFTF_DEFINES,ENABLE_ASSERTIONS))
+$(eval $(call add_define,TFTF_DEFINES,ENABLE_PAUTH))
 $(eval $(call add_define,TFTF_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,TFTF_DEFINES,NEW_TEST_SESSION))
 $(eval $(call add_define,TFTF_DEFINES,PLAT_${PLAT}))
@@ -209,6 +211,10 @@ TFTF_INCLUDES		+= ${PLAT_INCLUDES}
 TFTF_CFLAGS		+= ${COMMON_CFLAGS}
 TFTF_ASFLAGS		+= ${COMMON_ASFLAGS}
 TFTF_LDFLAGS		+= ${COMMON_LDFLAGS}
+
+ifeq (${ENABLE_PAUTH},1)
+TFTF_CFLAGS		+=	-msign-return-address=non-leaf
+endif
 
 NS_BL1U_SOURCES		+= ${PLAT_SOURCES} ${LIBC_SRCS}
 NS_BL1U_INCLUDES	+= ${PLAT_INCLUDES}
