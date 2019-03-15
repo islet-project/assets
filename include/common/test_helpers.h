@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,6 +7,7 @@
 #ifndef __TEST_HELPERS_H__
 #define __TEST_HELPERS_H__
 
+#include <arch_features.h>
 #include <plat_topology.h>
 #include <psci.h>
 #include <spci_svc.h>
@@ -24,6 +25,16 @@ typedef struct {
 } map_args_unmap_t;
 
 typedef test_result_t (*test_function_arg_t)(void *arg);
+
+#ifdef AARCH32
+#define SKIP_TEST_IF_AARCH32()							\
+	do {									\
+		tftf_testcase_printf("Test not supported on aarch32\n");	\
+		return TEST_RESULT_SKIPPED;					\
+	} while (0)
+#else
+#define SKIP_TEST_IF_AARCH32()
+#endif
 
 #define SKIP_TEST_IF_LESS_THAN_N_CLUSTERS(n)					\
 	do {									\
@@ -73,6 +84,15 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 			tftf_testcase_printf(					\
 				"Trusted OS is not the TSP, its UUID is: %s\n",	\
 				uuid_to_str(&tos_uuid, tos_uuid_str));		\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (0)
+
+#define SKIP_TEST_IF_PAUTH_NOT_SUPPORTED()					\
+	do {									\
+		if (!is_armv8_3_pauth_present()) {				\
+			tftf_testcase_printf(					\
+				"Pointer Authentication not supported\n");	\
 			return TEST_RESULT_SKIPPED;				\
 		}								\
 	} while (0)

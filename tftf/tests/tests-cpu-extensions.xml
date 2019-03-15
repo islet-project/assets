@@ -12,6 +12,10 @@
     <testcase name="AMUv1 non-zero counters" function="test_amu_nonzero_ctr" />
     <testcase name="AMUv1 suspend/resume" function="test_amu_suspend_resume" />
     <testcase name="SVE support" function="test_sve_support" />
+    <testcase name="Access Pointer Authentication Registers" function="test_pauth_reg_access" />
+    <testcase name="Use Pointer Authentication Instructions" function="test_pauth_instructions" />
+    <testcase name="Check for Pointer Authentication key leakage from EL3" function="test_pauth_leakage" />
+    <testcase name="Check for Pointer Authentication key leakage from TSP" function="test_pauth_leakage_tsp" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">
