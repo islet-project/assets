@@ -222,4 +222,14 @@
 #define PLAT_SUSPEND_ENTRY_TIME		15
 #define PLAT_SUSPEND_ENTRY_EXIT_TIME	30
 
+/*******************************************************************************
+ * Location of the memory buffer shared between Normal World (i.e. TFTF) and the
+ * Secure Partition (e.g. Cactus-MM) to pass data associated to secure service
+ * requests. This is only needed for SPM based on MM.
+ * Note: This address has to match the one used in TF (see ARM_SP_IMAGE_NS_BUF_*
+ * macros).
+ ******************************************************************************/
+#define ARM_SECURE_SERVICE_BUFFER_BASE	0xff600000ull
+#define ARM_SECURE_SERVICE_BUFFER_SIZE	0x10000ull
+
 #endif /* __PLATFORM_DEF_H__ */

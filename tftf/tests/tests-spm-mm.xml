@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="SPM tests"
+             description="Test SPM APIs">
+<!-- TODO: This test fails in the CI.
+    <testcase name="SPM NS interrupts test"
+              function="test_secure_partition_interrupt_by_ns" />
+-->
+    <testcase name="SPM secondary CPUs sequential test"
+              function="test_secure_partition_secondary_cores_seq" />
+<!-- TODO: This test fails in the CI.
+    <testcase name="SPM secondary CPUs simultaneous test"
+              function="test_secure_partition_secondary_cores_sim" />
+-->
+  </testsuite>
+
+</testsuites>

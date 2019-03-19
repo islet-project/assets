@@ -9,6 +9,10 @@
 
 #include <stdio.h>
 
+#ifdef IMAGE_CACTUS_MM
+/* Remove dependency on spinlocks for Cactus-MM */
+#define mp_printf printf
+#else
 /*
  * Print a formatted string on the UART.
  *
@@ -18,6 +22,7 @@
  */
 __attribute__((format(printf, 1, 2)))
 void mp_printf(const char *fmt, ...);
+#endif /* IMAGE_CACTUS_MM */
 
 /*
  * The log output macros print output to the console. These macros produce
