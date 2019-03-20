@@ -11,7 +11,6 @@ Maintainers
 -----------
 
 - Dimitris Papastamos <dimitris.papastamos@arm.com>
-- Jeenu Viswambharan <jeenu.viswambharan@arm.com>
 - Joanna Farley <joanna.farley@arm.com>
 - Roberto Vargas <roberto.vargas@arm.com>
 - Sandrine Bailleux <sandrine.bailleux@arm.com>
