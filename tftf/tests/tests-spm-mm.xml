@@ -14,10 +14,8 @@
               function="test_secure_partition_interrupt_by_ns" />
     <testcase name="SPM secondary CPUs sequential test"
               function="test_secure_partition_secondary_cores_seq" />
-<!-- TODO: This test fails in the CI.
     <testcase name="SPM secondary CPUs simultaneous test"
               function="test_secure_partition_secondary_cores_sim" />
--->
   </testsuite>
 
 </testsuites>

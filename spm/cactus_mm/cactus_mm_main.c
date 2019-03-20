@@ -114,10 +114,7 @@ void __dead2 cactus_main(void *el3_el0_buffer, size_t el3_el0_buffer_size)
 	 */
 	misc_tests();
 	system_setup_tests();
-	/*
-	 * TODO: The following tests fail in the CI:
-	 * mem_attr_changes_tests(boot_info);
-	 */
+	mem_attr_changes_tests(boot_info);
 
 	/*
 	 * Handle secure service requests.
