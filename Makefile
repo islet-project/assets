@@ -6,7 +6,7 @@
 
 # TFTF Version
 VERSION_MAJOR		:= 2
-VERSION_MINOR		:= 0
+VERSION_MINOR		:= 1
 
 ################################################################################
 # Default values for build configurations, and their dependencies
