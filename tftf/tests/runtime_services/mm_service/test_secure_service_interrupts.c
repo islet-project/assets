@@ -83,7 +83,7 @@ test_result_t test_secure_partition_interrupt_by_ns(void)
 
 	INFO("Sending MM_COMMUNICATE_AARCH64 to Cactus\n");
 
-	uint8_t timer_delay = 1;
+	uint8_t timer_delay = 1; /* 1 s */
 	sps_request = create_sps_request(SPS_TIMER_SLEEP,
 					 &timer_delay, sizeof(timer_delay));
 	smc_args mm_communicate_smc = {

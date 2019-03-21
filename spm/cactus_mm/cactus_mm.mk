@@ -41,7 +41,6 @@ CACTUS_MM_SOURCES	+=				\
 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 	lib/${ARCH}/cache_helpers.S			\
 	lib/${ARCH}/misc_helpers.S			\
-	${STDLIB_SOURCES}
 
 CACTUS_MM_LINKERFILE	:=	spm/cactus_mm/cactus_mm.ld.S
 
