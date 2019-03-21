@@ -137,8 +137,8 @@ IRC channel
 
 Development discussion takes place on the same channel as for TF-A, i.e. the
 ``#trusted-firmware-a`` channel on the Freenode IRC network. This is not an
-official support channel.  If you have an issue to raise, please use the issues
-tracker <TODO: insert link>.
+official support channel.  If you have an issue to raise, please use the
+`issues tracker`_.
 
 --------------
 
@@ -175,3 +175,5 @@ tracker <TODO: insert link>.
 .. _Firmware update: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/firmware-update.rst
 .. _EL3 payload: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/user-guide.rst#el3-payloads-alternative-boot-flow
 .. _Secure partition: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/secure-partition-manager-design.rst
+
+.. _issues tracker: https://developer.trustedfirmware.org/project/board/9/
