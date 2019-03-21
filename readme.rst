@@ -1,4 +1,4 @@
-Trusted Firmware-A Tests - version 2.0
+Trusted Firmware-A Tests - version 2.1
 ======================================
 
 The Trusted Firmware-A Tests (TF-A-Tests) is a suite of baremetal tests to
@@ -54,10 +54,9 @@ license text is included in those source files.
 This release
 ------------
 
-This is the first public release of the TF-A Tests code. It provides a starting
-point for exercising some of the TF-A features on the Arm FVP and Juno
-platforms, porting the tests to new platforms, enhancing existing tests or
-implementing new ones.
+This release provides a starting point for exercising some of the TF-A features
+on the Arm FVP and Juno platforms, porting the tests to new platforms, enhancing
+existing tests or implementing new ones.
 
 Please note that this code is not mature yet and suffers from some stability
 issues. Refer to the known issues in the `change log`_ for more details.
@@ -90,17 +89,19 @@ The AArch32 build has been tested on the following `FVP`_\ s:
 -  ``FVP_Base_Cortex-A32x4``
 -  ``FVP_Base_RevC-2xAEMv8A``
 
-NOTE: Unless otherwise stated, the model version is version 11.4, build 37.
+NOTE: Unless otherwise stated, the model version is version 11.5, build 33.
 
 System Guidance for Infrastructure Fixed Virtual Platforms
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 The AArch64 build has been tested on the following Fixed Virtual Platforms
 (`FVP`_):
+
 -  ``FVP_CSS_SGI-575``
 -  ``FVP_RD_N1Edge``
 
 NOTE:
+
 -  For ``FVP_CSS_SGI-575``, the model version is 11.4, build 40
 -  For ``FVP_RD_N1Edge``, the model version is 11.6, build 29
 
