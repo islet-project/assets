@@ -43,8 +43,8 @@ static int32_t cactus_handle_fast_request(int cc,
 			      sps->data_size);
 			return SPM_INVALID_PARAMETER;
 		}
-		int duration_sec = sps->data[0];
-		sp_sleep(duration_sec);
+		uint32_t duration_sec = sps->data[0];
+		sp_sleep(duration_sec * 1000);
 
 		/*
 		 * Write back to the communication buffer to acknowledge the
