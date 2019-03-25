@@ -100,7 +100,9 @@ Building TF-A Tests
       -  ``build/<platform>/<build-type>/ns_bl1u.bin``
       -  ``build/<platform>/<build-type>/ns_bl2u.bin``
       -  ``build/<platform>/<build-type>/el3_payload.bin``
+      -  ``build/<platform>/<build-type>/cactus_mm.bin``
       -  ``build/<platform>/<build-type>/cactus.bin``
+      -  ``build/<platform>/<build-type>/ivy.bin``
 
       where ``<platform>`` is the name of the chosen platform and ``<build-type>``
       is either ``debug`` or ``release``. The actual number of images might differ
@@ -250,42 +252,75 @@ EL3 test payload
 flow`_ in TF-A. Refer to the `EL3 test payload README file`_ for more details
 about its behaviour and how to build and run it.
 
-Cactus test image
-`````````````````
+SPM test images
+```````````````
 
-``cactus.bin`` is a test secure partition that exercises the `Secure Partition
-Manager`_ (SPM) in TF-A [#]_. It runs in Secure-EL0. It performs the following
-tasks:
+This repository contains 3 Secure Partitions that exercise the `Secure Partition
+Manager`_ (SPM) in TF-A [#]_. Cactus-MM is designed to test the SPM
+implementation based on the `ARM Management Mode Interface`_ (MM), while Cactus
+and Ivy can test the SPM implementation based on the SPCI and SPRT draft
+specifications. Note that it isn't possible to use both communication mechanisms
+at once: If Cactus-MM is used Cactus and Ivy can't be used.
 
--  Test that TF-A has correctly setup the secure partition environment: Cactus
+They run in Secure-EL0 and perform the following tasks:
+
+-  Test that TF-A has correctly setup the secure partition environment: They
    should be allowed to perform cache maintenance operations, access floating
    point registers, etc.
 
 -  Test that TF-A accepts to change data access permissions and instruction
-   permissions on behalf of Cactus for memory regions the latter owns.
+   permissions on behalf of the Secure Partitions for memory regions the latter
+   owns.
 
--  Test communication with SPM through the `ARM Management Mode Interface`_.
+-  Test communication with SPM through either MM, or both SPCI and SPRT.
 
-At the moment, Cactus is supported on AArch64 FVP only. It may be built
-independently of the other test images using the following command:
-
-::
-
-   make PLAT=fvp cactus
-
-In TF-A boot flow, Cactus replaces the ``BL32`` image and should be injected in
-the FIP image.  This might be achieved by running the following command from
-the TF-A root directory:
+They are only supported on AArch64 FVP. They can be built independently of the
+other test images using the following command:
 
 ::
 
-    BL32=cactus.bin make PLAT=fvp ENABLE_SPM=1 fip
+   make PLAT=fvp cactus ivy cactus_mm
+
+In the TF-A boot flow, the partitions replace the ``BL32`` image and should be
+injected in the FIP image. To test SPM-MM with Cactus-MM, it is enough to use
+``cactus_mm.bin`` as BL32 image. To test the SPM based on SPCI and SPRT, it is
+needed to use ``sp_tool`` to build a Secure Partition package that can be used
+as BL32 image.
+
+To run the full set of tests in the Secure Partitions, they should be used in
+conjunction with the TFTF image.
+
+For SPM-MM, the following commands can be used to build the tests:
+
+::
+    # TF-A-Tests repository:
+
+    make PLAT=fvp TESTS=spm-mm tftf cactus_mm
+
+    # TF-A repository:
+
+    make BL33=path/to/tftf.bin BL32=path/to/cactus_mm.bin \
+    PLAT=fvp EL3_EXCEPTION_HANDLING=1 ENABLE_SPM=1 all fip
+
+For SPM based on SPCI and SPRT:
+
+::
+    # TF-A-Tests repository:
+
+    make PLAT=fvp TESTS=spm tftf cactus ivy
+
+    # TF-A repository:
+
+    make sptool
+
+    tools/sptool/sptool -o sp_package.bin \
+        -i path/to/cactus.bin:path/to/cactus.dtb \
+        -i path/to/ivy.bin:path/to/ivy.dtb
+
+    make BL33=path/to/tftf.bin BL32=path/to/sp_package.bin \
+    PLAT=fvp ENABLE_SPM=1 SPM_MM=0 ARM_BL31_IN_DRAM=1 all fip
 
 Please refer to the `TF-A User guide`_ for further details.
-
-To run the full set of tests in Cactus, it should be used in conjunction with
-the TFTF image, as the latter sends the Management Mode requests that Cactus
-services. The TFTF has to be built with `TESTS=spm` to run the SPM tests.
 
 Summary of build options
 ````````````````````````
@@ -532,8 +567,8 @@ flash (that is, ``0x08000000``).
        further details.
 
 .. [#] Therefore, the Secure Partition Manager must be enabled in TF-A for
-       Cactus to work. Please refer to the `TF-A User guide`_ for further
-       details.
+       any of the test Secure Partitions to work. Please refer to the `TF-A User
+       guide`_ for further details.
 
 --------------
 
