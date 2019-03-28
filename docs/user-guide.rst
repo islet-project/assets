@@ -494,8 +494,12 @@ reboot. On FVP the NVM is not persistent across reboots, so the following
 flag must be used to write the NVM to a file when the model exits.
 
 ::
-
         -C bp.flashloader0.fnameWrite=[filename]
+
+To ensure the model exits on shutdown the following flag must be used:
+
+::
+        -C bp.ve_sysregs.exit_on_shutdown=1
 
 After the model has been shutdown, this file must be fed back in to continue
 the test. Note this flash file includes the FIP image, so the original fip.bin
