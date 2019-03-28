@@ -103,6 +103,7 @@ Building TF-A Tests
       -  ``build/<platform>/<build-type>/cactus_mm.bin``
       -  ``build/<platform>/<build-type>/cactus.bin``
       -  ``build/<platform>/<build-type>/ivy.bin``
+      -  ``build/<platform>/<build-type>/quark.bin``
 
       where ``<platform>`` is the name of the chosen platform and ``<build-type>``
       is either ``debug`` or ``release``. The actual number of images might differ

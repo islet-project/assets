@@ -117,6 +117,7 @@ include fwu/ns_bl2u/ns_bl2u.mk
 include spm/cactus_mm/cactus_mm.mk
 include spm/cactus/cactus.mk
 include spm/ivy/ivy.mk
+include spm/quark/quark.mk
 
 ################################################################################
 # Include libc
@@ -256,6 +257,12 @@ IVY_CFLAGS		+= ${COMMON_CFLAGS}
 IVY_ASFLAGS		+= ${COMMON_ASFLAGS}
 IVY_LDFLAGS		+= ${COMMON_LDFLAGS}
 
+QUARK_SOURCES		+= ${LIBC_SRCS}
+QUARK_INCLUDES		+= ${PLAT_INCLUDES}
+QUARK_CFLAGS		+= ${COMMON_CFLAGS}
+QUARK_ASFLAGS		+= ${COMMON_ASFLAGS}
+QUARK_LDFLAGS		+= ${COMMON_LDFLAGS}
+
 .PHONY: locate-checkpatch
 locate-checkpatch:
 ifndef CHECKPATCH
@@ -330,6 +337,11 @@ cactus:
 
 .PHONY: ivy
 ivy:
+	@echo "ERROR: $@ is supported only on AArch64 FVP."
+	@exit 1
+
+.PHONY: quark
+quark:
 	@echo "ERROR: $@ is supported only on AArch64 FVP."
 	@exit 1
 endif
@@ -460,6 +472,7 @@ ifeq (${ARCH}-${PLAT},aarch64-fvp)
   $(eval $(call MAKE_IMG,cactus_mm))
   $(eval $(call MAKE_IMG,cactus))
   $(eval $(call MAKE_IMG,ivy))
+  $(eval $(call MAKE_IMG,quark))
 endif
 
 # The EL3 test payload is only supported in AArch64. It has an independent build
@@ -481,7 +494,7 @@ cscope:
 
 .PHONY: help
 help:
-	@echo "usage: ${MAKE} PLAT=<${PLATFORMS}> <all|tftf|ns_bl1u|ns_bl2u|cactus|ivy|el3_payload|distclean|clean|checkcodebase|checkpatch>"
+	@echo "usage: ${MAKE} PLAT=<${PLATFORMS}> <all|tftf|ns_bl1u|ns_bl2u|cactus|ivy|quark|el3_payload|distclean|clean|checkcodebase|checkpatch>"
 	@echo ""
 	@echo "PLAT is used to specify which platform you wish to build."
 	@echo "If no platform is specified, PLAT defaults to: ${DEFAULT_PLAT}"
@@ -495,6 +508,7 @@ help:
 	@echo "  cactus         Build the Cactus image (Test S-EL0 payload) and resource description."
 	@echo "  cactus_mm      Build the Cactus-MM image (Test S-EL0 payload)."
 	@echo "  ivy            Build the Ivy image (Test S-EL0 payload) and resource description."
+	@echo "  quark          Build the Quark image (Test S-EL0 payload) and resource description."
 	@echo "  el3_payload    Build the EL3 test payload"
 	@echo "  checkcodebase  Check the coding style of the entire source tree"
 	@echo "  checkpatch     Check the coding style on changes in the current"

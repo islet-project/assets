@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#include <sp_res_desc_def.h>
+
+#include "quark_def.h"
+
+/* 4 KiB pages */
+#define PAGE_SIZE			U(0x1000)
+
+/dts-v1/;
+
+/ {
+	compatible = "arm,sp_rd";
+
+	attribute {
+		version = <0x00000001>;
+		sp_type = <RD_ATTR_TYPE_UP_MIGRATABLE>;
+		pe_mpidr = <0>; /* Unused */
+		runtime_el = <RD_ATTR_RUNTIME_SEL0>;
+		exec_type = <RD_ATTR_RUNTIME>;
+		panic_policy = <RD_ATTR_PANIC_ONESHOT>;
+		xlat_granule = <RD_ATTR_XLAT_GRANULE_4KB>;
+		binary_size = <QUARK_IMAGE_SIZE>;
+		load_address = <0x00000000 QUARK_IMAGE_BASE>;
+		entrypoint = <0x00000000 QUARK_IMAGE_BASE>;
+	};
+
+	memory_regions {
+		spm_buffer {
+			str = "SPM buffer";
+			base = <0x00000000 QUARK_SPM_BUF_BASE>;
+			size = <0x00000000 QUARK_SPM_BUF_SIZE>;
+			attr = <RD_MEM_NORMAL_SPM_SP_SHARED_MEM>;
+		};
+	};
+
+	notifications {
+		notification_0 {
+			attr = <0>;
+			pe = <0>;
+		};
+	};
+
+	services {
+		test_service_1 {
+			uuid = <QUARK_SERVICE1_UUID_RD>;
+
+			accessibility = <(RD_SERV_ACCESS_SECURE |
+					  RD_SERV_ACCESS_EL3 |
+					  RD_SERV_ACCESS_NORMAL)>;
+			request_type = <(RD_SERV_SUPPORT_BLOCKING |
+					 RD_SERV_SUPPORT_NON_BLOCKING)>;
+			connection_quota = <10>;
+			sec_mem_size = <0>;
+			interrupt_num = <0>;
+		};
+	};
+};
