@@ -10,6 +10,264 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+
+Trusted Firmware-A Tests - version 2.1
+======================================
+
+New features
+------------
+
+-  Add initial support for testing Secure Partition Client Interface (SPCI)
+   and Secure Partition Run-Time (SPRT) standards.
+
+   Exercise the full communication flow throughout the software stack, involving:
+
+   -  A Secure-EL0 test partition as the Trusted World agent.
+
+   -  TFTF as the Normal World agent.
+
+   -  The Secure Partition Manager (SPM) in TF-A.
+
+-  Various stability improvements, code refactoring and clean ups.
+
+TFTF
+````
+
+-  Reorganize tests build infrastructure to allow the selection of a subset of
+   tests.
+
+-  Reorganize the platform layer for improved clarity and simplicity.
+
+-  Sanitise inclusion of drivers header files.
+
+-  Enhance the test report format for improved clarity and conciseness.
+
+-  Dump CPU registers when hitting an unexpected exception. Previously, this
+   would silently loop forever.
+
+-  Import libc from TF-A to better align the two code bases.
+
+-  New tests:
+
+   -  SPM tests for exercising communication through either the MM or SPCI/SPRT
+      interfaces.
+
+   -  SMC calling convention tests.
+
+   -  Initial tests for Armv8.3 Pointer Authentication support (experimental).
+
+-  New platform ports:
+
+   - `Arm SGI-575`_  FVP.
+
+   - Hikey960 board (experimental).
+
+   - `Arm Neoverse Reference Design N1 Edge (RD-N1-Edge)`_ FVP (experimental).
+
+Secure partitions
+`````````````````
+
+We now have 3 Secure Partitions to test the SPM implementation in TF-A.
+
+Cactus-MM
+'''''''''
+
+The Cactus test secure partition provided in version 2.0 has been renamed into
+"*Cactus-MM*". It is still responsible for testing the SPM implementation based
+on the Arm Management Mode Interface.
+
+Cactus
+''''''
+
+This is a new test secure partition (as the former "*Cactus*" has been renamed
+into "*Cactus-MM*", see above).
+
+Unlike *Cactus-MM*, this image tests the SPM implementation based on the SPCI
+and SPRT draft specifications.
+
+It runs in Secure-EL0 and performs the following tasks:
+
+-  Test that TF-A has correctly setup the secure partition environment (access
+   to cache maintenance operations, to floating point registers, etc.)
+
+-  Test that TF-A accepts to change data access permissions and instruction
+   permissions on behalf of Cactus for memory regions the latter owns.
+
+-  Test communication with SPM through SPCI/SPRT interfaces.
+
+Ivy
+'''
+
+This is also a new test secure partition. It is provided in order to test
+multiple partitions support in TF-A. It is derived from Cactus and essentially
+provides the same services but with different identifiers at the moment.
+
+EL3 payload
+```````````
+
+-  New platform ports:
+
+   - `Arm SGI-575`_  FVP.
+
+   - `Arm Neoverse Reference Design N1 Edge (RD-N1-Edge)`_ FVP (experimental).
+
+Issues resolved since last release
+----------------------------------
+
+-  The GICv2 spurious IRQ test is no longer Juno-specific. It is now only
+   GICv2-specific.
+
+-  The manual tests in AArch32 state now work properly. After investigation,
+   we identified that this issue was not AArch32 specific but concerned any
+   test relying on state information persisting across reboots. It was due to
+   an incorrect build configuration.
+
+-  Cactus-MM now successfully links with GNU toolchain 7.3.1.
+
+Known issues and limitations
+----------------------------
+
+The sections below lists the known issues and limitations of each test image
+provided in this repository.
+
+TFTF
+````
+
+The TFTF test image might be conceptually sub-divided further in 2 parts: the
+tests themselves, and the test framework they are based upon.
+
+Test framework
+''''''''''''''
+
+-  Some stability issues.
+
+-  No mechanism to abort tests when they time out (e.g. this could be
+   implemented using a watchdog).
+
+-  No convenient way to include or exclude tests on a per-platform basis.
+
+-  Power domains and affinity levels are considered equivalent but they may
+   not necessarily be.
+
+-  Need to provide better support to alleviate duplication of test code. There
+   are some recurrent test patterns for which helper functions should be
+   provided. For example, bringing up all CPUs on the platform and executing the
+   same function on all of them, or programming an interrupt and waiting for it
+   to trigger.
+
+-  Every CPU that participates in a test must return from the test function. If
+   it does not - e.g. because it powered itself off for testing purposes - then
+   the test framework will wait forever for this CPU. This limitation is too
+   restrictive for some tests.
+
+-  No protection against interrupted flash operations. If the target is reset
+   while some data is written to flash, the test framework might behave
+   incorrectly on reset.
+
+-  When compiling the code, if the generation of the ``tests_list.c`` and/or
+   ``tests_list.h`` files fails, the build process is not aborted immediately
+   and will only fail later on.
+
+-  The directory layout requires further improvements. Most of the test
+   framework code has been moved under the ``tftf/`` directory to better isolate
+   it but this effort is not complete. As a result, there are still some TFTF
+   files scattered around.
+
+-  Pointer Authentication testing is experimental and incomplete at this stage.
+   It is only enabled on the primary CPU on the cold boot.
+
+Tests
+'''''
+
+-  Some tests are implemented for AArch64 only and are skipped on AArch32.
+
+-  Some tests are not robust enough:
+
+   -  Some tests might hang in some circumstances. For example, they might wait
+      forever for a condition to become true.
+
+   -  Some tests rely on arbitrary time delays instead of proper synchronization
+      when executing order-sensitive steps.
+
+   -  Some tests have been implemented in a practical manner: they seem to work
+      on actual hardware but they make assumptions that are not guaranteed by
+      the Arm architecture. Therefore, they might fail on some other platforms.
+
+-  PSCI stress tests are very unreliable and will often hang. The root cause is
+   not known for sure but this might be due to bad synchronization between CPUs.
+
+-  The GICv2 spurious IRQ test sometimes fails with the following error message:
+
+   ``SMC @ lead CPU returned 0xFFFFFFFF 0x8 0xC``
+
+   The root cause is unknown.
+
+-  The FWU tests take a long time to complete. This is because they wait for the
+   watchdog to reset the system. On FVP, TF-A configures the watchdog period to
+   about 4 min. This limit is excessive for an automated testing context and
+   leaves the user without feedback and unable to determine if the tests are
+   proceeding properly.
+
+-  The test "Target timer to a power down cpu" sometimes fails with the
+   following error message:
+
+   ``Expected timer switch: 4 Actual: 3``
+
+   The root cause is unknown.
+
+FWU images
+``````````
+
+-  The FWU tests do not work on the revC of the Base AEM FVP. They only work on
+   the revB.
+
+-  NS-BL1U and NS-BL2U images reuse TFTF-specific code for legacy reasons. This
+   is not a clean design and may cause confusion.
+
+Test secure partitions (Cactus, Cactus-MM, Ivy)
+```````````````````````````````````````````````
+
+-  This is experimental code. It's likely to change a lot as the secure
+   partition software architecture evolves.
+
+-  Supported on AArch64 FVP platform only.
+
+All test images
+```````````````
+
+-  TF-A Tests are derived from a fork of TF-A so:
+
+    -  they've got some code in common but lag behind on some features.
+
+    -  there might still be some irrelevant references to TF-A.
+
+-  Some design issues.
+   E.g. TF-A Tests inherited from the I/O layer of TF-A, which still needs a
+   major rework.
+
+-  Cannot build TF-A Tests with Clang. Only GCC is supported.
+
+-  The build system does not cope well with parallel building. The user should
+   not attempt to run multiple jobs in parallel with the ``-j`` option of `GNU
+   make`.
+
+-  The build system does not properly track build options. A clean build must be
+   performed every time a build option changes.
+
+-  UUIDs are not compliant to RFC 4122.
+
+-  No floating point support. The code is compiled with GCC flag
+   ``-mgeneral-regs-only``, which prevents the compiler from generating code
+   that accesses floating point registers. This might limit some test scenarios.
+
+-  The documentation is too lightweight.
+
+-  Missing instruction barriers in some places before reading the system counter
+   value. As a result, the CPU could speculatively read it and any delay loop
+   calculations might be off (because based on stale values). We need to examine
+   all such direct reads of the ``CNTPCT_EL0`` register and replace them with a
+   call to ``syscounter_read()`` where appropriate.
+
 Trusted Firmware-A Tests - version 2.0
 ======================================
 
@@ -241,4 +499,7 @@ All test images
 
 --------------
 
-*Copyright (c) 2018, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
+
+.. _Arm Neoverse Reference Design N1 Edge (RD-N1-Edge): https://developer.arm.com/products/system-design/reference-design/neoverse-reference-design
+.. _Arm SGI-575: https://developer.arm.com/products/system-design/fixed-virtual-platforms
