@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <arch.h>
+#include <utils_def.h>
+
 #include "../fvp_def.h"
 
 /*******************************************************************************
@@ -174,11 +176,18 @@
 /*******************************************************************************
  * Platform specific page table and MMU setup constants
  ******************************************************************************/
-#define PLAT_PHY_ADDR_SPACE_SIZE	(1ull << 32)
-#define PLAT_VIRT_ADDR_SPACE_SIZE	(1ull << 32)
+#if AARCH64
+#define PLAT_PHY_ADDR_SPACE_SIZE	(ULL(1) << 34)
+#define PLAT_VIRT_ADDR_SPACE_SIZE	(ULL(1) << 34)
+#else
+#define PLAT_PHY_ADDR_SPACE_SIZE	(ULL(1) << 32)
+#define PLAT_VIRT_ADDR_SPACE_SIZE	(ULL(1) << 32)
+#endif
+
 #if IMAGE_TFTF
-#define MAX_XLAT_TABLES			6
-#define MAX_MMAP_REGIONS		16
+/* For testing xlat tables lib v2 */
+#define MAX_XLAT_TABLES			20
+#define MAX_MMAP_REGIONS		50
 #else
 #define MAX_XLAT_TABLES			5
 #define MAX_MMAP_REGIONS		16
