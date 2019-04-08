@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -156,8 +156,8 @@ el2_setup:
 	adr	x0, tftf_vector
 	msr	vbar_el2, x0
 
-	/* Enable the instruction cache and stack pointer alignment checks. */
-	mov_imm	x0, (SCTLR_EL2_RES1 | SCTLR_I_BIT | SCTLR_SA_BIT)
+	/* Enable the instruction cache and alignment checks. */
+	mov_imm	x0, (SCTLR_EL2_RES1 | SCTLR_I_BIT | SCTLR_A_BIT | SCTLR_SA_BIT)
 	msr	sctlr_el2, x0
 
 	isb
@@ -169,7 +169,7 @@ el1_setup:
 	msr	vbar_el1, x0
 
 	/* Enable the instruction cache and stack pointer alignment checks. */
-	mov_imm	x0, (SCTLR_EL1_RES1 | SCTLR_I_BIT | SCTLR_SA_BIT)
+	mov_imm	x0, (SCTLR_EL1_RES1 | SCTLR_I_BIT | SCTLR_A_BIT | SCTLR_SA_BIT)
 	msr	sctlr_el1, x0
 
 	isb
