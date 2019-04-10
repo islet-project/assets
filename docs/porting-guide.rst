@@ -449,5 +449,5 @@ point to a text file which follows the following criteria:
 
 *Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
 
-.. _docs/psci-pd-tree.rst: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/psci-pd-tree.rst
+.. _docs/psci-pd-tree.rst: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/psci-pd-tree.rst
 .. _SP805: https://static.docs.arm.com/ddi0270/b/DDI0270.pdf

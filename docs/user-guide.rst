@@ -587,17 +587,17 @@ flash (that is, ``0x08000000``).
 
 .. _Linux master tree: https://github.com/torvalds/linux/tree/master/
 
-.. _TF-A: https://www.github.com/ARM-software/arm-trusted-firmware
+.. _TF-A: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about
 .. _Trusted Firmware-A (TF-A): TF-A_
-.. _EL3 payload boot flow: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/user-guide.rst#el3-payloads-alternative-boot-flow
-.. _TF-A User Guide: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/user-guide.rst
+.. _EL3 payload boot flow: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#el3-payloads-alternative-boot-flow
+.. _TF-A User Guide: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst
 .. _Firmware Update: FWU_
-.. _FWU: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/firmware-update.rst
-.. _FWU state machine: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/firmware-update.rst#fwu-state-machine
-.. _Running the software on FVP: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/user-guide.rst#running-the-software-on-fvp
-.. _Running the software on Juno: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/user-guide.rst#running-the-software-on-juno
-.. _Building FIP images with support for Trusted Board Boot: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/user-guide.rst#building-fip-images-with-support-for-trusted-board-boot
-.. _Secure partition Manager: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/secure-partition-manager-design.rst
+.. _FWU: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst
+.. _FWU state machine: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst#fwu-state-machine
+.. _Running the software on FVP: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#running-the-software-on-fvp
+.. _Running the software on Juno: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#running-the-software-on-juno
+.. _Building FIP images with support for Trusted Board Boot: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#building-fip-images-with-support-for-trusted-board-boot
+.. _Secure partition Manager: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/secure-partition-manager-design.rst
 
 .. _EL3 test payload README file: ../el3_payload/README
 .. _scripts/run_fwu_fvp.sh: ../scripts/run_fwu_fvp.sh

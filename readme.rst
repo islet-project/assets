@@ -168,13 +168,13 @@ official support channel.  If you have an issue to raise, please use the
 .. _trustedfirmware.org: https://git.trustedfirmware.org/TF-A/tf-a-tests.git
 
 .. _Trusted Firmware-A (TF-A): TF-A_
-.. _TF-A: https://www.github.com/ARM-software/arm-trusted-firmware
+.. _TF-A: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about
 .. _Test Secure Payload (TSP): TSP_
-.. _TSP: https://github.com/ARM-software/arm-trusted-firmware/tree/master/bl32/tsp
+.. _TSP: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/tree/bl32/tsp
 .. _Performance Measurement Framework (PMF): PMF_
-.. _PMF: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/firmware-design.rst#performance-measurement-framework
-.. _Firmware update: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/firmware-update.rst
-.. _EL3 payload: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/user-guide.rst#el3-payloads-alternative-boot-flow
-.. _Secure partition: https://github.com/ARM-software/arm-trusted-firmware/blob/master/docs/secure-partition-manager-design.rst
+.. _PMF: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-design.rst#performance-measurement-framework
+.. _Firmware update: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst
+.. _EL3 payload: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#el3-payloads-alternative-boot-flow
+.. _Secure partition: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/secure-partition-manager-design.rst
 
 .. _issues tracker: https://developer.trustedfirmware.org/project/board/9/
