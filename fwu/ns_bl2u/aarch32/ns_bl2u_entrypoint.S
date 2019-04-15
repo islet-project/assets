@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,11 +19,11 @@ func ns_bl2u_entrypoint
 	stcopr	r0, HVBAR
 
 	/* ---------------------------------------------------------------------
-	 * Enable the instruction cache.
+	 * Enable the instruction cache and alignment checks.
 	 * ---------------------------------------------------------------------
 	 */
 	ldcopr	r0, HSCTLR
-	ldr	r1, =HSCTLR_I_BIT
+	ldr	r1, =(HSCTLR_I_BIT | HSCTLR_A_BIT)
 	orr	r0, r0, r1
 	stcopr	r0, HSCTLR
 	isb

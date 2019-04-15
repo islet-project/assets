@@ -174,11 +174,20 @@ COMMON_CFLAGS		+= 	-g
 COMMON_ASFLAGS		+= 	-g -Wa,--gdwarf-2
 endif
 
-COMMON_ASFLAGS_aarch64	:=	-mgeneral-regs-only
-COMMON_CFLAGS_aarch64	:=	-mgeneral-regs-only
+# Set the compiler's target architecture profile based on ARM_ARCH_MINOR option
+ifeq (${ARM_ARCH_MINOR},0)
+march32-directive	= 	-march=armv8-a
+march64-directive	= 	-march=armv8-a
+else
+march32-directive	= 	-march=armv8.${ARM_ARCH_MINOR}-a
+march64-directive	= 	-march=armv8.${ARM_ARCH_MINOR}-a
+endif
 
-COMMON_ASFLAGS_aarch32	:=	-march=armv8-a
-COMMON_CFLAGS_aarch32	:=	-march=armv8-a
+COMMON_ASFLAGS_aarch64	:=	-mgeneral-regs-only ${march64-directive}
+COMMON_CFLAGS_aarch64	:=	-mgeneral-regs-only -mstrict-align ${march64-directive}
+
+COMMON_ASFLAGS_aarch32	:=	${march32-directive}
+COMMON_CFLAGS_aarch32	:=	${march32-directive} -mno-unaligned-access
 
 COMMON_ASFLAGS		+=	-nostdinc -ffreestanding -Wa,--fatal-warnings	\
 				-Werror -Wmissing-include-dirs			\

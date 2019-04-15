@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,10 +19,10 @@ func ns_bl1u_entrypoint
 	asm_write_vbar_el1_or_el2 x1
 
 	/* --------------------------------------------------------------------
-	 * Enable the instruction cache and stack pointer alignment checks.
+	 * Enable the instruction cache and alignment checks.
 	 * --------------------------------------------------------------------
 	 */
-	mov	x1, #(SCTLR_I_BIT | SCTLR_SA_BIT)
+	mov	x1, #(SCTLR_I_BIT | SCTLR_A_BIT | SCTLR_SA_BIT)
 	asm_read_sctlr_el1_or_el2
 	orr	x0, x0, x1
 	asm_write_sctlr_el1_or_el2 x1
