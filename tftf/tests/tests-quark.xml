@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2019, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="Secure Partition Quark tests"
+             description="Test related to the Secure Partition Quark">
+
+     <testcase name="Send simple request to Quark"
+               function="test_quark_request" />
+
+  </testsuite>
+
+</testsuites>
