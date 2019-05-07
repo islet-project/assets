@@ -67,7 +67,7 @@ test_result_t test_pauth_reg_access(void)
  * Makes a call to psci version, and checks that the EL3 pauth keys are not
  * leaked when it returns
  */
-#if __GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ > 0)
+#if (__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ > 0)) && AARCH64
 __attribute__((target("sign-return-address=all")))
 #endif
 test_result_t test_pauth_leakage(void)
@@ -117,7 +117,7 @@ test_result_t test_pauth_instructions(void)
  * Makes a call to TSP ADD, and checks that the checks that the Secure World
  * pauth keys are not leaked
  */
-#if __GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ > 0)
+#if (__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ > 0)) && AARCH64
 __attribute__((target("sign-return-address=all")))
 #endif
 test_result_t test_pauth_leakage_tsp(void)
