@@ -161,6 +161,16 @@ unsigned int tftf_topology_next_cpu(unsigned int cpu_node);
  */
 unsigned int tftf_get_mpidr_from_node(unsigned int cpu_node);
 
+
+/*
+ * Returns the index corresponding to the parent power domain at `pwrlvl` of the
+ * CPU specified by `mpidr`. Returns POWER_DOMAIN_INIT if any of input arguments
+ * are incorrect.
+ */
+unsigned int tftf_get_parent_node_from_mpidr(unsigned int mpidr,
+		unsigned int pwrlvl);
+
+
 /*
  * Query the platform topology to find another CPU than the one specified
  * as an argument.
