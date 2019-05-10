@@ -69,8 +69,8 @@ distclean: clean
 
 run: run_${PLAT}
 
-run_juno: ${ELF} scripts/juno/run_ds5_script.sh scripts/juno/load_el3_payload.ds
-	scripts/juno/run_ds5_script.sh scripts/juno/load_el3_payload.ds
+run_juno: ${ELF} scripts/juno/run_armds_script.sh scripts/juno/load_el3_payload.ds
+	scripts/juno/run_armds_script.sh scripts/juno/load_el3_payload.ds
 
 run_fvp: scripts/fvp/run_fvp.sh
 	scripts/fvp/run_fvp.sh
