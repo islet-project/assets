@@ -91,12 +91,31 @@ static test_result_t suspend_and_resume_this_cpu(void)
 }
 
 /*
- * Check that group0/group1 counters are non-zero.  As EL3
- * has enabled the counters before the first entry to NS world,
- * the counters should have increased by the time we reach this
- * test case.
+ * Helper function that checks whether the value of a group0 counter is valid
+ * or not. The first 3 counters (0,1,2) cannot have values of zero but the last
+ * counter that counts "memory stall cycles" can have a value of zero, under
+ * certain circumstances.
+ *
+ * Return values:
+ *    0 = valid counter value
+ *   -1 = invalid counter value
  */
-test_result_t test_amu_nonzero_ctr(void)
+static int amu_group0_cnt_valid(unsigned int idx, uint64_t value)
+{
+	int answer = 0;
+
+	if ((idx <= 2) && (value == 0))
+		answer = -1;
+
+	return answer;
+}
+
+/*
+ * Check that group0 counters are valid. As EL3 has enabled the counters before
+ * the first entry to NS world, the counters should have increased by the time
+ * we reach this test case.
+ */
+test_result_t test_amu_valid_ctr(void)
 {
 	int i;
 
@@ -108,11 +127,11 @@ test_result_t test_amu_nonzero_ctr(void)
 		return TEST_RESULT_SKIPPED;
 
 	for (i = 0; i < AMU_GROUP0_NR_COUNTERS; i++) {
-		uint64_t v;
+		uint64_t value;
 
-		v = amu_group0_cnt_read(i);
-		if (v == 0) {
-			tftf_testcase_printf("Group0 counter cannot be 0\n");
+		value = amu_group0_cnt_read(i);
+		if (amu_group0_cnt_valid(i, value)) {
+			tftf_testcase_printf("Group0 counter %d has invalid value %lld\n", i, value);
 			return TEST_RESULT_FAIL;
 		}
 	}
@@ -148,13 +167,13 @@ test_result_t test_amu_suspend_resume(void)
 	 * If they are not, the AMU context save/restore in EL3 is buggy.
 	 */
 	for (i = 0; i < AMU_GROUP0_NR_COUNTERS; i++) {
-		uint64_t v;
+		uint64_t value;
 
-		v = amu_group0_cnt_read(i);
-		if (v < group0_ctrs[i]) {
+		value = amu_group0_cnt_read(i);
+		if (value < group0_ctrs[i]) {
 			tftf_testcase_printf("Invalid counter value: before: %llx, after: %llx\n",
 				(unsigned long long)group0_ctrs[i],
-				(unsigned long long)v);
+				(unsigned long long)value);
 			return TEST_RESULT_FAIL;
 		}
 	}
