@@ -104,8 +104,7 @@ test_result_t test_amu_nonzero_ctr(void)
 		return TEST_RESULT_SKIPPED;
 
 	/* If counters are not enabled, then skip the test */
-	if (read_amcntenset0_el0() != AMU_GROUP0_COUNTERS_MASK ||
-	    read_amcntenset1_el0() != AMU_GROUP1_COUNTERS_MASK)
+	if (read_amcntenset0_el0() != AMU_GROUP0_COUNTERS_MASK)
 		return TEST_RESULT_SKIPPED;
 
 	for (i = 0; i < AMU_GROUP0_NR_COUNTERS; i++) {
@@ -114,16 +113,6 @@ test_result_t test_amu_nonzero_ctr(void)
 		v = amu_group0_cnt_read(i);
 		if (v == 0) {
 			tftf_testcase_printf("Group0 counter cannot be 0\n");
-			return TEST_RESULT_FAIL;
-		}
-	}
-
-	for (i = 0; i < AMU_GROUP1_NR_COUNTERS; i++) {
-		uint64_t v;
-
-		v = amu_group1_cnt_read(i);
-		if (v == 0) {
-			tftf_testcase_printf("Group1 counter cannot be 0\n");
 			return TEST_RESULT_FAIL;
 		}
 	}
@@ -138,23 +127,18 @@ test_result_t test_amu_nonzero_ctr(void)
 test_result_t test_amu_suspend_resume(void)
 {
 	uint64_t group0_ctrs[AMU_GROUP0_MAX_NR_COUNTERS];
-	uint64_t group1_ctrs[AMU_GROUP1_MAX_NR_COUNTERS];
 	int i;
 
 	if (!amu_supported())
 		return TEST_RESULT_SKIPPED;
 
 	/* If counters are not enabled, then skip the test */
-	if (read_amcntenset0_el0() != AMU_GROUP0_COUNTERS_MASK ||
-	    read_amcntenset1_el0() != AMU_GROUP1_COUNTERS_MASK)
+	if (read_amcntenset0_el0() != AMU_GROUP0_COUNTERS_MASK)
 		return TEST_RESULT_SKIPPED;
 
 	/* Save counters values before suspend */
 	for (i = 0; i < AMU_GROUP0_NR_COUNTERS; i++)
 		group0_ctrs[i] = amu_group0_cnt_read(i);
-
-	for (i = 0; i < AMU_GROUP1_NR_COUNTERS; i++)
-		group1_ctrs[i] = amu_group1_cnt_read(i);
 
 	/* Suspend/resume current core */
 	suspend_and_resume_this_cpu();
@@ -170,18 +154,6 @@ test_result_t test_amu_suspend_resume(void)
 		if (v < group0_ctrs[i]) {
 			tftf_testcase_printf("Invalid counter value: before: %llx, after: %llx\n",
 				(unsigned long long)group0_ctrs[i],
-				(unsigned long long)v);
-			return TEST_RESULT_FAIL;
-		}
-	}
-
-	for (i = 0; i < AMU_GROUP1_NR_COUNTERS; i++) {
-		uint64_t v;
-
-		v = amu_group1_cnt_read(i);
-		if (v < group1_ctrs[i]) {
-			tftf_testcase_printf("Invalid counter value: before: %llx, after: %llx\n",
-				(unsigned long long)group1_ctrs[i],
 				(unsigned long long)v);
 			return TEST_RESULT_FAIL;
 		}
