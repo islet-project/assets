@@ -133,13 +133,11 @@ See the `Contributing Guidelines`_ for information on how to contribute to this
 project.
 
 
-IRC channel
------------
+Contact us
+----------
 
-Development discussion takes place on the same channel as for TF-A, i.e. the
-``#trusted-firmware-a`` channel on the Freenode IRC network. This is not an
-official support channel.  If you have an issue to raise, please use the
-`issues tracker`_.
+We welcome any feedback on TF-A Tests. You can use either the `issue tracker`_
+or our `mailing list`_.
 
 --------------
 
@@ -177,4 +175,5 @@ official support channel.  If you have an issue to raise, please use the
 .. _EL3 payload: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#el3-payloads-alternative-boot-flow
 .. _Secure partition: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/secure-partition-manager-design.rst
 
-.. _issues tracker: https://developer.trustedfirmware.org/project/board/9/
+.. _issue tracker: https://developer.trustedfirmware.org/project/board/9/
+.. _mailing list: https://lists.trustedfirmware.org/mailman/listinfo/tf-a-tests
