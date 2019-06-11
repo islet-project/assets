@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,9 +7,21 @@
 #ifndef __SUSPEND_PRIV_H__
 #define __SUSPEND_PRIV_H__
 
-#define SUSPEND_CTX_SZ 64
-#define SUSPEND_CTX_SP_OFFSET 48
-#define SUSPEND_CTX_SAVE_SYSTEM_CTX_OFFSET 56
+/*
+ * Number of system registers we need to save/restore across a CPU suspend:
+ * MAIR, CPACR_EL1/HCR_EL2, TTBR0, TCR, VBAR and SCTLR.
+ */
+#define NR_CTX_REGS 6
+
+/* Offsets of the fields in the context structure. Needed by asm code. */
+#define SUSPEND_CTX_SP_OFFSET (8 * NR_CTX_REGS)
+#define SUSPEND_CTX_SAVE_SYSTEM_CTX_OFFSET (SUSPEND_CTX_SP_OFFSET + 8)
+
+/*
+ * Size of the context structure.
+ * +8 because of the padding bytes inserted for alignment constraint.
+ */
+#define SUSPEND_CTX_SZ (SUSPEND_CTX_SAVE_SYSTEM_CTX_OFFSET + 8)
 
 #ifndef __ASSEMBLY__
 #include <cassert.h>
@@ -17,11 +29,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#define NR_CTX_REGS 6
-
 /*
- * struct tftf_suspend_ctx represents the architecture context to
- * be saved and restored while entering suspend and coming out.
+ * Architectural context to be saved/restored when entering/exiting suspend
+ * mode.
+ *
  * It must be 16-byte aligned since it is allocated on the stack, which must be
  * 16-byte aligned on ARMv8 (AArch64). Even though the alignment requirement
  * is not present in AArch32, we use the same alignment and register width as
@@ -30,12 +41,28 @@
 typedef struct tftf_suspend_context {
 	uint64_t arch_ctx_regs[NR_CTX_REGS];
 	uint64_t stack_pointer;
+
 	/*
 	 * Whether the system context is saved and and needs to be restored.
 	 * Note that the system context itself is not saved in this structure.
 	 */
 	unsigned int save_system_context;
 } __aligned(16) tftf_suspend_ctx_t;
+
+/*
+ * Ensure consistent view of the context structure layout across asm and C
+ * code.
+ */
+CASSERT(SUSPEND_CTX_SZ == sizeof(tftf_suspend_ctx_t),
+	assert_suspend_context_size_mismatch);
+
+CASSERT(SUSPEND_CTX_SP_OFFSET ==
+	__builtin_offsetof(tftf_suspend_ctx_t, stack_pointer),
+	assert_stack_pointer_location_mismatch_in_suspend_ctx);
+
+CASSERT(SUSPEND_CTX_SAVE_SYSTEM_CTX_OFFSET ==
+	__builtin_offsetof(tftf_suspend_ctx_t, save_system_context),
+	assert_save_sys_ctx_mismatch_in_suspend_ctx);
 
 /*
  * Saves callee save registers on the stack
@@ -82,14 +109,6 @@ void tftf_restore_system_ctx(tftf_suspend_ctx_t *ctx);
  */
 unsigned int __tftf_cpu_resume_ep(void);
 
-/* Assembler asserts to verify #defines of offsets match as seen by compiler */
-CASSERT(SUSPEND_CTX_SZ == sizeof(tftf_suspend_ctx_t),
-				assert_suspend_context_size_mismatch);
-CASSERT(SUSPEND_CTX_SP_OFFSET == __builtin_offsetof(tftf_suspend_ctx_t, stack_pointer),
-			assert_stack_pointer_location_mismatch_in_suspend_ctx);
-CASSERT(SUSPEND_CTX_SAVE_SYSTEM_CTX_OFFSET ==
-		__builtin_offsetof(tftf_suspend_ctx_t, save_system_context),
-			assert_save_sys_ctx_mismatch_in_suspend_ctx);
 #endif	/* __ASSEMBLY__ */
 
 #endif	/* __SUSPEND_PRIV_H__ */
