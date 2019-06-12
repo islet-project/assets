@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,7 +16,7 @@
 /*******************************************************************************
  * Cluster Topology definitions
  ******************************************************************************/
-#define FVP_MAX_CPUS_PER_CLUSTER	4
+#define FVP_MAX_CPUS_PER_CLUSTER	8
 /* Currently the highest cluster count on the FVP is 4 (Quad cluster) */
 #define FVP_CLUSTER_COUNT		4
 /* Currently multi-threaded CPUs only have a single thread */
