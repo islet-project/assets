@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -12,6 +12,7 @@
     <testcase name="PSCI_VERSION latency" function="smc_psci_version_latency" />
     <testcase name="Standard Service Call UID latency" function="smc_std_svc_call_uid_latency" />
     <testcase name="SMCCC_ARCH_WORKAROUND_1 latency" function="smc_arch_workaround_1" />
+    <testcase name="Test cluster power up latency" function="psci_trigger_peer_cluster_cache_coh" />
   </testsuite>
 
 </testsuites>
