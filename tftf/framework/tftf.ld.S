@@ -21,20 +21,25 @@ SECTIONS
     . = TFTF_BASE;
     __TFTF_BASE__ = .;
 
-    ro . : {
-        __RO_START__ = .;
+    .text . : {
+        __TEXT_START__ = .;
         *entrypoint.o(.text*)
         *(.text*)
-        *(.rodata*)
         *(.vectors)
-        __RO_END_UNALIGNED__ = .;
+        . = NEXT(PAGE_SIZE);
+        __TEXT_END__ = .;
+    } >RAM
+
+    .rodata . : {
+        __RODATA_START__ = .;
+        *(.rodata*)
         /*
          * Memory page(s) mapped to this section will be marked as
          * read-only, executable.  No RW data from the next section must
          * creep in.  Ensure the rest of the current memory page is unused.
          */
         . = NEXT(PAGE_SIZE);
-        __RO_END__ = .;
+        __RODATA_END__ = .;
     } >RAM
 
     .data : {

@@ -81,8 +81,8 @@
  * NS_BL1U RW data is relocated from NS-ROM to NS-RAM at runtime so we
  * need 2 sets of addresses.
  ******************************************************************************/
-#define NS_BL1U_RO_BASE		(0x08000000 + 0x03EB8000)
-#define NS_BL1U_RO_LIMIT	(NS_BL1U_RO_BASE + 0xC000)
+#define NS_BL1U_BASE		(0x08000000 + 0x03EB8000)
+#define NS_BL1U_RO_LIMIT	(NS_BL1U_BASE + 0xC000)
 
 /*******************************************************************************
  * Put NS_BL1U RW at the top of the Non-Trusted SRAM. NS_BL1U_RW_BASE is

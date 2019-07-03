@@ -12,22 +12,29 @@ OUTPUT_ARCH(PLATFORM_LINKER_ARCH)
 ENTRY(ns_bl1u_entrypoint)
 
 MEMORY {
-    ROM (rx): ORIGIN = NS_BL1U_RO_BASE, LENGTH = NS_BL1U_RO_LIMIT - NS_BL1U_RO_BASE
+    ROM (rx): ORIGIN = NS_BL1U_BASE, LENGTH = NS_BL1U_RO_LIMIT - NS_BL1U_BASE
     RAM (rwx): ORIGIN = NS_BL1U_RW_BASE, LENGTH = NS_BL1U_RW_LIMIT - NS_BL1U_RW_BASE
 }
 
 SECTIONS
 {
-    . = NS_BL1U_RO_BASE;
+    . = NS_BL1U_BASE;
     ASSERT(. == ALIGN(PAGE_SIZE),
-           "NS_BL1U_RO_BASE address is not aligned on a page boundary.")
+           "NS_BL1U_BASE address is not aligned on a page boundary.")
 
-    ro . : {
-        __RO_START__ = .;
+    .text . : {
+        __TEXT_START__ = .;
         *ns_bl1u_entrypoint.o(.text*)
         *(.text*)
+        . = ALIGN(PAGE_SIZE);
+        __TEXT_END__ = .;
+    } >ROM
+
+    .rodata . : {
+        __RODATA_START__ = .;
         *(.rodata*)
-        __RO_END__ = .;
+	. = ALIGN(PAGE_SIZE);
+        __RODATA_END__ = .;
     } >ROM
 
     /*

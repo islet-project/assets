@@ -21,20 +21,25 @@ SECTIONS
     ASSERT(. == ALIGN(PAGE_SIZE),
            "NS_BL2U_BASE address is not aligned on a page boundary.")
 
-    ro . : {
-        __RO_START__ = .;
+    .text . : {
+        __TEXT_START__ = .;
         *ns_bl2u_entrypoint.o(.text*)
         *(.text*)
-        *(.rodata*)
         *(.vectors)
-        __RO_END_UNALIGNED__ = .;
+        . = ALIGN(PAGE_SIZE);
+        __TEXT_END__ = .;
+    } >RAM
+
+    .rodata . : {
+        __RODATA_START__ = .;
+        *(.rodata*)
         /*
          * Memory page(s) mapped to this section will be marked as
-         * read-only, executable.  No RW data from the next section must
+         * read-only, non-executable.  No RW data from the next section must
          * creep in.  Ensure the rest of the current memory page is unused.
          */
         . = ALIGN(PAGE_SIZE);
-        __RO_END__ = .;
+        __RODATA_END__ = .;
     } >RAM
 
     .data . : {
