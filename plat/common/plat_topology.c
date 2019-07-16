@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -86,7 +86,8 @@ unsigned int tftf_get_total_aff_count(unsigned int aff_lvl)
 
 	node_idx = tftf_pwr_domain_start_idx[aff_lvl];
 
-	while (tftf_pd_nodes[node_idx].level == aff_lvl) {
+	while ((node_idx < PLATFORM_NUM_AFFS) &&
+	       (tftf_pd_nodes[node_idx].level == aff_lvl)) {
 		if (tftf_pd_nodes[node_idx].is_present)
 			count++;
 		node_idx++;
