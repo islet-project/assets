@@ -18,9 +18,7 @@
   </testsuite>
 
   <testsuite name="PSCI reset2" description="Check the reset2 feature">
-    <testcase name="PSCI reset2 - warm reset" function="reset2_warm" />
     <testcase name="PSCI reset2 - invalid reset options" function="reset2_test_invalid" />
-    <testcase name="PSCI reset2 - warm reset and mem_protect" function="reset2_mem_protect" />
   </testsuite>
 
 </testsuites>
