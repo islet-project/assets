@@ -47,10 +47,10 @@ static volatile unsigned int sgi_handled[PLATFORM_CORE_COUNT];
 static sgi_data_t sgi_data;
 static volatile int cpu_ref_count;
 
-extern unsigned long __RO_START__;
-#define TFTF_RO_START (unsigned long)(&__RO_START__)
-extern unsigned long __RO_END__;
-#define TFTF_RO_END (unsigned long)(&__RO_END__)
+extern unsigned long __TEXT_START__;
+#define TFTF_RO_START (unsigned long)(&__TEXT_START__)
+extern unsigned long __RODATA_END__;
+#define TFTF_RO_END (unsigned long)(&__RODATA_END__)
 
 static int suspend_wakeup_handler(void *data)
 {
