@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2019, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+
+  <testsuite name="PSCI reset2" description="Check the reset2 feature">
+    <testcase name="PSCI reset2 - warm reset" function="reset2_warm" />
+    <testcase name="PSCI reset2 - warm reset and mem_protect" function="reset2_mem_protect" />
+  </testsuite>
+
+</testsuites>
