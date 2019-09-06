@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -15,7 +15,8 @@
   </testsuite>
 
   <testsuite name="System off test" description="Validate SYSTEM_OFF PSCI call">
-     <testcase name="System Off" function="test_system_off" />
+    <testcase name="System Off" function="test_system_off" />
+    <testcase name="System Off Secondary CPU" function="test_system_off_cpu_other_than_lead" />
   </testsuite>
 
   <testsuite name="PSCI mem_protect" description="Check the mem_protect feature">
