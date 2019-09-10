@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
 
 <testsuites>
 
+
+  <testsuite name="System Reset Test" description="Validate SYSTEM_RESET PSCI call">
+    <testcase name="System Reset" function="test_system_reset" />
+  </testsuite>
 
   <testsuite name="PSCI STAT" description="Test PSCI STAT support System level">
     <testcase name="for stats after system reset" function="test_psci_stats_after_reset" />

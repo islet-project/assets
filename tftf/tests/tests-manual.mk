@@ -1,11 +1,12 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
 TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/standard_service/psci/api_tests/, \
+	        system_reset/test_system_reset.c 			\
 		mem_protect/test_mem_protect.c				\
 		psci_stat/test_psci_stat.c				\
 		reset2/reset2.c 					\
