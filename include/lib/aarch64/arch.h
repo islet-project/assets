@@ -148,6 +148,15 @@
 #define ID_AA64DFR0_PMS_LENGTH	U(4)
 #define ID_AA64DFR0_PMS_MASK	ULL(0xf)
 
+/* ID_AA64DFR0_EL1.DEBUG definitions */
+#define ID_AA64DFR0_DEBUG_SHIFT			U(0)
+#define ID_AA64DFR0_DEBUG_LENGTH		U(4)
+#define ID_AA64DFR0_DEBUG_MASK			ULL(0xf)
+#define ID_AA64DFR0_V8_DEBUG_ARCH_SUPPORTED	U(6)
+#define ID_AA64DFR0_V8_DEBUG_ARCH_VHE_SUPPORTED	U(7)
+#define ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED	U(8)
+#define ID_AA64DFR0_V8_4_DEBUG_ARCH_SUPPORTED	U(9)
+
 #define EL_IMPL_NONE		ULL(0)
 #define EL_IMPL_A64ONLY		ULL(1)
 #define EL_IMPL_A64_A32		ULL(2)
@@ -659,6 +668,31 @@
 #define PMCR_EL0_DP_BIT		(U(1) << 5)
 #define PMCR_EL0_X_BIT		(U(1) << 4)
 #define PMCR_EL0_D_BIT		(U(1) << 3)
+#define PMCR_EL0_E_BIT		(U(1) << 0)
+
+/* PMCNTENSET_EL0 definitions */
+#define PMCNTENSET_EL0_C_BIT		(U(1) << 31)
+#define PMCNTENSET_EL0_P_BIT(x)		(U(1) << x)
+
+/* PMEVTYPER<n>_EL0 definitions */
+#define PMEVTYPER_EL0_P_BIT		(U(1) << 31)
+#define PMEVTYPER_EL0_NSK_BIT		(U(1) << 29)
+#define PMEVTYPER_EL0_NSH_BIT		(U(1) << 27)
+#define PMEVTYPER_EL0_M_BIT		(U(1) << 26)
+#define PMEVTYPER_EL0_MT_BIT		(U(1) << 25)
+#define PMEVTYPER_EL0_SH_BIT		(U(1) << 24)
+#define PMEVTYPER_EL0_EVTCOUNT_BITS	U(0x000003FF)
+
+/* PMCCFILTR_EL0 definitions */
+#define PMCCFILTR_EL0_P_BIT		(U(1) << 31)
+#define PMCCFILTR_EL0_NSK_BIT		(U(1) << 29)
+#define PMCCFILTR_EL0_NSH_BIT		(U(1) << 27)
+#define PMCCFILTR_EL0_M_BIT		(U(1) << 26)
+#define PMCCFILTR_EL0_MT_BIT		(U(1) << 25)
+#define PMCCFILTR_EL0_SH_BIT		(U(1) << 24)
+
+/* PMU event counter ID definitions */
+#define PMU_EV_PC_WRITE_RETIRED		U(0x000C)
 
 /*******************************************************************************
  * Definitions for system register interface to SVE

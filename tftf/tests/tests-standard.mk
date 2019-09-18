@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -10,6 +10,7 @@ TESTS_MAKEFILE := $(addprefix tftf/tests/,	\
 	tests-cpu-extensions.mk			\
 	tests-el3-power-state.mk		\
 	tests-performance.mk			\
+	tests-pmu-leakage.mk			\
 	tests-psci.mk				\
 	tests-runtime-instrumentation.mk	\
 	tests-sdei.mk				\

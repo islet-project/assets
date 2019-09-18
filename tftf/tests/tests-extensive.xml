@@ -22,6 +22,7 @@
   <!ENTITY tests-cpu-extensions SYSTEM "tests-cpu-extensions.xml">
   <!ENTITY tests-performance SYSTEM "tests-performance.xml">
   <!ENTITY tests-smc SYSTEM "tests-smc.xml">
+  <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
 ]>
 
 <testsuites>
@@ -39,5 +40,6 @@
   &tests-cpu-extensions;
   &tests-performance;
   &tests-smc;
+  &tests-pmu-leakage;
 
 </testsuites>
