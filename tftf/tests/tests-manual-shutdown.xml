@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+
+  <testsuite name="PSCI STAT" description="Test PSCI STAT support System level">
+    <testcase name="for stats after system shutdown" function="test_psci_stats_after_shutdown" />
+  </testsuite>
+
+  <testsuite name="System off test" description="Validate SYSTEM_OFF PSCI call">
+     <testcase name="System Off" function="test_system_off" />
+  </testsuite>
+
+
+</testsuites>
