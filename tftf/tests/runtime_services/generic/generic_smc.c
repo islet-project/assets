@@ -69,33 +69,57 @@ static bool smc_check_eq(const smc_args *args, const smc_ret_values *expect)
  * Send an SMC with the specified arguments.
  * Check that the values it returns match the expected ones. The do_check[]
  * array indicates which ones should be checked and provides some flexibility
- * to ignore some of them.
+ * to ignore some of them. Also the allow_zeros[] array lets the values to be
+ * zeroes. allow_zeros[] is only evaluated if do_check[] is true for the given
+ * value.
+ * The two common solutions for preventing data leak from the TEE is to either
+ * preserve the register values or zero them out. Having an expected value and
+ * also allowing zeroes in this function comes handy in this previous case.
  * If the values do not match, write an error message in the test report.
  */
 static bool smc_check_match(const smc_args *args, const smc_ret_values *expect,
-			    const bool do_check[4])
+			    const bool do_check[4], const bool allow_zeros[4])
 {
 	smc_ret_values ret = tftf_smc(args);
 
-	if ((do_check[0] && (ret.ret0 != expect->ret0)) ||
-	    (do_check[1] && (ret.ret1 != expect->ret1)) ||
-	    (do_check[2] && (ret.ret2 != expect->ret2)) ||
-	    (do_check[3] && (ret.ret3 != expect->ret3))) {
+#define CHK_RET(ret, expect, allow_zeros)				\
+	((ret) != (expect) && !((allow_zeros) && (ret) == 0))
+
+	if ((do_check[0] && CHK_RET(ret.ret0, expect->ret0, allow_zeros[0])) ||
+	    (do_check[1] && CHK_RET(ret.ret1, expect->ret1, allow_zeros[1])) ||
+	    (do_check[2] && CHK_RET(ret.ret2, expect->ret2, allow_zeros[2])) ||
+	    (do_check[3] && CHK_RET(ret.ret3, expect->ret3, allow_zeros[3]))) {
+
+#undef CHK_RET
 		/*
 		 * Build an error message where unchecked SMC return values are
 		 * displayed as '*'.
 		 */
-		char expect_str[4][20];
-#define BUILD_STR(_buf, _do_check, _expect)			\
-		if (_do_check) {				\
-			snprintf(_buf, 20, "0x%lx", _expect);	\
-		} else {					\
-			strncpy(_buf, "*", 2);			\
-		}
-		BUILD_STR(expect_str[0], do_check[0], expect->ret0);
-		BUILD_STR(expect_str[1], do_check[1], expect->ret1);
-		BUILD_STR(expect_str[2], do_check[2], expect->ret2);
-		BUILD_STR(expect_str[3], do_check[3], expect->ret3);
+		char expect_str[4][28];
+#define BUILD_STR(_buf, _buf_size, _do_check, _allow_zero, _expect)	\
+		do {							\
+			if (_do_check) {				\
+				if (_allow_zero) {			\
+					snprintf(_buf, _buf_size,	\
+						"0x%lx or zero",	\
+						_expect);		\
+				} else {				\
+					snprintf(_buf, _buf_size,	\
+						"0x%lx", _expect);	\
+				}					\
+			} else {					\
+				_buf[0] = '*';				\
+				_buf[1] = '\0';				\
+			}						\
+		} while (0)
+		BUILD_STR(expect_str[0], sizeof(expect_str[0]),
+			do_check[0], allow_zeros[0], expect->ret0);
+		BUILD_STR(expect_str[1], sizeof(expect_str[1]),
+			do_check[1], allow_zeros[1], expect->ret1);
+		BUILD_STR(expect_str[2], sizeof(expect_str[2]),
+			do_check[2], allow_zeros[2], expect->ret2);
+		BUILD_STR(expect_str[3], sizeof(expect_str[3]),
+			do_check[3], allow_zeros[3], expect->ret3);
 #undef BUILD_STR
 		tftf_testcase_printf(
 			"Got {0x%lx,0x%lx,0x%lx,0x%lx}, expected {%s,%s,%s,%s}.\n",
@@ -167,11 +191,14 @@ test_result_t smc64_yielding(void)
 	if (is_trusted_os_present(NULL)) {
 		/*
 		 * The Trusted OS is free to return any error code in x0 but it
-		 * should at least preserve the values of x1-x3.
+		 * should at least preserve or fill by zeroes the values of
+		 * x1-x3.
 		 */
 		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666 };
 		const bool check[4] = { false, true, true, true };
-		FAIL_IF(!smc_check_match(&args3, &ret3, check));
+		const bool allow_zeros[4] = { false, true, true, true };
+
+		FAIL_IF(!smc_check_match(&args3, &ret3, check, allow_zeros));
 	} else {
 		const smc_ret_values ret3
 			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
@@ -278,11 +305,14 @@ test_result_t smc32_yielding(void)
 	if (is_trusted_os_present(NULL)) {
 		/*
 		 * The Trusted OS is free to return any error code in x0 but it
-		 * should at least preserve the values of x1-x3.
+		 * should at least preserve or fill by zeroes the values of
+		 * x1-x3.
 		 */
 		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666 };
 		const bool check[4] = { false, true, true, true };
-		FAIL_IF(!smc_check_match(&args3, &ret3, check));
+		const bool allow_zeros[4] = { false, true, true, true };
+
+		FAIL_IF(!smc_check_match(&args3, &ret3, check, allow_zeros));
 	} else {
 		const smc_ret_values ret3
 			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
