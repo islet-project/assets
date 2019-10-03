@@ -9,11 +9,21 @@
 
 /*
  * Number of system registers we need to save/restore across a CPU suspend:
- * MAIR, CPACR_EL1/HCR_EL2, TTBR0, TCR, VBAR and SCTLR.
+ * MAIR, CPACR_EL1/HCR_EL2, TTBR0, TCR, VBAR, SCTLR,
+ * APIAKeyLo_EL1 and APIAKeyHi_EL1 (if enabled).
  */
+#if ENABLE_PAUTH
+#define NR_CTX_REGS 8
+#else
 #define NR_CTX_REGS 6
+#endif
 
 /* Offsets of the fields in the context structure. Needed by asm code. */
+#define	SUSPEND_CTX_MAIR_OFFSET		0
+#define	SUSPEND_CTX_TTBR0_OFFSET	16
+#define	SUSPEND_CTX_VBAR_OFFSET		32
+#define	SUSPEND_CTX_APIAKEY_OFFSET	48
+
 #define SUSPEND_CTX_SP_OFFSET (8 * NR_CTX_REGS)
 #define SUSPEND_CTX_SAVE_SYSTEM_CTX_OFFSET (SUSPEND_CTX_SP_OFFSET + 8)
 
