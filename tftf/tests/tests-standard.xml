@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -20,6 +20,7 @@
   <!ENTITY tests-cpu-extensions SYSTEM "tests-cpu-extensions.xml">
   <!ENTITY tests-performance SYSTEM "tests-performance.xml">
   <!ENTITY tests-smc SYSTEM "tests-smc.xml">
+  <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
 ]>
 
 <testsuites>
@@ -35,5 +36,6 @@
   &tests-cpu-extensions;
   &tests-performance;
   &tests-smc;
+  &tests-pmu-leakage;
 
 </testsuites>

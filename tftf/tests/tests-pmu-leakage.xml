@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2018, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+  <testsuite name="PMU Leakage" description="Increment PMU counters in the secure world">
+     <testcase name="Leak PMU PC_WRITE_RETIRED counter values from EL3 on PSCI suspend SMC" function="smc_psci_suspend_pc_write_retired" />
+     <testcase name="Leak PMU CYCLE counter values from EL3 on PSCI suspend SMC" function="smc_psci_suspend_cycles" />
+     <testcase name="Leak PMU PC_WRITE_RETIRED counter values from S_EL1 on fast SMC add" function="fast_smc_add_pc_write_retired" />
+     <testcase name="Leak PMU CYCLE counter values from S_EL1 on fast SMC add" function="fast_smc_add_cycles" />
+  </testsuite>
+</testsuites>
