@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -54,6 +54,11 @@ func __tftf_suspend
 endfunc __tftf_suspend
 
 func __tftf_save_arch_context
+#if ENABLE_PAUTH
+	mrs     x1, APIAKeyLo_EL1
+	mrs     x2, APIAKeyHi_EL1
+	stp	x1, x2, [x0, #SUSPEND_CTX_APIAKEY_OFFSET]
+#endif
 	JUMP_EL1_OR_EL2 x1, 1f, 2f, dead
 1:	mrs	x1, mair_el1
 	mrs	x2, cpacr_el1
@@ -61,9 +66,9 @@ func __tftf_save_arch_context
 	mrs	x4, tcr_el1
 	mrs	x5, vbar_el1
 	mrs	x6, sctlr_el1
-	stp	x1, x2, [x0]
-	stp	x3, x4, [x0, #16]
-	stp	x5, x6, [x0, #32]
+	stp	x1, x2, [x0, #SUSPEND_CTX_MAIR_OFFSET]
+	stp	x3, x4, [x0, #SUSPEND_CTX_TTBR0_OFFSET]
+	stp	x5, x6, [x0, #SUSPEND_CTX_VBAR_OFFSET]
 	ret
 
 2:	mrs	x1, mair_el2
@@ -72,9 +77,9 @@ func __tftf_save_arch_context
 	mrs	x4, tcr_el2
 	mrs	x5, vbar_el2
 	mrs	x6, sctlr_el2
-	stp	x1, x2, [x0]
-	stp	x3, x4, [x0, #16]
-	stp	x5, x6, [x0, #32]
+	stp	x1, x2, [x0, #SUSPEND_CTX_MAIR_OFFSET]
+	stp	x3, x4, [x0, #SUSPEND_CTX_TTBR0_OFFSET]
+	stp	x5, x6, [x0, #SUSPEND_CTX_VBAR_OFFSET]
 	ret
 endfunc __tftf_save_arch_context
 
@@ -86,9 +91,9 @@ func __tftf_cpu_resume_ep
 	JUMP_EL1_OR_EL2 x1, 1f, 2f, dead
 1:	/* Invalidate local tlb entries before turning on MMU */
 	tlbi	vmalle1
-	ldp	x1, x2, [x0]
-	ldp	x3, x4, [x0, #16]
-	ldp	x5, x6, [x0, #32]
+	ldp	x1, x2, [x0, #SUSPEND_CTX_MAIR_OFFSET]
+	ldp	x3, x4, [x0, #SUSPEND_CTX_TTBR0_OFFSET]
+	ldp	x5, x6, [x0, #SUSPEND_CTX_VBAR_OFFSET]
 	msr	mair_el1, x1
 	msr	cpacr_el1, x2
 	msr	ttbr0_el1, x3
@@ -101,13 +106,13 @@ func __tftf_cpu_resume_ep
 	msr	sctlr_el1, x6
 	/* Ensure the MMU enable takes effect immediately */
 	isb
-	b restore_callee_regs
+	b	restore_callee_regs
 
 	/* Invalidate local tlb entries before turning on MMU */
 2:	tlbi	alle2
-	ldp	x1, x2, [x0]
-	ldp	x3, x4, [x0, #16]
-	ldp	x5, x6, [x0, #32]
+	ldp	x1, x2, [x0, #SUSPEND_CTX_MAIR_OFFSET]
+	ldp	x3, x4, [x0, #SUSPEND_CTX_TTBR0_OFFSET]
+	ldp	x5, x6, [x0, #SUSPEND_CTX_VBAR_OFFSET]
 	msr	mair_el2, x1
 	msr	hcr_el2, x2
 	msr	ttbr0_el2, x3
@@ -122,6 +127,11 @@ func __tftf_cpu_resume_ep
 	isb
 
 restore_callee_regs:
+#if ENABLE_PAUTH
+	ldp	x1, x2, [x0, #SUSPEND_CTX_APIAKEY_OFFSET]
+	msr     APIAKeyLo_EL1, x1
+	msr     APIAKeyHi_EL1, x2
+#endif
 	ldr	x2, [x0, #SUSPEND_CTX_SP_OFFSET]
 	mov	sp, x2
 	ldr	w1, [x0, #SUSPEND_CTX_SAVE_SYSTEM_CTX_OFFSET]

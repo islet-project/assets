@@ -361,20 +361,6 @@ each CPU is specified by the platform defined constant ``PLATFORM_STACK_SIZE``.
 Common implementation of this function is provided in
 ``plat/common/aarch64/platform_mp_stack.S``.
 
-Function : plat_init_apiakey
-````````````````````````````
-
-::
-
-    Argument : void
-    Return   : uint64_t *
-
-This function returns a pointer to an array with the values used to set the
-``APIAKey{Hi,Lo}_EL1`` registers.
-
-This function is only needed if ARMv8.3 pointer authentication is used by
-building with ``ENABLE_PAUTH=1``.
-
 Function : tftf_platform_end()
 ``````````````````````````````
 

@@ -401,7 +401,7 @@ TFTF build options
 -  ``ENABLE_PAUTH``: Boolean option to enable ARMv8.3 Pointer Authentication
    (``ARMv8.3-PAuth``) support in the Trusted Firmware-A Test Framework itself.
    If enabled, it is needed to use a compiler that supports the option
-   ``-msign-return-address``. It defaults to 0.
+   ``-mbranch-protection`` (GCC 9 and later). It defaults to 0.
 
 -  ``NEW_TEST_SESSION``: Choose whether a new test session should be started
    every time or whether the framework should determine whether a previous

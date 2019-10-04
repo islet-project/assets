@@ -51,7 +51,7 @@ static inline bool is_armv8_3_pauth_apa_api_present(void)
 static inline bool is_armv8_3_pauth_gpa_gpi_present(void)
 {
 	uint64_t mask = (ID_AA64ISAR1_GPI_MASK << ID_AA64ISAR1_GPI_SHIFT) |
-		(ID_AA64ISAR1_GPA_MASK << ID_AA64ISAR1_GPA_SHIFT);
+			(ID_AA64ISAR1_GPA_MASK << ID_AA64ISAR1_GPA_SHIFT);
 
 	return (read_id_aa64isar1_el1() & mask) != 0U;
 }

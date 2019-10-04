@@ -12,6 +12,7 @@
 #include <irq.h>
 #include <mmio.h>
 #include <nvm.h>
+#include <pauth.h>
 #include <plat_topology.h>
 #include <platform.h>
 #include <platform_def.h>
@@ -528,19 +529,12 @@ void __dead2 tftf_cold_boot_main(void)
 #if ENABLE_PAUTH
 	assert(is_armv8_3_pauth_apa_api_present());
 
-	uint64_t *apiakey = plat_init_apiakey();
-
-	write_apiakeylo_el1(apiakey[0]);
-	write_apiakeyhi_el1(apiakey[1]);
-
-	if (IS_IN_EL2()) {
-		write_sctlr_el2(read_sctlr_el2() | SCTLR_EnIA_BIT);
-	} else {
-		assert(IS_IN_EL1());
-		write_sctlr_el1(read_sctlr_el1() | SCTLR_EnIA_BIT);
-	}
-
-	isb();
+	/*
+	 * Program APIAKey_EL1 key and enable ARMv8.3-PAuth here as this
+	 * function doesn't return, and RETAA instuction won't be executed,
+	 * what would cause translation fault otherwise.
+	 */
+	pauth_init_enable();
 #endif /* ENABLE_PAUTH */
 
 	tftf_platform_setup();
