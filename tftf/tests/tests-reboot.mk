@@ -6,6 +6,7 @@
 
 TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/standard_service/psci/api_tests/, \
+		system_reset/test_system_reset.c			\
 		mem_protect/test_mem_protect.c				\
 		psci_stat/test_psci_stat.c				\
 		reset2/reset2.c 					\
