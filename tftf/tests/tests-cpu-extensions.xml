@@ -16,6 +16,8 @@
     <testcase name="Use Pointer Authentication Instructions" function="test_pauth_instructions" />
     <testcase name="Check for Pointer Authentication key leakage from EL3" function="test_pauth_leakage" />
     <testcase name="Check for Pointer Authentication key leakage from TSP" function="test_pauth_leakage_tsp" />
+    <testcase name="Use MTE Instructions" function="test_mte_instructions" />
+    <testcase name="Check for MTE register leakage" function="test_mte_leakage" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">

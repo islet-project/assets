@@ -222,6 +222,13 @@
 
 #define SSBS_UNAVAILABLE	ULL(0)	/* No architectural SSBS support */
 
+#define ID_AA64PFR1_EL1_MTE_SHIFT	U(8)
+#define ID_AA64PFR1_EL1_MTE_MASK	ULL(0xf)
+
+#define MTE_UNIMPLEMENTED	ULL(0)
+#define MTE_IMPLEMENTED_EL0	ULL(1)	/* MTE is only implemented at EL0 */
+#define MTE_IMPLEMENTED_ELX	ULL(2)	/* MTE is implemented at all ELs */
+
 /* ID_PFR1_EL1 definitions */
 #define ID_PFR1_VIRTEXT_SHIFT	U(12)
 #define ID_PFR1_VIRTEXT_MASK	U(0xf)
@@ -278,6 +285,7 @@
 
 /* SCR definitions */
 #define SCR_RES1_BITS		((U(1) << 4) | (U(1) << 5))
+#define SCR_ATA_BIT		(U(1) << 26)
 #define SCR_FIEN_BIT		(U(1) << 21)
 #define SCR_API_BIT		(U(1) << 17)
 #define SCR_APK_BIT		(U(1) << 16)
@@ -902,5 +910,13 @@
  * Armv8.5 - new MSR encoding to directly access PSTATE.SSBS field
  ******************************************************************************/
 #define SSBS			S3_3_C4_C2_6
+
+/*******************************************************************************
+ * Armv8.5 - Memory Tagging Extension Registers
+ ******************************************************************************/
+#define TFSRE0_EL1		S3_0_C5_C6_1
+#define TFSR_EL1		S3_0_C5_C6_0
+#define RGSR_EL1		S3_0_C1_C0_5
+#define GCR_EL1			S3_0_C1_C0_6
 
 #endif /* ARCH_H */
