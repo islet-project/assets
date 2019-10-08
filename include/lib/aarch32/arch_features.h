@@ -29,4 +29,10 @@ static inline bool is_armv8_2_ttcnp_present(void)
 		ID_MMFR4_CNP_MASK) != 0U;
 }
 
+static inline uint32_t arch_get_debug_version(void)
+{
+	return ((read_dbgdidr() & DBGDIDR_VERSION_BITS) >>
+		DBGDIDR_VERSION_SHIFT);
+}
+
 #endif /* ARCH_FEATURES_H */

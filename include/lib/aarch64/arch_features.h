@@ -68,4 +68,10 @@ static inline unsigned int get_armv8_5_mte_support(void)
 		ID_AA64PFR1_EL1_MTE_MASK);
 }
 
+static inline uint32_t arch_get_debug_version(void)
+{
+	return ((read_id_aa64dfr0_el1() & ID_AA64DFR0_DEBUG_BITS) >>
+		ID_AA64DFR0_DEBUG_SHIFT);
+}
+
 #endif /* ARCH_FEATURES_H */
