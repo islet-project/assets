@@ -109,6 +109,15 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (0)
 
+#define SKIP_TEST_IF_MTE_SUPPORT_LESS_THAN(n)					\
+	do {									\
+		if (get_armv8_5_mte_support() < (n)) {				\
+			tftf_testcase_printf(					\
+				"Memory Tagging Extension not supported\n");	\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (0)
+
 #define SKIP_TEST_IF_MM_VERSION_LESS_THAN(major, minor)				\
 	do {									\
 		smc_args version_smc = { MM_VERSION_AARCH32 };			\
