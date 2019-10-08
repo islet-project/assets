@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -72,6 +72,13 @@ FRAMEWORK_SOURCES	+=						\
 
 
 FRAMEWORK_SOURCES	+=	${COMPILER_RT_SRCS}
+
+ifeq (${ARCH},aarch64)
+# ARMv8.3 Pointer Authentication support files
+FRAMEWORK_SOURCES	+=						\
+	lib/extensions/pauth/aarch64/pauth.c				\
+	lib/extensions/pauth/aarch64/pauth_helpers.S
+endif
 
 TFTF_LINKERFILE		:=	tftf/framework/tftf.ld.S
 

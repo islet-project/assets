@@ -23,10 +23,4 @@ CACTUS_SOURCES	+=	plat/arm/fvp/${ARCH}/plat_helpers.S
 # Firmware update is implemented on FVP.
 FIRMWARE_UPDATE := 1
 
-ifeq (${ARCH},aarch64)
-# ARMv8.3 Pointer Authentication support files
-PLAT_SOURCES	+=	lib/extensions/pauth/aarch64/pauth.c		\
-			lib/extensions/pauth/aarch64/pauth_helpers.S
-endif
-
 include plat/arm/common/arm_common.mk
