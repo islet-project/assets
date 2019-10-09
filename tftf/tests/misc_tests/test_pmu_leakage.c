@@ -249,6 +249,21 @@ static void measure_event(u_register_t (*read_cntr_func)(void),
 }
 
 /*
+ * Checks that when requesting an SMC call after getting a baseline PMU event
+ * count the number of PMU events counted is either not greater than the
+ * baseline or it has increased by no more than ALLOWED_DEVIATION%. The first
+ * comparison is required because of underflow on unsigned types.
+ * This is used to determine if PMU timing information has been leaked from the
+ * secure world.
+ */
+static bool results_within_allowed_margin(unsigned long long baseline_cnt,
+					  unsigned long long smc_cnt)
+{
+	return (smc_cnt <= baseline_cnt) ||
+	       (smc_cnt - baseline_cnt <= baseline_cnt / ALLOWED_DEVIATION);
+}
+
+/*
  * Measure the number of retired writes to the PC in the PSCI_SUSPEND SMC.
  * This test only succeeds if no useful information about the PMU counters has
  * been leaked.
@@ -268,7 +283,7 @@ test_result_t smc_psci_suspend_pc_write_retired(void)
 	tftf_testcase_printf("Profiling PSCI_SUSPEND_PC:\n");
 	measure_event(read_pmevcntr0_el0, profile_cpu_suspend, &cpu_suspend);
 
-	if (cpu_suspend.avg - baseline.avg > baseline.avg / ALLOWED_DEVIATION)
+	if (!results_within_allowed_margin(baseline.avg, cpu_suspend.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
 }
@@ -293,7 +308,7 @@ test_result_t smc_psci_suspend_cycles(void)
 	tftf_testcase_printf("Profiling PSCI_SUSPEND_PC:\n");
 	measure_event(read_pmccntr_el0, profile_cpu_suspend, &cpu_suspend);
 
-	if (cpu_suspend.avg - baseline.avg > baseline.avg / ALLOWED_DEVIATION)
+	if (!results_within_allowed_margin(baseline.avg, cpu_suspend.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
 }
@@ -320,7 +335,7 @@ test_result_t fast_smc_add_pc_write_retired(void)
 	tftf_testcase_printf("Profiling Fast Add SMC:\n");
 	measure_event(read_pmevcntr0_el0, profile_fast_smc_add, &fast_smc_add);
 
-	if (fast_smc_add.avg - baseline.avg > baseline.avg / ALLOWED_DEVIATION)
+	if (!results_within_allowed_margin(baseline.avg, fast_smc_add.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
 }
@@ -347,7 +362,7 @@ test_result_t fast_smc_add_cycles(void)
 	tftf_testcase_printf("Profiling Fast Add SMC:\n");
 	measure_event(read_pmccntr_el0, profile_fast_smc_add, &fast_smc_add);
 
-	if (fast_smc_add.avg - baseline.avg > baseline.avg / ALLOWED_DEVIATION)
+	if (!results_within_allowed_margin(baseline.avg, fast_smc_add.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
 }
