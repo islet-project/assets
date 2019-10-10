@@ -10,6 +10,114 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+Trusted Firmware-A Tests - version 2.2
+======================================
+
+New features
+------------
+
+-  A wide range of tests are made available in this release to help validate
+   the functionality of TF-A.
+
+-  Various improvements to test framework and test suite.
+
+TFTF
+````
+
+-  Enhancement to xlat table library synchronous to TF-A code base.
+
+-  Enabled strict alignment checks (SCTLR.A & SCTLR.SA) in all images.
+
+-  Support for a simple console driver. Currently it serves as a placeholder
+   with empty functions.
+
+-  A topology helper API is added in the framework to get parent node info.
+
+-  Support for FVP with clusters having upto 8 CPUs.
+
+-  Enhanced linker script to separate code and RO data sections.
+
+-  Relax SMC calls tests. The SMCCC specification recommends Trusted OSes to
+   mitigate the risk of leaking information by either preserving the register
+   state over the call, or returning a constant value, such as zero, in each
+   register. Tests only allowed the former behaviour and have been extended to
+   allow the latter as well.
+
+-  Pointer Authentication enabled on warm boot path with individual APIAKey
+   generation for each CPU.
+
+-  New tests:
+
+   -  Basic unit tests for xlat table library v2.
+
+   -  Tests for validating SVE support in TF-A.
+
+   -  Stress tests for dynamic xlat table library.
+
+   -  PSCI test to measure latencies when turning ON a cluster.
+
+   -  Series of AArch64 tests that stress the secure world to leak sensitive
+      counter values.
+
+   -  Test to validate PSCI SYSTEM_RESET call.
+
+   -  Basic tests to validate Memory Tagging Extensions are being enabled and
+      ensuring no undesired leak of sensitive data occurs.
+
+-  Enhanced tests:
+
+   -  Improved tests for Pointer Authentication support. Checks are performed
+      to see if pointer authentication keys are accessible as well as validate
+      if secure keys are being leaked after a PSCI version call or TSP call.
+
+   -  Improved AMU test to remove unexecuted code iterating over Group1 counters
+      and fix the conditional check of AMU Group0 counter value.
+
+Secure partitions
+`````````````````
+
+A new Secure Partition Quark is introduced in this release.
+
+Quark
+'''''''''
+
+The Quark test secure partition provided is a simple service which returns a
+magic number. Further, a simple test is added to test if Quark is functional.
+
+Issues resolved since last release
+----------------------------------
+
+-  Bug fix in libc memchr implementation.
+
+-  Bug fix in calculation of number of CPUs.
+
+-  Streamlined SMC WORKAROUND_2 test and fixed a false fail on Cortex-A76 CPU.
+
+-  Pointer Authentication support is now available for secondary CPUs and the
+   corresponding tests are stable in this release.
+
+Known issues and limitations
+----------------------------
+
+The sections below list the known issues and limitations of each test image
+provided in this repository. Unless and otherwise stated, issues and limitations
+stated in previous release continue to exist in this release.
+
+TFTF
+````
+
+Tests
+'''''
+
+-  Multicore spurious interrupt test is observed to have unstable behavior. As a
+   temporary solution, this test is skipped for AArch64 Juno configurations.
+
+-  Generating SVE instructions requires `O3` compilation optimization. Since the
+   current build structure does not allow compilation flag modification for
+   specific files, the function which tests support for SVE has been pre-compiled
+   and added as an assembly file.
+
+
 
 Trusted Firmware-A Tests - version 2.1
 ======================================
