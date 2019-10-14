@@ -203,8 +203,10 @@ test_result_t test_timer_target_power_down_cpu(void)
 
 	SKIP_TEST_IF_LESS_THAN_N_CPUS(2);
 
-	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; i++)
+	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; i++) {
 		tftf_init_event(&cpu_ready[i]);
+		requested_irq_received[i] = 0;
+	}
 
 	if (!timer_step_value)
 		timer_step_value =  tftf_get_timer_step_value();
@@ -346,8 +348,10 @@ test_result_t test_timer_target_multiple_same_interval(void)
 
 	SKIP_TEST_IF_LESS_THAN_N_CPUS(2);
 
-	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; i++)
+	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; i++) {
 		tftf_init_event(&cpu_ready[i]);
+		requested_irq_received[i] = 0;
+	}
 
 	multiple_timer_count = 0;
 	all_cores_inside_test = 0;
