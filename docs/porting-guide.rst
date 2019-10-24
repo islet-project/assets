@@ -1,12 +1,5 @@
-Trusted Firmware-A Tests - Porting Guide
-========================================
-
-.. section-numbering::
-    :suffix: .
-
-.. contents::
-
---------------
+Porting Guide
+=============
 
 Introduction
 ------------

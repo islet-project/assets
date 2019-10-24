@@ -1,10 +1,5 @@
-How to implement tests
-======================
-
-.. section-numbering::
-    :suffix: .
-
-.. contents::
+Implementing Tests
+==================
 
 This document aims at providing some pointers to help implementing new tests in
 the TFTF image.
@@ -114,7 +109,7 @@ See the template test manifest for reference: `tftf/tests/tests-template.xml`_.
 
 --------------
 
-*Copyright (c) 2018, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
 
 .. _SMC Calling Convention: SMCCC_
 .. _SMCCC: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf

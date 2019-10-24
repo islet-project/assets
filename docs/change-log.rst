@@ -1,8 +1,5 @@
-
-.. section-numbering::
-    :suffix: .
-
-.. contents::
+Change Log & Release Notes
+==========================
 
 Please note that the Trusted Firmware-A Tests version follows the Trusted
 Firmware-A version for simplicity. At any point in time, TF-A Tests version
@@ -10,11 +7,11 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
-Trusted Firmware-A Tests - version 2.2
-======================================
+Version 2.2
+-----------
 
 New features
-------------
+^^^^^^^^^^^^
 
 -  A wide range of tests are made available in this release to help validate
    the functionality of TF-A.
@@ -22,7 +19,7 @@ New features
 -  Various improvements to test framework and test suite.
 
 TFTF
-````
+~~~~
 
 -  Enhancement to xlat table library synchronous to TF-A code base.
 
@@ -74,18 +71,18 @@ TFTF
       and fix the conditional check of AMU Group0 counter value.
 
 Secure partitions
-`````````````````
+~~~~~~~~~~~~~~~~~
 
 A new Secure Partition Quark is introduced in this release.
 
 Quark
-'''''''''
+~~~~~
 
 The Quark test secure partition provided is a simple service which returns a
 magic number. Further, a simple test is added to test if Quark is functional.
 
 Issues resolved since last release
-----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Bug fix in libc memchr implementation.
 
@@ -97,18 +94,14 @@ Issues resolved since last release
    corresponding tests are stable in this release.
 
 Known issues and limitations
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The sections below list the known issues and limitations of each test image
 provided in this repository. Unless and otherwise stated, issues and limitations
 stated in previous release continue to exist in this release.
 
 TFTF
-````
-
-Tests
-'''''
-
+~~~~
 -  Multicore spurious interrupt test is observed to have unstable behavior. As a
    temporary solution, this test is skipped for AArch64 Juno configurations.
 
@@ -119,11 +112,11 @@ Tests
 
 
 
-Trusted Firmware-A Tests - version 2.1
-======================================
+Version 2.1
+-----------
 
 New features
-------------
+^^^^^^^^^^^^
 
 -  Add initial support for testing Secure Partition Client Interface (SPCI)
    and Secure Partition Run-Time (SPRT) standards.
@@ -139,7 +132,7 @@ New features
 -  Various stability improvements, code refactoring and clean ups.
 
 TFTF
-````
+~~~~
 
 -  Reorganize tests build infrastructure to allow the selection of a subset of
    tests.
@@ -173,7 +166,7 @@ TFTF
    - `Arm Neoverse Reference Design N1 Edge (RD-N1-Edge)`_ FVP (experimental).
 
 Secure partitions
-`````````````````
+~~~~~~~~~~~~~~~~~
 
 We now have 3 Secure Partitions to test the SPM implementation in TF-A.
 
@@ -211,7 +204,7 @@ multiple partitions support in TF-A. It is derived from Cactus and essentially
 provides the same services but with different identifiers at the moment.
 
 EL3 payload
-```````````
+~~~~~~~~~~~
 
 -  New platform ports:
 
@@ -220,7 +213,7 @@ EL3 payload
    - `Arm Neoverse Reference Design N1 Edge (RD-N1-Edge)`_ FVP (experimental).
 
 Issues resolved since last release
-----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  The GICv2 spurious IRQ test is no longer Juno-specific. It is now only
    GICv2-specific.
@@ -233,19 +226,19 @@ Issues resolved since last release
 -  Cactus-MM now successfully links with GNU toolchain 7.3.1.
 
 Known issues and limitations
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The sections below lists the known issues and limitations of each test image
 provided in this repository.
 
 TFTF
-````
+~~~~
 
 The TFTF test image might be conceptually sub-divided further in 2 parts: the
 tests themselves, and the test framework they are based upon.
 
 Test framework
-''''''''''''''
+~~~~~~~~~~~~~~
 
 -  Some stability issues.
 
@@ -285,7 +278,7 @@ Test framework
    It is only enabled on the primary CPU on the cold boot.
 
 Tests
-'''''
+~~~~~
 
 -  Some tests are implemented for AArch64 only and are skipped on AArch32.
 
@@ -324,7 +317,7 @@ Tests
    The root cause is unknown.
 
 FWU images
-``````````
+~~~~~~~~~~
 
 -  The FWU tests do not work on the revC of the Base AEM FVP. They only work on
    the revB.
@@ -333,7 +326,7 @@ FWU images
    is not a clean design and may cause confusion.
 
 Test secure partitions (Cactus, Cactus-MM, Ivy)
-```````````````````````````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  This is experimental code. It's likely to change a lot as the secure
    partition software architecture evolves.
@@ -341,7 +334,7 @@ Test secure partitions (Cactus, Cactus-MM, Ivy)
 -  Supported on AArch64 FVP platform only.
 
 All test images
-```````````````
+~~~~~~~~~~~~~~~
 
 -  TF-A Tests are derived from a fork of TF-A so:
 
@@ -376,16 +369,16 @@ All test images
    all such direct reads of the ``CNTPCT_EL0`` register and replace them with a
    call to ``syscounter_read()`` where appropriate.
 
-Trusted Firmware-A Tests - version 2.0
-======================================
+Version 2.0
+-----------
 
 New features
-------------
+^^^^^^^^^^^^
 
 This is the first public release of the Trusted Firmware-A Tests source code.
 
 TFTF
-````
+~~~~
 
 -  Provides a baremetal test framework to exercise TF-A features through its
    ``SMC`` interface.
@@ -433,7 +426,7 @@ TFTF
    test results in non-volatile memory (e.g. flash).
 
 FWU images
-``````````
+~~~~~~~~~~
 
 -  Provides example code to exercise the Firmware Update feature of TF-A.
 
@@ -442,12 +435,12 @@ FWU images
    to the TF-A BL1 image.
 
 EL3 test payload
-````````````````
+~~~~~~~~~~~~~~~~
 
 -  Tests the ability of TF-A to load an EL3 payload.
 
 Cactus test secure partition
-````````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  Tests that TF-A has correctly setup the secure partition environment: it
    should be allowed to perform cache maintenance operations, access floating
@@ -459,19 +452,19 @@ Cactus test secure partition
 -  Tests the ability of a secure partition to handle StandaloneMM requests.
 
 Known issues and limitations
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The sections below lists the known issues and limitations of each test image
 provided in this repository.
 
 TFTF
-````
+~~~~
 
 The TFTF test image might be conceptually sub-divided further in 2 parts: the
 tests themselves, and the test framework they are based upon.
 
 Test framework
-''''''''''''''
+~~~~~~~~~~~~~~
 
 -  Some stability issues.
 
@@ -507,7 +500,7 @@ Test framework
    not complete. As a result, there are still some TFTF files scattered around.
 
 Tests
-'''''
+~~~~~
 
 -  Some tests are implemented for AArch64 only and are skipped on AArch32.
 
@@ -555,7 +548,7 @@ Tests
    The root cause is unknown.
 
 FWU images
-``````````
+~~~~~~~~~~
 
 -  The FWU tests do not work on the revC of the Base AEM FVP. They only work on
    the revB.
@@ -564,7 +557,7 @@ FWU images
    is not a clean design and may cause confusion.
 
 Cactus test secure partition
-````````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  Cactus is experimental code. It's likely to change a lot as the secure
    partition software architecture evolves.
@@ -574,7 +567,7 @@ Cactus test secure partition
 -  Cactus is supported on AArch64 FVP platform only.
 
 All test images
-```````````````
+~~~~~~~~~~~~~~~
 
 -  TF-A Tests are derived from a fork of TF-A so:
 
