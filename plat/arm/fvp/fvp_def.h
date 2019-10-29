@@ -19,8 +19,6 @@
 #define FVP_MAX_CPUS_PER_CLUSTER	8
 /* Currently the highest cluster count on the FVP is 4 (Quad cluster) */
 #define FVP_CLUSTER_COUNT		4
-/* Currently multi-threaded CPUs only have a single thread */
-#define FVP_MAX_PE_PER_CPU		1
 
 /*******************************************************************************
  * FVP memory map related constants
