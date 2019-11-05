@@ -277,7 +277,13 @@ DEFINE_COPROCR_WRITE_FUNC_64(icc_sgi1r, ICC_SGI1R_EL1_64)
 
 DEFINE_COPROCR_RW_FUNCS(hdcr, HDCR)
 DEFINE_COPROCR_RW_FUNCS(cnthp_ctl, CNTHP_CTL)
-DEFINE_COPROCR_READ_FUNC(pmcr, PMCR)
+DEFINE_COPROCR_RW_FUNCS(pmcr, PMCR)
+DEFINE_COPROCR_RW_FUNCS(pmcntenset, PMCNTENSET)
+DEFINE_COPROCR_RW_FUNCS(pmccfiltr, PMCCFILTR)
+DEFINE_COPROCR_READ_FUNC(pmccntr, PMCCNTR)
+DEFINE_COPROCR_RW_FUNCS(pmevtyper0, PMEVTYPER0)
+DEFINE_COPROCR_READ_FUNC(pmevcntr0, PMEVCNTR0)
+DEFINE_COPROCR_READ_FUNC(dbgdidr, DBGDIDR)
 
 /*
  * Address translation
@@ -376,6 +382,22 @@ static inline unsigned int get_current_el(void)
 #define read_cntpct_el0()	read64_cntpct()
 
 #define read_ctr_el0()		read_ctr()
+
+#define read_pmcr_el0()			read_pmcr()
+#define write_pmcr_el0(_v)		write_pmcr(_v)
+
+#define read_pmcntenset_el0()		read_pmcntenset()
+#define write_pmcntenset_el0(_v)	write_pmcntenset(_v)
+
+#define read_pmccfiltr_el0()		read_pmccfiltr()
+#define write_pmccfiltr_el0(_v)		write_pmccfiltr(_v)
+
+#define read_pmevtyper0_el0()		read_pmevtyper0()
+#define write_pmevtyper0_el0(_v)	write_pmevtyper0(_v)
+
+#define read_pmccntr_el0		read_pmccntr
+
+#define read_pmevcntr0_el0		read_pmevcntr0
 
 #define write_icc_sgi0r_el1(_v)	write64_icc_sgi0r_el1(_v)
 

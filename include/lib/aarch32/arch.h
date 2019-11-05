@@ -405,11 +405,45 @@
 #define MAX_CACHE_LINE_SIZE	U(0x800) /* 2KB */
 
 /* PMCR definitions */
-#define PMCR_N_SHIFT		U(11)
-#define PMCR_N_MASK		U(0x1f)
-#define PMCR_N_BITS		(PMCR_N_MASK << PMCR_N_SHIFT)
-#define PMCR_LC_BIT		(U(1) << 6)
-#define PMCR_DP_BIT		(U(1) << 5)
+#define PMCR_EL0_N_SHIFT	U(11)
+#define PMCR_EL0_N_MASK		U(0x1f)
+#define PMCR_EL0_N_BITS		(PMCR_EL0_N_MASK << PMCR_EL0_N_SHIFT)
+#define PMCR_EL0_LC_BIT		(U(1) << 6)
+#define PMCR_EL0_DP_BIT		(U(1) << 5)
+#define PMCR_EL0_E_BIT		(U(1) << 0)
+
+/* PMCNTENSET definitions */
+#define PMCNTENSET_EL0_C_BIT		(U(1) << 31)
+#define PMCNTENSET_EL0_P_BIT(x)		(U(1) << x)
+
+/* PMEVTYPER<n> definitions */
+#define PMEVTYPER_EL0_P_BIT		(U(1) << 31)
+#define PMEVTYPER_EL0_NSK_BIT		(U(1) << 29)
+#define PMEVTYPER_EL0_NSH_BIT		(U(1) << 27)
+#define PMEVTYPER_EL0_M_BIT		(U(1) << 26)
+#define PMEVTYPER_EL0_MT_BIT		(U(1) << 25)
+#define PMEVTYPER_EL0_SH_BIT		(U(1) << 24)
+#define PMEVTYPER_EL0_EVTCOUNT_BITS	U(0x000003FF)
+
+/* PMCCFILTR definitions */
+#define PMCCFILTR_EL0_P_BIT		(U(1) << 31)
+#define PMCCFILTR_EL0_NSK_BIT		(U(1) << 29)
+#define PMCCFILTR_EL0_NSH_BIT		(U(1) << 27)
+#define PMCCFILTR_EL0_M_BIT		(U(1) << 26)
+#define PMCCFILTR_EL0_MT_BIT		(U(1) << 25)
+#define PMCCFILTR_EL0_SH_BIT		(U(1) << 24)
+
+/* PMU event counter ID definitions */
+#define PMU_EV_PC_WRITE_RETIRED		U(0x000C)
+
+/* DBGDIDR definitions */
+#define DBGDIDR_VERSION_SHIFT	U(16)
+#define DBGDIDR_VERSION_MASK	U(0xf)
+#define DBGDIDR_VERSION_BITS	(DBGDIDR_VERSION_MASK << DBGDIDR_VERSION_SHIFT)
+#define DBGDIDR_V8_DEBUG_ARCH_SUPPORTED		U(6)
+#define DBGDIDR_V8_DEBUG_ARCH_VHE_SUPPORTED	U(7)
+#define DBGDIDR_V8_2_DEBUG_ARCH_SUPPORTED	U(8)
+#define DBGDIDR_V8_4_DEBUG_ARCH_SUPPORTED	U(9)
 
 /*******************************************************************************
  * Definitions of register offsets, fields and macros for CPU system
@@ -522,6 +556,12 @@
 /* Debug register defines. The format is: coproc, opt1, CRn, CRm, opt2 */
 #define HDCR		p15, 4, c1, c1, 1
 #define PMCR		p15, 0, c9, c12, 0
+#define PMCNTENSET	p15, 0, c9, c12, 1
+#define PMCCFILTR	p15, 0, c14, c15, 7
+#define PMCCNTR		p15, 0, c9, c13, 0
+#define PMEVTYPER0	p15, 0, c14, c12, 0
+#define PMEVCNTR0	p15, 0, c14, c8, 0
+#define DBGDIDR		p14, 0, c0, c0, 0
 #define CNTHP_TVAL	p15, 4, c14, c2, 0
 #define CNTHP_CTL	p15, 4, c14, c2, 1
 

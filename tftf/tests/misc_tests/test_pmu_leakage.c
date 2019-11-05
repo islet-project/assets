@@ -37,6 +37,11 @@
  *	-v8.5 implemented:
  *	    |-- Prohibit general event counters: as in v8.2 Debug.
  *	    |-- Prohibit cycle counter: MDCR_EL3.SCCD == 1
+ *
+ * In Aarch32 state the PMU registers have identical names (apart from the
+ * '_EL0' suffix) and bit fields. As far as the PMU is concerned, the Aarch32
+ * counterpart of MDCR_EL3 is the SDCR register, which has both the SCCD and
+ * SPME bits.
  */
 
 #include <drivers/arm/arm_gic.h>
@@ -47,7 +52,6 @@
 #include <string.h>
 #include <test_helpers.h>
 
-#ifdef AARCH64
 #define ITERATIONS_CNT 1000
 
 /*
@@ -70,6 +74,12 @@ struct pmu_event_info {
 	unsigned long long max;
 	unsigned long long avg;
 };
+
+#ifdef AARCH64
+#define V8_2_DEBUG_ARCH_SUPPORTED ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED
+#else
+#define V8_2_DEBUG_ARCH_SUPPORTED DBGDIDR_V8_2_DEBUG_ARCH_SUPPORTED
+#endif
 
 static inline void configure_pmu_cntr0(const uint32_t event)
 {
@@ -270,10 +280,13 @@ static bool results_within_allowed_margin(unsigned long long baseline_cnt,
  */
 test_result_t smc_psci_suspend_pc_write_retired(void)
 {
+#if ARM_ARCH_MAJOR < 8
+	INFO("%s skipped on ARMv7 and earlier\n", __func__);
+	return TEST_RESULT_SKIPPED;
+#else
 	struct pmu_event_info baseline, cpu_suspend;
 
-	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(
-		ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED);
+	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(V8_2_DEBUG_ARCH_SUPPORTED);
 
 	configure_pmu_cntr0(PMU_EV_PC_WRITE_RETIRED);
 	pmu_enable_counting();
@@ -286,6 +299,7 @@ test_result_t smc_psci_suspend_pc_write_retired(void)
 	if (!results_within_allowed_margin(baseline.avg, cpu_suspend.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
+#endif
 }
 
 /*
@@ -295,10 +309,13 @@ test_result_t smc_psci_suspend_pc_write_retired(void)
  */
 test_result_t smc_psci_suspend_cycles(void)
 {
+#if ARM_ARCH_MAJOR < 8
+	INFO("%s skipped on ARMv7 and earlier\n", __func__);
+	return TEST_RESULT_SKIPPED;
+#else
 	struct pmu_event_info baseline, cpu_suspend;
 
-	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(
-		ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED);
+	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(V8_2_DEBUG_ARCH_SUPPORTED);
 
 	configure_pmu_cycle_cntr();
 	pmu_enable_counting();
@@ -311,6 +328,7 @@ test_result_t smc_psci_suspend_cycles(void)
 	if (!results_within_allowed_margin(baseline.avg, cpu_suspend.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
+#endif
 }
 
 /*
@@ -320,10 +338,13 @@ test_result_t smc_psci_suspend_cycles(void)
  */
 test_result_t fast_smc_add_pc_write_retired(void)
 {
+#if ARM_ARCH_MAJOR < 8
+	INFO("%s skipped on ARMv7 and earlier\n", __func__);
+	return TEST_RESULT_SKIPPED;
+#else
 	struct pmu_event_info baseline, fast_smc_add;
 
-	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(
-		ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED);
+	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(V8_2_DEBUG_ARCH_SUPPORTED);
 
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
@@ -338,6 +359,7 @@ test_result_t fast_smc_add_pc_write_retired(void)
 	if (!results_within_allowed_margin(baseline.avg, fast_smc_add.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
+#endif
 }
 
 /*
@@ -347,10 +369,13 @@ test_result_t fast_smc_add_pc_write_retired(void)
  */
 test_result_t fast_smc_add_cycles(void)
 {
+#if ARM_ARCH_MAJOR < 8
+	INFO("%s skipped on ARMv7 and earlier\n", __func__);
+	return TEST_RESULT_SKIPPED;
+#else
 	struct pmu_event_info baseline, fast_smc_add;
 
-	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(
-		ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED);
+	SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(V8_2_DEBUG_ARCH_SUPPORTED);
 
 	SKIP_TEST_IF_TSP_NOT_PRESENT();
 
@@ -365,29 +390,5 @@ test_result_t fast_smc_add_cycles(void)
 	if (!results_within_allowed_margin(baseline.avg, fast_smc_add.avg))
 		return TEST_RESULT_FAIL;
 	return TEST_RESULT_SUCCESS;
-}
-#else
-test_result_t smc_psci_suspend_pc_write_retired(void)
-{
-	INFO("%s skipped on AArch32\n", __func__);
-	return TEST_RESULT_SKIPPED;
-}
-
-test_result_t smc_psci_suspend_cycles(void)
-{
-	INFO("%s skipped on AArch32\n", __func__);
-	return TEST_RESULT_SKIPPED;
-}
-
-test_result_t fast_smc_add_pc_write_retired(void)
-{
-	INFO("%s skipped on AArch32\n", __func__);
-	return TEST_RESULT_SKIPPED;
-}
-
-test_result_t fast_smc_add_cycles(void)
-{
-	INFO("%s skipped on AArch32\n", __func__);
-	return TEST_RESULT_SKIPPED;
-}
 #endif
+}

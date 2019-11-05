@@ -166,13 +166,12 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 
 #define SKIP_TEST_IF_ARCH_DEBUG_VERSION_LESS_THAN(version)			\
 	do {									\
-		uint32_t debug_ver = read_id_aa64dfr0_el1() &			\
-			(ID_AA64DFR0_DEBUG_MASK << ID_AA64DFR0_DEBUG_SHIFT);	\
+		uint32_t debug_ver = arch_get_debug_version();			\
 										\
-		if ((debug_ver >> ID_AA64DFR0_DEBUG_SHIFT) < version) {		\
+		if (debug_ver < version) {					\
 			tftf_testcase_printf("Debug version returned %d\n"	\
 					     "The required version is %d\n",	\
-					     debug_ver >> ID_AA64DFR0_DEBUG_SHIFT,\
+					     debug_ver,				\
 					     version);				\
 			return TEST_RESULT_SKIPPED;				\
 		}								\
