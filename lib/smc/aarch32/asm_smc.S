@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, Arm Limited. All rights reserved.
+ * Copyright (c) 2016-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -26,10 +26,10 @@ func asm_tftf_smc32
 	smc	#0
 
 	/*
-	 * The returned values from the SMC are in r0-r3, put them in the
+	 * The returned values from the SMC are in r0-r7, put them in the
 	 * 'smc_ret_values' return structure.
 	 */
-	stm	r8, {r0 - r3}
+	stm	r8, {r0 - r7}
 
 	pop	{r4 - r9}
 	bx	lr

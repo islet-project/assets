@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017, Arm Limited. All rights reserved.
+ * Copyright (c) 2013-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -34,17 +34,19 @@ func asm_tftf_smc64
 	 */
 	str	x8, [sp, #-16]!
 
-	/* SMC arguments are already stored in x0-x6 */
+	/* SMC arguments are already stored in x0-x7 */
 	smc	#0
 
 	/* Pop x8 into a caller-saved register */
 	ldr	x9, [sp], #16
 
 	/*
-	 * Return values are stored in x0-x3, put them in the 'smc_ret_values'
+	 * Return values are stored in x0-x7, put them in the 'smc_ret_values'
 	 * return structure
 	 */
 	stp	x0, x1, [x9, #0]
 	stp	x2, x3, [x9, #16]
+	stp	x4, x5, [x9, #32]
+	stp	x6, x7, [x9, #48]
 	ret
 endfunc asm_tftf_smc64
