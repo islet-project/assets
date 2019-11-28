@@ -11,6 +11,7 @@ Trusted Firmware-A Tests Documentation
    implementing-tests
    design
    change-log
+   license
 
 --------------
 

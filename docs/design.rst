@@ -1,10 +1,5 @@
-Trusted Firmware-A Tests - Design
-=================================
-
-.. section-numbering::
-    :suffix: .
-
-.. contents::
+Design
+======
 
 This document provides some details about the internals of the TF-A Tests
 design. It is incomplete at the moment.
