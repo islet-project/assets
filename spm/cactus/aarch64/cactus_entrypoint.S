@@ -21,6 +21,12 @@ func cactus_entrypoint
 	adr	x0, stacks_end
 	mov	sp, x0
 
+	/* Enable I-Cache */
+	mrs	x0, sctlr_el1
+	orr	x0, x0, #SCTLR_I_BIT
+	msr	sctlr_el1, x0
+	isb
+
 	/* And jump to the C entrypoint. */
 	b	cactus_main
 

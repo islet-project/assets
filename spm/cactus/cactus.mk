@@ -1,14 +1,16 @@
 #
-# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
 include lib/sprt/sprt_client.mk
+include lib/xlat_tables_v2/xlat_tables.mk
 
 CACTUS_DTB	:= $(BUILD_PLAT)/cactus.dtb
 
 CACTUS_INCLUDES :=					\
+	-Itftf/framework/include			\
 	-Iinclude					\
 	-Iinclude/common				\
 	-Iinclude/common/${ARCH}			\
@@ -44,9 +46,13 @@ CACTUS_SOURCES	+=					\
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/cache_helpers.S			\
 			lib/${ARCH}/misc_helpers.S			\
+			lib/smc/${ARCH}/asm_smc.S			\
+			lib/smc/${ARCH}/smc.c				\
+			lib/smc/${ARCH}/hvc.c				\
 			lib/locks/${ARCH}/spinlock.S			\
 			lib/utils/mp_printf.c				\
-			${SPRT_LIB_SOURCES}
+			${SPRT_LIB_SOURCES}				\
+			${XLAT_TABLES_LIB_SRCS}
 
 CACTUS_LINKERFILE	:=	spm/cactus/cactus.ld.S
 
