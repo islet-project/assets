@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -214,7 +214,11 @@ test_result_t test_affinity_info_level1_off(void)
 	 * CPU on the platform. The PSCI implementation should ignore the
 	 * affinity 0 field.
 	 */
+#if FVP_MAX_PE_PER_CPU > 1
+	target_mpid = make_mpid(cluster_id, 0, 0xE1);
+#else
 	target_mpid = make_mpid(cluster_id, 0xE1);
+#endif
 	aff_info = tftf_psci_affinity_info(target_mpid, MPIDR_AFFLVL1);
 	return get_test_result(expected_values, aff_info);
 }

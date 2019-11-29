@@ -17,46 +17,40 @@
 #define PSYSR_OFF		0x10
 #define PSYSR_INVALID		0xffffffff
 
+#if FVP_MAX_PE_PER_CPU == 2
+/* SMT: 2 threads per CPU */
+#define	CPU_DEF(cluster, cpu)	\
+	{ cluster, cpu, 0 },	\
+	{ cluster, cpu, 1 }
+
+#else
+#define	CPU_DEF(cluster, cpu)	\
+	{ cluster, cpu }
+#endif
+
+/* 8 CPUs per cluster */
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0),	\
+	CPU_DEF(cluster, 1),	\
+	CPU_DEF(cluster, 2),	\
+	CPU_DEF(cluster, 3),	\
+	CPU_DEF(cluster, 4),	\
+	CPU_DEF(cluster, 5),	\
+	CPU_DEF(cluster, 6),	\
+	CPU_DEF(cluster, 7)
+
 static const struct {
 	unsigned int cluster_id;
 	unsigned int cpu_id;
+#if FVP_MAX_PE_PER_CPU > 1
+	unsigned int thread_id;
+#endif
 } fvp_base_aemv8a_aemv8a_cores[] = {
-	/* Cluster 0 */
-	{ 0, 0 },
-	{ 0, 1 },
-	{ 0, 2 },
-	{ 0, 3 },
-	{ 0, 4 },
-	{ 0, 5 },
-	{ 0, 6 },
-	{ 0, 7 },
-	/* Cluster 1 */
-	{ 1, 0 },
-	{ 1, 1 },
-	{ 1, 2 },
-	{ 1, 3 },
-	{ 1, 4 },
-	{ 1, 5 },
-	{ 1, 6 },
-	{ 1, 7 },
-	/* Cluster 2 */
-	{ 2, 0 },
-	{ 2, 1 },
-	{ 2, 2 },
-	{ 2, 3 },
-	{ 2, 4 },
-	{ 2, 5 },
-	{ 2, 6 },
-	{ 2, 7 },
-	/* Cluster 3 */
-	{ 3, 0 },
-	{ 3, 1 },
-	{ 3, 2 },
-	{ 3, 3 },
-	{ 3, 4 },
-	{ 3, 5 },
-	{ 3, 6 },
-	{ 3, 7 },
+	/* Clusters 0...3 */
+	CLUSTER_DEF(0),
+	CLUSTER_DEF(1),
+	CLUSTER_DEF(2),
+	CLUSTER_DEF(3)
 };
 
 /*
@@ -105,7 +99,12 @@ uint64_t tftf_plat_get_mpidr(unsigned int core_pos)
 
 	mpid = make_mpid(
 			fvp_base_aemv8a_aemv8a_cores[core_pos].cluster_id,
+#if FVP_MAX_PE_PER_CPU > 1
+			fvp_base_aemv8a_aemv8a_cores[core_pos].cpu_id,
+			fvp_base_aemv8a_aemv8a_cores[core_pos].thread_id);
+#else
 			fvp_base_aemv8a_aemv8a_cores[core_pos].cpu_id);
+#endif
 
 	if (fvp_pwrc_read_psysr(mpid) != PSYSR_INVALID)
 		return mpid;

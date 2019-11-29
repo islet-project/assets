@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -53,6 +53,7 @@ CACTUS_LINKERFILE	:=	spm/cactus/cactus.ld.S
 CACTUS_DEFINES	:=
 
 $(eval $(call add_define,CACTUS_DEFINES,DEBUG))
+$(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,CACTUS_DEFINES,ENABLE_ASSERTIONS))
 $(eval $(call add_define,CACTUS_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,CACTUS_DEFINES,PLAT_${PLAT}))

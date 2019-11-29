@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -195,7 +195,12 @@ void tftf_notify_reboot(void);
 unsigned int tftf_is_rebooted(void);
 
 static inline unsigned int make_mpid(unsigned int clusterid,
+#if FVP_MAX_PE_PER_CPU > 1
+				     unsigned int coreid,
+				     unsigned int threadid)
+#else
 				     unsigned int coreid)
+#endif
 {
 	/*
 	 * If MT bit is set then need to shift the affinities and also set the
@@ -203,11 +208,14 @@ static inline unsigned int make_mpid(unsigned int clusterid,
 	 */
 	if ((read_mpidr_el1() & MPIDR_MT_MASK) != 0)
 		return MPIDR_MT_MASK |
-			((clusterid & MPIDR_AFFLVL_MASK) << MPIDR_AFF2_SHIFT) |
-			((coreid & MPIDR_AFFLVL_MASK) << MPIDR_AFF1_SHIFT);
+#if FVP_MAX_PE_PER_CPU > 1
+			((threadid & MPIDR_AFFLVL_MASK) << MPIDR_AFF0_SHIFT) |
+#endif
+			((coreid & MPIDR_AFFLVL_MASK) << MPIDR_AFF1_SHIFT)   |
+			((clusterid & MPIDR_AFFLVL_MASK) << MPIDR_AFF2_SHIFT);
 	else
-		return ((clusterid & MPIDR_AFFLVL_MASK) << MPIDR_AFF1_SHIFT) |
-			((coreid & MPIDR_AFFLVL_MASK) << MPIDR_AFF0_SHIFT);
+		return ((coreid & MPIDR_AFFLVL_MASK) << MPIDR_AFF0_SHIFT) |
+		       ((clusterid & MPIDR_AFFLVL_MASK) << MPIDR_AFF1_SHIFT);
 
 }
 

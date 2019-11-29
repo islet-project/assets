@@ -4,6 +4,19 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+# Default number of threads per CPU on FVP
+FVP_MAX_PE_PER_CPU	:= 1
+
+# Check the PE per core count
+ifneq ($(FVP_MAX_PE_PER_CPU),$(filter $(FVP_MAX_PE_PER_CPU),1 2))
+$(error "Incorrect FVP_MAX_PE_PER_CPU specified for FVP port")
+endif
+
+# Pass FVP_MAX_PE_PER_CPU to the build system
+$(eval $(call add_define,TFTF_DEFINES,FVP_MAX_PE_PER_CPU))
+$(eval $(call add_define,NS_BL1U_DEFINES,FVP_MAX_PE_PER_CPU))
+$(eval $(call add_define,NS_BL2U_DEFINES,FVP_MAX_PE_PER_CPU))
+
 PLAT_INCLUDES	:=	-Iplat/arm/fvp/include/
 
 PLAT_SOURCES	:=	drivers/arm/gic/arm_gic_v2v3.c			\

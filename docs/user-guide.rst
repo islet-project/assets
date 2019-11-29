@@ -425,6 +425,12 @@ FWU test images build options
    platform makefile is free to override this value if Firmware Update is
    supported on this platform.
 
+Arm FVP platform specific build options
+'''''''''''''''''''''''''''''''''''''''
+
+-  ``FVP_MAX_PE_PER_CPU``: Sets the maximum number of PEs implemented on any CPU
+   in the system. It can take either 1 or 2 values. This option defaults to 1.
+
 Checking source code style
 --------------------------
 

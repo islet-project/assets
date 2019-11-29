@@ -1,8 +1,24 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
+
+# Default number of threads per CPU on FVP
+FVP_MAX_PE_PER_CPU	:= 1
+
+# Check the PE per core count
+ifneq ($(FVP_MAX_PE_PER_CPU),$(filter $(FVP_MAX_PE_PER_CPU),1 2))
+$(error "Incorrect FVP_MAX_PE_PER_CPU specified for FVP port")
+endif
+
+# Convenience function for adding build definitions
+# $(eval $(call add_define,BAR_DEFINES,FOO)) will have:
+# -DFOO if $(FOO) is empty; -DFOO=$(FOO) otherwise
+# inside the BAR_DEFINES variable.
+define add_define
+$(1) += -D$(2)$(if $(value $(2)),=$(value $(2)),)
+endef
 
 CC		:=	${CROSS_COMPILE}gcc
 AS		:=	${CROSS_COMPILE}as
@@ -26,6 +42,9 @@ BIN		:=	${PLAT_BUILD_DIR}/${PROGRAM}.bin
 DUMP		:=	${PLAT_BUILD_DIR}/${PROGRAM}.dump
 
 include plat/${PLAT}/platform.mk
+
+# Pass FVP_MAX_PE_PER_CPU to the build system
+$(eval $(call add_define,ASFLAGS,FVP_MAX_PE_PER_CPU))
 
 all: ${BIN}
 
