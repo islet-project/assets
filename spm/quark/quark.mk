@@ -61,4 +61,4 @@ $(QUARK_DTB) : spm/quark/quark.dts
 	@echo "Built $@ successfully"
 	@echo
 
-quark: $(QUARK_DTB) $(AUTOGEN_DIR)/tests_list.h
+quark: $(QUARK_DTB)

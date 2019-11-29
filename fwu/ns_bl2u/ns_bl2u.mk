@@ -64,5 +64,3 @@ ifeq (${ARCH},aarch32)
 else
         $(eval $(call add_define,NS_BL2U_DEFINES,AARCH64))
 endif
-
-ns_bl2u: ${AUTOGEN_DIR}/tests_list.h

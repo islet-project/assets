@@ -68,4 +68,4 @@ $(IVY_DTB) : spm/ivy/ivy.dts
 	@echo "Built $@ successfully"
 	@echo
 
-ivy: $(IVY_DTB) $(AUTOGEN_DIR)/tests_list.h
+ivy: $(IVY_DTB)
