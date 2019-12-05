@@ -123,9 +123,9 @@ void waitms(uint64_t ms);
 void waitus(uint64_t us);
 
 /*
- * SMC calls take a function identifier and up to 6 arguments.
- * Additionally, for SMC calls that originate from EL2, an optional seventh
- * argument can be added. Given that TFTF runs in EL2, we need to be able to
+ * SMC calls take a function identifier and up to 7 arguments.
+ * Additionally, few SMC calls that originate from EL2 leverage the seventh
+ * argument explicitly. Given that TFTF runs in EL2, we need to be able to
  * specify it.
  */
 typedef struct {
@@ -141,12 +141,16 @@ typedef struct {
 	u_register_t	arg7;
 } smc_args;
 
-/* SMC calls can return up to 4 register values */
+/* SMC calls can return up to 8 register values */
 typedef struct {
 	u_register_t	ret0;
 	u_register_t	ret1;
 	u_register_t	ret2;
 	u_register_t	ret3;
+	u_register_t	ret4;
+	u_register_t	ret5;
+	u_register_t	ret6;
+	u_register_t	ret7;
 } smc_ret_values;
 
 /*

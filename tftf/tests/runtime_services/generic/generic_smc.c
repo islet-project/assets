@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -58,9 +58,12 @@ static bool smc_check_eq(const smc_args *args, const smc_ret_values *expect)
 		return true;
 	} else {
 		tftf_testcase_printf(
-			"Got {0x%lx,0x%lx,0x%lx,0x%lx}, expected {0x%lx,0x%lx,0x%lx,0x%lx}.\n",
+			"Got {0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx}, \
+			expected {0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx}.\n",
 			ret.ret0, ret.ret1, ret.ret2, ret.ret3,
-			expect->ret0, expect->ret1, expect->ret2, expect->ret3);
+			ret.ret4, ret.ret5, ret.ret6, ret.ret7,
+			expect->ret0, expect->ret1, expect->ret2, expect->ret3,
+			expect->ret4, expect->ret5, expect->ret6, expect->ret7);
 		return false;
 	}
 }
@@ -78,7 +81,7 @@ static bool smc_check_eq(const smc_args *args, const smc_ret_values *expect)
  * If the values do not match, write an error message in the test report.
  */
 static bool smc_check_match(const smc_args *args, const smc_ret_values *expect,
-			    const bool do_check[4], const bool allow_zeros[4])
+			    const bool do_check[8], const bool allow_zeros[8])
 {
 	smc_ret_values ret = tftf_smc(args);
 
@@ -88,14 +91,18 @@ static bool smc_check_match(const smc_args *args, const smc_ret_values *expect,
 	if ((do_check[0] && CHK_RET(ret.ret0, expect->ret0, allow_zeros[0])) ||
 	    (do_check[1] && CHK_RET(ret.ret1, expect->ret1, allow_zeros[1])) ||
 	    (do_check[2] && CHK_RET(ret.ret2, expect->ret2, allow_zeros[2])) ||
-	    (do_check[3] && CHK_RET(ret.ret3, expect->ret3, allow_zeros[3]))) {
+	    (do_check[3] && CHK_RET(ret.ret3, expect->ret3, allow_zeros[3])) ||
+	    (do_check[4] && CHK_RET(ret.ret4, expect->ret4, allow_zeros[4])) ||
+	    (do_check[5] && CHK_RET(ret.ret5, expect->ret5, allow_zeros[5])) ||
+	    (do_check[6] && CHK_RET(ret.ret6, expect->ret6, allow_zeros[6])) ||
+	    (do_check[7] && CHK_RET(ret.ret7, expect->ret7, allow_zeros[7]))) {
 
 #undef CHK_RET
 		/*
 		 * Build an error message where unchecked SMC return values are
 		 * displayed as '*'.
 		 */
-		char expect_str[4][28];
+		char expect_str[8][28];
 #define BUILD_STR(_buf, _buf_size, _do_check, _allow_zero, _expect)	\
 		do {							\
 			if (_do_check) {				\
@@ -120,11 +127,22 @@ static bool smc_check_match(const smc_args *args, const smc_ret_values *expect,
 			do_check[2], allow_zeros[2], expect->ret2);
 		BUILD_STR(expect_str[3], sizeof(expect_str[3]),
 			do_check[3], allow_zeros[3], expect->ret3);
+		BUILD_STR(expect_str[4], sizeof(expect_str[4]),
+			do_check[4], allow_zeros[4], expect->ret4);
+		BUILD_STR(expect_str[5], sizeof(expect_str[5]),
+			do_check[5], allow_zeros[5], expect->ret5);
+		BUILD_STR(expect_str[6], sizeof(expect_str[6]),
+			do_check[6], allow_zeros[6], expect->ret6);
+		BUILD_STR(expect_str[7], sizeof(expect_str[7]),
+			do_check[7], allow_zeros[7], expect->ret7);
 #undef BUILD_STR
 		tftf_testcase_printf(
-			"Got {0x%lx,0x%lx,0x%lx,0x%lx}, expected {%s,%s,%s,%s}.\n",
+		"Got {0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx,0x%lx}, \
+			expected {%s,%s,%s,%s,%s,%s,%s,%s}.\n",
 			ret.ret0, ret.ret1, ret.ret2, ret.ret3,
-			expect_str[0], expect_str[1], expect_str[2], expect_str[3]);
+			ret.ret4, ret.ret5, ret.ret6, ret.ret7,
+			expect_str[0], expect_str[1], expect_str[2], expect_str[3],
+			expect_str[4], expect_str[5], expect_str[6], expect_str[7]);
 
 		return false;
 	} else {
@@ -142,16 +160,20 @@ test_result_t smc32_fast(void)
 	/* Invalid Fast SMC32. */
 	const smc_args args2 = {
 		make_smc_fid(SMC_TYPE_FAST, SMC_32, OEN_ARM_START, INVALID_FN),
-		0x11111111, 0x22222222, 0x33333333 };
+		0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	const smc_ret_values ret2
-		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333 };
+		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	FAIL_IF(!smc_check_eq(&args2, &ret2));
 
 	/* Valid Fast SMC32 using 1 return value. */
 	const smc_args args3
-		= { SMC_PSCI_VERSION, 0x44444444, 0x55555555, 0x66666666 };
+		= { SMC_PSCI_VERSION, 0x44444444, 0x55555555, 0x66666666,
+		0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
 	const smc_ret_values ret3
-		= { psci_version, 0x44444444, 0x55555555, 0x66666666 };
+		= { psci_version, 0x44444444, 0x55555555, 0x66666666,
+		0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
 	FAIL_IF(!smc_check_eq(&args3, &ret3));
 
 	return TEST_RESULT_SUCCESS;
@@ -167,9 +189,11 @@ test_result_t smc64_yielding(void)
 	/* Invalid function number, SMC64 Yielding. */
 	const smc_args args2 = {
 		make_smc_fid(SMC_TYPE_STD, SMC_64, OEN_ARM_START, INVALID_FN),
-		0x11111111, 0x22222222, 0x33333333 };
+		0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	const smc_ret_values ret2
-		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333 };
+		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	FAIL_IF(!smc_check_eq(&args2, &ret2));
 
 	/*
@@ -186,7 +210,8 @@ test_result_t smc64_yielding(void)
 	 */
 	const smc_args args3 = {
 		make_smc_fid(SMC_TYPE_STD, SMC_64, OEN_TOS_START, INVALID_FN),
-		0x44444444, 0x55555555, 0x66666666 };
+		0x44444444, 0x55555555, 0x66666666, 0x77777777, 0x88888888,
+		0x99999999, 0xaaaaaaaa };
 
 	if (is_trusted_os_present(NULL)) {
 		/*
@@ -194,14 +219,17 @@ test_result_t smc64_yielding(void)
 		 * should at least preserve or fill by zeroes the values of
 		 * x1-x3.
 		 */
-		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666 };
-		const bool check[4] = { false, true, true, true };
-		const bool allow_zeros[4] = { false, true, true, true };
+		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666,
+			0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
+		const bool check[8] = { false, true, true, true, true, true, true, true };
+		const bool allow_zeros[8] = { false, true, true, true,
+						true, true, true, true };
 
 		FAIL_IF(!smc_check_match(&args3, &ret3, check, allow_zeros));
 	} else {
 		const smc_ret_values ret3
-			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
+			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666,
+			0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
 		FAIL_IF(!smc_check_eq(&args3, &ret3));
 	}
 
@@ -218,9 +246,11 @@ static test_result_t smc64_fast_caller32(void)
 	/* Invalid SMC function number, Fast SMC64. */
 	const smc_args args2 = {
 		make_smc_fid(SMC_TYPE_FAST, SMC_64, OEN_ARM_START, INVALID_FN),
-		0x11111111, 0x22222222, 0x33333333 };
+		0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	const smc_ret_values ret2
-		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333 };
+		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333,
+		0x44444444, 0x55555555, 0x66666666, 0x77777777 };
 	FAIL_IF(!smc_check_eq(&args2, &ret2));
 
 	/*
@@ -228,9 +258,11 @@ static test_result_t smc64_fast_caller32(void)
 	 * forbidden to use the SMC64 calling convention.
 	 */
 	const smc_args args3 = { SMC_PSCI_AFFINITY_INFO_AARCH64,
-		0x44444444, 0x55555555, 0x66666666 };
+		0x44444444, 0x55555555, 0x66666666, 0x77777777, 0x88888888,
+		0x99999999, 0xaaaaaaaa };
 	const smc_ret_values ret3
-		= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
+		= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666,
+		0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
 	FAIL_IF(!smc_check_eq(&args3, &ret3));
 
 	return TEST_RESULT_SUCCESS;
@@ -245,16 +277,20 @@ static test_result_t smc64_fast_caller64(void)
 	/* Invalid function number, Fast SMC64. */
 	const smc_args args2 = {
 		make_smc_fid(SMC_TYPE_FAST, SMC_64, OEN_ARM_START, INVALID_FN),
-		0x11111111, 0x22222222, 0x33333333 };
+		0x11111111, 0x22222222, 0x33333333, 0x44444444, 0x55555555,
+		0x66666666, 0x77777777 };
 	const smc_ret_values ret2
-		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333 };
+		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	FAIL_IF(!smc_check_eq(&args2, &ret2));
 
 	/* Valid Fast SMC64 using 1 return value. */
 	const smc_args args3 = { SMC_PSCI_AFFINITY_INFO_AARCH64,
-				 0x44444444, 0x55555555, 0x66666666 };
+			0x44444444, 0x55555555, 0x66666666, 0x77777777,
+			0x88888888, 0x99999999, 0xaaaaaaaa };
 	const smc_ret_values ret3
-		= { PSCI_E_INVALID_PARAMS, 0x44444444, 0x55555555, 0x66666666 };
+		= { PSCI_E_INVALID_PARAMS, 0x44444444, 0x55555555, 0x66666666,
+		0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
 	FAIL_IF(!smc_check_eq(&args3, &ret3));
 
 	return TEST_RESULT_SUCCESS;
@@ -281,9 +317,11 @@ test_result_t smc32_yielding(void)
 	/* Invalid function number, SMC32 Yielding. */
 	const smc_args args2 = {
 		make_smc_fid(SMC_TYPE_STD, SMC_32, OEN_ARM_START, INVALID_FN),
-		0x11111111, 0x22222222, 0x33333333 };
+		0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	const smc_ret_values ret2
-		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333 };
+		= { SMC_UNKNOWN, 0x11111111, 0x22222222, 0x33333333, 0x44444444,
+		0x55555555, 0x66666666, 0x77777777 };
 	FAIL_IF(!smc_check_eq(&args2, &ret2));
 
 	/*
@@ -300,7 +338,8 @@ test_result_t smc32_yielding(void)
 	 */
 	const smc_args args3 = {
 		make_smc_fid(SMC_TYPE_STD, SMC_32, OEN_TOS_START, INVALID_FN),
-		0x44444444, 0x55555555, 0x66666666 };
+		0x44444444, 0x55555555, 0x66666666, 0x77777777, 0x88888888,
+		0x99999999, 0xaaaaaaaa };
 
 	if (is_trusted_os_present(NULL)) {
 		/*
@@ -308,14 +347,17 @@ test_result_t smc32_yielding(void)
 		 * should at least preserve or fill by zeroes the values of
 		 * x1-x3.
 		 */
-		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666 };
-		const bool check[4] = { false, true, true, true };
-		const bool allow_zeros[4] = { false, true, true, true };
+		const smc_ret_values ret3 = { 0, 0x44444444, 0x55555555, 0x66666666,
+			0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
+		const bool check[8] = { false, true, true, true, true, true, true, true };
+		const bool allow_zeros[8] = { false, true, true, true,
+						true, true, true, true };
 
 		FAIL_IF(!smc_check_match(&args3, &ret3, check, allow_zeros));
 	} else {
 		const smc_ret_values ret3
-			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666 };
+			= { SMC_UNKNOWN, 0x44444444, 0x55555555, 0x66666666,
+			0x77777777, 0x88888888, 0x99999999, 0xaaaaaaaa };
 		FAIL_IF(!smc_check_eq(&args3, &ret3));
 	}
 
