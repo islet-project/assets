@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -11,24 +11,8 @@
   <testsuite name="Secure Partition Manager"
              description="Test SPM APIs">
 
-     <testcase name="SPCI handle open and close"
-               function="test_spci_handle_open" />
-
-     <testcase name="SPCI non-blocking requests"
-               function="test_spci_request" />
-
-     <testcase name="SPCI blocking requests multicore"
-               function="test_spci_blocking_request_multicore" />
-     <testcase name="SPCI non-blocking requests multicore"
-               function="test_spci_request_multicore" />
-
-     <testcase name="SPCI blocking request while busy"
-               function="test_spci_blocking_while_busy" />
-
-     <testcase name="SPCI blocking request fail to preempt"
-               function="test_spci_blocking_interrupt_by_ns" />
-     <testcase name="SPCI non-blocking request succeed to preempt"
-               function="test_spci_non_blocking_interrupt_by_ns" />
+     <testcase name="SPCI direct messaging API"
+               function="test_spci_direct_messaging" />
 
   </testsuite>
 
