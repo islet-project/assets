@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,6 +8,7 @@
 #include <debug.h>
 #include <mmio.h>
 #include <string.h>
+#include <cdefs.h>
 #include "io_vexpress_nor_internal.h"
 #include "norflash.h"
 
@@ -405,7 +406,7 @@ lock_block:
 }
 
 /* In case of partial write we need to save the block into a temporary buffer */
-static char block_buffer[NOR_FLASH_BLOCK_SIZE];
+static char block_buffer[NOR_FLASH_BLOCK_SIZE] __aligned(sizeof(uint32_t));
 
 int flash_partial_write(file_state_t *fp, uint32_t offset,
 		const uintptr_t buffer, size_t length, size_t *written)
