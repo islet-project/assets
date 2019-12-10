@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2019, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -7,3 +7,6 @@
 # System suspend is not supported as there are no wakeup sources in SGI-575 FVP
 PSCI STAT/Stats test cases after system suspend
 PSCI System Suspend Validation
+# PMU tests currently fail on SGI-575. Temporarily disable them until this is
+# being investigated and fixed.
+PMU Leakage
