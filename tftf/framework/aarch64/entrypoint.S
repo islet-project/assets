@@ -20,6 +20,18 @@ func tftf_entrypoint
 	bl	arch_init
 
 	/* --------------------------------------------------------------------
+	 * Invalidate the RW memory used by TFTF image.
+	 * This is done to safeguard against possible corruption of this
+	 * memory by dirty cache lines in a system cache as a result of use
+	 * by an earlier boot loader stage.
+	 * --------------------------------------------------------------------
+	 */
+	adr	x0, __DATA_START__
+	adr	x1, __DATA_END__
+	sub	x1, x1, x0
+	bl	inv_dcache_range
+
+	/* --------------------------------------------------------------------
 	 * This code is expected to be executed only by the primary CPU.
 	 * Save the mpid for the first core that executes and if a secondary
 	 * CPU has lost its way make it spin forever.
