@@ -72,4 +72,4 @@ $(CACTUS_DTB) : spm/cactus/cactus.dts
 	@echo "Built $@ successfully"
 	@echo
 
-cactus: $(CACTUS_DTB) $(AUTOGEN_DIR)/tests_list.h
+cactus: $(CACTUS_DTB)

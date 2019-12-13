@@ -353,7 +353,7 @@ define MAKE_C
 $(eval OBJ := $(1)/$(patsubst %.c,%.o,$(notdir $(2))))
 $(eval DEP := $(patsubst %.o,%.d,$(OBJ)))
 
-$(OBJ) : $(2)
+$(OBJ) : $(2) | $(AUTOGEN_DIR)/tests_list.h
 	@echo "  CC      $$<"
 	$$(Q)$$(CC) $$($(3)_CFLAGS) ${$(3)_INCLUDES} ${$(3)_DEFINES} -DIMAGE_$(3) $(MAKE_DEP) -c $$< -o $$@
 
@@ -366,7 +366,7 @@ define MAKE_S
 $(eval OBJ := $(1)/$(patsubst %.S,%.o,$(notdir $(2))))
 $(eval DEP := $(patsubst %.o,%.d,$(OBJ)))
 
-$(OBJ) : $(2)
+$(OBJ) : $(2) | $(AUTOGEN_DIR)/tests_list.h
 	@echo "  AS      $$<"
 	$$(Q)$$(AS) $$($(3)_ASFLAGS) ${$(3)_INCLUDES} ${$(3)_DEFINES} -DIMAGE_$(3) $(MAKE_DEP) -c $$< -o $$@
 
@@ -378,7 +378,7 @@ define MAKE_LD
 
 $(eval DEP := $(1).d)
 
-$(1) : $(2)
+$(1) : $(2) | $(AUTOGEN_DIR)/tests_list.h
 	@echo "  PP      $$<"
 	$$(Q)$$(AS) $$($(3)_ASFLAGS) ${$(3)_INCLUDES} ${$(3)_DEFINES} -P -E $(MAKE_DEP) -o $$@ $$<
 
