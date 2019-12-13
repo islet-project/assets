@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -17,6 +17,18 @@
  */
 func tftf_entrypoint
 	bl	arch_init
+
+	/* --------------------------------------------------------------------
+	 * Invalidate the RW memory used by TFTF image.
+	 * This is done to safeguard against possible corruption of this
+	 * memory by dirty cache lines in a system cache as a result of use
+	 * by an earlier boot loader stage.
+	 * --------------------------------------------------------------------
+	 */
+	ldr	r0, =__DATA_START__
+	ldr	r1, =__DATA_END__
+	sub	r1, r1, r0
+	bl	inv_dcache_range
 
 	/* --------------------------------------------------------------------
 	 * This code is expected to be executed only by the primary CPU.
