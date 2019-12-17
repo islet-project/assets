@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -57,7 +57,7 @@ static unsigned long long mpidr_list[PLATFORM_CORE_COUNT] = {UINT64_MAX};
 /******************************************************************************
  * GIC Distributor interface accessors for writing entire registers
  *****************************************************************************/
-static void gicd_write_irouter(unsigned int base,
+static void gicd_write_irouter(uintptr_t base,
 				unsigned int interrupt_id,
 				unsigned long long route)
 {
@@ -68,17 +68,17 @@ static void gicd_write_irouter(unsigned int base,
 /******************************************************************************
  * GIC Re-distributor interface accessors for writing entire registers
  *****************************************************************************/
-static void gicr_write_isenabler0(unsigned int base, unsigned int val)
+static void gicr_write_isenabler0(uintptr_t base, unsigned int val)
 {
 	mmio_write_32(base + GICR_ISENABLER0, val);
 }
 
-static void gicr_write_icenabler0(unsigned int base, unsigned int val)
+static void gicr_write_icenabler0(uintptr_t base, unsigned int val)
 {
 	mmio_write_32(base + GICR_ICENABLER0, val);
 }
 
-static void gicr_write_icpendr0(unsigned int base, unsigned int val)
+static void gicr_write_icpendr0(uintptr_t base, unsigned int val)
 {
 	mmio_write_32(base + GICR_ICPENDR0, val);
 }
@@ -107,7 +107,7 @@ static unsigned int gicr_read_icfgr1(uintptr_t base)
 	return mmio_read_32(base + GICR_ICFGR1);
 }
 
-static unsigned int gicr_read_isenabler0(unsigned int base)
+static unsigned int gicr_read_isenabler0(uintptr_t base)
 {
 	return mmio_read_32(base + GICR_ISENABLER0);
 }
@@ -118,7 +118,7 @@ static unsigned int gicr_read_ipriorityr(uintptr_t base, unsigned int id)
 	return mmio_read_32(base + GICR_IPRIORITYR + (n << 2));
 }
 
-static unsigned int gicr_read_ispendr0(unsigned int base)
+static unsigned int gicr_read_ispendr0(uintptr_t base)
 {
 	return mmio_read_32(base + GICR_ISPENDR0);
 }
@@ -127,26 +127,26 @@ static unsigned int gicr_read_ispendr0(unsigned int base)
  * GIC Re-distributor interface accessors for individual interrupt
  * manipulation
  *****************************************************************************/
-static unsigned int gicr_get_isenabler0(unsigned int base,
+static unsigned int gicr_get_isenabler0(uintptr_t base,
 	unsigned int interrupt_id)
 {
 	unsigned bit_num = interrupt_id & ((1 << ISENABLER_SHIFT) - 1);
 	return gicr_read_isenabler0(base) & (1 << bit_num);
 }
 
-static void gicr_set_isenabler0(unsigned int base, unsigned int interrupt_id)
+static void gicr_set_isenabler0(uintptr_t base, unsigned int interrupt_id)
 {
 	unsigned bit_num = interrupt_id & ((1 << ISENABLER_SHIFT) - 1);
 	gicr_write_isenabler0(base, (1 << bit_num));
 }
 
-static void gicr_set_icenabler0(unsigned int base, unsigned int interrupt_id)
+static void gicr_set_icenabler0(uintptr_t base, unsigned int interrupt_id)
 {
 	unsigned bit_num = interrupt_id & ((1 << ISENABLER_SHIFT) - 1);
 	gicr_write_icenabler0(base, (1 << bit_num));
 }
 
-static void gicr_set_icpendr0(unsigned int base, unsigned int interrupt_id)
+static void gicr_set_icpendr0(uintptr_t base, unsigned int interrupt_id)
 {
 	unsigned bit_num = interrupt_id & ((1 << ICPENDR_SHIFT) - 1);
 	gicr_write_icpendr0(base, (1 << bit_num));

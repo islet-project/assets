@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -54,56 +54,56 @@ unsigned int is_gicv3_mode(void);
 /*******************************************************************************
  * Private GIC Distributor function prototypes for use by GIC drivers
  ******************************************************************************/
-unsigned int gicd_read_isenabler(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_read_icenabler(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_read_ispendr(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_read_icpendr(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_read_isactiver(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_read_icactiver(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_read_ipriorityr(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_get_ipriorityr(unsigned int base, unsigned int interrupt_id);
-unsigned int gicd_read_icfgr(unsigned int base, unsigned int interrupt_id);
-void gicd_write_isenabler(unsigned int base, unsigned int interrupt_id,
+unsigned int gicd_read_isenabler(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_read_icenabler(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_read_ispendr(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_read_icpendr(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_read_isactiver(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_read_icactiver(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_read_ipriorityr(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_get_ipriorityr(uintptr_t base, unsigned int interrupt_id);
+unsigned int gicd_read_icfgr(uintptr_t base, unsigned int interrupt_id);
+void gicd_write_isenabler(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-void gicd_write_icenabler(unsigned int base, unsigned int interrupt_id,
+void gicd_write_icenabler(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-void gicd_write_ispendr(unsigned int base, unsigned int interrupt_id,
+void gicd_write_ispendr(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-void gicd_write_icpendr(unsigned int base, unsigned int interrupt_id,
+void gicd_write_icpendr(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-void gicd_write_isactiver(unsigned int base, unsigned int interrupt_id,
+void gicd_write_isactiver(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-void gicd_write_icactiver(unsigned int base, unsigned int interrupt_id,
+void gicd_write_icactiver(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-void gicd_write_ipriorityr(unsigned int base, unsigned int interrupt_id,
+void gicd_write_ipriorityr(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-void gicd_write_icfgr(unsigned int base, unsigned int interrupt_id,
+void gicd_write_icfgr(uintptr_t base, unsigned int interrupt_id,
 					unsigned int val);
-unsigned int gicd_get_isenabler(unsigned int base, unsigned int interrupt_id);
-void gicd_set_isenabler(unsigned int base, unsigned int interrupt_id);
-void gicd_set_icenabler(unsigned int base, unsigned int interrupt_id);
-void gicd_set_ispendr(unsigned int base, unsigned int interrupt_id);
-void gicd_set_icpendr(unsigned int base, unsigned int interrupt_id);
-void gicd_set_isactiver(unsigned int base, unsigned int interrupt_id);
-void gicd_set_icactiver(unsigned int base, unsigned int interrupt_id);
-void gicd_set_ipriorityr(unsigned int base, unsigned int interrupt_id,
+unsigned int gicd_get_isenabler(uintptr_t base, unsigned int interrupt_id);
+void gicd_set_isenabler(uintptr_t base, unsigned int interrupt_id);
+void gicd_set_icenabler(uintptr_t base, unsigned int interrupt_id);
+void gicd_set_ispendr(uintptr_t base, unsigned int interrupt_id);
+void gicd_set_icpendr(uintptr_t base, unsigned int interrupt_id);
+void gicd_set_isactiver(uintptr_t base, unsigned int interrupt_id);
+void gicd_set_icactiver(uintptr_t base, unsigned int interrupt_id);
+void gicd_set_ipriorityr(uintptr_t base, unsigned int interrupt_id,
 					unsigned int priority);
 
 /*******************************************************************************
  * Private GIC Distributor interface accessors for reading and writing
  * entire registers
  ******************************************************************************/
-static inline unsigned int gicd_read_ctlr(unsigned int base)
+static inline unsigned int gicd_read_ctlr(uintptr_t base)
 {
 	return mmio_read_32(base + GICD_CTLR);
 }
 
-static inline unsigned int gicd_read_typer(unsigned int base)
+static inline unsigned int gicd_read_typer(uintptr_t base)
 {
 	return mmio_read_32(base + GICD_TYPER);
 }
 
-static inline void gicd_write_ctlr(unsigned int base, unsigned int val)
+static inline void gicd_write_ctlr(uintptr_t base, unsigned int val)
 {
 	mmio_write_32(base + GICD_CTLR, val);
 }
