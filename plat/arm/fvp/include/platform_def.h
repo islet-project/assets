@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -129,7 +129,8 @@
 #endif
 
 #define PLATFORM_CORE_COUNT		(FVP_CLUSTER_COUNT * \
-						FVP_MAX_CPUS_PER_CLUSTER)
+					 FVP_MAX_CPUS_PER_CLUSTER * \
+					 FVP_MAX_PE_PER_CPU)
 #define PLATFORM_NUM_AFFS		(1 + FVP_CLUSTER_COUNT + \
 					 PLATFORM_CORE_COUNT)
 #define PLATFORM_MAX_AFFLVL		MPIDR_AFFLVL2
