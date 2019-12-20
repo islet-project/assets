@@ -20,6 +20,7 @@
   <!ENTITY tests-cpu-extensions SYSTEM "tests-cpu-extensions.xml">
   <!ENTITY tests-performance SYSTEM "tests-performance.xml">
   <!ENTITY tests-smc SYSTEM "tests-smc.xml">
+  <!ENTITY tests-spm SYSTEM "tests-spm.xml">
   <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
   <!ENTITY tests-debugfs SYSTEM "tests-debugfs.xml">
 ]>
@@ -37,6 +38,7 @@
   &tests-cpu-extensions;
   &tests-performance;
   &tests-smc;
+  &tests-spm;
   &tests-pmu-leakage;
   &tests-debugfs;
 
