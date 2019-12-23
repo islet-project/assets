@@ -21,6 +21,7 @@
   <!ENTITY tests-performance SYSTEM "tests-performance.xml">
   <!ENTITY tests-smc SYSTEM "tests-smc.xml">
   <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
+  <!ENTITY tests-debugfs SYSTEM "tests-debugfs.xml">
 ]>
 
 <testsuites>
@@ -37,5 +38,6 @@
   &tests-performance;
   &tests-smc;
   &tests-pmu-leakage;
+  &tests-debugfs;
 
 </testsuites>

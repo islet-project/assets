@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2019, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+  <!--
+      Test suite exercising execution state switch SiP service.
+  -->
+  <testsuite name="DebugFS" description="Test ARM SiP DebugFS service">
+    <testcase name="Expose filesystem" function="test_debugfs" />
+  </testsuite>
+
+</testsuites>
