@@ -26,8 +26,8 @@ Install the required packages to build TF-A Tests with the following command:
 
     sudo apt-get install device-tree-compiler build-essential make git perl libxml-libxml-perl
 
-Download and install the GNU cross-toolchain from Linaro. The TF-A Tests have
-been tested with version 6.2-2016.11 (gcc 6.2):
+Download and install the GNU cross-toolchain from developer.arm.com portal. The
+TF-A Tests have been tested with version 9.2-2019.12 (gcc 9.2):
 
 -  `AArch32 GNU cross-toolchain`_
 -  `AArch64 GNU cross-toolchain`_
@@ -49,19 +49,19 @@ Building TF-A Tests
 -------------------
 
 -  Before building TF-A Tests, the environment variable ``CROSS_COMPILE`` must
-   point to the Linaro cross compiler.
+   point to the cross compiler.
 
    For AArch64:
 
    ::
 
-       export CROSS_COMPILE=<path-to-aarch64-gcc>/bin/aarch64-linux-gnu-
+       export CROSS_COMPILE=<path-to-aarch64-gcc>/bin/aarch64-none-elf-
 
    For AArch32:
 
    ::
 
-       export CROSS_COMPILE=<path-to-aarch32-gcc>/bin/arm-linux-gnueabihf-
+       export CROSS_COMPILE=<path-to-aarch32-gcc>/bin/arm-none-eabi-
 
 -  Change to the root directory of the TF-A Tests source tree and build.
 
@@ -578,14 +578,14 @@ flash (that is, ``0x08000000``).
 
 --------------
 
-*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2020, Arm Limited. All rights reserved.*
 
 .. _Development Studio 5 (DS-5): https://developer.arm.com/products/software-development-tools/ds-5-development-studio
 
 .. _FVP models: https://developer.arm.com/products/system-design/fixed-virtual-platforms
 
-.. _AArch32 GNU cross-toolchain: http://releases.linaro.org/components/toolchain/binaries/6.2-2016.11/arm-linux-gnueabihf/gcc-linaro-6.2.1-2016.11-x86_64_arm-linux-gnueabihf.tar.xz
-.. _AArch64 GNU cross-toolchain: http://releases.linaro.org/components/toolchain/binaries/6.2-2016.11/aarch64-linux-gnu/gcc-linaro-6.2.1-2016.11-x86_64_aarch64-linux-gnu.tar.xz
+.. _AArch32 GNU cross-toolchain: https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-arm-none-eabi.tar.xz
+.. _AArch64 GNU cross-toolchain: https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-elf.tar.xz
 
 .. _Linux master tree: https://github.com/torvalds/linux/tree/master/
 
