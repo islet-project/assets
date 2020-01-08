@@ -8,6 +8,7 @@
 #include <asm_macros.S>
 
 	.global	pauth_init_enable
+	.global	pauth_disable
 
 /* -----------------------------------------------------------
  * Program APIAKey_EL1 key and enable Pointer Authentication
@@ -51,3 +52,29 @@ enable_exit:
 	ldp	x29, x30, [sp], #16
 	ret
 endfunc pauth_init_enable
+
+/* -----------------------------------------------------------
+ * Disable pointer authentication in EL1/EL2
+ * -----------------------------------------------------------
+ */
+func pauth_disable
+	/* Detect Current Exception level */
+	mrs	x0, CurrentEL
+	cmp	x0, #(MODE_EL1 << MODE_EL_SHIFT)
+	b.eq	disable_el1
+
+	/* Disable EL2 pointer authentication */
+	mrs	x0, sctlr_el2
+	bic	x0, x0, #SCTLR_EnIA_BIT
+	msr	sctlr_el2, x0
+	isb
+	ret
+
+	/* Disable EL1 pointer authentication */
+disable_el1:
+	mrs	x0, sctlr_el1
+	bic	x0, x0, #SCTLR_EnIA_BIT
+	msr	sctlr_el1, x0
+	isb
+	ret
+endfunc pauth_disable

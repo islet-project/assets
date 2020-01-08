@@ -15,6 +15,9 @@ uint128_t init_apkey(void);
 
 /* Program APIAKey_EL1 key and enable ARMv8.3-PAuth */
 void pauth_init_enable(void);
+
+/* Disable ARMv8.3-PAuth */
+void pauth_disable(void);
 #endif	/* __aarch64__ */
 
 #endif /* PAUTH_H */

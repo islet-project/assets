@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,6 +14,7 @@
 #include <io_storage.h>
 #include <mmio.h>
 #include <nvm.h>
+#include <pauth.h>
 #include <platform.h>
 #include <platform_def.h>
 #include <smccc.h>
@@ -210,6 +211,11 @@ void ns_bl1u_main(void)
 			}
 		}
 	}
+
+#if ENABLE_PAUTH
+	/* Disable pointer authentication before jumping to NS_BL2U */
+	pauth_disable();
+#endif
 
 	/*
 	 * Clean and invalidate the caches.

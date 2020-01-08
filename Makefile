@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -225,6 +225,8 @@ TFTF_LDFLAGS		+= ${COMMON_LDFLAGS}
 
 ifeq (${ENABLE_PAUTH},1)
 TFTF_CFLAGS		+= -mbranch-protection=pac-ret
+NS_BL1U_CFLAGS		+= -mbranch-protection=pac-ret
+NS_BL2U_CFLAGS		+= -mbranch-protection=pac-ret
 endif
 
 NS_BL1U_SOURCES		+= ${PLAT_SOURCES} ${LIBC_SRCS}
