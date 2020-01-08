@@ -63,6 +63,14 @@ func ns_bl1u_entrypoint
 	bl	tftf_early_platform_setup
 	bl	tftf_plat_arch_setup
 
+#if ENABLE_PAUTH
+	/* ---------------------------------------------------------------------
+	 * Program APIAKey_EL1 and enable pointer authentication.
+	 * ---------------------------------------------------------------------
+	 */
+	bl	pauth_init_enable
+#endif /* ENABLE_PAUTH */
+
 	/* ---------------------------------------------------------------------
 	 * Jump to main function.
 	 * ---------------------------------------------------------------------

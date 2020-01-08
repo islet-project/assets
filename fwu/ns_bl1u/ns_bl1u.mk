@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -15,6 +15,7 @@ NS_BL1U_INCLUDES := 					\
 	-Iinclude/common/${ARCH}			\
 	-Iinclude/lib					\
 	-Iinclude/lib/${ARCH}				\
+	-Iinclude/lib/extensions			\
 	-Iinclude/lib/utils				\
 	-Iinclude/lib/xlat_tables			\
 	-Iinclude/plat/common				\
@@ -51,6 +52,12 @@ ifeq (${FWU_BL_TEST},1)
 	NS_BL1U_SOURCES	+= fwu/ns_bl1u/ns_bl1u_tests.c
 endif
 
+ifeq (${ENABLE_PAUTH},1)
+# ARMv8.3 Pointer Authentication support files
+NS_BL1U_SOURCES	+=	lib/extensions/pauth/aarch64/pauth.c		\
+			lib/extensions/pauth/aarch64/pauth_helpers.S
+endif
+
 NS_BL1U_LINKERFILE	:=	fwu/ns_bl1u/ns_bl1u.ld.S
 
 # NS_BL1U requires accessing the flash. Force-enable it.
@@ -67,4 +74,5 @@ ifeq (${ARCH},aarch32)
         $(eval $(call add_define,NS_BL1U_DEFINES,AARCH32))
 else
         $(eval $(call add_define,NS_BL1U_DEFINES,AARCH64))
+        $(eval $(call add_define,NS_BL1U_DEFINES,ENABLE_PAUTH))
 endif
