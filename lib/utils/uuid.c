@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,9 +10,9 @@
 #include <uuid_utils.h>
 
 /* Format string to print a UUID */
-static const char *uuid_str_fmt = "{ 0x%08x, 0x%04x, 0x%04x, 0x%02x, 0x%02x, "
-	"0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }";
-
+static const char *uuid_str_fmt = "{ 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, "
+	"0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, "
+	"0x%02x, 0x%02x }";
 
 unsigned int is_uuid_null(const uuid_t *uuid)
 {
@@ -27,7 +27,10 @@ char *uuid_to_str(const uuid_t *uuid, char *str)
 	assert(str != NULL);
 
 	snprintf(str, UUID_STR_SIZE, uuid_str_fmt,
-		 uuid->time_low, uuid->time_mid, uuid->time_hi_and_version,
+		 uuid->time_low[0], uuid->time_low[1],
+		 uuid->time_low[2], uuid->time_low[3],
+		 uuid->time_mid[0], uuid->time_mid[1],
+		 uuid->time_hi_and_version[0], uuid->time_hi_and_version[1],
 		 uuid->clock_seq_hi_and_reserved, uuid->clock_seq_low,
 		 uuid->node[0], uuid->node[1], uuid->node[2], uuid->node[3],
 		 uuid->node[4], uuid->node[5]);
