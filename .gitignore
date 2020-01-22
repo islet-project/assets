@@ -6,6 +6,9 @@ cscope.*
 .project
 .cproject
 
+# Ctags
+tags
+
 # Ignore build directory and binary files
 build/
 *.bin
