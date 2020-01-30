@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -17,6 +17,13 @@
  * ----------------------------------------------------------------------------
  */
 func tftf_entrypoint
+	/* --------------------------------------------------------------------
+	 * Save arguments x0, x1 from the previous Boot loader
+	 * --------------------------------------------------------------------
+	 */
+	mov	x20, x0
+	mov	x21, x1
+
 	bl	arch_init
 
 	/* --------------------------------------------------------------------
@@ -70,6 +77,15 @@ func tftf_entrypoint
 	 */
 	mrs	x0, mpidr_el1
 	bl	platform_set_stack
+
+	/* --------------------------------------------------------------------
+	 * Save fw_config and hw_config addresses passed in x0, x1 from the
+	 * previous boot loader
+	 * --------------------------------------------------------------------
+	 */
+	mov	x0, x20
+	mov	x1, x21
+	bl	save_fw_hw_configs
 
 	/* --------------------------------------------------------------------
 	 * tftf_cold_boot_main() will perform the remaining architectural and
@@ -187,3 +203,11 @@ el1_setup:
 	isb
 	ret
 endfunc arch_init
+
+/* Set fw_config and hw_config addresses passed in x0, x1 */
+func save_fw_hw_configs
+	adrp	x2, fw_config_base
+	str	x0, [x2, :lo12:fw_config_base]
+	str	x1, [x2, :lo12:hw_config_base]
+	ret
+endfunc save_fw_hw_configs

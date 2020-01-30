@@ -41,6 +41,10 @@ static u_register_t cpu_on_ctx_id_arr[PLATFORM_CORE_COUNT];
 
 static unsigned int test_is_rebooting;
 
+/* Parameters arg0 and arg1 passed from BL31 */
+u_register_t fw_config_base;
+u_register_t hw_config_base;
+
 static inline const test_suite_t *current_testsuite(void)
 {
 	test_ref_t test_to_run;
