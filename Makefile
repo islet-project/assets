@@ -223,6 +223,14 @@ NS_BL1U_CFLAGS		+= -mbranch-protection=pac-ret
 NS_BL2U_CFLAGS		+= -mbranch-protection=pac-ret
 endif
 
+#####################################################################################
+ifneq ($(findstring gcc,$(notdir $(LD))),)
+	PIE_LDFLAGS	+=	-Wl,-pie -Wl,--no-dynamic-linker
+else
+	PIE_LDFLAGS	+=	-pie --no-dynamic-linker
+endif
+
+#####################################################################################
 NS_BL1U_SOURCES		+= ${PLAT_SOURCES} ${LIBC_SRCS}
 NS_BL1U_INCLUDES	+= ${PLAT_INCLUDES}
 NS_BL1U_CFLAGS		+= ${COMMON_CFLAGS}
@@ -243,9 +251,9 @@ CACTUS_MM_LDFLAGS	+= ${COMMON_LDFLAGS}
 
 CACTUS_SOURCES		+= ${LIBC_SRCS}
 CACTUS_INCLUDES		+= ${PLAT_INCLUDES}
-CACTUS_CFLAGS		+= ${COMMON_CFLAGS}
+CACTUS_CFLAGS		+= ${COMMON_CFLAGS} -fpie
 CACTUS_ASFLAGS		+= ${COMMON_ASFLAGS}
-CACTUS_LDFLAGS		+= ${COMMON_LDFLAGS}
+CACTUS_LDFLAGS		+= ${COMMON_LDFLAGS} $(PIE_LDFLAGS)
 
 IVY_SOURCES		+= ${LIBC_SRCS}
 IVY_INCLUDES		+= ${PLAT_INCLUDES}
