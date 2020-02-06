@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,7 +14,7 @@
 #include <string.h>
 #include <tftf_lib.h>
 
-#ifdef AARCH64
+#ifdef __aarch64__
 #define CORTEX_A57_MIDR	0x410FD070
 #define CORTEX_A72_MIDR	0x410FD080
 #define CORTEX_A73_MIDR 0x410FD090

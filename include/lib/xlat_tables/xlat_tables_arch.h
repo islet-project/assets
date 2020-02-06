@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,7 +7,7 @@
 #ifndef XLAT_TABLES_ARCH_H
 #define XLAT_TABLES_ARCH_H
 
-#ifdef AARCH32
+#ifndef __aarch64__
 #include "aarch32/xlat_tables_aarch32.h"
 #else
 #include "aarch64/xlat_tables_aarch64.h"

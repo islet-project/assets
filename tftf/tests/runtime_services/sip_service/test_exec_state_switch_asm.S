@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,7 +8,7 @@
 
 #define COOKIE_SIZE			20
 
-#ifdef AARCH64
+#ifdef __aarch64__
 /* int do_state_switch(void *) */
 	.globl do_state_switch
 func do_state_switch
@@ -167,7 +167,7 @@ state_switch_a32_entry:
 	.word	0xe1600070	/* smc	#0x0 */
 	.word	0xeafffffe      /* b	. */
 
-#else /* !AARCH64 */
+#else /* !__aarch64__ */
 
 /* Not supported on AArch32 yet */
 func do_state_switch
@@ -175,4 +175,4 @@ func do_state_switch
 	bx	lr
 endfunc do_state_switch
 
-#endif /* AARCH64 */
+#endif /* __aarch64__ */

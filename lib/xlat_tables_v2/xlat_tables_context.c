@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -134,7 +134,7 @@ int xlat_change_mem_attributes(uintptr_t base_va, size_t size, uint32_t attr)
 #define MAX_PHYS_ADDR	tf_xlat_ctx.max_pa
 #endif
 
-#ifdef AARCH32
+#ifndef __aarch64__
 
 void enable_mmu_svc_mon(unsigned int flags)
 {
@@ -178,4 +178,4 @@ void enable_mmu_el3(unsigned int flags)
 	enable_mmu_direct_el3(flags);
 }
 
-#endif /* AARCH32 */
+#endif /* !__aarch64__ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,7 +9,7 @@
 #include <sdei.h>
 #include <tftf_lib.h>
 
-#ifndef AARCH32
+#ifdef __aarch64__
 
 uint64_t serror_received;
 

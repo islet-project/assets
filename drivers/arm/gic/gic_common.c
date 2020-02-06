@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -190,7 +190,7 @@ void gicd_set_ipriorityr(uintptr_t base, unsigned int interrupt_id,
 unsigned int is_gicv3_mode(void)
 {
 	/* Check if GICv3 system register available */
-#ifndef AARCH32
+#ifdef __aarch64__
 	if (!(read_id_aa64pfr0_el1() & (ID_AA64PFR0_GIC_MASK << ID_AA64PFR0_GIC_SHIFT)))
 		return 0;
 #else

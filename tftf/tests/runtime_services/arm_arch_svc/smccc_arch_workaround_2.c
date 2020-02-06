@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,7 +14,7 @@
 #include <string.h>
 #include <tftf_lib.h>
 
-#ifdef AARCH64
+#ifdef __aarch64__
 #define NOT_REQUIRED_DONOT_INVOKE	-2
 #define NOT_SUPPORTED			-1
 #define IS_REQUIRED			 0
@@ -159,4 +159,4 @@ test_result_t test_smccc_arch_workaround_2(void)
 	INFO("%s skipped on AArch32\n", __func__);
 	return TEST_RESULT_SKIPPED;
 }
-#endif /* AARCH64 */
+#endif /* __aarch64__ */

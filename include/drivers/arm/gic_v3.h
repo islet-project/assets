@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -71,7 +71,7 @@
 #define SGI1R_AFF_MASK			0xff
 #define SGI1R_AFF1_SHIFT		16ULL
 #define SGI1R_AFF2_SHIFT		32ULL
-#ifndef AARCH32
+#ifdef __aarch64__
 #define SGI1R_AFF3_SHIFT		48ULL
 #endif
 #define SGI1R_INTID_MASK		0xf

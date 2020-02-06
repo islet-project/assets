@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,7 +8,7 @@
 
 #include "./test_sve.h"
 
-#ifdef AARCH64
+#ifdef __aarch64__
 #if __GNUC__ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ > 0)
 
 /*
@@ -36,4 +36,4 @@ func sve_subtract_arrays
 endfunc sve_subtract_arrays
 
 #endif /* __GNUC__ > 8 || (__GNUC__ == 8 && __GNUC_MINOR__ > 0) */
-#endif /* AARCH64 */
+#endif /* __aarch64__ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -26,7 +26,7 @@ typedef struct {
 
 typedef test_result_t (*test_function_arg_t)(void *arg);
 
-#ifdef AARCH32
+#ifndef __aarch64__
 #define SKIP_TEST_IF_AARCH32()							\
 	do {									\
 		tftf_testcase_printf("Test not supported on aarch32\n");	\

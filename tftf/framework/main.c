@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -517,7 +517,7 @@ void __dead2 tftf_cold_boot_main(void)
 	NOTICE("%s\n", build_message);
 	NOTICE("%s\n\n", version_string);
 
-#ifndef AARCH32
+#ifdef __aarch64__
 	NOTICE("Running at NS-EL%u\n", IS_IN_EL(1) ? 1 : 2);
 #else
 	NOTICE("Running in AArch32 HYP mode\n");

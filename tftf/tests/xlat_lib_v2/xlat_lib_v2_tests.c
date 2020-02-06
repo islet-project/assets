@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -67,7 +67,7 @@ static unsigned long long va2pa(uintptr_t base_va)
 	 * Performs stage 1 address translation for the current EL, with
 	 * read permissions.
 	 */
-#ifdef AARCH32
+#ifndef __aarch64__
 	if (IS_IN_HYP())
 		write_ats1hr(base_va);
 	else
@@ -497,7 +497,7 @@ test_result_t xlat_lib_v2_basic_test(void)
 		return TEST_RESULT_FAIL;
 	}
 
-#if AARCH64
+#ifdef __aarch64__
 	unsigned long long memory_base_pa;
 
 	/*
@@ -644,7 +644,7 @@ test_result_t xlat_lib_v2_alignment_test(void)
 		return TEST_RESULT_FAIL;
 	}
 
-#if AARCH64
+#ifdef __aarch64__
 	/*
 	 * 3) Try to allocate at least 1 GB aligned. There is only room for this
 	 * in AArch64.

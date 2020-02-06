@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -14,7 +14,7 @@
 
 static const mem_region_t fvp_ram_ranges[] = {
 	{NS_IMAGE_LIMIT, 1 << ONE_GB_SHIFT},
-#ifdef AARCH64
+#ifdef __aarch64__
 	{FVP_DRAM2_BASE, 1 << ONE_GB_SHIFT},
 #endif
 };

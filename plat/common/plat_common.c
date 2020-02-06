@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -112,7 +112,7 @@ void tftf_plat_configure_mmu(void)
 
 void tftf_plat_enable_mmu(void)
 {
-#ifndef AARCH32
+#ifdef __aarch64__
 	if (IS_IN_EL1())
 		enable_mmu_el1(0);
 	else if (IS_IN_EL2())

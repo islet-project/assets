@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -75,7 +75,7 @@ struct pmu_event_info {
 	unsigned long long avg;
 };
 
-#ifdef AARCH64
+#ifdef __aarch64__
 #define V8_2_DEBUG_ARCH_SUPPORTED ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED
 #else
 #define V8_2_DEBUG_ARCH_SUPPORTED DBGDIDR_V8_2_DEBUG_ARCH_SUPPORTED
