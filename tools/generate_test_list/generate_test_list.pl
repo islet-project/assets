@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -35,7 +35,7 @@ my $testsuite_elem;
 my $failure_elem;
 
 if (-e $XML_TEST_FILENAME) {
-  my $parser = XML::LibXML->new();
+  my $parser = XML::LibXML->new(expand_entities => 1);
   $doc = $parser->parse_file($XML_TEST_FILENAME);
 } else {
   exit 1
