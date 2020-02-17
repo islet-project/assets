@@ -1,8 +1,12 @@
 #
-# Copyright (c) 2019, Arm Limited. All rights reserved.
+# Copyright (c) 2019-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
 # The multicore spurious interrupt test is known to cause problems on Juno
 IRQ support in TSP/Multicore spurious interrupt test
+
+# The NODE_HW_STATE tests seem to hang on Juno. See GENFW-3574.
+# Disabling them in the meantime.
+PSCI NODE_HW_STATE
