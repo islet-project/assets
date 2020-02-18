@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -69,13 +69,13 @@ static const unsigned char fvp_power_domain_tree_desc[] = {
 	/* Number of cluster nodes */
 	FVP_CLUSTER_COUNT,
 	/* Number of children for the first node */
-	FVP_MAX_CPUS_PER_CLUSTER,
+	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU,
 	/* Number of children for the second node */
-	FVP_MAX_CPUS_PER_CLUSTER,
+	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU,
 	/* Number of children for the third node */
-	FVP_MAX_CPUS_PER_CLUSTER,
+	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU,
 	/* Number of children for the fourth node */
-	FVP_MAX_CPUS_PER_CLUSTER
+	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU
 };
 
 const unsigned char *tftf_plat_get_pwr_domain_tree_desc(void)
