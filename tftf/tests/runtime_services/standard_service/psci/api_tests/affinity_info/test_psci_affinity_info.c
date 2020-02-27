@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -293,7 +293,7 @@ test_result_t test_affinity_info_level2(void)
  */
 test_result_t test_affinity_info_level3(void)
 {
-#ifndef AARCH32
+#ifdef __aarch64__
 	int expected_values[3];
 	uint64_t target_mpid;
 	int32_t aff_info;

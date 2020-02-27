@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,7 +9,7 @@
 #include <sdei.h>
 
 
-#ifdef AARCH64
+#ifdef __aarch64__
 	.globl	inject_serror
 	.globl	inject_uncontainable
 	.globl	serror_sdei_event_handler

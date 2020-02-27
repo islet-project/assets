@@ -157,12 +157,6 @@ $(eval $(call add_define,TFTF_DEFINES,NEW_TEST_SESSION))
 $(eval $(call add_define,TFTF_DEFINES,PLAT_${PLAT}))
 $(eval $(call add_define,TFTF_DEFINES,USE_NVM))
 
-ifeq (${ARCH},aarch32)
-        $(eval $(call add_define,TFTF_DEFINES,AARCH32))
-else
-        $(eval $(call add_define,TFTF_DEFINES,AARCH64))
-endif
-
 ################################################################################
 
 # Assembler, compiler and linker flags shared across all test images.

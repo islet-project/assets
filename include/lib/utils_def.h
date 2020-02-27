@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,7 +19,7 @@
 #define BIT_32(nr)			(U(1) << (nr))
 #define BIT_64(nr)			(ULL(1) << (nr))
 
-#ifdef AARCH32
+#ifndef __aarch64__
 #define BIT				BIT_32
 #else
 #define BIT				BIT_64
@@ -44,7 +44,7 @@
 	(((~UINT64_C(0)) << (l)) & (~UINT64_C(0) >> (64 - 1 - (h))))
 #endif
 
-#ifdef AARCH32
+#ifndef __aarch64__
 #define GENMASK				GENMASK_32
 #else
 #define GENMASK				GENMASK_64
@@ -130,7 +130,7 @@
 #endif
 
 /* Register size of the current architecture. */
-#ifdef AARCH32
+#ifndef __aarch64__
 #define REGSZ		U(4)
 #else
 #define REGSZ		U(8)

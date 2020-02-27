@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -65,7 +65,7 @@ extern int do_state_switch(void *);
  */
 test_result_t test_exec_state_switch_reset_before(void)
 {
-#ifdef AARCH64
+#ifdef __aarch64__
 	int version;
 	smc_args sip_version_smc = { ARM_SIP_SVC_VERSION };
 	smc_args reset = { SMC_PSCI_SYSTEM_RESET };
@@ -126,7 +126,7 @@ test_result_t test_exec_state_switch_reset_before(void)
  */
 test_result_t test_exec_state_switch_invalid_pc(void)
 {
-#ifdef AARCH64
+#ifdef __aarch64__
 	int ret;
 
 	smc_args args = {
@@ -159,7 +159,7 @@ test_result_t test_exec_state_switch_invalid_pc(void)
  */
 test_result_t test_exec_state_switch_invalid_ctx(void)
 {
-#ifdef AARCH64
+#ifdef __aarch64__
 	int ret;
 
 	smc_args args = {
@@ -191,7 +191,7 @@ test_result_t test_exec_state_switch_invalid_ctx(void)
  */
 test_result_t test_exec_state_switch_valid(void)
 {
-#ifdef AARCH64
+#ifdef __aarch64__
 	int ret;
 
 	smc_args args = {
@@ -233,7 +233,7 @@ test_result_t test_exec_state_switch_valid(void)
  */
 static inline test_result_t cpu_ping(void)
 {
-#ifdef AARCH64
+#ifdef __aarch64__
 	/* Tell the lead CPU that the calling CPU has entered the test */
 	tftf_send_event(&secondary_booted);
 
@@ -254,7 +254,7 @@ static inline test_result_t cpu_ping(void)
  */
 test_result_t test_exec_state_switch_after_cpu_on(void)
 {
-#ifdef AARCH64
+#ifdef __aarch64__
 	u_register_t other_mpidr, my_mpidr;
 	int ret;
 

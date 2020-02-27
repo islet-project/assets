@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,7 +16,7 @@
 	.local	event_handled
 	.comm	event_handled, PLATFORM_CORE_COUNT * 4, 8
 
-#ifdef AARCH64
+#ifdef __aarch64__
 func sdei_entrypoint
 	stp	xzr, x30, [sp, #-16]!
 	bl	sdei_event_handler

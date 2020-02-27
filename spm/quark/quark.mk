@@ -50,7 +50,6 @@ QUARK_DEFINES	:=
 $(eval $(call add_define,QUARK_DEFINES,DEBUG))
 $(eval $(call add_define,QUARK_DEFINES,ENABLE_ASSERTIONS))
 $(eval $(call add_define,QUARK_DEFINES,PLAT_${PLAT}))
-$(eval $(call add_define,QUARK_DEFINES,AARCH64))
 
 $(QUARK_DTB) : $(BUILD_PLAT)/quark $(BUILD_PLAT)/quark/quark.elf
 $(QUARK_DTB) : spm/quark/quark.dts

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,7 +12,7 @@
 test_result_t test_mte_instructions(void)
 {
 	SKIP_TEST_IF_AARCH32();
-#ifdef AARCH64
+#ifdef __aarch64__
 	SKIP_TEST_IF_MTE_SUPPORT_LESS_THAN(MTE_IMPLEMENTED_EL0);
 
 	/* irg */
@@ -24,13 +24,13 @@ test_result_t test_mte_instructions(void)
 	__asm__ volatile (".inst 0xD1800129");
 
 	return TEST_RESULT_SUCCESS;
-#endif /* AARCH64 */
+#endif /* __aarch64__ */
 }
 
 test_result_t test_mte_leakage(void)
 {
 	SKIP_TEST_IF_AARCH32();
-#ifdef AARCH64
+#ifdef __aarch64__
 	smc_args tsp_svc_params;
 	int gcr_el1;
 
@@ -53,5 +53,5 @@ test_result_t test_mte_leakage(void)
 	}
 
 	return TEST_RESULT_SUCCESS;
-#endif /* AARCH64 */
+#endif /* __aarch64__ */
 }

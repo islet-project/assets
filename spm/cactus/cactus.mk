@@ -57,11 +57,7 @@ $(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,CACTUS_DEFINES,ENABLE_ASSERTIONS))
 $(eval $(call add_define,CACTUS_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,CACTUS_DEFINES,PLAT_${PLAT}))
-ifeq (${ARCH},aarch32)
-        $(eval $(call add_define,CACTUS_DEFINES,AARCH32))
-else
-        $(eval $(call add_define,CACTUS_DEFINES,AARCH64))
-endif
+
 
 $(CACTUS_DTB) : $(BUILD_PLAT)/cactus $(BUILD_PLAT)/cactus/cactus.elf
 $(CACTUS_DTB) : spm/cactus/cactus.dts

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -67,7 +67,7 @@
 /*
  * Architecture-specific SMC function IDs
  */
-#ifndef AARCH32
+#ifdef __aarch64__
 #define SMC_PSCI_CPU_SUSPEND		SMC_PSCI_CPU_SUSPEND_AARCH64
 #define SMC_PSCI_CPU_ON			SMC_PSCI_CPU_ON_AARCH64
 #define SMC_PSCI_AFFINITY_INFO		SMC_PSCI_AFFINITY_INFO_AARCH64

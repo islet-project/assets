@@ -54,4 +54,4 @@ CACTUS_MM_DEFINES	+= -DENABLE_ASSERTIONS=0
 $(eval $(call add_define,CACTUS_MM_DEFINES,DEBUG))
 $(eval $(call add_define,CACTUS_MM_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,CACTUS_MM_DEFINES,PLAT_${PLAT}))
-$(eval $(call add_define,CACTUS_MM_DEFINES,AARCH64))
+

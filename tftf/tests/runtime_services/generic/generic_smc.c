@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -236,7 +236,7 @@ test_result_t smc64_yielding(void)
 	return TEST_RESULT_SUCCESS;
 }
 
-#ifdef AARCH32
+#ifndef __aarch64__
 static test_result_t smc64_fast_caller32(void)
 {
 	/* Valid Fast SMC32 using all 4 return values. */
@@ -295,12 +295,12 @@ static test_result_t smc64_fast_caller64(void)
 
 	return TEST_RESULT_SUCCESS;
 }
-#endif /* AARCH32 */
+#endif /* !__aarch64__ */
 
 /* Exercise SMC64 calling convention with fast SMC calls. */
 test_result_t smc64_fast(void)
 {
-#ifdef AARCH32
+#ifndef __aarch64__
 	return smc64_fast_caller32();
 #else
 	return smc64_fast_caller64();

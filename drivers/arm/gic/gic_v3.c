@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -18,7 +18,7 @@
 static uintptr_t gicr_base_addr;
 static uintptr_t gicd_base_addr;
 
-#ifndef AARCH32
+#ifdef __aarch64__
 #define MPIDR_AFFLVL3_MASK	((unsigned long long)MPIDR_AFFLVL_MASK << MPIDR_AFF3_SHIFT)
 #define gic_typer_affinity_from_mpidr(mpidr)	\
 	(((mpidr) & (~MPIDR_AFFLVL3_MASK)) | (((mpidr) & MPIDR_AFFLVL3_MASK) >> 8))
@@ -312,7 +312,7 @@ void gicv3_send_sgi(unsigned int sgi_id, unsigned int core_pos)
 	aff0 = MPIDR_AFF_ID(mpidr_list[core_pos], 0);
 	aff1 = MPIDR_AFF_ID(mpidr_list[core_pos], 1);
 	aff2 = MPIDR_AFF_ID(mpidr_list[core_pos], 2);
-#ifndef AARCH32
+#ifdef __aarch64__
 	unsigned long long aff3;
 	aff3 = MPIDR_AFF_ID(mpidr_list[core_pos], 3);
 #endif
@@ -323,7 +323,7 @@ void gicv3_send_sgi(unsigned int sgi_id, unsigned int core_pos)
 
 	/* Construct the SGI target affinity */
 	sgir =
-#ifndef AARCH32
+#ifdef __aarch64__
 		((aff3 & SGI1R_AFF_MASK) << SGI1R_AFF3_SHIFT) |
 #endif
 		((aff2 & SGI1R_AFF_MASK) << SGI1R_AFF2_SHIFT) |
@@ -333,7 +333,7 @@ void gicv3_send_sgi(unsigned int sgi_id, unsigned int core_pos)
 
 	/* Combine SGI target affinity with the SGI ID */
 	sgir |= ((sgi_id & SGI1R_INTID_MASK) << SGI1R_INTID_SHIFT);
-#ifndef AARCH32
+#ifdef __aarch64__
 	write_icc_sgi1r(sgir);
 #else
 	write64_icc_sgi1r(sgir);
@@ -477,7 +477,7 @@ void gicv3_setup_distif(void)
 	assert(gicd_base_addr);
 
 	/* Check for system register support */
-#ifndef AARCH32
+#ifdef __aarch64__
 	assert(read_id_aa64pfr0_el1() &
 			(ID_AA64PFR0_GIC_MASK << ID_AA64PFR0_GIC_SHIFT));
 #else

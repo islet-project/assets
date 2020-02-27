@@ -53,11 +53,6 @@ $(eval $(call add_define,IVY_DEFINES,DEBUG))
 $(eval $(call add_define,IVY_DEFINES,ENABLE_ASSERTIONS))
 $(eval $(call add_define,IVY_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,IVY_DEFINES,PLAT_${PLAT}))
-ifeq (${ARCH},aarch32)
-        $(eval $(call add_define,IVY_DEFINES,AARCH32))
-else
-        $(eval $(call add_define,IVY_DEFINES,AARCH64))
-endif
 
 $(IVY_DTB) : $(BUILD_PLAT)/ivy $(BUILD_PLAT)/ivy/ivy.elf
 $(IVY_DTB) : spm/ivy/ivy.dts

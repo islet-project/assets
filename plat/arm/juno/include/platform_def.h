@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,7 +19,7 @@
 /*******************************************************************************
  * Platform binary types for linking
  ******************************************************************************/
-#ifndef AARCH32
+#ifdef __aarch64__
 #define PLATFORM_LINKER_FORMAT		"elf64-littleaarch64"
 #define PLATFORM_LINKER_ARCH		aarch64
 #else
@@ -171,7 +171,7 @@
 /*******************************************************************************
  * Platform specific page table and MMU setup constants
  ******************************************************************************/
-#if AARCH64
+#ifdef __aarch64__
 #define PLAT_PHY_ADDR_SPACE_SIZE	(ULL(1) << 34)
 #define PLAT_VIRT_ADDR_SPACE_SIZE	(ULL(1) << 34)
 #else

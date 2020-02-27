@@ -75,5 +75,5 @@ INCLUDES="-I spm/cactus
 	  -I spm/include
 	  -I include/lib"
 
-cpp -x c -P -o "$PREPROCESSED_DTS" "$COMBINED_DTS" ${INCLUDES} -DAARCH64
+cpp -x c -P -o "$PREPROCESSED_DTS" "$COMBINED_DTS" ${INCLUDES}
 dtc -I dts -O dtb "$PREPROCESSED_DTS" > "$GENERATED_DTB"

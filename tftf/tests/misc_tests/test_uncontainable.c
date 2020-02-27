@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <tftf_lib.h>
 
-#ifndef AARCH32
+#ifdef __aarch64__
 
 extern void inject_uncontainable(void);
 

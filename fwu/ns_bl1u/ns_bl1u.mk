@@ -70,9 +70,6 @@ $(eval $(call add_define,NS_BL1U_DEFINES,ENABLE_ASSERTIONS))
 $(eval $(call add_define,NS_BL1U_DEFINES,FWU_BL_TEST))
 $(eval $(call add_define,NS_BL1U_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,NS_BL1U_DEFINES,PLAT_${PLAT}))
-ifeq (${ARCH},aarch32)
-        $(eval $(call add_define,NS_BL1U_DEFINES,AARCH32))
-else
-        $(eval $(call add_define,NS_BL1U_DEFINES,AARCH64))
+ifeq (${ARCH},aarch64)
         $(eval $(call add_define,NS_BL1U_DEFINES,ENABLE_PAUTH))
 endif

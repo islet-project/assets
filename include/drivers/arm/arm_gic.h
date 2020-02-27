@@ -18,7 +18,7 @@
 #define MIN_PPI_ID		16
 #define MAX_PPI_ID		31
 #define MIN_SPI_ID		32
-#define MAX_SPI_ID		1020
+#define MAX_SPI_ID		1019
 
 #define IS_SGI(irq_num)							\
 	(((irq_num) >= MIN_SGI_ID) && ((irq_num) <= MAX_SGI_ID))
