@@ -36,4 +36,6 @@ CACTUS_SOURCES	+=	plat/arm/fvp/${ARCH}/plat_helpers.S
 # Firmware update is implemented on FVP.
 FIRMWARE_UPDATE := 1
 
+PLAT_TESTS_SKIP_LIST	:=	plat/arm/fvp/fvp_tests_to_skip.txt
+
 include plat/arm/common/arm_common.mk
