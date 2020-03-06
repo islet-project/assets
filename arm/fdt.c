@@ -208,7 +208,14 @@ static int setup_fdt(struct kvm *kvm)
 		_FDT(fdt_property_string(fdt, "compatible", "arm,psci"));
 		fns = &psci_0_1_fns;
 	}
-	_FDT(fdt_property_string(fdt, "method", "hvc"));
+
+
+	if (kvm__is_realm(kvm)) {
+		_FDT(fdt_property_string(fdt, "method", "smc"));
+	} else {
+		_FDT(fdt_property_string(fdt, "method", "hvc"));
+	}
+
 	_FDT(fdt_property_cell(fdt, "cpu_suspend", fns->cpu_suspend));
 	_FDT(fdt_property_cell(fdt, "cpu_off", fns->cpu_off));
 	_FDT(fdt_property_cell(fdt, "cpu_on", fns->cpu_on));
