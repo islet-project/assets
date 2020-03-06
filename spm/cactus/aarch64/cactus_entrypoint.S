@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2017-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -26,6 +26,14 @@ func cactus_entrypoint
 	orr	x0, x0, #SCTLR_I_BIT
 	msr	sctlr_el1, x0
 	isb
+
+	/* Relocate symbols */
+pie_fixup:
+	ldr	x0, =pie_fixup
+	and	x0, x0, #~(0x1000 - 1)
+	mov	x1, #CACTUS_IMAGE_SIZE
+	add	x1, x1, x0
+	bl	fixup_gdt_reloc
 
 	/* And jump to the C entrypoint. */
 	b	cactus_main
