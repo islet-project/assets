@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -157,6 +157,15 @@ typedef struct {
  * Trigger an SMC call.
  */
 smc_ret_values tftf_smc(const smc_args *args);
+
+/*
+ * Trigger an HVC call.
+ */
+typedef smc_args hvc_args;
+
+typedef smc_ret_values hvc_ret_values;
+
+hvc_ret_values tftf_hvc(const hvc_args *args);
 
 /*
  * Write a formatted string in the test output buffer.
