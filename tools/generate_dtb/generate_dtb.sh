@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -37,37 +37,9 @@ BSS_END=$(grep __BSS_END__ $MAPFILE | awk {'print $1'})
 
 # Inject new sections to the base DTS
 
-echo "\
-/ {
-	memory_regions {
-		text {
-			str = \"Text\";
-			base = <0x0 ${TEXT_START}ULL>;
-			size = <0x0 (${TEXT_END}ULL - ${TEXT_START}ULL)>;
-			attr = <RD_MEM_NORMAL_CODE>;
-		};
-		rodata {
-			str = \"RO Data\";
-			base = <0x0 (${RODATA_START}ULL)>;
-			size = <0x0 (${RODATA_END}ULL - ${RODATA_START}ULL)>;
-			attr = <RD_MEM_NORMAL_RODATA>;
-		};
-		rwdata {
-			str = \"Data\";
-			base = <0x0 ${DATA_START}ULL>;
-			size = <0x0 (${DATA_END}ULL - ${DATA_START}ULL)>;
-			attr = <RD_MEM_NORMAL_DATA>;
-		};
-		bss {
-			str = \"BSS\";
-			base = <0x0 ${BSS_START}ULL>;
-			size = <0x0 (${BSS_END}ULL - ${BSS_START}ULL)>;
-			attr = <RD_MEM_NORMAL_BSS>;
-		};
-	};
-};" > "$EXTRA_DTS"
+# Memory region generation discarded
 
-cat "$ORIGINAL_DTS" "$EXTRA_DTS" > "$COMBINED_DTS"
+cat "$ORIGINAL_DTS" > "$COMBINED_DTS"
 
 INCLUDES="-I spm/cactus
 	  -I spm/ivy

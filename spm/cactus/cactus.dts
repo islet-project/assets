@@ -1,119 +1,67 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * This file is a Partition Manifest (PM) for a minimal Secure Partition (SP)
+ * that has additional optional properties defined.
+ *
  */
-
-#include <sp_res_desc_def.h>
-
-#include "cactus_def.h"
-
-/* 4 KiB pages */
-#define PAGE_SIZE			U(0x1000)
-
-/*
- * FVP platform layout. The defines are hardcoded here because including the
- * platform headers have too many dependencies.
- * TODO: Move this to the platform layer.
- */
-#define V2M_IOFPGA_BASE			ULL(0x1c000000)
-#define V2M_IOFPGA_SIZE			ULL(0x03000000)
-
-/* Aggregate of all devices in the first GB. */
-#define DEVICE0_BASE			ULL(0x20000000)
-#define DEVICE0_SIZE			ULL(0x0c200000)
 
 /dts-v1/;
 
 / {
-	compatible = "arm,sp_rd";
+	compatible = "arm,spci-manifest-1.0";
 
-	attribute {
-		version = <0x00000001>;
-		sp_type = <RD_ATTR_TYPE_UP_MIGRATABLE>;
-		pe_mpidr = <0>; /* Unused */
-		runtime_el = <RD_ATTR_RUNTIME_SEL0>;
-		exec_type = <RD_ATTR_RUNTIME>;
-		panic_policy = <RD_ATTR_PANIC_ONESHOT>;
-		xlat_granule = <RD_ATTR_XLAT_GRANULE_4KB>;
-		binary_size = <CACTUS_IMAGE_SIZE>;
-		load_address = <0x00000000 CACTUS_IMAGE_BASE>;
-		entrypoint = <0x00000000 CACTUS_IMAGE_BASE>;
+	/* Properties */
+	description = "Base-1";
+	spci-version = <0x00000009>; /* 31:16 - Major, 15:0 - Minor */
+	uuid = <0xb4b5671e 0x4a904fe1 0xb81ffb13 0xdae1dacb>;
+	id = <1>;
+	auxiliary-id = <0xae>;
+	stream-endpoint-ids = <0 1 2 3>;
+	execution-ctx-count = <1>;
+	exception-level = <2>; /* S-EL1 */
+	execution-state = <0>; /* AARCH64 */
+	load-address = <0x7000000>;
+	entrypoint-offset = <0x00001000>;
+	xlat-granule = <0>; /* 4KiB */
+	boot-order = <0>;
+	messaging-method = <0>; /* Direct messaging only */
+	run-time-model = <0>; /* Run to completion */
+
+	/* Boot protocol */
+	gp-register-num = <0x0>;
+
+	rx_tx-info {
+		compatible = "arm,spci-manifest-rx_tx-buffer";
+
+		description = "NS RX/TX Buffer";
+		pages-count = <1>;
+		attributes = <0x0>;
+		base-address = <0x7200000>;
 	};
 
-	memory_regions {
-		v2m_iofpga {
-			str = "V2M IOFPGA";
-			base = <0x00000000 V2M_IOFPGA_BASE>;
-			size = <0x00000000 V2M_IOFPGA_SIZE>;
-			attr = <RD_MEM_DEVICE>;
-		};
-
-		device0 {
-			str = "Device 0";
-			base = <0x00000000 DEVICE0_BASE>;
-			size = <0x00000000 DEVICE0_SIZE>;
-			attr = <RD_MEM_DEVICE>;
-		};
-
-		spm_buffer {
-			str = "SPM buffer";
-			base = <0x00000000 CACTUS_SPM_BUF_BASE>;
-			size = <0x00000000 CACTUS_SPM_BUF_SIZE>;
-			attr = <RD_MEM_NORMAL_SPM_SP_SHARED_MEM>;
-		};
-
-		ns_buffer {
-			str = "NS buffer";
-			base = <0x00000000 CACTUS_NS_BUF_BASE>;
-			size = <0x00000000 CACTUS_NS_BUF_SIZE>;
-			attr = <RD_MEM_NORMAL_CLIENT_SHARED_MEM>;
-		};
-
-		test_memory {
-			str = "Test memory";
-			base = <0x00000000 CACTUS_TEST_MEM_BASE>;
-			size = <0x00000000 CACTUS_TEST_MEM_SIZE>;
-			attr = <RD_MEM_NORMAL_MISCELLANEOUS>;
+	memory-regions {
+		compatible = "arm,spci-manifest-memory-regions";
+		test-memory {
+			description = "Test Memory";
+			pages-count = <32>; /* 128KiB with 4KiB pages */
+			base-address = <0x00000000 0x21000000>;
+			attributes = <0x0>;
 		};
 	};
 
-	notifications {
-		notification_0 {
-			attr = <0>;
-			pe = <0>;
+	device-regions {
+		compatible = "arm,spci-manifest-device-regions";
+		attributes = <0x0>;
+		test-reg {
+			reg = <0x10000008 0x00000001 1>; /* Arbitrary test address */
+			smmu-id = <1>;
+			stream-ids = <0x0 0x1>;
+			interrupts = <0x2 0x3>,
+					<0x4 0x5>;
 		};
 	};
 
-	services {
-		test_service_1 {
-			uuid = <CACTUS_SERVICE1_UUID_RD>;
-
-			accessibility = <(RD_SERV_ACCESS_SECURE |
-					  RD_SERV_ACCESS_EL3 |
-					  RD_SERV_ACCESS_NORMAL)>;
-			request_type = <(RD_SERV_SUPPORT_BLOCKING |
-					 RD_SERV_SUPPORT_NON_BLOCKING)>;
-			connection_quota = <10>;
-			sec_mem_size = <0>;
-			interrupt_num = <0>;
-
-			required_uuids {
-				uuid_0 = <CACTUS_SERVICE2_UUID_RD>;
-			};
-		};
-
-		test_service_2 {
-			uuid = <CACTUS_SERVICE2_UUID_RD>;
-
-			accessibility = <(RD_SERV_ACCESS_SECURE |
-					  RD_SERV_ACCESS_EL3 |
-					  RD_SERV_ACCESS_NORMAL)>;
-			request_type = <(RD_SERV_SUPPORT_BLOCKING |
-					 RD_SERV_SUPPORT_NON_BLOCKING)>;
-			connection_quota = <10>;
-			sec_mem_size = <0>;
-			interrupt_num = <0>;
-		};
-	};
 };
