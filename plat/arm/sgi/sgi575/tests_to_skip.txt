@@ -7,3 +7,4 @@
 # System suspend is not supported as there are no wakeup sources in SGI-575 FVP
 PSCI STAT/Stats test cases after system suspend
 PSCI System Suspend Validation
+PSCI NODE_HW_STATE
