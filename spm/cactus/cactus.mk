@@ -70,6 +70,8 @@ $(CACTUS_DTB) : spm/cactus/cactus.dts
 	@echo "  DTBGEN  spm/cactus/cactus.dts"
 	${Q}tools/generate_dtb/generate_dtb.sh \
 		cactus spm/cactus/cactus.dts $(BUILD_PLAT)
+	${Q}tools/generate_json/generate_json.sh \
+		cactus $(PLAT) $(BUILD_TYPE)
 	@echo
 	@echo "Built $@ successfully"
 	@echo

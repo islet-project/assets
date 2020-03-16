@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * This file is a Partition Manifest (PM) for a minimal Secure Partition (SP)
+ * that has additional optional properties defined.
+ *
+ */
+
+/dts-v1/;
+
+/ {
+	compatible = "arm,spci-manifest-1.0";
+
+	/* Properties */
+	description = "Base-1";
+	spci-version = <0x00000009>; /* 31:16 - Major, 15:0 - Minor */
+	uuid = <0xd1582309 0xf02347b9 0x827c4464 0xf5578fc8>;
+	id = <2>;
+	auxiliary-id = <0xae>;
+	stream-endpoint-ids = <0 1 2 3>;
+	execution-ctx-count = <1>;
+	exception-level = <2>; /* S-EL1 */
+	execution-state = <0>; /* AARCH64 */
+	load-address = <0x7100000>;
+	entrypoint-offset = <0x00001000>;
+	xlat-granule = <0>; /* 4KiB */
+	boot-order = <0>;
+	messaging-method = <0>; /* Direct messaging only */
+	run-time-model = <0>; /* Run to completion */
+
+	/* Boot protocol */
+	gp-register-num = <0x0>;
+
+	rx_tx-info {
+		compatible = "arm,spci-manifest-rx_tx-buffer";
+
+		description = "NS RX/TX Buffer";
+		pages-count = <1>;
+		attributes = <0x0>;
+		base-address = <0x7200000>;
+	};
+
+	memory-regions {
+		compatible = "arm,spci-manifest-memory-regions";
+		test-memory {
+			description = "Test Memory";
+			pages-count = <32>; /* 128KiB with 4KiB pages */
+			base-address = <0x00000000 0x21000000>;
+			attributes = <0x0>;
+		};
+	};
+
+	device-regions {
+		compatible = "arm,spci-manifest-device-regions";
+		attributes = <0x0>;
+		test-reg {
+			reg = <0x10000008 0x00000001 1>; /* Arbitrary test address */
+			smmu-id = <1>;
+			stream-ids = <0x0 0x1>;
+			interrupts = <0x2 0x3>,
+					<0x4 0x5>;
+		};
+	};
+
+};
