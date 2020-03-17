@@ -1,6 +1,11 @@
 #
-# Copyright (c) 2019-2020, Arm Limited. All rights reserved.
+# Copyright (c) 2020, NVIDIA Coprporation. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+# Tegra194 platforms cannot be woken up from CPU_SUSPEND by an SGI
+PSCI Affinity Info/Affinity info level0 powerdown
+PSCI CPU Suspend/CPU suspend to standby at level 0
+PSCI CPU Suspend/CPU suspend to standby at level 1
+PSCI CPU Suspend/CPU suspend to standby at level 2
