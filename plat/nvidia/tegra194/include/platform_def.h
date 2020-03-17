@@ -139,6 +139,7 @@
 /*******************************************************************************
  * Platform MMIO devices
  ******************************************************************************/
+#define TEGRA194_MC_BASE		U(0x02C10000)
 #define TEGRA194_GICD_BASE		U(0x03881000)
 #define TEGRA194_GICC_BASE		U(0x03882000)
 #define TEGRA194_SPE_BASE		U(0x0C168000)
@@ -146,5 +147,15 @@
 #define TEGRA194_RTC_BASE		U(0x0C2A0000)
 #define TEGRA194_TMRUS_BASE		U(0x0C2E0000)
 #define SYS_CNT_BASE1			TEGRA194_TMRUS_BASE
+#define TEGRA194_SCRATCH_BASE		U(0x0C390000)
+
+#ifndef __ASSEMBLY__
+
+/*
+ * Platform functions
+ */
+void tegra194_pwr_mgmt_setup(void);
+
+#endif /* __ASSEMBLY__ */
 
 #endif /* __PLATFORM_DEF_H__ */
