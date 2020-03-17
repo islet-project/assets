@@ -36,6 +36,8 @@ static const mmap_region_t tegra194_mmap[] = {
 			MT_DEVICE | MT_RW | MT_NS),
 	MAP_REGION_FLAT(TEGRA194_TMRUS_BASE, 0x1000, /* 4KB */
 			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(TEGRA194_AOWAKE_BASE, 0x1000, /* 4KB */
+			MT_DEVICE | MT_RW | MT_NS),
 	MAP_REGION_FLAT(TEGRA194_SCRATCH_BASE, 0x1000, /* 4KB */
 			MT_DEVICE | MT_RW | MT_NS),
 	MAP_REGION_FLAT(DRAM_BASE + TFTF_NVM_OFFSET, TFTF_NVM_SIZE,
@@ -69,4 +71,7 @@ void tftf_platform_setup(void)
 
 	/* Setup power management dependencies */
 	tegra194_pwr_mgmt_setup();
+
+	/* Configure system suspend wake sources */
+	tegra194_set_rtc_as_wakeup_source();
 }
