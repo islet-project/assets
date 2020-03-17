@@ -81,7 +81,7 @@ static test_result_t test_multicore_spurious_interrupt_non_lead_fn(void)
 				if ((smc_ret.ret1 != TEST_VALUE_1 * 2) ||
 				    (smc_ret.ret2 != TEST_VALUE_2 * 2)) {
 					tftf_testcase_printf(
-						"SMC @ CPU %d returned 0x0 0x%llX 0x%llX instead of 0x0 0x%X 0x%X\n",
+						"SMC @ CPU %d returned 0x0 0x%llx 0x%llx instead of 0x0 0x%x 0x%x\n",
 						core_pos,
 						(unsigned long long)smc_ret.ret1,
 						(unsigned long long)smc_ret.ret2,
@@ -99,7 +99,7 @@ static test_result_t test_multicore_spurious_interrupt_non_lead_fn(void)
 			} else {
 				/* Error */
 				tftf_testcase_printf(
-					"SMC @ lead CPU returned 0x%llX 0x%llX 0x%llX\n",
+					"SMC @ lead CPU returned 0x%llx 0x%llx 0x%llx\n",
 					(unsigned long long)smc_ret.ret0,
 					(unsigned long long)smc_ret.ret1,
 					(unsigned long long)smc_ret.ret2);
@@ -111,6 +111,8 @@ static test_result_t test_multicore_spurious_interrupt_non_lead_fn(void)
 		if (result == TEST_RESULT_FAIL)
 			break;
 	}
+
+	dsbsy();
 
 	/* Signal to the lead CPU that the calling CPU has finished the test */
 	tftf_send_event(&cpu_ready[core_pos]);
@@ -203,7 +205,7 @@ test_result_t test_multicore_spurious_interrupt(void)
 
 		core_pos = platform_get_core_pos(cpu_mpid);
 		tftf_wait_for_event(&cpu_ready[core_pos]);
-		tftf_init_event(&cpu_ready[i]);
+		tftf_init_event(&cpu_ready[core_pos]);
 	}
 
 	/* Wait until tftf_init_event is seen by all cores */
@@ -249,6 +251,9 @@ test_result_t test_multicore_spurious_interrupt(void)
 
 	test_finished_flag = 1;
 
+	/* Make sure the flag update is seen by all cores */
+	dsbsy();
+
 	/* Wait for non-lead CPUs to finish the test */
 	for_each_cpu(cpu_node) {
 		cpu_mpid = tftf_get_mpidr_from_node(cpu_node);
@@ -274,6 +279,9 @@ test_result_t test_multicore_spurious_interrupt(void)
 		total_spurious_count += spurious_count[i];
 		total_preempted_count += preempted_count[i];
 	}
+
+	mp_printf("Count Spurious= %d; Preempted= %d\n", total_spurious_count,
+		total_preempted_count);
 
 	/* Check that the test has tested the behaviour. */
 	if (total_spurious_count == 0) {
