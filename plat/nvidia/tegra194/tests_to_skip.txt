@@ -4,8 +4,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+################################################################################
+# Disable the following tests from tests-psci.xml as a result
+################################################################################
+
 # Tegra194 platforms cannot be woken up from CPU_SUSPEND by an SGI
 PSCI Affinity Info/Affinity info level0 powerdown
 PSCI CPU Suspend/CPU suspend to standby at level 0
 PSCI CPU Suspend/CPU suspend to standby at level 1
 PSCI CPU Suspend/CPU suspend to standby at level 2
+PSCI System Suspend Validation/Suspend system with cores in suspend
+
+# Tegra194 platforms enter system suspend only from the boot core
+PSCI System Suspend Validation/system suspend from all cores
