@@ -149,6 +149,12 @@
 #define SYS_CNT_BASE1			TEGRA194_TMRUS_BASE
 #define TEGRA194_AOWAKE_BASE		U(0x0C370000)
 #define TEGRA194_SCRATCH_BASE		U(0x0C390000)
+#define TEGRA194_SMMU0_BASE		U(0x12000000)
+
+/*******************************************************************************
+ * DRAM carveout to save the SMMU context
+ ******************************************************************************/
+#define TEGRA194_SMMU_CTX_BASE		(DRAM_END - 0x1000)
 
 #ifndef __ASSEMBLY__
 
