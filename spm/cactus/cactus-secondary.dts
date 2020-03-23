@@ -16,14 +16,14 @@
 	/* Properties */
 	description = "Base-1";
 	spci-version = <0x00000009>; /* 31:16 - Major, 15:0 - Minor */
-	uuid = <0xb4b5671e 0x4a904fe1 0xb81ffb13 0xdae1dacb>;
-	id = <1>;
+	uuid = <0xd1582309 0xf02347b9 0x827c4464 0xf5578fc8>;
+	id = <2>;
 	auxiliary-id = <0xae>;
 	stream-endpoint-ids = <0 1 2 3>;
 	execution-ctx-count = <1>;
 	exception-level = <2>; /* S-EL1 */
 	execution-state = <0>; /* AARCH64 */
-	load-address = <0x7000000>;
+	load-address = <0x7100000>;
 	entrypoint-offset = <0x00001000>;
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;

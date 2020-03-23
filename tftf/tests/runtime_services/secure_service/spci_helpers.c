@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,172 +8,101 @@
 #include <smccc.h>
 #include <spci_helpers.h>
 #include <spci_svc.h>
-#include <tftf_lib.h>
 
-/* Returns a SPCI error code. On success, it also returns a 16 bit handle. */
-int spci_service_handle_open(uint16_t client_id, uint16_t *handle,
-			     uint32_t uuid1, uint32_t uuid2,
-			     uint32_t uuid3, uint32_t uuid4)
-{
-	int32_t ret;
-
-	smc_args get_handle_smc_args = {
-		SPCI_SERVICE_HANDLE_OPEN,
-		uuid1, uuid2, uuid3, uuid4,
-		0, 0, /* Reserved - MBZ */
-		client_id
-	};
-
-	smc_ret_values smc_ret = tftf_smc(&get_handle_smc_args);
-
-	ret = smc_ret.ret0;
-	if (ret != SPCI_SUCCESS)
-		return ret;
-
-	uint32_t x1 = smc_ret.ret1;
-
-	if ((x1 & 0x0000FFFF) != 0) {
-		tftf_testcase_printf("SPCI_SERVICE_HANDLE_OPEN returned x1 = 0x%08x\n", x1);
-		return SPCI_TFTF_ERROR;
-	}
-
-	/* The handle is returned in the top 16 bits */
-	*handle = (x1 >> 16) & 0xFFFF;
-
-	return SPCI_SUCCESS;
-}
-
-/* Invokes SPCI_SERVICE_HANDLE_CLOSE. Returns a SPCI error code. */
-int spci_service_handle_close(uint16_t client_id, uint16_t handle)
-{
-	smc_args close_handle_smc_args = {
-		SPCI_SERVICE_HANDLE_CLOSE,
-		client_id | (handle << 16)
-	};
-
-	smc_ret_values smc_ret = tftf_smc(&close_handle_smc_args);
-
-	return (int32_t)(uint32_t)smc_ret.ret0;
-}
-
-/* Returns a SPCI error code. On success, it also returns a token. */
-int spci_service_request_start(u_register_t x1, u_register_t x2,
-			       u_register_t x3, u_register_t x4,
-			       u_register_t x5, u_register_t x6,
-			       uint16_t client_id, uint16_t handle,
-			       uint32_t *token)
-{
-	int32_t ret;
-
-	smc_args request_smc_args = {
-		SPCI_SERVICE_REQUEST_START_AARCH64,
-		x1, x2, x3, x4, x5, x6,
-		client_id | (handle << 16)
-	};
-
-	smc_ret_values smc_ret = tftf_smc(&request_smc_args);
-
-	ret = (int32_t)(uint32_t)smc_ret.ret0;
-	if (ret != SPCI_SUCCESS)
-		return ret;
-
-	*token = smc_ret.ret1;
-
-	return SPCI_SUCCESS;
-}
-
-/*
- * Returns a SPCI error code. On success, it also returns x1-x3. Any of the
- * pointers x1-x3 may be NULL in case the caller doesn't need that value.
+/*-----------------------------------------------------------------------------
+ * SPCI_RUN
+ *
+ * Parameters
+ *     uint32 Function ID (w0): 0x8400006D
+ *     uint32 Target information (w1): Information to identify target SP/VM
+ *         -Bits[31:16]: ID of SP/VM.
+ *         -Bits[15:0]: ID of vCPU of SP/VM to run.
+ *     Other Parameter registers w2-w7/x2-x7: Reserved (MBZ)
+ *
+ * On failure, returns SPCI_ERROR in w0 and error code in w2:
+ *     -INVALID_PARAMETERS: Unrecognized endpoint or vCPU ID
+ *     -NOT_SUPPORTED: This function is not implemented at this SPCI instance
+ *     -DENIED: Callee is not in a state to handle this request
+ *     -BUSY: vCPU is busy and caller must retry later
+ *     -ABORTED: vCPU or VM ran into an unexpected error and has aborted
  */
-int spci_service_request_resume(uint16_t client_id, uint16_t handle,
-				uint32_t token, u_register_t *x1,
-				u_register_t *x2, u_register_t *x3)
+smc_ret_values spci_run(uint32_t dest_id, uint32_t vcpu_id)
 {
-	int32_t ret;
-
-	smc_args request_resume_smc = {
-		SPCI_SERVICE_REQUEST_RESUME_AARCH64,
-		token, 0, 0, 0, 0, 0,
-		client_id | (handle << 16)
+	smc_args args = {
+		SPCI_MSG_RUN,
+		(dest_id << 16) | vcpu_id,
+		0, 0, 0, 0, 0, 0
 	};
 
-	smc_ret_values smc_ret = tftf_smc(&request_resume_smc);
-
-	ret = (int32_t)(uint32_t)smc_ret.ret0;
-	if (ret != SPCI_SUCCESS)
-		return ret;
-
-	if (x1 != NULL)
-		*x1 = smc_ret.ret1;
-	if (x2 != NULL)
-		*x2 = smc_ret.ret2;
-	if (x3 != NULL)
-		*x3 = smc_ret.ret3;
-
-	return SPCI_SUCCESS;
+	return tftf_smc(&args);
 }
 
-/*
- * Returns a SPCI error code. On success, it also returns x1-x3. Any of the
- * pointers x1-x3 may be NULL in case the caller doesn't need that value.
+/*-----------------------------------------------------------------------------
+ * SPCI_MSG_SEND_DIRECT_REQ
+ *
+ * Parameters
+ *     uint32 Function ID (w0): 0x8400006F / 0xC400006F
+ *     uint32 Source/Destination IDs (w1): Source and destination endpoint IDs
+ *         -Bit[31:16]: Source endpoint ID
+ *         -Bit[15:0]: Destination endpoint ID
+ *     uint32/uint64 (w2/x2) - RFU MBZ
+ *     w3-w7 - Implementation defined
+ *
+ * On failure, returns SPCI_ERROR in w0 and error code in w2:
+ *     -INVALID_PARAMETERS: Invalid endpoint ID or non-zero reserved register
+ *     -DENIED: Callee is not in a state to handle this request
+ *     -NOT_SUPPORTED: This function is not implemented at this SPCI instance
+ *     -BUSY: Message target is busy
+ *     -ABORTED: Message target ran into an unexpected error and has aborted
  */
-int spci_service_get_response(uint16_t client_id, uint16_t handle,
-			      uint32_t token, u_register_t *x1,
-			      u_register_t *x2, u_register_t *x3)
+static smc_ret_values __spci_msg_send_direct_req32_5(uint32_t source_id,
+						     uint32_t dest_id,
+						     uint32_t arg0,
+						     uint32_t arg1,
+						     uint32_t arg2,
+						     uint32_t arg3,
+						     uint32_t arg4)
 {
-	int32_t ret;
-
-	smc_args get_response_smc = {
-		SPCI_SERVICE_GET_RESPONSE_AARCH64,
-		token, 0, 0, 0, 0, 0,
-		client_id | (handle << 16)
+	smc_args args = {
+		SPCI_MSG_SEND_DIRECT_REQ_SMC32,
+		(source_id << 16) | dest_id,
+		0,
+		arg0, arg1, arg2, arg3, arg4
 	};
 
-	smc_ret_values smc_ret = tftf_smc(&get_response_smc);
-
-	ret = (int32_t)(uint32_t)smc_ret.ret0;
-	if (ret != SPCI_SUCCESS)
-		return ret;
-
-	if (x1 != NULL)
-		*x1 = smc_ret.ret1;
-	if (x2 != NULL)
-		*x2 = smc_ret.ret2;
-	if (x3 != NULL)
-		*x3 = smc_ret.ret3;
-
-	return SPCI_SUCCESS;
+	return tftf_smc(&args);
 }
 
-/* Returns a SPCI error code. On success, it also returns the returned values. */
-int spci_service_request_blocking(u_register_t x1, u_register_t x2,
-				  u_register_t x3, u_register_t x4,
-				  u_register_t x5, u_register_t x6,
-				  uint16_t client_id, uint16_t handle,
-				  u_register_t *rx1, u_register_t *rx2,
-				  u_register_t *rx3)
+/* Direct message send helper accepting a single 32b message argument */
+smc_ret_values spci_msg_send_direct_req(uint32_t source_id, uint32_t dest_id,
+					uint32_t message)
 {
-	int32_t ret;
+	return __spci_msg_send_direct_req32_5(source_id, dest_id,
+					      message, 0, 0, 0, 0);
+}
 
-	smc_args request_smc_args = {
-		SPCI_SERVICE_REQUEST_BLOCKING_AARCH64,
-		x1, x2, x3, x4, x5, x6,
-		client_id | (handle << 16)
+static smc_ret_values __spci_msg_send_direct_req64_5(uint32_t source_id,
+						     uint32_t dest_id,
+						     uint64_t arg0,
+						     uint64_t arg1,
+						     uint64_t arg2,
+						     uint64_t arg3,
+						     uint64_t arg4)
+{
+	smc_args args = {
+		SPCI_MSG_SEND_DIRECT_REQ_SMC64,
+		(source_id << 16) | dest_id,
+		0,
+		arg0, arg1, arg2, arg3, arg4
 	};
 
-	smc_ret_values smc_ret = tftf_smc(&request_smc_args);
+	return tftf_smc(&args);
+}
 
-	ret = (int32_t)(uint32_t)smc_ret.ret0;
-	if (ret != SPCI_SUCCESS)
-		return ret;
-
-	if (rx1 != NULL)
-		*rx1 = smc_ret.ret1;
-	if (rx2 != NULL)
-		*rx2 = smc_ret.ret2;
-	if (rx3 != NULL)
-		*rx3 = smc_ret.ret3;
-
-	return SPCI_SUCCESS;
+/* Direct message send helper accepting a single 64b message argument */
+smc_ret_values spci_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
+					uint64_t message)
+{
+	return __spci_msg_send_direct_req64_5(source_id, dest_id,
+					      message, 0, 0, 0, 0);
 }

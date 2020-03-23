@@ -1,28 +1,15 @@
 /*
- * Copyright (c) 2013-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2013-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <asm_macros.S>
 
-	.globl	asm_tftf_smc64
-
 	.section        .text, "ax"
 
+	.macro smccc_conduit _conduit
 
-/* ---------------------------------------------------------------------------
- * smc_ret_values asm_tftf_smc64(uint32_t fid,
- *				 u_register_t arg1,
- *				 u_register_t arg2,
- *				 u_register_t arg3,
- *				 u_register_t arg4,
- *				 u_register_t arg5,
- *				 u_register_t arg6,
- *				 u_register_t arg7);
- * ---------------------------------------------------------------------------
- */
-func asm_tftf_smc64
 	/*
 	 * According to the AAPCS64, x8 is the indirect result location
 	 * register. It contains the address of the memory block that the caller
@@ -34,8 +21,8 @@ func asm_tftf_smc64
 	 */
 	str	x8, [sp, #-16]!
 
-	/* SMC arguments are already stored in x0-x7 */
-	smc	#0
+	/* "Conduit" arguments are already stored in x0-x7 */
+	\_conduit	#0
 
 	/* Pop x8 into a caller-saved register */
 	ldr	x9, [sp], #16
@@ -48,5 +35,41 @@ func asm_tftf_smc64
 	stp	x2, x3, [x9, #16]
 	stp	x4, x5, [x9, #32]
 	stp	x6, x7, [x9, #48]
+
+	.endm
+
+/* ---------------------------------------------------------------------------
+ * smc_ret_values asm_tftf_smc64(uint32_t fid,
+ *				 u_register_t arg1,
+ *				 u_register_t arg2,
+ *				 u_register_t arg3,
+ *				 u_register_t arg4,
+ *				 u_register_t arg5,
+ *				 u_register_t arg6,
+ *				 u_register_t arg7);
+ * ---------------------------------------------------------------------------
+ */
+	.globl	asm_tftf_smc64
+
+func asm_tftf_smc64
+	smccc_conduit smc
 	ret
 endfunc asm_tftf_smc64
+
+/* ---------------------------------------------------------------------------
+ * hvc_ret_values asm_tftf_hvcc64(uint32_t fid,
+ *				 u_register_t arg1,
+ *				 u_register_t arg2,
+ *				 u_register_t arg3,
+ *				 u_register_t arg4,
+ *				 u_register_t arg5,
+ *				 u_register_t arg6,
+ *				 u_register_t arg7);
+ * ---------------------------------------------------------------------------
+ */
+	.globl	asm_tftf_hvc64
+
+func asm_tftf_hvc64
+	smccc_conduit hvc
+	ret
+endfunc asm_tftf_hvc64
