@@ -14,7 +14,7 @@
 #include <utils_def.h>
 
 /* timer granularity in ms */
-#define TEGRA194_RTC_STEP_VALUE_MS		U(2)
+#define TEGRA194_RTC_STEP_VALUE_MS		U(5)
 
 /* IRQ value for Tegra194 Timer0 */
 #define TEGRA194_RTC_IRQ			U(42)
