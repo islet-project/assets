@@ -14,17 +14,14 @@
 #include <xlat_tables_v2.h>
 
 /*
- * The memory map currently provides the following apertures
- *
- *	GIC Distributor : 4KB
- *	GIC CPU Interface : 4KB
- *	UARTC for the console : 128KB
- *	RTC : 4KB
- *	us Timer : 4KB
- *	DRAM aperture for NVM : 256MB
+ * Memory map
  */
 static const mmap_region_t tegra194_mmap[] = {
 	MAP_REGION_FLAT(TEGRA194_MC_BASE, 0x2000, /* 8KB */
+			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(TEGRA194_TMR0_BASE, 0x1000, /* 4KB */
+			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(TEGRA194_WDT0_BASE, 0x1000, /* 4KB */
 			MT_DEVICE | MT_RW | MT_NS),
 	MAP_REGION_FLAT(TEGRA194_GICD_BASE, 0x1000, /* 4KB */
 			MT_DEVICE | MT_RW | MT_NS),

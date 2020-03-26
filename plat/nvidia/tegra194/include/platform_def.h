@@ -140,6 +140,8 @@
  * Platform MMIO devices
  ******************************************************************************/
 #define TEGRA194_MC_BASE		U(0x02C10000)
+#define TEGRA194_TMR0_BASE		U(0x03020000)
+#define TEGRA194_WDT0_BASE		U(0x030c0000)
 #define TEGRA194_GICD_BASE		U(0x03881000)
 #define TEGRA194_GICC_BASE		U(0x03882000)
 #define TEGRA194_SPE_BASE		U(0x0C168000)

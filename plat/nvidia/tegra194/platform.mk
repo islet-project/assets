@@ -18,7 +18,8 @@ PLAT_SOURCES		:=	drivers/arm/gic/arm_gic_v2.c			\
 				plat/nvidia/tegra194/setup.c			\
 				plat/nvidia/tegra194/topology.c			\
 				plat/nvidia/tegra194/timers.c			\
-				plat/nvidia/tegra194/wake.c
+				plat/nvidia/tegra194/wake.c			\
+				plat/nvidia/tegra194/watchdog.c
 
 PLAT_TESTS_SKIP_LIST	:=	plat/nvidia/tegra194/tests_to_skip.txt
 
