@@ -4,6 +4,3 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-# Fails on FVP_Base_Cortex-A55x4+Cortex-A76x2.
-# This is under investigation. Disable the test in the meantime.
-PSCI STAT/Stats test cases after system suspend
