@@ -8,7 +8,7 @@ Trusted Firmware-A Tests Documentation
    Home<self>
    about/index
    getting_started/index
-   user-guide
+   process/index
    porting-guide
    implementing-tests
    design
@@ -65,7 +65,6 @@ project.
 
 *Copyright (c)2019, Arm Limited. All rights reserved.*
 
-.. _FVP: https://developer.arm.com/products/system-design/fixed-virtual-platforms
 .. _Juno Arm Development Platform: https://developer.arm.com/products/system-design/development-boards/juno-development-board
 
 .. _Power State Coordination Interface (PSCI): PSCI_
@@ -85,6 +84,3 @@ project.
 .. _Firmware update: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst
 .. _EL3 payload: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#el3-payloads-alternative-boot-flow
 .. _Secure partition: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/secure-partition-manager-design.rst
-
-.. _issue tracker: https://developer.trustedfirmware.org/project/board/9/
-.. _mailing list: https://lists.trustedfirmware.org/mailman/listinfo/tf-a-tests

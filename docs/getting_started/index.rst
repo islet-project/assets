@@ -5,6 +5,10 @@ Getting Started
    :maxdepth: 1
 
    requirements
+   obtain
+   build
+   build-options
+   run
 
 This document describes how to build the Trusted Firmware-A Tests (TF-A Tests)
 and run them on a set of platforms. It assumes that the reader has previous

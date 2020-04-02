@@ -44,3 +44,5 @@ NOTE:
 --------------
 
 *Copyright (c) 2019, Arm Limited. All rights reserved.*
+
+.. _FVP: https://developer.arm.com/products/system-design/fixed-virtual-platforms

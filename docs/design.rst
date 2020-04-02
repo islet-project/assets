@@ -1,5 +1,5 @@
-Design
-======
+Framework Design
+================
 
 This document provides some details about the internals of the TF-A Tests
 design. It is incomplete at the moment.
@@ -242,5 +242,4 @@ state.
 
 *Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
 
-.. _Summary of build options: user-guide.rst#summary-of-build-options
 .. _Firmware Update: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst
