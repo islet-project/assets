@@ -23,28 +23,6 @@ mainly interacts with TF-A through its SMC interface.
 It provides a basis for TF-A developers to validate their own platform ports and
 add their own test cases.
 
-The following TF-A features are currently tested to some extent (this list is
-not exhaustive):
-
--  `SMC Calling Convention`_
--  `Power State Coordination Interface (PSCI)`_
--  `Software Delegated Exception Interface (SDEI)`_
--  `Performance Measurement Framework (PMF)`_
--  Communication and interaction with the `Test Secure Payload (TSP)`_
--  `Firmware update`_ (or recovery mode)
--  `EL3 payload`_ boot flow
--  `Secure partition`_ support
-
-These tests are not a compliance test suite for the Arm interface standards used
-in TF-A (such as PSCI).
-
-They do not cover 100% of the TF-A code. The fact that all tests pass does not
-mean that TF-A is free of bugs.
-
-They are not reference code. They should not be considered as the official way
-to test hardware/firmware features. Instead, they are provided as example code
-to experiment with and improve on.
-
 Getting started
 ---------------
 
