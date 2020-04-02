@@ -17,8 +17,8 @@ not exhaustive):
 -  `Performance Measurement Framework (PMF)`_
 -  Communication and interaction with the `Test Secure Payload (TSP)`_
 -  `Firmware update`_ (or recovery mode)
--  `EL3 payload`_ boot flow
--  `Secure partition`_ support
+-  `EL3 payload boot flow`_
+-  Secure partition support
 
 These tests are not a compliance test suite for the Arm interface standards used
 in TF-A (such as PSCI).
@@ -43,3 +43,15 @@ Still to come
 --------------
 
 *Copyright (c) 2019, Arm Limited. All rights reserved.*
+
+.. _SMC Calling Convention: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf
+.. _Power State Coordination Interface (PSCI): PSCI_
+.. _PSCI: http://infocenter.arm.com/help/topic/com.arm.doc.den0022d/Power_State_Coordination_Interface_PDD_v1_1_DEN0022D.pdf
+.. _Software Delegated Exception Interface (SDEI): SDEI_
+.. _SDEI: http://infocenter.arm.com/help/topic/com.arm.doc.den0054a/ARM_DEN0054A_Software_Delegated_Exception_Interface.pdf
+.. _Performance Measurement framework (PMF): PMF_
+.. _PMF: https://trustedfirmware-a.readthedocs.io/en/latest/design/firmware-design.html#performance-measurement-framework
+.. _Test Secure Payload (TSP): TSP_
+.. _TSP: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/tree/bl32/tsp
+.. _Firmware update: https://trustedfirmware-a.readthedocs.io/en/latest/components/firmware-update.html
+.. _EL3 payload boot flow: https://trustedfirmware-a.readthedocs.io/en/latest/design/alt-boot-flows.html#el3-payloads-alternative-boot-flow

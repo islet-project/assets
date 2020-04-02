@@ -28,37 +28,22 @@ Getting started
 
 Get the TF-A Tests source code from `trustedfirmware.org`_.
 
-See the `User Guide`_ for instructions on how to install, build and use the TF-A
-Tests.
+See content under the *Getting Started* chapter for instructions on how to
+install, build and use the TF-A Tests.
 
-See the `Design Guide`_ for information on how the TF-A Tests internally work.
+See :ref:`Framework Design` for information on how the TF-A Tests work
+internally.
 
-See the `Porting Guide`_ for information about how to use this software on
-another Armv8-A platform.
+See content under the *Porting* chapter for information about how to use this
+software on another Armv8-A platform.
 
-See the `Contributing Guidelines`_ for information on how to contribute to this
-project.
+See content under the *Process* chapter for information on how to contribute to
+this project.
 
 --------------
 
 *Copyright (c)2019, Arm Limited. All rights reserved.*
 
 .. _Juno Arm Development Platform: https://developer.arm.com/products/system-design/development-boards/juno-development-board
-
-.. _Power State Coordination Interface (PSCI): PSCI_
-.. _PSCI: http://infocenter.arm.com/help/topic/com.arm.doc.den0022d/Power_State_Coordination_Interface_PDD_v1_1_DEN0022D.pdf
-.. _Software Delegated Exception Interface (SDEI): SDEI_
-.. _SDEI: http://infocenter.arm.com/help/topic/com.arm.doc.den0054a/ARM_DEN0054A_Software_Delegated_Exception_Interface.pdf
-.. _SMC Calling Convention: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf
-
 .. _trustedfirmware.org: https://git.trustedfirmware.org/TF-A/tf-a-tests.git
-
-.. _Trusted Firmware-A (TF-A): TF-A_
-.. _TF-A: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about
-.. _Test Secure Payload (TSP): TSP_
-.. _TSP: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/tree/bl32/tsp
-.. _Performance Measurement Framework (PMF): PMF_
-.. _PMF: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-design.rst#performance-measurement-framework
-.. _Firmware update: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst
-.. _EL3 payload: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#el3-payloads-alternative-boot-flow
-.. _Secure partition: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/secure-partition-manager-design.rst
+.. _Trusted Firmware-A (TF-A): https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git

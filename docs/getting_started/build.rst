@@ -33,7 +33,7 @@ Building TF-A Tests
    Notes:
 
    -  If ``PLAT`` is not specified, ``fvp`` is assumed by default. See the
-      `Summary of build options`_ for more information on available build
+      `TF-A documentation`_ for more information on available build
       options.
 
    -  By default this produces a release version of the build. To produce a
@@ -101,17 +101,17 @@ command from the TF-A root directory:
 
     BL33=tftf.bin make PLAT=<platform> fip
 
-Please refer to the `TF-A User guide`_ for further details.
+Please refer to the `TF-A documentation`_ for further details.
 
 NS_BL1U and NS_BL2U test images
 ```````````````````````````````
 
-``ns_bl1u.bin`` and ``ns_bl2u.bin`` are test images that exercise the `Firmware
-Update`_ (FWU) feature of TF-A [#]_. Throughout this document, they will be
-referred as the `FWU test images`.
+``ns_bl1u.bin`` and ``ns_bl2u.bin`` are test images that exercise the *Firmware
+Update (FWU)* feature of TF-A [#]_. Throughout this document, they will be
+referred as the *FWU test images*.
 
 In addition to updating the firmware, the FWU test images also embed some tests
-that exercise the `FWU state machine`_ implemented in the TF-A. They send valid
+that exercise the FWU state machine implemented in the TF-A. They send valid
 and invalid SMC requests to the TF-A BL1 image in order to test its robustness.
 
 NS_BL1U test image
@@ -158,6 +158,8 @@ following command:
 
    make PLAT=<platform> ns_bl2u
 
+.. _build_putting_together:
+
 Putting it all together
 '''''''''''''''''''''''
 
@@ -180,8 +182,8 @@ Once that's done, they must be combined in the right way.
 
 -  ``ns_bl2u.bin`` must be injected into the ``FWU_FIP`` image. This might be
    achieved by setting ``NS_BL2U=ns_bl2u.bin`` when building the ``FWU_FIP``
-   image out of the TF-A repository. Please refer to the section `Building FIP
-   images with support for Trusted Board Boot`_ in the TF-A User Guide.
+   image out of the TF-A repository. Please refer to the section Building FIP
+   images with support for Trusted Board Boot in the `TF-A documentation`_.
 
 -  ``tftf.bin`` must be injected in the standard FIP image, as explained
    in section `TFTF test image`_.
@@ -197,15 +199,15 @@ the original, uncorrupted FIP image.
 EL3 test payload
 ````````````````
 
-``el3_payload.bin`` is a test image exercising the alternative `EL3 payload boot
-flow`_ in TF-A. Refer to the `EL3 test payload README file`_ for more details
+``el3_payload.bin`` is a test image exercising the alternative EL3 payload boot
+flow in TF-A. Refer to the `EL3 test payload README file`_ for more details
 about its behaviour and how to build and run it.
 
 SPM test images
 ```````````````
 
-This repository contains 3 Secure Partitions that exercise the `Secure Partition
-Manager`_ (SPM) in TF-A [#]_. Cactus-MM is designed to test the SPM
+This repository contains 3 Secure Partitions that exercise the Secure Partition
+Manager (SPM) in TF-A [#]_. Cactus-MM is designed to test the SPM
 implementation based on the `ARM Management Mode Interface`_ (MM), while Cactus
 and Ivy can test the SPM implementation based on the SPCI and SPRT draft
 specifications. Note that it isn't possible to use both communication mechanisms
@@ -265,30 +267,23 @@ and the following commands can be used to build the tests:
         -i path/to/cactus.bin:path/to/cactus.dtb \
         -i path/to/ivy.bin:path/to/ivy.dtb
 
-Please refer to the `TF-A User guide`_ for further details.
+Please refer to the `TF-A documentation`_ for further details.
 
 --------------
 
 .. [#] Therefore, the Trusted Board Boot feature must be enabled in TF-A for
-       the FWU test images to work. Please refer the `TF-A User guide`_ for
+       the FWU test images to work. Please refer the `TF-A documentation`_ for
        further details.
 
 .. [#] Therefore, the Secure Partition Manager must be enabled in TF-A for
-       any of the test Secure Partitions to work. Please refer to the `TF-A User
-       guide`_ for further details.
+       any of the test Secure Partitions to work. Please refer to the
+       `TF-A documentation`_ for further details.
 
 --------------
 
 *Copyright (c) 2019, Arm Limited. All rights reserved.*
 
-.. _EL3 payload boot flow: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#el3-payloads-alternative-boot-flow
-.. _TF-A User Guide: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst
-.. _TF-A SPM User Guide: https://trustedfirmware-a.readthedocs.io/en/latest/components/secure-partition-manager-design.html#building-tf-a-with-secure-partition-support
-.. _Firmware Update: FWU_
-.. _EL3 test payload README file: ../el3_payload/README
-.. _FWU: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst
-.. _FWU state machine: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst#fwu-state-machine
-.. _Summary of build options: user-guide.rst#summary-of-build-options
-.. _Building FIP images with support for Trusted Board Boot: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#building-fip-images-with-support-for-trusted-board-boot
-.. _Secure partition Manager: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/secure-partition-manager-design.rst
+.. _EL3 test payload README file: https://git.trustedfirmware.org/TF-A/tf-a-tests.git/tree/el3_payload/README
 .. _ARM Management Mode Interface: http://infocenter.arm.com/help/topic/com.arm.doc.den0060a/DEN0060A_ARM_MM_Interface_Specification.pdf
+.. _TF-A documentation: https://trustedfirmware-a.readthedocs.org
+.. _TF-A SPM User Guide: https://trustedfirmware-a.readthedocs.io/en/latest/components/secure-partition-manager-design.html#building-tf-a-with-secure-partition-support

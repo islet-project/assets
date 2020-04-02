@@ -1,10 +1,9 @@
 Running Tests
 =============
 
-Refer to the sections `Running the software on FVP`_ and `Running the software
-on Juno`_ in `TF-A User Guide`_. The same instructions mostly apply to run the
-TF-A Tests on those 2 platforms. The difference is that the following images are
-not needed here:
+Refer to the `Juno and FVP platform documentation`_ in the `TF-A documentation`.
+The same instructions mostly apply to running the TF-A Tests on those two
+platforms. The difference is that the following images are not needed here:
 
 -  Normal World bootloader. The TFTF replaces it in the boot flow;
 
@@ -54,7 +53,7 @@ does not need to be passed in. The following flag is used:
 Running Firmware Update (FWU) Tests
 -----------------------------------
 
-As previously mentioned in section `Putting it all together`_, there are a
+As previously mentioned in :ref:`build_putting_together`, there are a
 couple of extra images involved when running the FWU tests. They need to be
 loaded at the right addresses, which depend on the platform.
 
@@ -69,7 +68,7 @@ loaded:
 -  ``Backup FIP`` image at address ``0x09000000`` (i.e. FIP_BKP_ADDRESS macro in
    TF-A tests).
 
-An example script is provided in `scripts/run_fwu_fvp.sh`_.
+An example script is provided in ``scripts/run_fwu_fvp.sh``.
 
 On Juno
 ^^^^^^^
@@ -110,7 +109,6 @@ flash (that is, ``0x08000000``).
 
 *Copyright (c) 2019, Arm Limited. All rights reserved.*
 
-.. _scripts/run_fwu_fvp.sh: ../scripts/run_fwu_fvp.sh
 .. _Juno Getting Started Guide: http://infocenter.arm.com/help/topic/com.arm.doc.dui0928e/DUI0928E_juno_arm_development_platform_gsg.pdf
-.. _Running the software on FVP: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#running-the-software-on-fvp
-.. _Running the software on Juno: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/user-guide.rst#running-the-software-on-juno
+.. _Juno and FVP platform documentation: https://trustedfirmware-a.readthedocs.io/en/latest/plat/
+.. _TF-A documentation: https://trustedfirmware-a.readthedocs.org

@@ -4,6 +4,8 @@ Framework Design
 This document provides some details about the internals of the TF-A Tests
 design. It is incomplete at the moment.
 
+.. _design_high_level_behaviour:
+
 High-Level Behaviour
 --------------------
 
@@ -165,8 +167,8 @@ Detailed Code Structure
 -----------------------
 
 The cold boot entry point is ``tftf_entrypoint`` (see
-``tftf/framework/aarch64/entrypoint.S``). As explained in section `Global
-overview of the TF-A tests behaviour`_, only the primary CPU is expected to
+``tftf/framework/aarch64/entrypoint.S``). As explained in
+:ref:`design_high_level_behaviour`, only the primary CPU is expected to
 execute this code.
 
 Tests can power on other CPUs using the function ``tftf_cpu_on()``. This uses
@@ -242,4 +244,4 @@ state.
 
 *Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
 
-.. _Firmware Update: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/firmware-update.rst
+.. _Firmware update: https://trustedfirmware-a.readthedocs.io/en/latest/components/firmware-update.html

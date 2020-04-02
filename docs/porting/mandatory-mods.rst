@@ -201,8 +201,8 @@ this array is :
     of power domains that are its direct children.
 
 The array format is the same as the one used by Trusted Firmware-A and more
-details of its description can be found in the Trusted Firmware-A documentation:
-`docs/psci-pd-tree.rst`_.
+details of its description can be found in the
+`Trusted Firmware-A documentation`_.
 
 Function : tftf_plat_get_mpidr()
 --------------------------------
@@ -301,4 +301,4 @@ console have been actually printed.
 *Copyright (c) 2019, Arm Limited. All rights reserved.*
 
 .. _SP805: https://static.docs.arm.com/ddi0270/b/DDI0270.pdf
-.. _docs/psci-pd-tree.rst: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/psci-pd-tree.rst
+.. _Trusted Firmware-A documentation: https://trustedfirmware-a.readthedocs.io/en/latest/design/psci-pd-tree.html#psci-power-domain-tree-structure
