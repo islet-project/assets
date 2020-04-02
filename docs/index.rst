@@ -9,9 +9,9 @@ Trusted Firmware-A Tests Documentation
    about/index
    getting_started/index
    process/index
-   porting-guide
-   implementing-tests
    design
+   implementing-tests
+   porting/index
    change-log
    license
 
