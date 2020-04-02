@@ -7,8 +7,8 @@ contributions are ultimately merged by the maintainers listed below.
 Please note the maintainers' bandwidth is limited and contributions to this
 project will be reviewed and handled on a best-effort basis.
 
-Maintainers
------------
+Maintainers List
+----------------
 
 - Joanna Farley <joanna.farley@arm.com>
 - Sandrine Bailleux <sandrine.bailleux@arm.com>

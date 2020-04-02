@@ -1,5 +1,5 @@
-Running the TF-A Tests
-======================
+Running Tests
+=============
 
 Refer to the sections `Running the software on FVP`_ and `Running the software
 on Juno`_ in `TF-A User Guide`_. The same instructions mostly apply to run the
@@ -26,8 +26,9 @@ In other words, only the following software images are needed:
    -  ``BL32`` (optional);
    -  ``tftf.bin`` (standing as the BL33 image).
 
-Running the manual tests on FVP
-```````````````````````````````
+Running Manual Tests on FVP
+---------------------------
+
 The manual tests rely on storing state in non-volatile memory (NVM) across
 reboot. On FVP the NVM is not persistent across reboots, so the following
 flag must be used to write the NVM to a file when the model exits.
@@ -50,15 +51,15 @@ does not need to be passed in. The following flag is used:
 
         -C bp.flashloader0.fname=[filename]
 
-Running the FWU tests
-`````````````````````
+Running Firmware Update (FWU) Tests
+-----------------------------------
 
 As previously mentioned in section `Putting it all together`_, there are a
 couple of extra images involved when running the FWU tests. They need to be
 loaded at the right addresses, which depend on the platform.
 
-FVP
-'''
+On FVP
+^^^^^^
 
 In addition to the usual BL1 and FIP images, the following extra images must be
 loaded:
@@ -70,8 +71,8 @@ loaded:
 
 An example script is provided in `scripts/run_fwu_fvp.sh`_.
 
-Juno
-''''
+On Juno
+^^^^^^^
 
 The same set of extra images and load addresses apply for Juno as for FVP.
 

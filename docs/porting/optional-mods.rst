@@ -1,4 +1,4 @@
-Optional modifications
+Optional Modifications
 ======================
 
 The following are helper functions implemented by the test framework that
@@ -6,7 +6,7 @@ perform common platform-specific tasks. A platform may choose to override these
 definitions.
 
 Function : platform_get_stack()
-```````````````````````````````
+-------------------------------
 
 ::
 
@@ -21,7 +21,7 @@ Common implementation of this function is provided in
 ``plat/common/aarch64/platform_mp_stack.S``.
 
 Function : tftf_platform_end()
-``````````````````````````````
+------------------------------
 
 ::
 
@@ -37,7 +37,7 @@ real hardware, the UART output may be parsed by an external tool looking for
 this character and rebooting the platform for example.
 
 Function : tftf_plat_reset()
-````````````````````````````
+----------------------------
 
 ::
 

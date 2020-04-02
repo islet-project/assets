@@ -1,5 +1,5 @@
-Platforms
-=========
+Platform Support
+================
 
 Juno Arm Development Platform
 -----------------------------
@@ -27,8 +27,8 @@ The AArch32 build has been tested on the following `FVP`_\ s:
 
 NOTE: Unless otherwise stated, the model version is version 11.6, build 45.
 
-System Guidance for Infrastructure Fixed Virtual Platforms
-----------------------------------------------------------
+System Guidance for Infrastructure (SGI) Fixed Virtual Platforms
+----------------------------------------------------------------
 
 The AArch64 build has been tested on the following Fixed Virtual Platforms
 (`FVP`_):

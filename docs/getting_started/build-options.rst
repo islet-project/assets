@@ -1,20 +1,20 @@
-Summary of build options
-========================
+Build Options Summary
+=====================
 
-As much as possible, TF-A Tests dynamically detect the platform hardware
+As far as possible, TF-A Tests dynamically detects the platform hardware
 components and available features. There are a few build options to select
-specific features where the dynamic detection falls short. This section lists
-them.
+specific features where the dynamic detection falls short.
 
 Unless mentioned otherwise, these options are expected to be specified at the
 build command line and are not to be modified in any component makefiles.
 
-Note that the build system doesn't track dependencies for build options.
-Therefore, if any of the build options are changed from a previous build, a
-clean build must be performed.
+.. note::
+   The build system doesn't track dependencies for build options. Therefore, if
+   any of the build options are changed from a previous build, a clean build
+   must be performed.
 
-Build options shared across test images
-'''''''''''''''''''''''''''''''''''''''
+Common (Shared) Build Options
+-----------------------------
 
 Most of the build options listed in this section apply to TFTF, the FWU test
 images and Cactus, unless otherwise specified. These do not influence the EL3
@@ -70,8 +70,8 @@ payload, whose simplistic build system is mostly independent.
 -  ``V``: Verbose build. If assigned anything other than 0, the build commands
    are printed. Default is 0.
 
-TFTF build options
-''''''''''''''''''
+TFTF-specific Build Options
+---------------------------
 
 -  ``ENABLE_PAUTH``: Boolean option to enable ARMv8.3 Pointer Authentication
    (``ARMv8.3-PAuth``) support in the Trusted Firmware-A Test Framework itself.
@@ -97,10 +97,14 @@ TFTF build options
    (RAM) or 1 (non-volatile memory like flash) as test results storage. Default
    value is 0, as writing to the flash significantly slows tests down.
 
-FWU test images build options
-'''''''''''''''''''''''''''''
+FWU-specific Build Options
+--------------------------
 
 -  ``FIRMWARE_UPDATE``: Whether the Firmware Update test images (i.e.
    ``NS_BL1U`` and ``NS_BL2U``) should be built. The default value is 0.  The
    platform makefile is free to override this value if Firmware Update is
    supported on this platform.
+
+--------------
+
+*Copyright (c) 2019, Arm Limited. All rights reserved.*

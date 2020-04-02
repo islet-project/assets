@@ -1,8 +1,8 @@
-Mandatory modifications
------------------------
+Mandatory Modifications
+=======================
 
-File : platform_def.h [mandatory]
-`````````````````````````````````
+File : platform_def.h
+---------------------
 
 Each platform must ensure that a header file of this name is in the system
 include path with the following constants defined. This may require updating the
@@ -123,8 +123,8 @@ If the platform port uses the VExpress NOR flash driver (see
    Defines the largest block size as seen by the software while writing to NOR
    flash.
 
-Function : tftf_plat_arch_setup() [mandatory]
-`````````````````````````````````````````````
+Function : tftf_plat_arch_setup()
+---------------------------------
 ::
 
     Argument : void
@@ -136,8 +136,8 @@ platform requires.
 In both the ARM FVP and Juno ports, this function configures and enables the
 MMU.
 
-Function : tftf_early_platform_setup() [mandatory]
-``````````````````````````````````````````````````
+Function : tftf_early_platform_setup()
+--------------------------------------
 
 ::
 
@@ -150,8 +150,8 @@ in the boot.
 
 In both the ARM FVP and Juno ports, this function configures the console.
 
-Function : tftf_platform_setup() [mandatory]
-````````````````````````````````````````````
+Function : tftf_platform_setup()
+--------------------------------
 
 ::
 
@@ -167,8 +167,8 @@ used to access non-volatile memory for permanent storage of test results. It
 also initialises the GIC and detects the platform topology using
 platform-specific means.
 
-Function : plat_get_nvm_handle() [mandatory]
-````````````````````````````````````````````
+Function : plat_get_nvm_handle()
+--------------------------------
 
 ::
 
@@ -179,8 +179,8 @@ It is needed if the platform port uses IO storage framework. This function is
 responsible for getting the pointer to the initialised non-volatile memory
 entity.
 
-Function : tftf_plat_get_pwr_domain_tree_desc() [mandatory]
-```````````````````````````````````````````````````````````
+Function : tftf_plat_get_pwr_domain_tree_desc()
+-----------------------------------------------
 
 ::
 
@@ -204,8 +204,8 @@ The array format is the same as the one used by Trusted Firmware-A and more
 details of its description can be found in the Trusted Firmware-A documentation:
 `docs/psci-pd-tree.rst`_.
 
-Function : tftf_plat_get_mpidr() [mandatory]
-````````````````````````````````````````````
+Function : tftf_plat_get_mpidr()
+--------------------------------
 
 ::
 
@@ -220,8 +220,8 @@ a CPU and, if present, returns the corresponding MPIDR for it. If the CPU
 referred to by the `core_pos` is absent, then this function returns
 ``INVALID_MPID``.
 
-Function : plat_get_state_prop() [mandatory]
-````````````````````````````````````````````
+Function : plat_get_state_prop()
+--------------------------------
 
 ::
 
@@ -235,8 +235,8 @@ This function is expected to be used by tests that need to compose the power
 state parameter for use in ``PSCI_CPU_SUSPEND`` API or ``PSCI_STAT/RESIDENCY``
 API.
 
-Function : plat_fwu_io_setup() [mandatory]
-``````````````````````````````````````````
+Function : plat_fwu_io_setup()
+------------------------------
 
 ::
 
@@ -245,8 +245,8 @@ Function : plat_fwu_io_setup() [mandatory]
 
 This function initializes the IO system used by the firmware update.
 
-Function : plat_arm_gic_init() [mandatory]
-``````````````````````````````````````````
+Function : plat_arm_gic_init()
+------------------------------
 
 ::
 
@@ -255,8 +255,8 @@ Function : plat_arm_gic_init() [mandatory]
 
 This function initializes the ARM Generic Interrupt Controller (GIC).
 
-Function : platform_get_core_pos() [mandatory]
-``````````````````````````````````````````````
+Function : platform_get_core_pos()
+----------------------------------
 
 ::
 
@@ -265,8 +265,8 @@ Function : platform_get_core_pos() [mandatory]
 
 This function returns a linear core ID from a MPID.
 
-Function : plat_crash_console_init() [mandatory]
-````````````````````````````````````````````````
+Function : plat_crash_console_init()
+------------------------------------
 
 ::
 
@@ -275,8 +275,8 @@ Function : plat_crash_console_init() [mandatory]
 
 This function initializes a platform-specific console for crash reporting.
 
-Function : plat_crash_console_putc() [mandatory]
-````````````````````````````````````````````````
+Function : plat_crash_console_putc()
+------------------------------------
 
 ::
 
@@ -285,8 +285,8 @@ Function : plat_crash_console_putc() [mandatory]
 
 This function prints a character on the platform-specific crash console.
 
-Function : plat_crash_console_flush() [mandatory]
-`````````````````````````````````````````````````
+Function : plat_crash_console_flush()
+-------------------------------------
 
 ::
 

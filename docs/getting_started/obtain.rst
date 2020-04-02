@@ -1,5 +1,5 @@
-Getting the TF-A Tests source code
-==================================
+Obtaining Source Code
+=====================
 
 Download the TF-A Tests source code using the following command:
 

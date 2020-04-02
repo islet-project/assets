@@ -1,4 +1,4 @@
-Platform requirements
+Platform Requirements
 =====================
 
 The TF-A Tests rely on the following features to be present on the platform and

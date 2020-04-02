@@ -4,8 +4,8 @@ Framework Design
 This document provides some details about the internals of the TF-A Tests
 design. It is incomplete at the moment.
 
-Global overview of the TF-A tests behaviour
--------------------------------------------
+High-Level Behaviour
+--------------------
 
 The EL3 firmware is expected to hand over to the TF-A tests with all secondary
 cores powered down, i.e. only the primary core should enter the TF-A tests.
@@ -221,8 +221,8 @@ data (see struct ``tftf_state_t`` typedef in ``tftf/framework/include/nvm.h``):
 
     Buffer holding the tests output. Tests output are concatenated.
 
-Interrupts management
----------------------
+Interrupt Management
+--------------------
 
 The TF-A tests expect SGIs #0 to #7 to be available for their own usage. In
 particular, this means that Trusted World software must configure them as

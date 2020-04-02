@@ -4,14 +4,14 @@ Implementing Tests
 This document aims at providing some pointers to help implementing new tests in
 the TFTF image.
 
-Structure of a test
--------------------
+Test Structure
+--------------
 
 A test might be divided into 3 logical parts, detailed in the following
 sections.
 
 Prologue
-''''''''
+^^^^^^^^
 
 A test has a main entry point function, whose type is:
 
@@ -31,7 +31,7 @@ run. Macros and functions are provided in `include/common/test_helpers.h`_ to
 help test code verify that their requirements are met.
 
 Core
-''''
+^^^^
 
 This is completely dependent on the purpose of the test. The paragraphs below
 just provide some useful, general information.
@@ -54,7 +54,7 @@ the overall test result is derived from that. A test is considered as passed if
 all involved CPUs reported a success status code.
 
 Epilogue
-''''''''
+^^^^^^^^
 
 Each test is responsible for releasing any allocated resources and putting the
 system back in a clean state when it finishes. Any change to the system
@@ -66,15 +66,15 @@ One exception to this rule is that CPUs powered on as part of a test must not be
 powered down. As already stated above, as soon as a CPU enters the test, the
 framework expects it to return from the test.
 
-Template test code
+Template Test Code
 ------------------
 
 Some template test code is provided in `tftf/tests/template_tests`_. It can be
 used as a starting point for developing new tests. Template code for both
 single-core and multi-core tests is provided.
 
-Plugging the test into the build system
----------------------------------------
+Build System Integration
+------------------------
 
 All test code is located under the `tftf/tests`_ directory. Tests are usually
 divided into categories represented as sub-directories under ``tftf/tests/``.
