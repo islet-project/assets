@@ -5,7 +5,6 @@
  */
 
 #include <assert.h>
-#include <cactus_def.h>
 #include <debug.h>
 #include <drivers/arm/pl011.h>
 #include <drivers/console.h>
@@ -16,13 +15,11 @@
 #include <plat_arm.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
-#include <sp_helpers.h>
 #include <spci_svc.h>
 #include <std_svc.h>
 
 #include "cactus.h"
 #include "cactus_def.h"
-#include "cactus_tests.h"
 
 #include "tftf_lib.h"
 
