@@ -1,4 +1,4 @@
-Trusted Firmware-A Tests - version 2.2
+Trusted Firmware-A Tests - version 2.3
 ======================================
 
 The Trusted Firmware-A Tests (TF-A-Tests) is a suite of baremetal tests to
@@ -88,7 +88,7 @@ The AArch32 build has been tested on the following `FVP`_\ s:
 -  ``FVP_Base_Cortex-A32x4``
 -  ``FVP_Base_RevC-2xAEMv8A``
 
-NOTE: Unless otherwise stated, the model version is version 11.6, build 45.
+NOTE: Unless otherwise stated, the model version is version 11.9, build 41.
 
 System Guidance for Infrastructure Fixed Virtual Platforms
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -140,7 +140,7 @@ or our `mailing list`_.
 
 --------------
 
-*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2020, Arm Limited. All rights reserved.*
 
 .. _Contributing Guidelines: contributing.rst
 .. _license: license.rst

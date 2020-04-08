@@ -7,6 +7,86 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+Version 2.3
+-----------
+
+New features
+^^^^^^^^^^^^
+
+-  More tests are made available in this release to help validate
+   the functionality of TF-A.
+
+-  CI upgraded to use GCC 9.2-2019.12 toolchain for tf-a-tests.
+
+-  Various improvements to test framework and test suite.
+
+TFTF
+~~~~
+
+-  Support for extended register usage as per SMCCC v1.2 specification.
+
+-  Support for FVP platforms with SMT capabilities.
+
+-  Improved support for documentation through addition of basic Sphinx
+   configuration and Makefile similar to TF-A repository.
+
+-  Enhancement to libc library synchronous to TF-A code base.
+
+-  ARMv8.3-PAuth enabled for all FWU tests in TFTF.
+
+-  TFTF made RFC 4122 compliant by converting UUIDs to network order format.
+
+-  Build improvement by deprecating custom AARCH64/AARCH32 macros in favor of
+   __arch64__  macro provided by compiler.
+
+-  Support for HVC as a SMCCC conduit in TFTF.
+
+-  New tests:
+
+   -  AArch32 tests for checking if PMU counters leak in secure world.
+
+   -  Add new debug filesystem (debugfs) test.
+
+   -  Add a SPCI direct messaging test targeting bare-metal cactus SP.
+
+
+Secure partitions
+~~~~~~~~~~~~~~~~~
+
+Cactus
+~~~~~~
+
+-  Several build improvements and symbol relocation fixup to make it position
+   independent executable.
+
+-  Update of sample manifest to SPCI Beta1 format.
+
+-  Support for generating JSON file as required by TF-A.
+
+Issues resolved since last release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  Makefile bug fix for performing parallel builds.
+
+-  Add missing D-cache invalidation of RW memory in tftf_entrypoint to safeguard
+   against possible corruption.
+
+-  Fixes in GIC drivers to support base addresses beyond 4G range.
+
+-  Fix build with XML::LibXML 2.0202 Perl module
+
+Known issues and limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The sections below list the known issues and limitations of each test image
+provided in this repository. Unless and otherwise stated, issues and limitations
+stated in previous release continue to exist in this release.
+
+TFTF
+~~~~
+-  NODE_HW_STATE test has been temporarily disabled for sgi575 platform due to a
+   dependency on SCP binaries version 2.5
+
 Version 2.2
 -----------
 
@@ -600,7 +680,7 @@ All test images
 
 --------------
 
-*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2020, Arm Limited. All rights reserved.*
 
 .. _Arm Neoverse Reference Design N1 Edge (RD-N1-Edge): https://developer.arm.com/products/system-design/reference-design/neoverse-reference-design
 .. _Arm SGI-575: https://developer.arm.com/products/system-design/fixed-virtual-platforms
