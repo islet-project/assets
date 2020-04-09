@@ -10,7 +10,7 @@
 #include <drivers/console.h>
 
 	.globl	console_init
-	.globl	console_putc
+	.globl	console_pl011_putc
 	.globl	console_getc
 	.globl	console_try_getc
 	.globl	console_flush
@@ -97,17 +97,19 @@ core_init_fail:
 	bx	lr
 endfunc console_core_init
 
-	/* ---------------------------------------------
-	 * int console_putc(int c)
+	/* -------------------------------------------------
+	 * To allow alternate implementation of putc, pl011
+	 * is appended in the function name.
+	 * int console_pl011_putc(int c)
 	 *
 	 * Clobber list : r1, r2
-	 * ---------------------------------------------
+	 * -------------------------------------------------
 	 */
-func console_putc
+func console_pl011_putc
 	ldr	r1, =console_base
 	ldr	r1, [r1]
 	b	console_core_putc
-endfunc console_putc
+endfunc console_pl011_putc
 
 	/* --------------------------------------------------------
 	 * int console_core_putc(int c, uintptr_t base_addr)

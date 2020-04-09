@@ -17,6 +17,7 @@ PLAT_SOURCES	:=	${HIKEY960_PATH}/hikey960_setup.c		\
 			drivers/arm/gic/arm_gic_v2.c			\
 			drivers/arm/timer/system_timer.c		\
 			drivers/arm/timer/private_timer.c		\
+			drivers/console/console.c			\
 			plat/arm/common/arm_timers.c
 
 TFTF_CFLAGS		+= -Wno-maybe-uninitialized
