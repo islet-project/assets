@@ -15,109 +15,15 @@
 #include <plat_arm.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
-#include <spci_svc.h>
 #include <std_svc.h>
 
 #include "cactus.h"
 #include "cactus_def.h"
-
-#include "tftf_lib.h"
-
-#define SPM_VM_ID_FIRST			(1)
-
-#define SPM_VM_GET_COUNT		(0xFF01)
-#define SPM_VCPU_GET_COUNT		(0xFF02)
-#define SPM_DEBUG_LOG			(0xBD000000)
-
-/* Hypervisor ID at physical SPCI instance */
-#define HYP_ID		(0)
-
-/* By convention, SP IDs (as opposed to VM IDs) have bit 15 set */
-#define SP_ID(x)	(x | (1 << 15))
-
-typedef unsigned short spci_vm_id_t;
-typedef unsigned short spci_vm_count_t;
-typedef unsigned short spci_vcpu_count_t;
+#include "spci_helpers.h"
 
 /* Host machine information injected by the build system in the ELF file. */
 extern const char build_message[];
 extern const char version_string[];
-
-static spci_vcpu_count_t spm_vcpu_get_count(spci_vm_id_t vm_id)
-{
-	hvc_args args = {
-		.fid = SPM_VCPU_GET_COUNT,
-		.arg1 = vm_id
-	};
-
-	hvc_ret_values ret = tftf_hvc(&args);
-
-	return ret.ret0;
-}
-
-static spci_vm_count_t spm_vm_get_count(void)
-{
-	hvc_args args = {
-		.fid = SPM_VM_GET_COUNT
-	};
-
-	hvc_ret_values ret = tftf_hvc(&args);
-
-	return ret.ret0;
-}
-
-static void spm_debug_log(char c)
-{
-	hvc_args args = {
-		.fid = SPM_DEBUG_LOG,
-		.arg1 = c
-	};
-
-	(void)tftf_hvc(&args);
-}
-
-static smc_ret_values spci_id_get(void)
-{
-	smc_args args = {
-		.fid = SPCI_ID_GET
-	};
-
-	return tftf_smc(&args);
-}
-
-static smc_ret_values spci_msg_wait(void)
-{
-	smc_args args = {
-		.fid = SPCI_MSG_WAIT
-	};
-
-	return tftf_smc(&args);
-}
-
-/* Send response through registers using direct messaging */
-static smc_ret_values spci_msg_send_direct_resp(spci_vm_id_t sender_vm_id,
-					 spci_vm_id_t target_vm_id,
-					 uint32_t message)
-{
-	smc_args args = {
-		.fid = SPCI_MSG_SEND_DIRECT_RESP_SMC32,
-		.arg1 = ((uint32_t)sender_vm_id << 16) | target_vm_id,
-		.arg3 = message
-	};
-
-	return tftf_smc(&args);
-}
-
-static smc_ret_values spci_error(int32_t error_code)
-{
-	smc_args args = {
-		.fid = SPCI_ERROR,
-		.arg1 = 0,
-		.arg2 = error_code
-	};
-
-	return tftf_smc(&args);
-}
 
 /*
  *
@@ -249,36 +155,32 @@ void __dead2 cactus_main(void)
 	}
 
 	spci_vm_id_t spci_id = spci_id_ret.ret2 & 0xffff;
-	if (spci_id > SPM_VM_ID_FIRST) {
-		/* Indicate secondary VM start through debug log hypercall */
-		spm_debug_log('2');
-		spm_debug_log('N');
-		spm_debug_log('D');
-		spm_debug_log('\n');
 
-		/* Run straight to the message loop */
-		message_loop(spci_id);
+	if (spci_id == SPM_VM_ID_FIRST) {
+		console_init(PL011_UART2_BASE,
+			PL011_UART2_CLK_IN_HZ,
+			PL011_BAUDRATE);
+
+		set_putc_impl(PL011_AS_STDOUT);
+
+		NOTICE("Booting Primary Cactus Secure Partition\n%s\n%s\n",
+			build_message, version_string);
+
+		cactus_print_memory_layout();
+
+		NOTICE("SPCI id: %u\n", spci_id); /* Expect VM id 1 */
+
+		/* Get number of VMs */
+		NOTICE("VM count: %u\n", spm_vm_get_count());
+
+		/* Get virtual CPU count for current VM */
+		NOTICE("vCPU count: %u\n", spm_vcpu_get_count(spci_id));
+	} else {
+		set_putc_impl(HVC_CALL_AS_STDOUT);
+
+		NOTICE("Booting Secondary Cactus Secure Partition\n%s\n%s\n",
+			build_message, version_string);
 	}
-
-	/* Next initialization steps only performed by primary VM */
-
-	console_init(PL011_UART2_BASE,
-		     PL011_UART2_CLK_IN_HZ,
-		     PL011_BAUDRATE);
-
-	NOTICE("Booting Cactus Secure Partition\n%s\n%s\n",
-	       build_message, version_string);
-
-	cactus_print_memory_layout();
-
-	NOTICE("SPCI id: %u\n", spci_id); /* Expect VM id 1 */
-
-	/* Get number of VMs */
-	NOTICE("VM count: %u\n", spm_vm_get_count());
-
-	/* Get virtual CPU count for current VM */
-	NOTICE("vCPU count: %u\n", spm_vcpu_get_count(spci_id));
-
 	/* End up to message loop */
 	message_loop(spci_id);
 
