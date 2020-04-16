@@ -97,6 +97,15 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (0)
 
+#define SKIP_TEST_IF_FGT_NOT_SUPPORTED()					\
+	do {									\
+		if (!is_armv8_6_fgt_present()) {				\
+			tftf_testcase_printf(					\
+				"Fine Grained Traps not supported\n");		\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (0)
+
 #define SKIP_TEST_IF_MM_NOT_PRESENT()						\
 	do {									\
 		smc_args version_smc = { MM_VERSION_AARCH32 };			\

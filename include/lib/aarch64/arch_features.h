@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -66,6 +66,12 @@ static inline unsigned int get_armv8_5_mte_support(void)
 {
 	return ((read_id_aa64pfr1_el1() >> ID_AA64PFR1_EL1_MTE_SHIFT) &
 		ID_AA64PFR1_EL1_MTE_MASK);
+}
+
+static inline bool is_armv8_6_fgt_present(void)
+{
+	return ((read_id_aa64mmfr0_el1() >> ID_AA64MMFR0_EL1_FGT_SHIFT) &
+		ID_AA64MMFR0_EL1_FGT_MASK) == ID_AA64MMFR0_EL1_FGT_SUPPORTED;
 }
 
 static inline uint32_t arch_get_debug_version(void)

@@ -18,6 +18,7 @@
     <testcase name="Check for Pointer Authentication key leakage from TSP" function="test_pauth_leakage_tsp" />
     <testcase name="Use MTE Instructions" function="test_mte_instructions" />
     <testcase name="Check for MTE register leakage" function="test_mte_leakage" />
+    <testcase name="Use FGT Registers" function="test_fgt_enabled" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">
