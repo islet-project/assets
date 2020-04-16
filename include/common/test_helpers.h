@@ -106,6 +106,15 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (0)
 
+#define SKIP_TEST_IF_ECV_NOT_SELF_SYNC()					\
+	do {									\
+		if (get_armv8_6_ecv_support() !=				\
+			ID_AA64MMFR0_EL1_ECV_SELF_SYNCH) {			\
+			tftf_testcase_printf("ARMv8.6-ECV not supported\n");	\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (0)
+
 #define SKIP_TEST_IF_MM_NOT_PRESENT()						\
 	do {									\
 		smc_args version_smc = { MM_VERSION_AARCH32 };			\

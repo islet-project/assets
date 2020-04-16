@@ -10,6 +10,7 @@ TESTS_SOURCES	+=	$(addprefix tftf/tests/,			\
 	extensions/sve/sve_operations.S					\
 	extensions/sve/test_sve.c					\
 	extensions/fgt/test_fgt.c					\
+	extensions/ecv/test_ecv.c					\
 	runtime_services/arm_arch_svc/smccc_arch_workaround_1.c		\
 	runtime_services/arm_arch_svc/smccc_arch_workaround_2.c		\
 	runtime_services/arm_arch_svc/smccc_arch_soc_id.c		\

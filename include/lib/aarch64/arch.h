@@ -194,6 +194,12 @@
 #define PARANGE_0101	U(48)
 #define PARANGE_0110	U(52)
 
+#define ID_AA64MMFR0_EL1_ECV_SHIFT         U(60)
+#define ID_AA64MMFR0_EL1_ECV_MASK          ULL(0xf)
+#define ID_AA64MMFR0_EL1_ECV_NOT_SUPPORTED ULL(0x0)
+#define ID_AA64MMFR0_EL1_ECV_SUPPORTED     ULL(0x1)
+#define ID_AA64MMFR0_EL1_ECV_SELF_SYNCH    ULL(0x2)
+
 #define ID_AA64MMFR0_EL1_FGT_SHIFT		U(56)
 #define ID_AA64MMFR0_EL1_FGT_MASK		ULL(0xf)
 #define ID_AA64MMFR0_EL1_FGT_NOT_SUPPORTED	ULL(0x0)
@@ -934,6 +940,11 @@
 #define HFGITR_EL2		S3_4_C1_C1_6
 #define HDFGRTR_EL2		S3_4_C3_C1_4
 #define HDFGWTR_EL2		S3_4_C3_C1_5
+
+/*******************************************************************************
+ * Armv8.6 - Enhanced Counter Virtualization Registers
+ ******************************************************************************/
+#define CNTPOFF_EL2  S3_4_C14_C0_6
 
 
 #endif /* ARCH_H */
