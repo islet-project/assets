@@ -78,6 +78,8 @@ PLATFORMS		:=	$(shell find plat/ -name '${PLAT_MAKEFILE}' -print0 |			\
 					sed -r 's%[^\x00]*\/([^/]*)\/${PLAT_MAKEFILE}\x00%\1|%g' |	\
 					sed -r 's/\|$$//')
 
+DOCS_PATH		:=	docs
+
 # Convenience function for adding build definitions
 # $(eval $(call add_define,BAR_DEFINES,FOO)) will have:
 # -DFOO if $(FOO) is empty; -DFOO=$(FOO) otherwise
@@ -490,6 +492,10 @@ el3_payload: $(BUILD_DIR)
 all: el3_payload
 endif
 
+doc:
+	@echo "  BUILD DOCUMENTATION"
+	${Q}${MAKE} --no-print-directory -C ${DOCS_PATH} html
+
 .PHONY: cscope
 cscope:
 	@echo "  CSCOPE"
@@ -517,6 +523,7 @@ help:
 	@echo "  checkcodebase  Check the coding style of the entire source tree"
 	@echo "  checkpatch     Check the coding style on changes in the current"
 	@echo "                 branch against BASE_COMMIT (default origin/master)"
+	@echo "  doc            Build html based documentation using Sphinx tool"
 	@echo "  clean          Clean the build for the selected platform"
 	@echo "  cscope         Generate cscope index"
 	@echo "  distclean      Remove all build artifacts for all platforms"
