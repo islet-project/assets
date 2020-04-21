@@ -4,14 +4,14 @@ Implementing Tests
 This document aims at providing some pointers to help implementing new tests in
 the TFTF image.
 
-Structure of a test
--------------------
+Test Structure
+--------------
 
 A test might be divided into 3 logical parts, detailed in the following
 sections.
 
 Prologue
-''''''''
+^^^^^^^^
 
 A test has a main entry point function, whose type is:
 
@@ -19,19 +19,19 @@ A test has a main entry point function, whose type is:
 
     typedef test_result_t (*test_function_t)(void);
 
-See `tftf/framework/include/tftf.h`_.
+See ``tftf/framework/include/tftf.h``.
 
 Only the primary CPU enters this function, while other CPUs are powered down.
 
 First of all, the test function should check whether this test is applicable to
 this platform and environment. Some tests rely on specific hardware features or
 firmware capabilities to be present. If these are not available, the test should
-be skipped.  For example, a multi-core test requires at least 2 CPUs to
-run. Macros and functions are provided in `include/common/test_helpers.h`_ to
+be skipped. For example, a multi-core test requires at least 2 CPUs to
+run. Macros and functions are provided in ``include/common/test_helpers.h`` to
 help test code verify that their requirements are met.
 
 Core
-''''
+^^^^
 
 This is completely dependent on the purpose of the test. The paragraphs below
 just provide some useful, general information.
@@ -41,20 +41,21 @@ The primary CPU may power on other CPUs by calling the function
 to once they have been initialized by the test framework. This address should be
 different from the primary CPU test function.
 
-Synchronization primitives are provided in `include/lib/events.h`_ in case CPUs'
+Synchronization primitives are provided in ``include/lib/events.h`` in case CPUs'
 execution threads need to be synchronized. Most multi-processing tests will need
 some synchronisation points that all/some CPUs need to reach before test
 execution may continue.
 
 Any CPU that is involved in a test must return from its test function. Failure
-to do so will put the framework in an unrecoverable state, see the `TFTF known
-limitations`_. The return code indicates the test result from the point of view
-of this CPU. At the end of the test, individual CPU results are aggregated and
-the overall test result is derived from that. A test is considered as passed if
-all involved CPUs reported a success status code.
+to do so will put the framework in an unrecoverable state, see the
+:ref:`Change Log & Release Notes` for details on this and other known
+limitations. The return code indicates the test result from the point of view of
+this CPU. At the end of the test, individual CPU results are aggregated and the
+overall test result is derived from that. A test is considered as passed if all
+involved CPUs reported a success status code.
 
 Epilogue
-''''''''
+^^^^^^^^
 
 Each test is responsible for releasing any allocated resources and putting the
 system back in a clean state when it finishes. Any change to the system
@@ -66,24 +67,24 @@ One exception to this rule is that CPUs powered on as part of a test must not be
 powered down. As already stated above, as soon as a CPU enters the test, the
 framework expects it to return from the test.
 
-Template test code
+Template Test Code
 ------------------
 
-Some template test code is provided in `tftf/tests/template_tests`_. It can be
+Some template test code is provided in ``tftf/tests/template_tests``. It can be
 used as a starting point for developing new tests. Template code for both
 single-core and multi-core tests is provided.
 
-Plugging the test into the build system
----------------------------------------
+Build System Integration
+------------------------
 
-All test code is located under the `tftf/tests`_ directory. Tests are usually
+All test code is located under the ``tftf/tests`` directory. Tests are usually
 divided into categories represented as sub-directories under ``tftf/tests/``.
 
 The source file implementing the new test code should be added to the
-appropriate tests makefile, see `.*mk` files under `tftf/tests`_.
+appropriate tests makefile, see `.*mk` files under ``tftf/tests``.
 
 The new test code should also appear in a tests manifest, see ``*.xml`` files
-under `tftf/tests`_. A unique name and test function must be provided. An
+under ``tftf/tests``. A unique name and test function must be provided. An
 optional description may be provided as well.
 
 For example, to create a test case named "``Foo test case``", whose test
@@ -105,7 +106,7 @@ description is: "``An example test suite``", add the following 2 lines:
     <testsuite name="Bar test suite" description="An example test suite">
     </testsuite>
 
-See the template test manifest for reference: `tftf/tests/tests-template.xml`_.
+See the template test manifest for reference: ``tftf/tests/tests-template.xml``.
 
 --------------
 
@@ -113,11 +114,3 @@ See the template test manifest for reference: `tftf/tests/tests-template.xml`_.
 
 .. _SMC Calling Convention: SMCCC_
 .. _SMCCC: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf
-
-.. _TFTF known limitations: change-log.rst#test-framework
-.. _tftf/framework/include/tftf.h: ../tftf/framework/include/tftf.h
-.. _tftf/tests: ../tftf/tests
-.. _tftf/tests/template_tests: ../tftf/tests/template_tests
-.. _tftf/tests/tests-template.xml: ../tftf/tests/tests-template.xml
-.. _include/common/test_helpers.h: ../include/common/test_helpers.h
-.. _include/lib/events.h: ../include/lib/events.h

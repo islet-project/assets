@@ -1,44 +1,8 @@
-Porting Guide
-=============
+Mandatory Modifications
+=======================
 
-Introduction
-------------
-
-Please note that this document is incomplete.
-
-Porting the TF-A Tests to a new platform involves making some mandatory and
-optional modifications for both the cold and warm boot paths. Modifications
-consist of:
-
-*   Implementing a platform-specific function or variable,
-*   Setting up the execution context in a certain way, or
-*   Defining certain constants (for example #defines).
-
-The platform-specific functions and variables are all declared in
-``include/plat/common/platform.h``. The framework provides a default
-implementation of variables and functions to fulfill the optional requirements.
-These implementations are all weakly defined; they are provided to ease the
-porting effort. Each platform port can override them with its own implementation
-if the default implementation is inadequate.
-
-Platform requirements
+File : platform_def.h
 ---------------------
-
-The TF-A Tests rely on the following features to be present on the platform and
-accessible from Normal World.
-
--  Watchdog
--  Non-Volatile Memory
--  System Timer
-
-This also means that a platform port of the TF-A Tests must include software
-drivers for those features.
-
-Mandatory modifications
------------------------
-
-File : platform_def.h [mandatory]
-`````````````````````````````````
 
 Each platform must ensure that a header file of this name is in the system
 include path with the following constants defined. This may require updating the
@@ -159,8 +123,8 @@ If the platform port uses the VExpress NOR flash driver (see
    Defines the largest block size as seen by the software while writing to NOR
    flash.
 
-Function : tftf_plat_arch_setup() [mandatory]
-`````````````````````````````````````````````
+Function : tftf_plat_arch_setup()
+---------------------------------
 ::
 
     Argument : void
@@ -172,8 +136,8 @@ platform requires.
 In both the ARM FVP and Juno ports, this function configures and enables the
 MMU.
 
-Function : tftf_early_platform_setup() [mandatory]
-``````````````````````````````````````````````````
+Function : tftf_early_platform_setup()
+--------------------------------------
 
 ::
 
@@ -186,8 +150,8 @@ in the boot.
 
 In both the ARM FVP and Juno ports, this function configures the console.
 
-Function : tftf_platform_setup() [mandatory]
-````````````````````````````````````````````
+Function : tftf_platform_setup()
+--------------------------------
 
 ::
 
@@ -203,8 +167,8 @@ used to access non-volatile memory for permanent storage of test results. It
 also initialises the GIC and detects the platform topology using
 platform-specific means.
 
-Function : plat_get_nvm_handle() [mandatory]
-````````````````````````````````````````````
+Function : plat_get_nvm_handle()
+--------------------------------
 
 ::
 
@@ -215,8 +179,8 @@ It is needed if the platform port uses IO storage framework. This function is
 responsible for getting the pointer to the initialised non-volatile memory
 entity.
 
-Function : tftf_plat_get_pwr_domain_tree_desc() [mandatory]
-```````````````````````````````````````````````````````````
+Function : tftf_plat_get_pwr_domain_tree_desc()
+-----------------------------------------------
 
 ::
 
@@ -237,11 +201,11 @@ this array is :
     of power domains that are its direct children.
 
 The array format is the same as the one used by Trusted Firmware-A and more
-details of its description can be found in the Trusted Firmware-A documentation:
-`docs/psci-pd-tree.rst`_.
+details of its description can be found in the
+`Trusted Firmware-A documentation`_.
 
-Function : tftf_plat_get_mpidr() [mandatory]
-````````````````````````````````````````````
+Function : tftf_plat_get_mpidr()
+--------------------------------
 
 ::
 
@@ -256,8 +220,8 @@ a CPU and, if present, returns the corresponding MPIDR for it. If the CPU
 referred to by the `core_pos` is absent, then this function returns
 ``INVALID_MPID``.
 
-Function : plat_get_state_prop() [mandatory]
-````````````````````````````````````````````
+Function : plat_get_state_prop()
+--------------------------------
 
 ::
 
@@ -271,8 +235,8 @@ This function is expected to be used by tests that need to compose the power
 state parameter for use in ``PSCI_CPU_SUSPEND`` API or ``PSCI_STAT/RESIDENCY``
 API.
 
-Function : plat_fwu_io_setup() [mandatory]
-``````````````````````````````````````````
+Function : plat_fwu_io_setup()
+------------------------------
 
 ::
 
@@ -281,8 +245,8 @@ Function : plat_fwu_io_setup() [mandatory]
 
 This function initializes the IO system used by the firmware update.
 
-Function : plat_arm_gic_init() [mandatory]
-``````````````````````````````````````````
+Function : plat_arm_gic_init()
+------------------------------
 
 ::
 
@@ -291,8 +255,8 @@ Function : plat_arm_gic_init() [mandatory]
 
 This function initializes the ARM Generic Interrupt Controller (GIC).
 
-Function : platform_get_core_pos() [mandatory]
-``````````````````````````````````````````````
+Function : platform_get_core_pos()
+----------------------------------
 
 ::
 
@@ -301,8 +265,8 @@ Function : platform_get_core_pos() [mandatory]
 
 This function returns a linear core ID from a MPID.
 
-Function : plat_crash_console_init() [mandatory]
-````````````````````````````````````````````````
+Function : plat_crash_console_init()
+------------------------------------
 
 ::
 
@@ -311,8 +275,8 @@ Function : plat_crash_console_init() [mandatory]
 
 This function initializes a platform-specific console for crash reporting.
 
-Function : plat_crash_console_putc() [mandatory]
-````````````````````````````````````````````````
+Function : plat_crash_console_putc()
+------------------------------------
 
 ::
 
@@ -321,8 +285,8 @@ Function : plat_crash_console_putc() [mandatory]
 
 This function prints a character on the platform-specific crash console.
 
-Function : plat_crash_console_flush() [mandatory]
-`````````````````````````````````````````````````
+Function : plat_crash_console_flush()
+-------------------------------------
 
 ::
 
@@ -332,101 +296,9 @@ Function : plat_crash_console_flush() [mandatory]
 This function waits until all the characters of the platform-specific crash
 console have been actually printed.
 
-Optional modifications
-----------------------
-
-The following are helper functions implemented by the test framework that
-perform common platform-specific tasks. A platform may choose to override these
-definitions.
-
-Function : platform_get_stack()
-```````````````````````````````
-
-::
-
-    Argument : unsigned long
-    Return   : unsigned long
-
-This function returns the base address of the memory stack that has been
-allocated for the CPU specified by MPIDR. The size of the stack allocated to
-each CPU is specified by the platform defined constant ``PLATFORM_STACK_SIZE``.
-
-Common implementation of this function is provided in
-``plat/common/aarch64/platform_mp_stack.S``.
-
-Function : tftf_platform_end()
-``````````````````````````````
-
-::
-
-    Argument : void
-    Return   : void
-
-This function performs any operation required by the platform to properly finish
-the test session.
-
-The default implementation sends an EOT (End Of Transmission) character on the
-UART. This can be used to automatically shutdown the FVP models. When running on
-real hardware, the UART output may be parsed by an external tool looking for
-this character and rebooting the platform for example.
-
-Function : tftf_plat_reset()
-````````````````````````````
-
-::
-
-    Argument : void
-    Return   : void
-
-This function resets the platform.
-
-The default implementation uses the ARM watchdog peripheral (`SP805`_) to
-generate a watchdog timeout interrupt. This interrupt remains deliberately
-unserviced, which eventually asserts the reset signal.
-
-Storage abstraction layer
--------------------------
-
-In order to improve platform independence and portability a storage abstraction
-layer is used to store test results to non-volatile platform storage.
-
-Each platform should register devices and their drivers via the Storage layer.
-These drivers then need to be initialized in ``tftf_platform_setup()`` function.
-
-It is mandatory to implement at least one storage driver. For the FVP and Juno
-platforms the NOR Flash driver is provided as the default means to store test
-results to storage. The storage layer is described in the header file
-``include/lib/io_storage.h``. The implementation of the common library is in
-``drivers/io/io_storage.c`` and the driver files are located in ``drivers/io/``.
-
-
-Build Flags
------------
-
--  **PLAT_TESTS_SKIP_LIST**
-
-This build flag can be defined by the platform to control exclusion of some
-testcases from the default test plan for a platform. If used this needs to
-point to a text file which follows the following criteria:
-
-  -  Contain a list of tests to skip for this platform.
-
-  -  Specify 1 test per line, using the following format:
-
-     ::
-
-       testsuite_name/testcase_name
-
-     where ``testsuite_name`` and ``testcase_name`` are the names that appear in
-     the XML tests file.
-
-  -  Alternatively, it is possible to disable a test suite entirely, which will
-     disable all test cases part of this test suite. To do so, only specify the
-     test suite name, omitting the ``/testcase_name`` part.
-
 --------------
 
-*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2019, Arm Limited. All rights reserved.*
 
-.. _docs/psci-pd-tree.rst: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/about/docs/psci-pd-tree.rst
 .. _SP805: https://static.docs.arm.com/ddi0270/b/DDI0270.pdf
+.. _Trusted Firmware-A documentation: https://trustedfirmware-a.readthedocs.io/en/latest/design/psci-pd-tree.html#psci-power-domain-tree-structure

@@ -1,0 +1,289 @@
+Building TF-A Tests
+===================
+
+-  Before building TF-A Tests, the environment variable ``CROSS_COMPILE`` must
+   point to the cross compiler.
+
+   For AArch64:
+
+   ::
+
+       export CROSS_COMPILE=<path-to-aarch64-gcc>/bin/aarch64-none-elf-
+
+   For AArch32:
+
+   ::
+
+       export CROSS_COMPILE=<path-to-aarch32-gcc>/bin/arm-eabi-
+
+-  Change to the root directory of the TF-A Tests source tree and build.
+
+   For AArch64:
+
+   ::
+
+       make PLAT=<platform>
+
+   For AArch32:
+
+   ::
+
+       make PLAT=<platform> ARCH=aarch32
+
+   Notes:
+
+   -  If ``PLAT`` is not specified, ``fvp`` is assumed by default. See the
+      `TF-A documentation`_ for more information on available build
+      options.
+
+   -  By default this produces a release version of the build. To produce a
+      debug version instead, build the code with ``DEBUG=1``.
+
+   -  The build process creates products in a ``build/`` directory tree,
+      building the objects and binaries for each test image in separate
+      sub-directories. The following binary files are created from the
+      corresponding ELF files:
+
+      -  ``build/<platform>/<build-type>/tftf.bin``
+      -  ``build/<platform>/<build-type>/ns_bl1u.bin``
+      -  ``build/<platform>/<build-type>/ns_bl2u.bin``
+      -  ``build/<platform>/<build-type>/el3_payload.bin``
+      -  ``build/<platform>/<build-type>/cactus_mm.bin``
+      -  ``build/<platform>/<build-type>/cactus.bin``
+      -  ``build/<platform>/<build-type>/ivy.bin``
+      -  ``build/<platform>/<build-type>/quark.bin``
+
+      where ``<platform>`` is the name of the chosen platform and ``<build-type>``
+      is either ``debug`` or ``release``. The actual number of images might differ
+      depending on the platform.
+
+      Refer to the sections below for more information about each image.
+
+-  Build products for a specific build variant can be removed using:
+
+   ::
+
+       make DEBUG=<D> PLAT=<platform> clean
+
+   ... where ``<D>`` is ``0`` or ``1``, as specified when building.
+
+   The build tree can be removed completely using:
+
+   ::
+
+       make realclean
+
+-  Use the following command to list all supported build commands:
+
+   ::
+
+       make help
+
+TFTF test image
+```````````````
+
+``tftf.bin`` is the main test image to exercise the TF-A features. The other
+test images provided in this repository are optional dependencies that TFTF
+needs to test some specific features.
+
+``tftf.bin`` may be built independently of the other test images using the
+following command:
+
+::
+
+   make PLAT=<platform> tftf
+
+In TF-A boot flow, ``tftf.bin`` replaces the ``BL33`` image and should be
+injected in the FIP image. This might be achieved by running the following
+command from the TF-A root directory:
+
+::
+
+    BL33=tftf.bin make PLAT=<platform> fip
+
+Please refer to the `TF-A documentation`_ for further details.
+
+NS_BL1U and NS_BL2U test images
+```````````````````````````````
+
+``ns_bl1u.bin`` and ``ns_bl2u.bin`` are test images that exercise the *Firmware
+Update (FWU)* feature of TF-A [#]_. Throughout this document, they will be
+referred as the *FWU test images*.
+
+In addition to updating the firmware, the FWU test images also embed some tests
+that exercise the FWU state machine implemented in the TF-A. They send valid
+and invalid SMC requests to the TF-A BL1 image in order to test its robustness.
+
+NS_BL1U test image
+''''''''''''''''''
+
+The ``NS_BL1U`` image acts as the `Application Processor (AP) Firmware Update
+Boot ROM`. This typically is the first software agent executing on the AP in the
+Normal World during a firmware update operation. Its primary purpose is to load
+subsequent firmware update images from an external interface, such as NOR Flash,
+and communicate with ``BL1`` to authenticate those images.
+
+The ``NS_BL1U`` test image provided in this repository performs the following
+tasks:
+
+-  Load FWU images from external non-volatile storage (typically flash memory)
+   to Non-Secure RAM.
+
+-  Request TF-A BL1 to copy these images in Secure RAM and authenticate them.
+
+-  Jump to ``NS_BL2U`` which carries out the next steps in the firmware update
+   process.
+
+This image may be built independently of the other test images using the
+following command:
+
+::
+
+   make PLAT=<platform> ns_bl1u
+
+NS_BL2U test image
+''''''''''''''''''
+
+The ``NS_BL2U`` image acts as the `AP Firmware Updater`. Its primary
+responsibility is to load a new set of firmware images from an external
+interface and write them into non-volatile storage.
+
+The ``NS_BL2U`` test image provided in this repository overrides the original
+FIP image stored in flash with the backup FIP image (see below).
+
+This image may be built independently of the other test images using the
+following command:
+
+::
+
+   make PLAT=<platform> ns_bl2u
+
+.. _build_putting_together:
+
+Putting it all together
+'''''''''''''''''''''''
+
+The FWU test images should be used in conjunction with the TFTF image, as the
+latter initiates the FWU process by corrupting the FIP image and resetting the
+target. Once the FWU process is complete, TFTF takes over again and checks that
+the firmware was successfully updated.
+
+To sum up, 3 images must be built out of the TF-A Tests repository in order to
+test the TF-A Firmware Update feature:
+
+-  ``ns_bl1u.bin``
+-  ``ns_bl2u.bin``
+-  ``tftf.bin``
+
+Once that's done, they must be combined in the right way.
+
+-  ``ns_bl1u.bin`` is a standalone image and does not require any further
+   processing.
+
+-  ``ns_bl2u.bin`` must be injected into the ``FWU_FIP`` image. This might be
+   achieved by setting ``NS_BL2U=ns_bl2u.bin`` when building the ``FWU_FIP``
+   image out of the TF-A repository. Please refer to the section Building FIP
+   images with support for Trusted Board Boot in the `TF-A documentation`_.
+
+-  ``tftf.bin`` must be injected in the standard FIP image, as explained
+   in section `TFTF test image`_.
+
+Additionally, on Juno platform, the FWU FIP must contain a ``SCP_BL2U`` image.
+This image can simply be a copy of the standard ``SCP_BL2`` image if no specific
+firmware update operations need to be carried on the SCP side.
+
+Finally, the backup FIP image must be created. This can simply be a copy of the
+standard FIP image, which means that the Firmware Update process will restore
+the original, uncorrupted FIP image.
+
+EL3 test payload
+````````````````
+
+``el3_payload.bin`` is a test image exercising the alternative EL3 payload boot
+flow in TF-A. Refer to the `EL3 test payload README file`_ for more details
+about its behaviour and how to build and run it.
+
+SPM test images
+```````````````
+
+This repository contains 3 Secure Partitions that exercise the Secure Partition
+Manager (SPM) in TF-A [#]_. Cactus-MM is designed to test the SPM
+implementation based on the `ARM Management Mode Interface`_ (MM), while Cactus
+and Ivy can test the SPM implementation based on the SPCI and SPRT draft
+specifications. Note that it isn't possible to use both communication mechanisms
+at once: If Cactus-MM is used Cactus and Ivy can't be used.
+
+They run in Secure-EL0 and perform the following tasks:
+
+-  Test that TF-A has correctly setup the secure partition environment: They
+   should be allowed to perform cache maintenance operations, access floating
+   point registers, etc.
+
+-  Test that TF-A accepts to change data access permissions and instruction
+   permissions on behalf of the Secure Partitions for memory regions the latter
+   owns.
+
+-  Test communication with SPM through either MM, or both SPCI and SPRT.
+
+They are only supported on AArch64 FVP. They can be built independently of the
+other test images using the following command:
+
+::
+
+   make PLAT=fvp cactus ivy cactus_mm
+
+In the TF-A boot flow, the partitions replace the ``BL32`` image and should be
+injected in the FIP image. To test SPM-MM with Cactus-MM, it is enough to use
+``cactus_mm.bin`` as BL32 image. To test the SPM based on SPCI and SPRT, it is
+needed to use ``sp_tool`` to build a Secure Partition package that can be used
+as BL32 image.
+
+To run the full set of tests in the Secure Partitions, they should be used in
+conjunction with the TFTF image.
+
+For SPM-MM, build TF-A following the `TF-A SPM User Guide`_ and the following
+commands can be used to build the tests:
+
+::
+
+    # TF-A-Tests repository:
+
+    make PLAT=fvp TESTS=spm-mm tftf cactus_mm
+
+For SPM based on SPCI and SPRT, build TF-A following the `TF-A SPM User Guide`_
+and the following commands can be used to build the tests:
+
+::
+
+    # TF-A-Tests repository:
+
+    make PLAT=fvp TESTS=spm tftf cactus ivy
+
+    # TF-A repository:
+
+    make sptool
+
+    tools/sptool/sptool -o sp_package.bin \
+        -i path/to/cactus.bin:path/to/cactus.dtb \
+        -i path/to/ivy.bin:path/to/ivy.dtb
+
+Please refer to the `TF-A documentation`_ for further details.
+
+--------------
+
+.. [#] Therefore, the Trusted Board Boot feature must be enabled in TF-A for
+       the FWU test images to work. Please refer the `TF-A documentation`_ for
+       further details.
+
+.. [#] Therefore, the Secure Partition Manager must be enabled in TF-A for
+       any of the test Secure Partitions to work. Please refer to the
+       `TF-A documentation`_ for further details.
+
+--------------
+
+*Copyright (c) 2019, Arm Limited. All rights reserved.*
+
+.. _EL3 test payload README file: https://git.trustedfirmware.org/TF-A/tf-a-tests.git/tree/el3_payload/README
+.. _ARM Management Mode Interface: http://infocenter.arm.com/help/topic/com.arm.doc.den0060a/DEN0060A_ARM_MM_Interface_Specification.pdf
+.. _TF-A documentation: https://trustedfirmware-a.readthedocs.org
+.. _TF-A SPM User Guide: https://trustedfirmware-a.readthedocs.io/en/latest/components/secure-partition-manager-design.html#building-tf-a-with-secure-partition-support

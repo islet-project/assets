@@ -131,13 +131,6 @@ another Armv8-A platform.
 See the `Contributing Guidelines`_ for information on how to contribute to this
 project.
 
-
-Contact us
-----------
-
-We welcome any feedback on TF-A Tests. You can use either the `issue tracker`_
-or our `mailing list`_.
-
 --------------
 
 *Copyright (c) 2018-2020, Arm Limited. All rights reserved.*
@@ -148,13 +141,8 @@ or our `mailing list`_.
 .. _Design Guide: docs/design.rst
 .. _Porting Guide: docs/porting-guide.rst
 .. _User Guide: docs/user-guide.rst
-
 .. _FVP: https://developer.arm.com/products/system-design/fixed-virtual-platforms
 .. _Juno Arm Development Platform: https://developer.arm.com/products/system-design/development-boards/juno-development-board
-
-.. _FreeBSD: http://www.freebsd.org
-.. _SCC: http://www.simple-cc.org/
-.. _LLVM compiler-rt: https://compiler-rt.llvm.org/
 
 .. _Power State Coordination Interface (PSCI): PSCI_
 .. _PSCI: http://infocenter.arm.com/help/topic/com.arm.doc.den0022d/Power_State_Coordination_Interface_PDD_v1_1_DEN0022D.pdf

@@ -1,9 +1,7 @@
 License
 =======
 
-The software is provided under a BSD-3-Clause `license`_. Contributions to this
-project are accepted under the same license with developer sign-off as
-described in the `Contributing Guidelines`_.
+The software is provided under a BSD-3-Clause license.
 
 ::
 
