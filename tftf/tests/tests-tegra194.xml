@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2020, NVIDIA Corporation. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+  <testsuite name="Tegra194 platform tests" description="Tests for Tegra194 platforms">
+     <testcase name="RAS uncorrectable error test" function="test_ras_uncorrectable" />
+  </testsuite>
+
+</testsuites>
