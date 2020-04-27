@@ -42,9 +42,9 @@ Still to come
 
 --------------
 
-*Copyright (c) 2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2019-2020, Arm Limited. All rights reserved.*
 
-.. _SMC Calling Convention: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf
+.. _SMC Calling Convention: https://developer.arm.com/docs/den0028/latest
 .. _Power State Coordination Interface (PSCI): PSCI_
 .. _PSCI: http://infocenter.arm.com/help/topic/com.arm.doc.den0022d/Power_State_Coordination_Interface_PDD_v1_1_DEN0022D.pdf
 .. _Software Delegated Exception Interface (SDEI): SDEI_
