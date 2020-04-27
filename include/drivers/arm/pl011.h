@@ -75,4 +75,13 @@
 /* Constants */
 #define PL011_BAUDRATE		115200
 
+#ifndef __ASSEMBLER__
+#include <stdint.h>
+
+/* Functions */
+
+int console_pl011_putc(int);
+
+#endif /* __ASSEMBLER__ */
+
 #endif	/* __PL011_H__ */

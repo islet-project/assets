@@ -39,6 +39,7 @@ CACTUS_MM_SOURCES	+=				\
 
 CACTUS_MM_SOURCES	+=				\
 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
+	drivers/console/console.c			\
 	lib/${ARCH}/cache_helpers.S			\
 	lib/${ARCH}/misc_helpers.S			\
 

@@ -8,6 +8,7 @@ PLAT_INCLUDES	+=	-Iinclude/plat/arm/common/
 
 PLAT_SOURCES	+=	drivers/arm/gic/gic_common.c			\
 			drivers/arm/pl011/${ARCH}/pl011_console.S	\
+			drivers/console/console.c			\
 			plat/arm/common/arm_setup.c			\
 			plat/arm/common/arm_timers.c
 
