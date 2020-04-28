@@ -110,7 +110,4 @@ See the template test manifest for reference: ``tftf/tests/tests-template.xml``.
 
 --------------
 
-*Copyright (c) 2018-2019, Arm Limited. All rights reserved.*
-
-.. _SMC Calling Convention: SMCCC_
-.. _SMCCC: http://infocenter.arm.com/help/topic/com.arm.doc.den0028b/ARM_DEN0028B_SMC_Calling_Convention.pdf
+*Copyright (c) 2018-2020, Arm Limited. All rights reserved.*
