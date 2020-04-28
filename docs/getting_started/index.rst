@@ -5,6 +5,7 @@ Getting Started
    :maxdepth: 1
 
    requirements
+   docs-build
    obtain
    build
    build-options
@@ -16,6 +17,6 @@ experience building and running `Trusted Firmware-A (TF-A)`_.
 
 --------------
 
-*Copyright (c) 2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2019-2020, Arm Limited. All rights reserved.*
 
 .. _Trusted Firmware-A (TF-A): https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git
