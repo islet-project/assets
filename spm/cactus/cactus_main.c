@@ -83,36 +83,32 @@ static const mmap_region_t cactus_mmap[] __attribute__((used)) = {
 	{0}
 };
 
-static void cactus_print_memory_layout(void)
+static void cactus_print_memory_layout(unsigned int vm_id)
 {
 	NOTICE("Secure Partition memory layout:\n");
 
-	NOTICE("  Image regions\n");
-	NOTICE("    Text region            : %p - %p\n",
+	NOTICE("  Text region            : %p - %p\n",
 		(void *)CACTUS_TEXT_START, (void *)CACTUS_TEXT_END);
-	NOTICE("    Read-only data region  : %p - %p\n",
+
+	NOTICE("  Read-only data region  : %p - %p\n",
 		(void *)CACTUS_RODATA_START, (void *)CACTUS_RODATA_END);
-	NOTICE("    Data region            : %p - %p\n",
+
+	NOTICE("  Data region            : %p - %p\n",
 		(void *)CACTUS_DATA_START, (void *)CACTUS_DATA_END);
-	NOTICE("    BSS region             : %p - %p\n",
+
+	NOTICE("  BSS region             : %p - %p\n",
 		(void *)CACTUS_BSS_START, (void *)CACTUS_BSS_END);
-	NOTICE("    Total image memory     : %p - %p\n",
-		(void *)CACTUS_IMAGE_BASE,
-		(void *)(CACTUS_IMAGE_BASE + CACTUS_IMAGE_SIZE));
-	NOTICE("  SPM regions\n");
-	NOTICE("    SPM <-> SP buffer      : %p - %p\n",
-		(void *)CACTUS_SPM_BUF_BASE,
-		(void *)(CACTUS_SPM_BUF_BASE + CACTUS_SPM_BUF_SIZE));
-	NOTICE("    NS <-> SP buffer       : %p - %p\n",
-		(void *)CACTUS_NS_BUF_BASE,
-		(void *)(CACTUS_NS_BUF_BASE + CACTUS_NS_BUF_SIZE));
-	NOTICE("  Test regions\n");
-	NOTICE("    Test region            : %p - %p\n",
-		(void *)CACTUS_TEST_MEM_BASE,
-		(void *)(CACTUS_TEST_MEM_BASE + CACTUS_TEST_MEM_SIZE));
+
+	NOTICE("  RX                     : %p - %p\n",
+		(void *)(CACTUS_RX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+		(void *)(CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)));
+
+	NOTICE("  TX                     : %p - %p\n",
+		(void *)(CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+		(void *)(CACTUS_RX_BASE + (vm_id * CACTUS_RX_TX_SIZE)));
 }
 
-static void cactus_plat_configure_mmu(void)
+static void cactus_plat_configure_mmu(unsigned int vm_id)
 {
 	mmap_add_region(CACTUS_TEXT_START,
 			CACTUS_TEXT_START,
@@ -131,6 +127,16 @@ static void cactus_plat_configure_mmu(void)
 			CACTUS_BSS_END - CACTUS_BSS_START,
 			MT_RW_DATA);
 
+	mmap_add_region((CACTUS_RX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+			(CACTUS_RX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+			(CACTUS_RX_TX_SIZE / 2),
+			MT_RO_DATA);
+
+	mmap_add_region((CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+			(CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+			(CACTUS_RX_TX_SIZE / 2),
+			MT_RW_DATA);
+
 	mmap_add(cactus_mmap);
 	init_xlat_tables();
 }
@@ -143,10 +149,6 @@ void __dead2 cactus_main(void)
 	memset((void *)CACTUS_BSS_START,
 	       0, CACTUS_BSS_END - CACTUS_BSS_START);
 
-	/* Configure and enable Stage-1 MMU, enable D-Cache */
-	cactus_plat_configure_mmu();
-	enable_mmu_el1(0);
-
 	/* Get current FFA id */
 	smc_ret_values ffa_id_ret = ffa_id_get();
 	if (ffa_id_ret.ret0 != FFA_SUCCESS_SMC32) {
@@ -155,6 +157,10 @@ void __dead2 cactus_main(void)
 	}
 
 	ffa_vm_id_t ffa_id = ffa_id_ret.ret2 & 0xffff;
+
+	/* Configure and enable Stage-1 MMU, enable D-Cache */
+	cactus_plat_configure_mmu(ffa_id);
+	enable_mmu_el1(0);
 
 	if (ffa_id == SPM_VM_ID_FIRST) {
 		console_init(PL011_UART2_BASE,
@@ -165,10 +171,6 @@ void __dead2 cactus_main(void)
 
 		NOTICE("Booting Primary Cactus Secure Partition\n%s\n%s\n",
 			build_message, version_string);
-
-		cactus_print_memory_layout();
-
-		NOTICE("FFA id: %u\n", ffa_id); /* Expect VM id 1 */
 
 		/* Get number of VMs */
 		NOTICE("VM count: %u\n", spm_vm_get_count());
@@ -181,6 +183,10 @@ void __dead2 cactus_main(void)
 		NOTICE("Booting Secondary Cactus Secure Partition\n%s\n%s\n",
 			build_message, version_string);
 	}
+
+	NOTICE("FFA id: %u\n", ffa_id);
+	cactus_print_memory_layout(ffa_id);
+
 	/* End up to message loop */
 	message_loop(ffa_id);
 

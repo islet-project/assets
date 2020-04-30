@@ -20,16 +20,12 @@
 /* Memory reserved for stacks */
 #define CACTUS_STACKS_SIZE		ULL(0x1000)
 
-/* Memory shared between EL3 and S-EL0 (64 KiB). */
-#define CACTUS_SPM_BUF_BASE		(CACTUS_IMAGE_BASE + CACTUS_IMAGE_SIZE)
-#define CACTUS_SPM_BUF_SIZE		ULL(0x10000)
-
-/* Memory shared between Normal world and S-EL0 (64 KiB). */
-#define CACTUS_NS_BUF_BASE		(CACTUS_SPM_BUF_BASE + CACTUS_SPM_BUF_SIZE)
-#define CACTUS_NS_BUF_SIZE		ULL(0x10000)
-
-/* Memory area used by tests (128 KiB). */
-#define CACTUS_TEST_MEM_BASE		(CACTUS_NS_BUF_BASE + CACTUS_NS_BUF_SIZE)
-#define CACTUS_TEST_MEM_SIZE		ULL(0x20000)
+/*
+ * RX/TX buffer used by VM's in SPM for memory sharing
+ * Each VM allocated 2 pages, one for RX and one for TX buffer.
+ */
+#define CACTUS_RX_BASE			ULL(0x7200000)
+#define CACTUS_TX_BASE			CACTUS_RX_BASE + PAGE_SIZE
+#define CACTUS_RX_TX_SIZE		PAGE_SIZE * 2
 
 #endif /* CACTUS_DEF_H */
