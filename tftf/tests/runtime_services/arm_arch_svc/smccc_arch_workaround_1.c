@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020, NVIDIA Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,9 +20,15 @@
 #define CORTEX_A72_MIDR	0x410FD080
 #define CORTEX_A73_MIDR 0x410FD090
 #define CORTEX_A75_MIDR 0x410FD0A0
+#define DENVER_MIDR_PN0 0x4E0F0000
+#define DENVER_MIDR_PN1 0x4E0F0010
+#define DENVER_MIDR_PN2 0x4E0F0020
+#define DENVER_MIDR_PN3 0x4E0F0030
+#define DENVER_MIDR_PN4 0x4E0F0040
 
 static int cortex_a57_test(void);
 static int csv2_test(void);
+static int denver_test(void);
 
 static struct ent {
 	unsigned int midr;
@@ -31,6 +38,11 @@ static struct ent {
 	{ .midr = CORTEX_A72_MIDR, .wa_required = csv2_test },
 	{ .midr = CORTEX_A73_MIDR, .wa_required = csv2_test },
 	{ .midr = CORTEX_A75_MIDR, .wa_required = csv2_test },
+	{ .midr = DENVER_MIDR_PN0, .wa_required = denver_test },
+	{ .midr = DENVER_MIDR_PN1, .wa_required = denver_test },
+	{ .midr = DENVER_MIDR_PN2, .wa_required = denver_test },
+	{ .midr = DENVER_MIDR_PN3, .wa_required = denver_test },
+	{ .midr = DENVER_MIDR_PN4, .wa_required = denver_test },
 };
 
 static int cortex_a57_test(void)
@@ -45,6 +57,11 @@ static int csv2_test(void)
 	pfr0 = read_id_aa64pfr0_el1() >> ID_AA64PFR0_CSV2_SHIFT;
 	if ((pfr0 & ID_AA64PFR0_CSV2_MASK) == 1)
 		return 0;
+	return 1;
+}
+
+static int denver_test(void)
+{
 	return 1;
 }
 
