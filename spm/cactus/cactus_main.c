@@ -19,7 +19,7 @@
 
 #include "cactus.h"
 #include "cactus_def.h"
-#include "spci_helpers.h"
+#include "ffa_helpers.h"
 
 /* Host machine information injected by the build system in the ELF file. */
 extern const char build_message[];
@@ -33,9 +33,9 @@ extern const char version_string[];
  * but rather through Hafnium print hypercall.
  *
  */
-static void __dead2 message_loop(spci_vm_id_t vm_id)
+static void __dead2 message_loop(ffa_vm_id_t vm_id)
 {
-	smc_ret_values spci_ret;
+	smc_ret_values ffa_ret;
 	uint32_t sp_response;
 
 	/*
@@ -43,22 +43,22 @@ static void __dead2 message_loop(spci_vm_id_t vm_id)
 	 * SP initialization has completed. It blocks until receiving
 	 * a direct message request.
 	 */
-	spci_ret = spci_msg_wait();
+	ffa_ret = ffa_msg_wait();
 
 	for (;;) {
 
-		if (spci_ret.ret0 != SPCI_MSG_SEND_DIRECT_REQ_SMC32) {
-			spci_ret = spci_error(-1);
+		if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_REQ_SMC32) {
+			ffa_ret = ffa_error(-1);
 			continue;
 		}
 
-		if (spci_ret.ret1 != SP_ID(vm_id)) {
-			spci_ret = spci_error(-2);
+		if (ffa_ret.ret1 != SP_ID(vm_id)) {
+			ffa_ret = ffa_error(-2);
 			continue;
 		}
 
-		if (spci_ret.ret2 != HYP_ID) {
-			spci_ret = spci_error(-3);
+		if (ffa_ret.ret2 != HYP_ID) {
+			ffa_ret = ffa_error(-3);
 			continue;
 		}
 
@@ -66,13 +66,13 @@ static void __dead2 message_loop(spci_vm_id_t vm_id)
 		 * For the sake of testing, add the vm id to the
 		 * received message.
 		 */
-		sp_response = spci_ret.ret3 | vm_id;
+		sp_response = ffa_ret.ret3 | vm_id;
 
 		/*
 		 * Send a response through direct messaging then block
 		 * until receiving a new message request.
 		 */
-		spci_ret = spci_msg_send_direct_resp(SP_ID(vm_id),
+		ffa_ret = ffa_msg_send_direct_resp(SP_ID(vm_id),
 						     HYP_ID, sp_response);
 	}
 }
@@ -147,16 +147,16 @@ void __dead2 cactus_main(void)
 	cactus_plat_configure_mmu();
 	enable_mmu_el1(0);
 
-	/* Get current SPCI id */
-	smc_ret_values spci_id_ret = spci_id_get();
-	if (spci_id_ret.ret0 != SPCI_SUCCESS_SMC32) {
-		ERROR("SPCI_ID_GET failed.\n");
+	/* Get current FFA id */
+	smc_ret_values ffa_id_ret = ffa_id_get();
+	if (ffa_id_ret.ret0 != FFA_SUCCESS_SMC32) {
+		ERROR("FFA_ID_GET failed.\n");
 		panic();
 	}
 
-	spci_vm_id_t spci_id = spci_id_ret.ret2 & 0xffff;
+	ffa_vm_id_t ffa_id = ffa_id_ret.ret2 & 0xffff;
 
-	if (spci_id == SPM_VM_ID_FIRST) {
+	if (ffa_id == SPM_VM_ID_FIRST) {
 		console_init(PL011_UART2_BASE,
 			PL011_UART2_CLK_IN_HZ,
 			PL011_BAUDRATE);
@@ -168,13 +168,13 @@ void __dead2 cactus_main(void)
 
 		cactus_print_memory_layout();
 
-		NOTICE("SPCI id: %u\n", spci_id); /* Expect VM id 1 */
+		NOTICE("FFA id: %u\n", ffa_id); /* Expect VM id 1 */
 
 		/* Get number of VMs */
 		NOTICE("VM count: %u\n", spm_vm_get_count());
 
 		/* Get virtual CPU count for current VM */
-		NOTICE("vCPU count: %u\n", spm_vcpu_get_count(spci_id));
+		NOTICE("vCPU count: %u\n", spm_vcpu_get_count(ffa_id));
 	} else {
 		set_putc_impl(HVC_CALL_AS_STDOUT);
 
@@ -182,7 +182,7 @@ void __dead2 cactus_main(void)
 			build_message, version_string);
 	}
 	/* End up to message loop */
-	message_loop(spci_id);
+	message_loop(ffa_id);
 
 	/* Not reached */
 }

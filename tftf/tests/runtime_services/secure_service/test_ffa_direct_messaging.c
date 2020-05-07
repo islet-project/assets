@@ -8,11 +8,11 @@
 #include <cactus_def.h>
 #include <platform.h>
 #include <smccc.h>
-#include <spci_helpers.h>
-#include <spci_svc.h>
+#include <ffa_helpers.h>
+#include <ffa_svc.h>
 #include <test_helpers.h>
 
-/* Hypervisor ID at physical SPCI instance */
+/* Hypervisor ID at physical FFA instance */
 #define HYP_ID		(0)
 
 /* By convention, SP IDs (as opposed to VM IDs) have bit 15 set */
@@ -22,10 +22,10 @@
 #define DIRECT_MSG_TEST_PATTERN2	(0xbbbb0000)
 #define DIRECT_MSG_TEST_PATTERN3	(0xcccc0000)
 
-#define OPTEE_SPCI_GET_API_VERSION	(0)
-#define OPTEE_SPCI_GET_OS_VERSION	(1)
-#define OPTEE_SPCI_GET_OS_VERSION_MAJOR	(3)
-#define OPTEE_SPCI_GET_OS_VERSION_MINOR	(8)
+#define OPTEE_FFA_GET_API_VERSION	(0)
+#define OPTEE_FFA_GET_OS_VERSION	(1)
+#define OPTEE_FFA_GET_OS_VERSION_MAJOR	(3)
+#define OPTEE_FFA_GET_OS_VERSION_MINOR	(8)
 
 static test_result_t send_receive_direct_msg(unsigned int sp_id,
 					     unsigned int test_pattern)
@@ -33,15 +33,15 @@ static test_result_t send_receive_direct_msg(unsigned int sp_id,
 	smc_ret_values ret_values;
 
 	/* Send a message to SP through direct messaging */
-	ret_values = spci_msg_send_direct_req(HYP_ID, SP_ID(sp_id),
+	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(sp_id),
 					      test_pattern);
 
 	/*
-	 * Return responses may be SPCI_MSG_SEND_DIRECT_RESP or SPCI_INTERRUPT,
+	 * Return responses may be FFA_MSG_SEND_DIRECT_RESP or FFA_INTERRUPT,
 	 * but only expect the former. Expect SMC32 convention from SP.
 	 */
-	if (ret_values.ret0 != SPCI_MSG_SEND_DIRECT_RESP_SMC32) {
-		tftf_testcase_printf("spci_msg_send_direct_req returned %lx\n",
+	if (ret_values.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+		tftf_testcase_printf("ffa_msg_send_direct_req returned %lx\n",
 				     (u_register_t)ret_values.ret0);
 		return TEST_RESULT_FAIL;
 	}
@@ -75,40 +75,40 @@ static bool check_spmc_execution_level(void)
 
 	/*
 	 * Send a first OP-TEE-defined protocol message through
-	 * SPCI direct message.
+	 * FFA direct message.
 	 *
 	 */
-	ret_values = spci_msg_send_direct_req(HYP_ID, SP_ID(1),
-					      OPTEE_SPCI_GET_API_VERSION);
-	if ((ret_values.ret3 == SPCI_VERSION_MAJOR) &&
-	    (ret_values.ret4 == SPCI_VERSION_MINOR)) {
+	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(1),
+					      OPTEE_FFA_GET_API_VERSION);
+	if ((ret_values.ret3 == FFA_VERSION_MAJOR) &&
+	    (ret_values.ret4 == FFA_VERSION_MINOR)) {
 		is_optee_spmc_criteria++;
 	}
 
 	/*
 	 * Send a second OP-TEE-defined protocol message through
-	 * SPCI direct message.
+	 * FFA direct message.
 	 *
 	 */
-	ret_values = spci_msg_send_direct_req(HYP_ID, SP_ID(1),
-					      OPTEE_SPCI_GET_OS_VERSION);
-	if ((ret_values.ret3 == OPTEE_SPCI_GET_OS_VERSION_MAJOR) &&
-	    (ret_values.ret4 == OPTEE_SPCI_GET_OS_VERSION_MINOR)) {
+	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(1),
+					      OPTEE_FFA_GET_OS_VERSION);
+	if ((ret_values.ret3 == OPTEE_FFA_GET_OS_VERSION_MAJOR) &&
+	    (ret_values.ret4 == OPTEE_FFA_GET_OS_VERSION_MINOR)) {
 		is_optee_spmc_criteria++;
 	}
 
 	return (is_optee_spmc_criteria == 2);
 }
 
-test_result_t test_spci_direct_messaging(void)
+test_result_t test_ffa_direct_messaging(void)
 {
 	smc_ret_values ret_values;
 	test_result_t result;
 
 	/**********************************************************************
-	 * Verify that SPCI is there and that it has the correct version.
+	 * Verify that FFA is there and that it has the correct version.
 	 **********************************************************************/
-	SKIP_TEST_IF_SPCI_VERSION_LESS_THAN(0, 9);
+	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 0);
 
 	/* Check if SPMC is OP-TEE at S-EL1 */
 	if (check_spmc_execution_level()) {
@@ -135,14 +135,14 @@ test_result_t test_spci_direct_messaging(void)
 	 **********************************************************************/
 	/*
 	 * NOTICE: for now, the SPM does not initially run each SP sequentially
-	 * on boot up so we explicitely run the SP once by invoking SPCI_RUN so
-	 * it reaches spci_msg_wait in the message loop function.
+	 * on boot up so we explicitely run the SP once by invoking FFA_RUN so
+	 * it reaches ffa_msg_wait in the message loop function.
 	 */
 
 	/* Request running SP2 on VCPU0 */
-	ret_values = spci_run(2, 0);
-	if (ret_values.ret0 != SPCI_MSG_WAIT) {
-		tftf_testcase_printf("spci_run returned %lx\n",
+	ret_values = ffa_run(2, 0);
+	if (ret_values.ret0 != FFA_MSG_WAIT) {
+		tftf_testcase_printf("ffa_run returned %lx\n",
 				     (u_register_t)ret_values.ret0);
 		return TEST_RESULT_FAIL;
 	}

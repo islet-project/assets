@@ -11,11 +11,11 @@
 /dts-v1/;
 
 / {
-	compatible = "arm,spci-manifest-1.0";
+	compatible = "arm,ffa-manifest-1.0";
 
 	/* Properties */
 	description = "Base-1";
-	spci-version = <0x00000009>; /* 31:16 - Major, 15:0 - Minor */
+	ffa-version = <0x00010000>; /* 31:16 - Major, 15:0 - Minor */
 	uuid = <0xb4b5671e 0x4a904fe1 0xb81ffb13 0xdae1dacb>;
 	id = <1>;
 	auxiliary-id = <0xae>;
@@ -34,7 +34,7 @@
 	gp-register-num = <0x0>;
 
 	rx_tx-info {
-		compatible = "arm,spci-manifest-rx_tx-buffer";
+		compatible = "arm,ffa-manifest-rx_tx-buffer";
 
 		description = "NS RX/TX Buffer";
 		pages-count = <1>;
@@ -43,7 +43,7 @@
 	};
 
 	memory-regions {
-		compatible = "arm,spci-manifest-memory-regions";
+		compatible = "arm,ffa-manifest-memory-regions";
 		test-memory {
 			description = "Test Memory";
 			pages-count = <32>; /* 128KiB with 4KiB pages */
@@ -53,7 +53,7 @@
 	};
 
 	device-regions {
-		compatible = "arm,spci-manifest-device-regions";
+		compatible = "arm,ffa-manifest-device-regions";
 		attributes = <0x0>;
 		test-reg {
 			reg = <0x10000008 0x00000001 1>; /* Arbitrary test address */

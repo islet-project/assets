@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __SPCI_HELPERS_H__
-#define __SPCI_HELPERS_H__
+#ifndef __FFA_HELPERS_H__
+#define __FFA_HELPERS_H__
 
 
-#include <spci_svc.h>
+#include <ffa_svc.h>
 #include "tftf_lib.h"
 
 #define SPM_VM_ID_FIRST                 (1)
@@ -17,19 +17,19 @@
 #define SPM_VCPU_GET_COUNT              (0xFF02)
 #define SPM_DEBUG_LOG                   (0xBD000000)
 
-/* Hypervisor ID at physical SPCI instance */
+/* Hypervisor ID at physical FFA instance */
 #define HYP_ID          (0)
 
 /* By convention, SP IDs (as opposed to VM IDs) have bit 15 set */
 #define SP_ID(x)        ((x) | (1 << 15))
 
-typedef unsigned short spci_vm_id_t;
-typedef unsigned short spci_vm_count_t;
-typedef unsigned short spci_vcpu_count_t;
+typedef unsigned short ffa_vm_id_t;
+typedef unsigned short ffa_vm_count_t;
+typedef unsigned short ffa_vcpu_count_t;
 
 /* Functions */
 
-static inline spci_vcpu_count_t spm_vcpu_get_count(spci_vm_id_t vm_id)
+static inline ffa_vcpu_count_t spm_vcpu_get_count(ffa_vm_id_t vm_id)
 {
 	hvc_args args = {
 		.fid = SPM_VCPU_GET_COUNT,
@@ -41,7 +41,7 @@ static inline spci_vcpu_count_t spm_vcpu_get_count(spci_vm_id_t vm_id)
 	return ret.ret0;
 }
 
-static inline spci_vm_count_t spm_vm_get_count(void)
+static inline ffa_vm_count_t spm_vm_get_count(void)
 {
 	hvc_args args = {
 		.fid = SPM_VM_GET_COUNT
@@ -62,31 +62,31 @@ static inline void spm_debug_log(char c)
 	(void)tftf_hvc(&args);
 }
 
-static inline smc_ret_values spci_id_get(void)
+static inline smc_ret_values ffa_id_get(void)
 {
 	smc_args args = {
-		.fid = SPCI_ID_GET
+		.fid = FFA_ID_GET
 	};
 
 	return tftf_smc(&args);
 }
 
-static inline smc_ret_values spci_msg_wait(void)
+static inline smc_ret_values ffa_msg_wait(void)
 {
 	smc_args args = {
-		.fid = SPCI_MSG_WAIT
+		.fid = FFA_MSG_WAIT
 	};
 
 	return tftf_smc(&args);
 }
 
 /* Send response through registers using direct messaging */
-static inline smc_ret_values spci_msg_send_direct_resp(spci_vm_id_t sender_vm_id,
-						spci_vm_id_t target_vm_id,
+static inline smc_ret_values ffa_msg_send_direct_resp(ffa_vm_id_t sender_vm_id,
+						ffa_vm_id_t target_vm_id,
 						uint32_t message)
 {
 	smc_args args = {
-		.fid = SPCI_MSG_SEND_DIRECT_RESP_SMC32,
+		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32,
 		.arg1 = ((uint32_t)sender_vm_id << 16) | target_vm_id,
 		.arg3 = message
 	};
@@ -94,10 +94,10 @@ static inline smc_ret_values spci_msg_send_direct_resp(spci_vm_id_t sender_vm_id
 	return tftf_smc(&args);
 }
 
-static inline smc_ret_values spci_error(int32_t error_code)
+static inline smc_ret_values ffa_error(int32_t error_code)
 {
 	smc_args args = {
-		.fid = SPCI_ERROR,
+		.fid = FFA_ERROR,
 		.arg1 = 0,
 		.arg2 = error_code
 	};
@@ -105,4 +105,4 @@ static inline smc_ret_values spci_error(int32_t error_code)
 	return tftf_smc(&args);
 }
 
-#endif /* __SPCI_HELPERS_H__ */
+#endif /* __FFA_HELPERS_H__ */

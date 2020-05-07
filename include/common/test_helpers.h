@@ -10,7 +10,7 @@
 #include <arch_features.h>
 #include <plat_topology.h>
 #include <psci.h>
-#include <spci_svc.h>
+#include <ffa_svc.h>
 #include <tftf_lib.h>
 #include <trusted_os.h>
 #include <tsp.h>
@@ -143,27 +143,27 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 			version & MM_VERSION_MINOR_MASK);			\
 	} while (0)
 
-#define SKIP_TEST_IF_SPCI_VERSION_LESS_THAN(major, minor)			\
+#define SKIP_TEST_IF_FFA_VERSION_LESS_THAN(major, minor)			\
 	do {									\
-		smc_args version_smc = { SPCI_VERSION };			\
+		smc_args version_smc = { FFA_VERSION };			\
 		smc_ret_values smc_ret = tftf_smc(&version_smc);		\
 		uint32_t version = smc_ret.ret2;				\
 										\
-		if (smc_ret.ret0 != SPCI_SUCCESS_SMC32) {			\
+		if (smc_ret.ret0 != FFA_SUCCESS_SMC32) {			\
 			tftf_testcase_printf("SPM not detected.\n");		\
 			return TEST_RESULT_SKIPPED;				\
 		}								\
                                                                                 \
-		if ((version & SPCI_VERSION_BIT31_MASK) != 0) {                 \
-			tftf_testcase_printf("SPCI_VERSION bad response.\n");	\
+		if ((version & FFA_VERSION_BIT31_MASK) != 0) {                 \
+			tftf_testcase_printf("FFA_VERSION bad response.\n");	\
 			return TEST_RESULT_SKIPPED;                             \
 		}                                                               \
 										\
-		if (version < MAKE_SPCI_VERSION(major, minor)) {		\
-			tftf_testcase_printf("SPCI_VERSION returned %d.%d\n"	\
+		if (version < MAKE_FFA_VERSION(major, minor)) {		\
+			tftf_testcase_printf("FFA_VERSION returned %d.%d\n"	\
 					     "The required version is %d.%d\n",	\
-					     version >> SPCI_VERSION_MAJOR_SHIFT,\
-					     version & SPCI_VERSION_MINOR_MASK,	\
+					     version >> FFA_VERSION_MAJOR_SHIFT,\
+					     version & FFA_VERSION_MINOR_MASK,	\
 					     major, minor);			\
 			return TEST_RESULT_SKIPPED;				\
 		}								\

@@ -6,11 +6,11 @@
 
 #include <debug.h>
 #include <smccc.h>
-#include <spci_helpers.h>
-#include <spci_svc.h>
+#include <ffa_helpers.h>
+#include <ffa_svc.h>
 
 /*-----------------------------------------------------------------------------
- * SPCI_RUN
+ * FFA_RUN
  *
  * Parameters
  *     uint32 Function ID (w0): 0x8400006D
@@ -19,17 +19,17 @@
  *         -Bits[15:0]: ID of vCPU of SP/VM to run.
  *     Other Parameter registers w2-w7/x2-x7: Reserved (MBZ)
  *
- * On failure, returns SPCI_ERROR in w0 and error code in w2:
+ * On failure, returns FFA_ERROR in w0 and error code in w2:
  *     -INVALID_PARAMETERS: Unrecognized endpoint or vCPU ID
- *     -NOT_SUPPORTED: This function is not implemented at this SPCI instance
+ *     -NOT_SUPPORTED: This function is not implemented at this FFA instance
  *     -DENIED: Callee is not in a state to handle this request
  *     -BUSY: vCPU is busy and caller must retry later
  *     -ABORTED: vCPU or VM ran into an unexpected error and has aborted
  */
-smc_ret_values spci_run(uint32_t dest_id, uint32_t vcpu_id)
+smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id)
 {
 	smc_args args = {
-		SPCI_MSG_RUN,
+		FFA_MSG_RUN,
 		(dest_id << 16) | vcpu_id,
 		0, 0, 0, 0, 0, 0
 	};
@@ -38,7 +38,7 @@ smc_ret_values spci_run(uint32_t dest_id, uint32_t vcpu_id)
 }
 
 /*-----------------------------------------------------------------------------
- * SPCI_MSG_SEND_DIRECT_REQ
+ * FFA_MSG_SEND_DIRECT_REQ
  *
  * Parameters
  *     uint32 Function ID (w0): 0x8400006F / 0xC400006F
@@ -48,14 +48,14 @@ smc_ret_values spci_run(uint32_t dest_id, uint32_t vcpu_id)
  *     uint32/uint64 (w2/x2) - RFU MBZ
  *     w3-w7 - Implementation defined
  *
- * On failure, returns SPCI_ERROR in w0 and error code in w2:
+ * On failure, returns FFA_ERROR in w0 and error code in w2:
  *     -INVALID_PARAMETERS: Invalid endpoint ID or non-zero reserved register
  *     -DENIED: Callee is not in a state to handle this request
- *     -NOT_SUPPORTED: This function is not implemented at this SPCI instance
+ *     -NOT_SUPPORTED: This function is not implemented at this FFA instance
  *     -BUSY: Message target is busy
  *     -ABORTED: Message target ran into an unexpected error and has aborted
  */
-static smc_ret_values __spci_msg_send_direct_req32_5(uint32_t source_id,
+static smc_ret_values __ffa_msg_send_direct_req32_5(uint32_t source_id,
 						     uint32_t dest_id,
 						     uint32_t arg0,
 						     uint32_t arg1,
@@ -64,7 +64,7 @@ static smc_ret_values __spci_msg_send_direct_req32_5(uint32_t source_id,
 						     uint32_t arg4)
 {
 	smc_args args = {
-		SPCI_MSG_SEND_DIRECT_REQ_SMC32,
+		FFA_MSG_SEND_DIRECT_REQ_SMC32,
 		(source_id << 16) | dest_id,
 		0,
 		arg0, arg1, arg2, arg3, arg4
@@ -74,14 +74,14 @@ static smc_ret_values __spci_msg_send_direct_req32_5(uint32_t source_id,
 }
 
 /* Direct message send helper accepting a single 32b message argument */
-smc_ret_values spci_msg_send_direct_req(uint32_t source_id, uint32_t dest_id,
+smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id,
 					uint32_t message)
 {
-	return __spci_msg_send_direct_req32_5(source_id, dest_id,
+	return __ffa_msg_send_direct_req32_5(source_id, dest_id,
 					      message, 0, 0, 0, 0);
 }
 
-static smc_ret_values __spci_msg_send_direct_req64_5(uint32_t source_id,
+static smc_ret_values __ffa_msg_send_direct_req64_5(uint32_t source_id,
 						     uint32_t dest_id,
 						     uint64_t arg0,
 						     uint64_t arg1,
@@ -90,7 +90,7 @@ static smc_ret_values __spci_msg_send_direct_req64_5(uint32_t source_id,
 						     uint64_t arg4)
 {
 	smc_args args = {
-		SPCI_MSG_SEND_DIRECT_REQ_SMC64,
+		FFA_MSG_SEND_DIRECT_REQ_SMC64,
 		(source_id << 16) | dest_id,
 		0,
 		arg0, arg1, arg2, arg3, arg4
@@ -100,9 +100,9 @@ static smc_ret_values __spci_msg_send_direct_req64_5(uint32_t source_id,
 }
 
 /* Direct message send helper accepting a single 64b message argument */
-smc_ret_values spci_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
+smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
 					uint64_t message)
 {
-	return __spci_msg_send_direct_req64_5(source_id, dest_id,
+	return __ffa_msg_send_direct_req64_5(source_id, dest_id,
 					      message, 0, 0, 0, 0);
 }

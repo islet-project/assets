@@ -11,8 +11,8 @@
   <testsuite name="Secure Partition Manager"
              description="Test SPM APIs">
 
-     <testcase name="SPCI direct messaging API"
-               function="test_spci_direct_messaging" />
+     <testcase name="PSA FF-A direct messaging API"
+               function="test_ffa_direct_messaging" />
 
   </testsuite>
 
