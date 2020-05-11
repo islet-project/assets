@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -20,6 +20,13 @@
 						SMCCC_VERSION_MINOR_SHIFT))
 
 #define SMC_UNKNOWN			-1
+#define SMC_OK				0
+
+/* Return codes for Arm Architecture Service SMC calls */
+#define SMC_ARCH_CALL_SUCCESS           0
+#define SMC_ARCH_CALL_NOT_SUPPORTED     -1
+#define SMC_ARCH_CALL_NOT_REQUIRED      -2
+#define SMC_ARCH_CALL_INVAL_PARAM       -3
 
 /*******************************************************************************
  * Bit definitions inside the function id as per the SMC calling convention
@@ -63,5 +70,11 @@
 #define OEN_TOS_START			50	/* Trusted OS */
 #define OEN_TOS_END			63
 #define OEN_LIMIT			64
+
+/*******************************************************************************
+ * Argument definitions passed to SMC call
+ ******************************************************************************/
+#define SMC_GET_SOC_VERSION		0
+#define SMC_GET_SOC_REVISION		1
 
 #endif /* __SMCCC_H__ */

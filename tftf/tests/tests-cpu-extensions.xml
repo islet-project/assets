@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -23,6 +23,7 @@
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">
      <testcase name="SMCCC_ARCH_WORKAROUND_1 test" function="test_smccc_arch_workaround_1" />
      <testcase name="SMCCC_ARCH_WORKAROUND_2 test" function="test_smccc_arch_workaround_2" />
+     <testcase name="SMCCC_ARCH_SOC_ID test" function="test_smccc_arch_soc_id" />
   </testsuite>
 
 </testsuites>
