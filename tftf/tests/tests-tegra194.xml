@@ -8,6 +8,7 @@
 
 <testsuites>
   <testsuite name="Tegra194 platform tests" description="Tests for Tegra194 platforms">
+     <testcase name="RAS corrected error test" function="test_ras_corrected" />
      <testcase name="RAS uncorrectable error test" function="test_ras_uncorrectable" />
   </testsuite>
 
