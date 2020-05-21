@@ -18,6 +18,10 @@ PSCI System Suspend Validation/Suspend system with cores in suspend
 # Tegra194 platforms enter system suspend only from the boot core
 PSCI System Suspend Validation/system suspend from all cores
 
+# Tegra194 platforms do not support CPU suspend with PSTATE_TYPE_POWERDOWN
+PSCI STAT/Stats test cases for CPU OFF
+PSCI STAT/Stats test cases after system suspend
+
 # CPUs cannot be woken up with a timer interrupt after power off
 Timer framework Validation/Target timer to a power down cpu
 Timer framework Validation/Test scenario where multiple CPUs call same timeout
