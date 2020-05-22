@@ -22,6 +22,9 @@ PSCI System Suspend Validation/system suspend from all cores
 PSCI STAT/Stats test cases for CPU OFF
 PSCI STAT/Stats test cases after system suspend
 
+# Tegra194 platforms do not support memory mapped timers
+Boot requirement tests
+
 # CPUs cannot be woken up with a timer interrupt after power off
 Timer framework Validation/Target timer to a power down cpu
 Timer framework Validation/Test scenario where multiple CPUs call same timeout
