@@ -423,7 +423,7 @@ static test_result_t do_stress_test(void)
 
 	tftf_send_event(&cpu_ready[core_pos]);
 
-	end_time = mmio_read_64(SYS_CNT_BASE1 + CNTPCT_LO) + read_cntfrq_el0() * 10;
+	end_time = read_cntpct_el0() + read_cntfrq_el0() * 10;
 
 	/* Construct the state-id for power down */
 	ret = tftf_psci_make_composite_state_id(MPIDR_AFFLVL0,
@@ -441,7 +441,7 @@ static test_result_t do_stress_test(void)
 	}
 
 	do {
-		current_time = mmio_read_64(SYS_CNT_BASE1 + CNTPCT_LO);
+		current_time = read_cntpct_el0();
 		if (current_time > end_time)
 			break;
 

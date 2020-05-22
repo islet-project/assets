@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -60,7 +60,7 @@ static irq_handler_t timer_handler[PLATFORM_CORE_COUNT];
 static inline unsigned long long get_current_time_ms(void)
 {
 	assert(systicks_per_ms);
-	return mmio_read_64(SYS_CNT_BASE1 + CNTPCT_LO) / systicks_per_ms;
+	return syscounter_read() / systicks_per_ms;
 }
 
 static inline unsigned long long get_current_prog_time(void)
