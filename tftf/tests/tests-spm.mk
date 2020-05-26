@@ -8,4 +8,5 @@ TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/secure_service/,	\
 		ffa_helpers.c						\
 		test_ffa_direct_messaging.c				\
+		test_ffa_version.c					\
 	)

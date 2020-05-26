@@ -8,8 +8,22 @@
 
 <testsuites>
 
-  <testsuite name="Secure Partition Manager"
-             description="Test SPM APIs">
+  <testsuite name="PSA FF-A Version"
+             description="Test PSA FF-A Version ABI" >
+
+    <testcase name="Same FFA version as SPM"
+              function="test_ffa_version_equal" />
+    <testcase name="Setting bit 31 in input version"
+              function="test_ffa_version_bit31"/>
+    <testcase name="Bigger FFA version than SPM"
+              function="test_ffa_version_bigger" />
+    <testcase name="Smaller FFA version than SPM"
+              function="test_ffa_version_smaller" />
+
+  </testsuite>
+
+  <testsuite name="PSA FF-A Direct messaging"
+             description="Test PSA FF-A Direct messaging ABI" >
 
      <testcase name="PSA FF-A direct messaging API"
                function="test_ffa_direct_messaging" />
