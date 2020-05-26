@@ -6,6 +6,6 @@
 
 TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/secure_service/,	\
-		spci_helpers.c						\
-		test_spci_direct_messaging.c				\
+		ffa_helpers.c						\
+		test_ffa_direct_messaging.c				\
 	)

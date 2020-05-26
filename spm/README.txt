@@ -1,4 +1,4 @@
-This is a prototype loosely based on the SPCI Beta1 specification.
+This is a prototype loosely based on the PSA FF-A v1.0 specification.
 Any interface / platform API introduced for this is subject to
 change as it evolves.
 

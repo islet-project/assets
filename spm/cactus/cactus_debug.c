@@ -8,7 +8,7 @@
 #include <drivers/console.h>
 
 #include "cactus.h"
-#include "spci_helpers.h"
+#include "ffa_helpers.h"
 
 static int (*putc_impl)(int);
 
