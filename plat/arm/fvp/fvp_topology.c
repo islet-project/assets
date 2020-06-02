@@ -22,13 +22,60 @@
 #define	CPU_DEF(cluster, cpu)	\
 	{ cluster, cpu, 0 },	\
 	{ cluster, cpu, 1 }
-
 #else
+/* ST: 1 thread per CPU */
 #define	CPU_DEF(cluster, cpu)	\
 	{ cluster, cpu }
-#endif
+#endif	/* FVP_MAX_PE_PER_CPU */
 
-/* 8 CPUs per cluster */
+/*
+ * Max CPUs per cluster:
+ * ST:	4
+ * SMT:	8
+ */
+#if (FVP_MAX_CPUS_PER_CLUSTER == 1)
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0)
+#elif (FVP_MAX_CPUS_PER_CLUSTER == 2)
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0),	\
+	CPU_DEF(cluster, 1)
+#elif (FVP_MAX_CPUS_PER_CLUSTER == 3)
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0),	\
+	CPU_DEF(cluster, 1),	\
+	CPU_DEF(cluster, 2)
+#elif (FVP_MAX_CPUS_PER_CLUSTER == 4)
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0),	\
+	CPU_DEF(cluster, 1),	\
+	CPU_DEF(cluster, 2),	\
+	CPU_DEF(cluster, 3)
+#elif (FVP_MAX_CPUS_PER_CLUSTER == 5)
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0),	\
+	CPU_DEF(cluster, 1),	\
+	CPU_DEF(cluster, 2),	\
+	CPU_DEF(cluster, 3),	\
+	CPU_DEF(cluster, 4)
+#elif (FVP_MAX_CPUS_PER_CLUSTER == 6)
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0),	\
+	CPU_DEF(cluster, 1),	\
+	CPU_DEF(cluster, 2),	\
+	CPU_DEF(cluster, 3),	\
+	CPU_DEF(cluster, 4),	\
+	CPU_DEF(cluster, 5)
+#elif (FVP_MAX_CPUS_PER_CLUSTER == 7)
+#define	CLUSTER_DEF(cluster)	\
+	CPU_DEF(cluster, 0),	\
+	CPU_DEF(cluster, 1),	\
+	CPU_DEF(cluster, 2),	\
+	CPU_DEF(cluster, 3),	\
+	CPU_DEF(cluster, 4),	\
+	CPU_DEF(cluster, 5),	\
+	CPU_DEF(cluster, 6)
+#else
 #define	CLUSTER_DEF(cluster)	\
 	CPU_DEF(cluster, 0),	\
 	CPU_DEF(cluster, 1),	\
@@ -38,6 +85,7 @@
 	CPU_DEF(cluster, 5),	\
 	CPU_DEF(cluster, 6),	\
 	CPU_DEF(cluster, 7)
+#endif	/* FVP_MAX_CPUS_PER_CLUSTER */
 
 static const struct {
 	unsigned int cluster_id;
@@ -48,9 +96,15 @@ static const struct {
 } fvp_base_aemv8a_aemv8a_cores[] = {
 	/* Clusters 0...3 */
 	CLUSTER_DEF(0),
+#if (FVP_CLUSTER_COUNT > 1)
 	CLUSTER_DEF(1),
+#if (FVP_CLUSTER_COUNT > 2)
 	CLUSTER_DEF(2),
+#if (FVP_CLUSTER_COUNT > 3)
 	CLUSTER_DEF(3)
+#endif
+#endif
+#endif
 };
 
 /*
@@ -70,12 +124,18 @@ static const unsigned char fvp_power_domain_tree_desc[] = {
 	FVP_CLUSTER_COUNT,
 	/* Number of children for the first node */
 	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU,
+#if (FVP_CLUSTER_COUNT > 1)
 	/* Number of children for the second node */
 	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU,
+#if (FVP_CLUSTER_COUNT > 2)
 	/* Number of children for the third node */
 	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU,
+#if (FVP_CLUSTER_COUNT > 3)
 	/* Number of children for the fourth node */
 	FVP_MAX_CPUS_PER_CLUSTER * FVP_MAX_PE_PER_CPU
+#endif
+#endif
+#endif
 };
 
 const unsigned char *tftf_plat_get_pwr_domain_tree_desc(void)

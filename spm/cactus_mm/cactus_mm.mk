@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -53,6 +53,9 @@ CACTUS_MM_DEFINES	:=
 CACTUS_MM_DEFINES	+= -DENABLE_ASSERTIONS=0
 
 $(eval $(call add_define,CACTUS_MM_DEFINES,DEBUG))
+$(eval $(call add_define,CACTUS_MM_DEFINES,FVP_CLUSTER_COUNT))
+$(eval $(call add_define,CACTUS_MM_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
+$(eval $(call add_define,CACTUS_MM_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,CACTUS_MM_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,CACTUS_MM_DEFINES,PLAT_${PLAT}))
 

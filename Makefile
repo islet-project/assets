@@ -94,6 +94,17 @@ define assert_boolean
 $(and $(patsubst 0,,$(value $(1))),$(patsubst 1,,$(value $(1))),$(error $(1) must be boolean))
 endef
 
+# CREATE_SEQ is a recursive function to create sequence of numbers from 1 to
+# $(2) and assign the sequence to $(1)
+define CREATE_SEQ
+$(if $(word $(2), $($(1))),\
+  $(eval $(1) += $(words $($(1))))\
+  $(eval $(1) := $(filter-out 0,$($(1)))),\
+  $(eval $(1) += $(words $($(1))))\
+  $(call CREATE_SEQ,$(1),$(2))\
+)
+endef
+
 ifeq (${PLAT},)
   $(error "Error: Unknown platform. Please use PLAT=<platform name> to specify the platform")
 endif
