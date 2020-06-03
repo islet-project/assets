@@ -1,0 +1,122 @@
+/*
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+
+/dts-v1/;
+
+/ {
+
+	svc_var1 {
+		bias = <65>;
+		svc_var1_var1 {
+			bias = <30>;
+			functionname = "svc_var1_var1";
+		};
+		smc_var1_var2 {
+			bias = <30>;
+			functionname = "smc_var1_var2";
+		};
+		smc_var1_var3 {
+			bias = <35>;
+			smc_var1_var3_var1 {
+				bias = <30>;
+				functionname = "smc_var1_var3_var1";
+			};
+			smc_var1_var3_var2 {
+				bias = <30>;
+				functionname = "smc_var1_var3_var2";
+			};
+			smc_var1_var3_var3 {
+				bias = <40>;
+				functionname = "smc_var1_var3_var3";
+			};
+			smc_var1_var3_var4 {
+				bias = <55>;
+				smc_var1_var3_var4_var1 {
+					bias = <89>;
+					functionname = "smc_var1_var3_var4_var1";
+				};
+				smc_var1_var3_var4_var2 {
+					bias = <95>;
+					functionname = "smc_var1_var3_var4_var2";
+				};
+				smc_var1_var3_var4_var3 {
+					bias = <35>;
+					smc_var1_var3_var4_var3_var1 {
+						bias = <30>;
+						functionname = "smc_var1_var3_var4_var3_var1";
+					};
+					smc_var1_var3_var4_var3_var2 {
+						bias = <30>;
+						functionname = "smc_var1_var3_var4_var3_var2";
+					};
+					smc_var1_var3_var4_var3_var3 {
+						bias = <40>;
+						functionname = "smc_var1_var3_var4_var3_var3";
+					};
+					smc_var1_var3_var4_var3_var4 {
+						bias = <55>;
+						smc_var1_var3_var4_var3_var4_var1 {
+							bias = <89>;
+							functionname = "smc_var1_var3_var4_var3_var4_var1";
+						};
+						smc_var1_var3_var4_var3_var4_var2 {
+							bias = <95>;
+							functionname = "smc_var1_var3_var4_var3_var4_var2";
+						};
+					};
+				};
+			};
+		};
+		smc_var1_var4 {
+			bias = <35>;
+			smc_var1_var4_var1 {
+				bias = <30>;
+				functionname = "smc_var1_var4_var1";
+			};
+			smc_var1_var4_var2 {
+				bias = <30>;
+				functionname = "smc_var1_var4_var2";
+			};
+			smc_var1_var4_var3 {
+				bias = <40>;
+				functionname = "smc_var1_var4_var3";
+			};
+		};
+	};
+
+	smc_var2 {
+		bias = <35>;
+		smc_var2_var1 {
+			bias = <30>;
+			functionname = "smc_var2_var1";
+		};
+		smc_var2_var2 {
+			bias = <30>;
+			functionname = "smc_var2_var2";
+		};
+		smc_var2_var3 {
+			bias = <40>;
+			functionname = "smc_var2_var3";
+		};
+	};
+
+	smc_var3 {
+		bias = <55>;
+		smc_var3_var1 {
+			bias = <30>;
+			functionname = "smc_var3_var1";
+		};
+		smc_var3_var2 {
+			bias = <30>;
+			functionname = "smc_var3_var2";
+		};
+		smc_var3_var3 {
+			bias = <40>;
+			functionname = "smc_var3_var3";
+		};
+	};
+};

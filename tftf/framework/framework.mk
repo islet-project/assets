@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -8,6 +8,7 @@ AUTOGEN_DIR		:=	$(BUILD_PLAT)/autogen
 
 include lib/xlat_tables_v2/xlat_tables.mk
 include lib/compiler-rt/compiler-rt.mk
+include lib/libfdt/libfdt.mk
 
 TFTF_INCLUDES	:= 					\
 	-I${AUTOGEN_DIR} 				\
@@ -26,7 +27,8 @@ TFTF_INCLUDES	:= 					\
 	-Iinclude/runtime_services/secure_el1_payloads	\
 	-Ispm/cactus					\
 	-Ispm/ivy					\
-	-Ispm/quark
+	-Ispm/quark					\
+	-Ismc_fuzz/include
 
 FRAMEWORK_SOURCES	:=	${AUTOGEN_DIR}/tests_list.c
 

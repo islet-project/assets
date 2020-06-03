@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2020, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="smcfuzzing" description="smcfuzzing test framework">
+     <testcase name="SMC fuzzing top level function" function="smc_fuzzing_top" />
+  </testsuite>
+
+</testsuites>
