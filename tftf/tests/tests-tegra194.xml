@@ -7,7 +7,11 @@
 -->
 
 <testsuites>
-  <testsuite name="Tegra194 platform tests" description="Tests for Tegra194 platforms">
+  <testsuite name="Tegra SiP tests" description="SiP tests for Tegra platforms">
+     <testcase name="Video Memory Configuration test" function="test_sip_videomem_incorrect_inputs" />
+     <testcase name="Video Memory Resize test" function="test_sip_videomem_resize" />
+  </testsuite>
+ <testsuite name="Tegra194 platform tests" description="Tests for Tegra194 platforms">
      <testcase name="RAS corrected error test" function="test_ras_corrected" />
      <testcase name="RAS uncorrectable error test" function="test_ras_uncorrectable" />
   </testsuite>
