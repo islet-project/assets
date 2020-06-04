@@ -23,14 +23,14 @@ func platform_get_core_pos
 	lsr	x2, x0, #MPIDR_AFF1_SHIFT
 	and	x2, x2, #MPIDR_AFFLVL_MASK /* cluster id */
 
-	/* core_id >= PLATFORM_CORES_PER_CLUSTER */
+	/* core_id > PLATFORM_CORES_PER_CLUSTER */
 	mov	x0, #-1
 	cmp	x1, #(PLATFORM_CORES_PER_CLUSTER - 1)
-	b.gt	1f
+	b.hi	1f
 
-	/* cluster_id >= PLATFORM_CLUSTER_COUNT */
+	/* cluster_id > PLATFORM_CLUSTER_COUNT */
 	cmp	x2, #(PLATFORM_CLUSTER_COUNT - 1)
-	b.gt	1f
+	b.hi	1f
 
 	/* CorePos = CoreId + (ClusterId * cpus per cluster) */
 	mov	x3, #PLATFORM_CORES_PER_CLUSTER
@@ -49,9 +49,9 @@ endfunc platform_get_core_pos
 	 * ---------------------------------------------
 	 */
 func plat_crash_console_init
-	mov_imm	x0, TEGRA194_UARTC_BASE
-	mov_imm	x1, TEGRA194_CONSOLE_CLKRATE
-	mov_imm	x2, TEGRA194_CONSOLE_BAUDRATE
+	mov_imm	x0, TEGRA_UARTC_BASE
+	mov_imm	x1, TEGRA_CONSOLE_CLKRATE
+	mov_imm	x2, TEGRA_CONSOLE_BAUDRATE
 	b	console_init
 endfunc plat_crash_console_init
 
@@ -63,7 +63,7 @@ endfunc plat_crash_console_init
 	 * ---------------------------------------------
 	 */
 func plat_crash_console_putc
-	mov_imm	x1, TEGRA194_UARTC_BASE
+	mov_imm	x1, TEGRA_UARTC_BASE
 	b	console_putc
 endfunc plat_crash_console_putc
 
@@ -72,10 +72,10 @@ endfunc plat_crash_console_putc
 	 * Function to force a write of all buffered
 	 * data that hasn't been output.
 	 * Out : return -1 on error else return 0.
-	 * Clobber list : r0 - r1
+	 * Clobber list : x0 - x1
 	 * ---------------------------------------------
 	 */
 func plat_crash_console_flush
-	mov_imm	x1, TEGRA194_UARTC_BASE
+	mov_imm	x1, TEGRA_UARTC_BASE
 	b	console_flush
 endfunc plat_crash_console_flush

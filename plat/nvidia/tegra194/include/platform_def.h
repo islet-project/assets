@@ -11,8 +11,8 @@
  * Platform definitions used by common code
  ******************************************************************************/
 
-#ifndef __PLATFORM_DEF_H__
-#define __PLATFORM_DEF_H__
+#ifndef PLATFORM_DEF_H
+#define PLATFORM_DEF_H
 
 /*******************************************************************************
  * Platform binary types for linking
@@ -138,39 +138,39 @@
 /*******************************************************************************
  * Platform console related constants
  ******************************************************************************/
-#define TEGRA194_CONSOLE_BAUDRATE	U(115200)
-#define TEGRA194_CONSOLE_CLKRATE	U(408000000)
+#define TEGRA_CONSOLE_BAUDRATE		U(115200)
+#define TEGRA_CONSOLE_CLKRATE		U(408000000)
 
 /*******************************************************************************
  * Platform MMIO devices
  ******************************************************************************/
-#define TEGRA194_MC_BASE		U(0x02C10000)
-#define TEGRA194_TMR0_BASE		U(0x03020000)
-#define TEGRA194_WDT0_BASE		U(0x030c0000)
-#define TEGRA194_GICD_BASE		U(0x03881000)
-#define TEGRA194_GICC_BASE		U(0x03882000)
-#define TEGRA194_SPE_BASE		U(0x0C168000)
-#define TEGRA194_UARTC_BASE		U(0x0C280000)
-#define TEGRA194_RTC_BASE		U(0x0C2A0000)
-#define TEGRA194_TMRUS_BASE		U(0x0C2E0000)
-#define SYS_CNT_BASE1			TEGRA194_TMRUS_BASE
-#define TEGRA194_AOWAKE_BASE		U(0x0C370000)
-#define TEGRA194_SCRATCH_BASE		U(0x0C390000)
-#define TEGRA194_SMMU0_BASE		U(0x12000000)
+#define TEGRA_MC_BASE			U(0x02C10000)
+#define TEGRA_TMR0_BASE			U(0x03020000)
+#define TEGRA_WDT0_BASE			U(0x030c0000)
+#define TEGRA_GICD_BASE			U(0x03881000)
+#define TEGRA_GICC_BASE			U(0x03882000)
+#define TEGRA_SPE_BASE			U(0x0C168000)
+#define TEGRA_UARTC_BASE		U(0x0C280000)
+#define TEGRA_RTC_BASE			U(0x0C2A0000)
+#define TEGRA_TMRUS_BASE		U(0x0C2E0000)
+#define SYS_CNT_BASE1			TEGRA_TMRUS_BASE
+#define TEGRA_AOWAKE_BASE		U(0x0C370000)
+#define TEGRA_SCRATCH_BASE		U(0x0C390000)
+#define TEGRA_SMMU0_BASE		U(0x12000000)
 
 /*******************************************************************************
  * DRAM carveout to save the SMMU context
  ******************************************************************************/
-#define TEGRA194_SMMU_CTX_BASE		(DRAM_END - 0x1000)
+#define TEGRA_SMMU_CTX_BASE		(DRAM_END - 0x1000)
 
 #ifndef __ASSEMBLY__
 
 /*
  * Platform functions
  */
-void tegra194_pwr_mgmt_setup(void);
-void tegra194_set_rtc_as_wakeup_source(void);
+void tegra_pwr_mgmt_setup(void);
+void tegra_set_rtc_as_wakeup_source(void);
 
 #endif /* __ASSEMBLY__ */
 
-#endif /* __PLATFORM_DEF_H__ */
+#endif /* PLATFORM_DEF_H */

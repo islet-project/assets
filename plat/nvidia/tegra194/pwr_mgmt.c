@@ -25,7 +25,7 @@ typedef struct mc_regs {
 
 #define mc_smmu_bypass_cfg \
 	{ \
-		.reg = TEGRA194_SMMU0_BASE, \
+		.reg = TEGRA_SMMU0_BASE, \
 		.val = 0x00000000U, \
 	}
 
@@ -50,15 +50,15 @@ static __attribute__((aligned(16))) mc_regs_t tegra194_mc_context[] = {
 	END_OF_TABLE,
 };
 
-void tegra194_pwr_mgmt_setup(void)
+void tegra_pwr_mgmt_setup(void)
 {
-	uintptr_t smmu_ctx_base = (uintptr_t)TEGRA194_SMMU_CTX_BASE;
+	uintptr_t smmu_ctx_base = (uintptr_t)TEGRA_SMMU_CTX_BASE;
 
 	/* index of END_OF_TABLE */
 	tegra194_mc_context[0].val = ARRAY_SIZE(tegra194_mc_context) - 1U;
 
 	/* prepare dummy context */
-	for (int i = 1; i < ARRAY_SIZE(tegra194_mc_context) - 1U; i++) {
+	for (unsigned int i = 1U; i < ARRAY_SIZE(tegra194_mc_context) - 1U; i++) {
 		tegra194_mc_context[i].val = mmio_read_32(tegra194_mc_context[i].reg);
 	}
 
@@ -68,6 +68,6 @@ void tegra194_pwr_mgmt_setup(void)
 	flush_dcache_range(smmu_ctx_base, sizeof(tegra194_mc_context));
 
 	/* save SMMU context for SC7-RF to restore */
-	mmio_write_32(TEGRA194_SCRATCH_BASE + SCRATCH_SECURE_RSV73_SCRATCH,
+	mmio_write_32(TEGRA_SCRATCH_BASE + SCRATCH_SECURE_RSV73_SCRATCH,
 		      smmu_ctx_base >> 12);
 }
