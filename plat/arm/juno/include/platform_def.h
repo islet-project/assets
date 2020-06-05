@@ -71,6 +71,31 @@
 #define PLAT_ARM_FWU_FIP_SIZE		(0x100000)
 
 /*******************************************************************************
+ * This is the temporary DDR address for loading backup fip.bin
+ * image from NVM which is used for replacing original fip.bin
+ * This address is chosen such that the NS_BL2U can be expanded
+ * in future and also considering the large size of fip.bin.
+ ******************************************************************************/
+#define FIP_IMAGE_TMP_DDR_ADDRESS	(DRAM_BASE + 0x100000)
+
+/*******************************************************************************
+ * This offset is used to corrupt data in fip.bin
+ * The offset is from the base where fip.bin is
+ * located in NVM. This particular value is chosen
+ * to make sure the corruption is done beyond fip header.
+ ******************************************************************************/
+#define FIP_CORRUPT_OFFSET		(0x400)
+
+/*******************************************************************************
+ * This offset is used to corrupt data in fip.bin
+ * This is the base address for backup fip.bin image in NVM
+ * which is used for replacing original fip.bin
+ * This address is chosen such that it can stay with all
+ * the other images in the NVM.
+ ******************************************************************************/
+#define FIP_BKP_ADDRESS			(FLASH_BASE + 0x1000000)
+
+/*******************************************************************************
  * Base address and size for non-trusted SRAM.
  ******************************************************************************/
 #define NSRAM_BASE				(0x2e000000)
