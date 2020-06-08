@@ -22,7 +22,8 @@
 
 #define TEST_SPURIOUS_ITERATIONS_COUNT	1000000
 
-#define TEST_SPI_ID	(MIN_SPI_ID + 2)
+#define TEST_SPI_ID		(MIN_SPI_ID + 2)
+#define CPU_TARGET_FIELD	((1 << PLATFORM_CORE_COUNT) - 1)
 
 static event_t cpu_ready[PLATFORM_CORE_COUNT];
 static volatile int requested_irq_received[PLATFORM_CORE_COUNT];
@@ -47,7 +48,8 @@ static int test_handler(void *data)
 /* Dummy handler that increases a variable to check if it has been called. */
 static int test_spurious_handler(void *data)
 {
-	unsigned int core_pos = platform_get_core_pos(read_mpidr_el1());
+	u_register_t core_mpid = read_mpidr_el1() & MPID_MASK;
+	unsigned int core_pos = platform_get_core_pos(core_mpid);
 
 	spurious_count[core_pos]++;
 
@@ -194,6 +196,7 @@ test_result_t test_multicore_spurious_interrupt(void)
 			test_finished_flag = 1;
 			return TEST_RESULT_SKIPPED;
 		}
+		mp_printf("CPU 0x%x powered on\n", (unsigned int)cpu_mpid);
 	}
 
 	/* Wait for non-lead CPUs to enter the test */
@@ -226,7 +229,7 @@ test_result_t test_multicore_spurious_interrupt(void)
 	tftf_irq_enable(TEST_SPI_ID, GIC_HIGHEST_NS_PRIORITY);
 
 	/* Route interrupts to all CPUs */
-	gicv2_set_itargetsr_value(TEST_SPI_ID, 0xFF);
+	gicv2_set_itargetsr_value(TEST_SPI_ID, CPU_TARGET_FIELD);
 
 	for (j = 0; j < TEST_SPURIOUS_ITERATIONS_COUNT; j++) {
 
