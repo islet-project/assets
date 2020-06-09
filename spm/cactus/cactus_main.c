@@ -147,6 +147,13 @@ static void cactus_plat_configure_mmu(unsigned int vm_id)
 	init_xlat_tables();
 }
 
+int tftf_irq_handler_dispatcher(void)
+{
+	ERROR("%s\n", __func__);
+
+	return 0;
+}
+
 void __dead2 cactus_main(void)
 {
 	assert(IS_IN_EL1() != 0);

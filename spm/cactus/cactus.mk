@@ -18,9 +18,10 @@ CACTUS_INCLUDES :=					\
 	-Iinclude/lib/${ARCH}				\
 	-Iinclude/lib/utils				\
 	-Iinclude/lib/xlat_tables			\
+	-Iinclude/plat/common				\
 	-Iinclude/runtime_services			\
 	-Ispm/cactus					\
-	-Ispm/common					\
+	-Ispm/common
 
 CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
@@ -38,7 +39,9 @@ CACTUS_SOURCES	:=					\
 CACTUS_SOURCES	+=					\
 	tftf/framework/debug.c				\
 	tftf/framework/${ARCH}/asm_debug.S		\
-	tftf/tests/runtime_services/secure_service/ffa_helpers.c
+	tftf/tests/runtime_services/secure_service/ffa_helpers.c \
+	tftf/framework/${ARCH}/exceptions.S		\
+	tftf/framework/${ARCH}/exception_report.c
 
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/cache_helpers.S			\
