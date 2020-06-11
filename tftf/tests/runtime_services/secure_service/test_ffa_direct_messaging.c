@@ -16,11 +16,6 @@
 #define DIRECT_MSG_TEST_PATTERN2	(0xbbbb0000)
 #define DIRECT_MSG_TEST_PATTERN3	(0xcccc0000)
 
-#define OPTEE_FFA_GET_API_VERSION	(0)
-#define OPTEE_FFA_GET_OS_VERSION	(1)
-#define OPTEE_FFA_GET_OS_VERSION_MAJOR	(3)
-#define OPTEE_FFA_GET_OS_VERSION_MINOR	(8)
-
 static test_result_t send_receive_direct_msg(unsigned int sp_id,
 					     unsigned int test_pattern)
 {
@@ -49,49 +44,6 @@ static test_result_t send_receive_direct_msg(unsigned int sp_id,
 	}
 
 	return TEST_RESULT_SUCCESS;
-}
-
-/*
- * check_spmc_execution_level
- *
- * Attempt sending impdef protocol messages to OP-TEE through direct messaging.
- * Criteria for detecting OP-TEE presence is that responses match defined
- * version values. In the case of SPMC running at S-EL2 (and Cactus instances
- * running at S-EL1) the response will not match the pre-defined version IDs.
- *
- * Returns true if SPMC is probed as being OP-TEE at S-EL1.
- *
- */
-static bool check_spmc_execution_level(void)
-{
-	unsigned int is_optee_spmc_criteria = 0;
-	smc_ret_values ret_values;
-
-	/*
-	 * Send a first OP-TEE-defined protocol message through
-	 * FFA direct message.
-	 *
-	 */
-	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(1),
-					      OPTEE_FFA_GET_API_VERSION);
-	if ((ret_values.ret3 == FFA_VERSION_MAJOR) &&
-	    (ret_values.ret4 == FFA_VERSION_MINOR)) {
-		is_optee_spmc_criteria++;
-	}
-
-	/*
-	 * Send a second OP-TEE-defined protocol message through
-	 * FFA direct message.
-	 *
-	 */
-	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(1),
-					      OPTEE_FFA_GET_OS_VERSION);
-	if ((ret_values.ret3 == OPTEE_FFA_GET_OS_VERSION_MAJOR) &&
-	    (ret_values.ret4 == OPTEE_FFA_GET_OS_VERSION_MINOR)) {
-		is_optee_spmc_criteria++;
-	}
-
-	return (is_optee_spmc_criteria == 2);
 }
 
 test_result_t test_ffa_direct_messaging(void)

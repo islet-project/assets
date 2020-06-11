@@ -32,7 +32,7 @@ typedef unsigned short ffa_vcpu_count_t;
  * TODO: In the future this file should be placed in a common folder, and not
  * under tftf. The functions in this file are also used by SPs for SPM tests.
  */
-
+bool check_spmc_execution_level(void);
 smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id, uint32_t message);
 smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id, uint64_t message);
 smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id);
@@ -42,6 +42,7 @@ smc_ret_values ffa_msg_wait(void);
 smc_ret_values ffa_msg_send_direct_resp(ffa_vm_id_t source_id,
 					ffa_vm_id_t dest_id, uint32_t message);
 smc_ret_values ffa_error(int32_t error_code);
+smc_ret_values ffa_features(uint32_t feature);
 
 #endif /* __ASSEMBLY__ */
 

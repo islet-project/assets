@@ -30,4 +30,10 @@
 
   </testsuite>
 
+  <testsuite name="PSA FF-A features"
+             description="Test FFA_FEATURES ABI" >
+     <testcase name="Test FFA_FEATURES"
+               function="test_ffa_features" />
+  </testsuite>
+
 </testsuites>

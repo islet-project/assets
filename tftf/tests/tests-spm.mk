@@ -9,4 +9,5 @@ TESTS_SOURCES	+=							\
 		ffa_helpers.c						\
 		test_ffa_direct_messaging.c				\
 		test_ffa_version.c					\
+		test_ffa_features.c					\
 	)
