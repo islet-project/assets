@@ -107,12 +107,59 @@ smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
 					      message, 0, 0, 0, 0);
 }
 
-/* FFA Version ABI helper */
+/*
+ * FFA Version ABI helper.
+ * Version fields:
+ *	-Bits[30:16]: Major version.
+ *	-Bits[15:0]: Minor version.
+ */
 smc_ret_values ffa_version(uint32_t input_version)
 {
 	smc_args args = {
 		.fid = FFA_VERSION,
 		.arg1 = input_version
+	};
+
+	return tftf_smc(&args);
+}
+
+smc_ret_values ffa_id_get(void)
+{
+	smc_args args = {
+		.fid = FFA_ID_GET
+	};
+
+	return tftf_smc(&args);
+}
+
+smc_ret_values ffa_msg_wait(void)
+{
+	smc_args args = {
+		.fid = FFA_MSG_WAIT
+	};
+
+	return tftf_smc(&args);
+}
+
+smc_ret_values ffa_msg_send_direct_resp(ffa_vm_id_t source_id,
+						ffa_vm_id_t dest_id,
+						uint32_t message)
+{
+	smc_args args = {
+		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32,
+		.arg1 = ((uint32_t)source_id << 16) | dest_id,
+		.arg3 = message
+	};
+
+	return tftf_smc(&args);
+}
+
+smc_ret_values ffa_error(int32_t error_code)
+{
+	smc_args args = {
+		.fid = FFA_ERROR,
+		.arg1 = 0,
+		.arg2 = error_code
 	};
 
 	return tftf_smc(&args);

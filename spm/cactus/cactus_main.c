@@ -13,10 +13,11 @@
 #include <debug.h>
 #include <drivers/arm/pl011.h>
 #include <drivers/console.h>
-#include "ffa_helpers.h"
+#include <ffa_helpers.h>
 #include <lib/aarch64/arch_helpers.h>
 #include <lib/xlat_tables/xlat_mmu_helpers.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
+#include <sp_helpers.h>
 #include <std_svc.h>
 #include <plat/common/platform.h>
 #include <plat_arm.h>

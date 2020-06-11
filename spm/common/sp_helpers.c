@@ -9,6 +9,9 @@
 #include <platform_def.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <ffa_svc.h>
+
+#include "sp_helpers.h"
 
 uintptr_t bound_rand(uintptr_t min, uintptr_t max)
 {
@@ -52,7 +55,7 @@ void announce_test_start(const char *test_desc)
 
 void announce_test_end(const char *test_desc)
 {
-	INFO("Test \"%s\" passed.\n", test_desc);
+	INFO("Test \"%s\" end.\n", test_desc);
 }
 
 void sp_sleep(uint32_t ms)
@@ -66,4 +69,41 @@ void sp_sleep(uint32_t ms)
 	while ((time2 - time1) < ((ms * timer_freq) / 1000U)) {
 		time2 = mmio_read_64(SYS_CNT_READ_BASE);
 	}
+}
+
+/*******************************************************************************
+ * Hypervisor Calls Wrappers
+ ******************************************************************************/
+
+ffa_vcpu_count_t spm_vcpu_get_count(ffa_vm_id_t vm_id)
+{
+	hvc_args args = {
+		.fid = SPM_VCPU_GET_COUNT,
+		.arg1 = vm_id
+	};
+
+	hvc_ret_values ret = tftf_hvc(&args);
+
+	return ret.ret0;
+}
+
+ffa_vm_count_t spm_vm_get_count(void)
+{
+	hvc_args args = {
+		.fid = SPM_VM_GET_COUNT
+	};
+
+	hvc_ret_values ret = tftf_hvc(&args);
+
+	return ret.ret0;
+}
+
+void spm_debug_log(char c)
+{
+	hvc_args args = {
+		.fid = SPM_DEBUG_LOG,
+		.arg1 = c
+	};
+
+	(void)tftf_hvc(&args);
 }
