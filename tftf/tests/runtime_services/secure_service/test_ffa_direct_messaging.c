@@ -96,7 +96,6 @@ static bool check_spmc_execution_level(void)
 
 test_result_t test_ffa_direct_messaging(void)
 {
-	smc_ret_values ret_values;
 	test_result_t result;
 
 	/**********************************************************************
@@ -127,20 +126,6 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Send a message to SP2 through direct messaging
 	 **********************************************************************/
-	/*
-	 * NOTICE: for now, the SPM does not initially run each SP sequentially
-	 * on boot up so we explicitely run the SP once by invoking FFA_RUN so
-	 * it reaches ffa_msg_wait in the message loop function.
-	 */
-
-	/* Request running SP2 on VCPU0 */
-	ret_values = ffa_run(2, 0);
-	if (ret_values.ret0 != FFA_MSG_WAIT) {
-		tftf_testcase_printf("ffa_run returned %lx\n",
-				     (u_register_t)ret_values.ret0);
-		return TEST_RESULT_FAIL;
-	}
-
 	result = send_receive_direct_msg(2, DIRECT_MSG_TEST_PATTERN2);
 	if (result != TEST_RESULT_SUCCESS) {
 		return result;
