@@ -235,6 +235,11 @@
 
 #define SSBS_UNAVAILABLE	ULL(0)	/* No architectural SSBS support */
 
+#define ID_AA64PFR1_EL1_BT_SHIFT	U(0)
+#define ID_AA64PFR1_EL1_BT_MASK		ULL(0xf)
+
+#define BTI_IMPLEMENTED		ULL(1)	/* The BTI mechanism is implemented */
+
 #define ID_AA64PFR1_EL1_MTE_SHIFT	U(8)
 #define ID_AA64PFR1_EL1_MTE_MASK	ULL(0xf)
 
