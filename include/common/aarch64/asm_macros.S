@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -190,6 +190,28 @@
 	cmp	\scratch_reg, #(MODE_EL2 << MODE_EL_SHIFT)
 	b.eq	\label_el2
 	b	\label_error
+	.endm
+
+	/*
+	 * Helper macro to read system register value into x0
+	 */
+	.macro	read reg:req
+#if ENABLE_BTI
+	bti	j
+#endif
+	mrs	x0, \reg
+	ret
+	.endm
+
+	/*
+	 * Helper macro to write value from x1 to system register
+	 */
+	.macro	write reg:req
+#if ENABLE_BTI
+	bti	j
+#endif
+	msr	\reg, x1
+	ret
 	.endm
 
 #endif /* __ASM_MACROS_S__ */

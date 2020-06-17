@@ -1,11 +1,17 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #ifndef __ASM_MACROS_COMMON_S__
 #define __ASM_MACROS_COMMON_S__
+
+#include <lib/utils_def.h>
+
+#if ENABLE_BTI && !ARM_ARCH_AT_LEAST(8, 5)
+#error Branch Target Identification requires ARM_ARCH_MINOR >= 5
+#endif
 
 	/*
 	 * This macro is used to create a function label and place the
