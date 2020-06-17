@@ -5,21 +5,22 @@
  */
 
 #include <assert.h>
-#include <debug.h>
-#include <drivers/arm/pl011.h>
-#include <drivers/console.h>
 #include <errno.h>
-#include <lib/aarch64/arch_helpers.h>
-#include <lib/xlat_tables/xlat_tables_v2.h>
-#include <lib/xlat_tables/xlat_mmu_helpers.h>
-#include <plat_arm.h>
-#include <plat/common/platform.h>
-#include <platform_def.h>
-#include <std_svc.h>
 
 #include "cactus.h"
 #include "cactus_def.h"
+#include "cactus_tests.h"
+#include <debug.h>
+#include <drivers/arm/pl011.h>
+#include <drivers/console.h>
 #include "ffa_helpers.h"
+#include <lib/aarch64/arch_helpers.h>
+#include <lib/xlat_tables/xlat_mmu_helpers.h>
+#include <lib/xlat_tables/xlat_tables_v2.h>
+#include <std_svc.h>
+#include <plat/common/platform.h>
+#include <plat_arm.h>
+#include <platform_def.h>
 
 /* Host machine information injected by the build system in the ELF file. */
 extern const char build_message[];
@@ -186,6 +187,9 @@ void __dead2 cactus_main(void)
 
 	NOTICE("FFA id: %u\n", ffa_id);
 	cactus_print_memory_layout(ffa_id);
+
+	/* Invoking Tests */
+	ffa_tests();
 
 	/* End up to message loop */
 	message_loop(ffa_id);

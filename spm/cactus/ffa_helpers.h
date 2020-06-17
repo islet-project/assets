@@ -105,4 +105,15 @@ static inline smc_ret_values ffa_error(int32_t error_code)
 	return tftf_smc(&args);
 }
 
+/* FFA Version ABI helper */
+static inline smc_ret_values ffa_version(uint32_t input_version)
+{
+	smc_args args = {
+		.fid = FFA_VERSION,
+		.arg1 = input_version
+	};
+
+	return tftf_smc(&args);
+}
+
 #endif /* __FFA_HELPERS_H__ */
