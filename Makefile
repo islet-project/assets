@@ -149,11 +149,18 @@ include ${PLAT_MAKEFILE_FULL}
 ################################################################################
 $(eval $(call assert_boolean,DEBUG))
 $(eval $(call assert_boolean,ENABLE_ASSERTIONS))
-$(eval $(call assert_boolean,ENABLE_PAUTH))
 $(eval $(call assert_boolean,FIRMWARE_UPDATE))
 $(eval $(call assert_boolean,FWU_BL_TEST))
 $(eval $(call assert_boolean,NEW_TEST_SESSION))
 $(eval $(call assert_boolean,USE_NVM))
+
+################################################################################
+# Process build options
+################################################################################
+
+# Process BRANCH_PROTECTION value and set
+# Pointer Authentication and Branch Target Identification flags
+include branch_protection.mk
 
 ################################################################################
 # Add definitions to the cpp preprocessor based on the current build options.
@@ -164,6 +171,7 @@ $(eval $(call add_define,TFTF_DEFINES,ARM_ARCH_MAJOR))
 $(eval $(call add_define,TFTF_DEFINES,ARM_ARCH_MINOR))
 $(eval $(call add_define,TFTF_DEFINES,DEBUG))
 $(eval $(call add_define,TFTF_DEFINES,ENABLE_ASSERTIONS))
+$(eval $(call add_define,TFTF_DEFINES,ENABLE_BTI))
 $(eval $(call add_define,TFTF_DEFINES,ENABLE_PAUTH))
 $(eval $(call add_define,TFTF_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,TFTF_DEFINES,NEW_TEST_SESSION))
@@ -230,10 +238,14 @@ TFTF_CFLAGS		+= ${COMMON_CFLAGS}
 TFTF_ASFLAGS		+= ${COMMON_ASFLAGS}
 TFTF_LDFLAGS		+= ${COMMON_LDFLAGS}
 
-ifeq (${ENABLE_PAUTH},1)
-TFTF_CFLAGS		+= -mbranch-protection=pac-ret
-NS_BL1U_CFLAGS		+= -mbranch-protection=pac-ret
-NS_BL2U_CFLAGS		+= -mbranch-protection=pac-ret
+ifneq (${BP_OPTION},none)
+TFTF_CFLAGS		+= -mbranch-protection=${BP_OPTION}
+NS_BL1U_CFLAGS		+= -mbranch-protection=${BP_OPTION}
+NS_BL2U_CFLAGS		+= -mbranch-protection=${BP_OPTION}
+CACTUS_MM_CFLAGS	+= -mbranch-protection=${BP_OPTION}
+CACTUS_CFLAGS		+= -mbranch-protection=${BP_OPTION}
+IVY_CFLAGS		+= -mbranch-protection=${BP_OPTION}
+QUARK_CFLAGS		+= -mbranch-protection=${BP_OPTION}
 endif
 
 #####################################################################################

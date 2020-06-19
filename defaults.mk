@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -25,9 +25,6 @@ DEBUG			:= 0
 
 # Build platform
 DEFAULT_PLAT		:= fvp
-
-# Enable Pointer Authentication support in the TFTF
-ENABLE_PAUTH		:= 0
 
 # Whether the Firmware Update images (i.e. NS_BL1U and NS_BL2U images) should be
 # built. The platform makefile is free to override this value.
