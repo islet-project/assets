@@ -106,3 +106,14 @@ smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
 	return __ffa_msg_send_direct_req64_5(source_id, dest_id,
 					      message, 0, 0, 0, 0);
 }
+
+/* FFA Version ABI helper */
+smc_ret_values ffa_version(uint32_t input_version)
+{
+	smc_args args = {
+		.fid = FFA_VERSION,
+		.arg1 = input_version
+	};
+
+	return tftf_smc(&args);
+}

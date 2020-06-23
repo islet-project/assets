@@ -25,6 +25,7 @@ CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
 		aarch64/cactus_entrypoint.S		\
 		cactus_debug.c				\
+		cactus_ffa_tests.c 			\
 		cactus_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
