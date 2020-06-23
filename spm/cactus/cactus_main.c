@@ -102,12 +102,12 @@ static void cactus_print_memory_layout(unsigned int vm_id)
 		(void *)CACTUS_BSS_START, (void *)CACTUS_BSS_END);
 
 	NOTICE("  RX                     : %p - %p\n",
-		(void *)(CACTUS_RX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
-		(void *)(CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)));
+		(void *)get_sp_rx_start(vm_id),
+		(void *)get_sp_rx_end(vm_id));
 
 	NOTICE("  TX                     : %p - %p\n",
-		(void *)(CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
-		(void *)(CACTUS_RX_BASE + (vm_id * CACTUS_RX_TX_SIZE)));
+		(void *)get_sp_tx_start(vm_id),
+		(void *)get_sp_tx_end(vm_id));
 }
 
 static void cactus_plat_configure_mmu(unsigned int vm_id)
@@ -129,13 +129,13 @@ static void cactus_plat_configure_mmu(unsigned int vm_id)
 			CACTUS_BSS_END - CACTUS_BSS_START,
 			MT_RW_DATA);
 
-	mmap_add_region((CACTUS_RX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
-			(CACTUS_RX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+	mmap_add_region(get_sp_rx_start(vm_id),
+			get_sp_rx_start(vm_id),
 			(CACTUS_RX_TX_SIZE / 2),
 			MT_RO_DATA);
 
-	mmap_add_region((CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
-			(CACTUS_TX_BASE + ((vm_id - 1) * CACTUS_RX_TX_SIZE)),
+	mmap_add_region(get_sp_tx_start(vm_id),
+			get_sp_tx_start(vm_id),
 			(CACTUS_RX_TX_SIZE / 2),
 			MT_RW_DATA);
 
@@ -147,6 +147,7 @@ void __dead2 cactus_main(void)
 {
 	assert(IS_IN_EL1() != 0);
 
+	struct mailbox_buffers mb;
 	/* Clear BSS */
 	memset((void *)CACTUS_BSS_START,
 	       0, CACTUS_BSS_END - CACTUS_BSS_START);
@@ -159,6 +160,8 @@ void __dead2 cactus_main(void)
 	}
 
 	ffa_vm_id_t ffa_id = ffa_id_ret.ret2 & 0xffff;
+	mb.send = (void *) get_sp_tx_start(ffa_id);
+	mb.recv = (void *) get_sp_rx_start(ffa_id);
 
 	/* Configure and enable Stage-1 MMU, enable D-Cache */
 	cactus_plat_configure_mmu(ffa_id);
@@ -190,7 +193,7 @@ void __dead2 cactus_main(void)
 	cactus_print_memory_layout(ffa_id);
 
 	/* Invoking Tests */
-	ffa_tests();
+	ffa_tests(&mb);
 
 	/* End up to message loop */
 	message_loop(ffa_id);

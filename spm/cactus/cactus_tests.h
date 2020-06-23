@@ -7,6 +7,8 @@
 #ifndef CACTUS_TESTS_H
 #define CACTUS_TESTS_H
 
+#include <ffa_helpers.h>
+
 /*
  * Test functions
  */
@@ -14,7 +16,7 @@
 /*
  * Test to FFA interfaces.
  */
-void ffa_tests(void);
+void ffa_tests(struct mailbox_buffers *mb);
 
 /*
  * Test other things like the version number returned by SPM.

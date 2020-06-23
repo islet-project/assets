@@ -223,3 +223,27 @@ smc_ret_values ffa_features(uint32_t feature)
 
 	return tftf_smc(&args);
 }
+
+/* Get information about VMs or SPs based on UUID */
+smc_ret_values ffa_partition_info_get(const uint32_t uuid[4])
+{
+	smc_args args = {
+		.fid = FFA_PARTITION_INFO_GET,
+		.arg1 = uuid[0],
+		.arg2 = uuid[1],
+		.arg3 = uuid[2],
+		.arg4 = uuid[3]
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Query SPMD that the rx buffer of the partition can be released */
+smc_ret_values ffa_rx_release(void)
+{
+	smc_args args = {
+		.fid = FFA_RX_RELEASE
+	};
+
+	return tftf_smc(&args);
+}

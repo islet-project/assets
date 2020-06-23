@@ -28,4 +28,18 @@
 #define CACTUS_TX_BASE			CACTUS_RX_BASE + PAGE_SIZE
 #define CACTUS_RX_TX_SIZE		PAGE_SIZE * 2
 
+/*
+ * RX/TX buffer helpers.
+ */
+#define get_sp_rx_start(sp_id) (CACTUS_RX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE))
+#define get_sp_rx_end(sp_id) (CACTUS_RX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE) + PAGE_SIZE)
+#define get_sp_tx_start(sp_id) (CACTUS_TX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE))
+#define get_sp_tx_end(sp_id) (CACTUS_TX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE) + PAGE_SIZE)
+
+/*
+ * UUID of secure partition as defined in the respective manifests.
+ */
+#define PRIMARY_UUID {0xb4b5671e, 0x4a904fe1, 0xb81ffb13, 0xdae1dacb}
+#define SECONDARY_UUID {0xd1582309, 0xf02347b9, 0x827c4464, 0xf5578fc8}
+
 #endif /* CACTUS_DEF_H */
