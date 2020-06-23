@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2021, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+  <!--
+     The "template" testsuite aims at providing template test code as a
+     starting point for developing new tests. These tests don't do anything
+     useful in terms of testing.
+  -->
+  <testsuite name="TRNG" description="True Random Number Generator">
+     <testcase name="Version" function="test_trng_version" />
+     <testcase name="Features" function="test_trng_features" />
+     <!--
+	Note: the UUID function is not testable, as it's correct if it
+	returns _any_ value in W0-W3.
+     -->
+     <testcase name="RND" function="test_trng_rnd" />
+  </testsuite>
+
+</testsuites>

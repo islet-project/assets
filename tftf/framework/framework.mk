@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -62,6 +62,7 @@ FRAMEWORK_SOURCES	+=						\
 	lib/sdei/sdei.c							\
 	lib/smc/${ARCH}/asm_smc.S					\
 	lib/smc/${ARCH}/smc.c						\
+	lib/trng/trng.c							\
 	lib/trusted_os/trusted_os.c					\
 	lib/utils/mp_printf.c						\
 	lib/utils/uuid.c						\
