@@ -23,7 +23,7 @@
 static volatile uint64_t fault_received;
 
 /* SDEI handler to receive RAS UC errors */
-extern int serror_sdei_event_handler(int ev, uint64_t arg);
+extern int tegra194_serror_sdei_event_handler(int ev, uint64_t arg);
 
 /* NVIDIA Pseudo fault generation registers */
 #define T194_ERXPFGCTL_EL1		S3_0_C15_C1_4
@@ -234,7 +234,7 @@ static void sdei_register_for_event(int event_id)
 	int64_t ret = 0;
 
 	/* Register SDEI handler */
-	ret = sdei_event_register(event_id, serror_sdei_event_handler, 0,
+	ret = sdei_event_register(event_id, tegra194_serror_sdei_event_handler, 0,
 			SDEI_REGF_RM_PE, read_mpidr_el1());
 	if (ret < 0)
 		tftf_testcase_printf("SDEI event register failed: 0x%llx\n",
