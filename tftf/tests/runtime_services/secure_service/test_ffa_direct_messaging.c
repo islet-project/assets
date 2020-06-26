@@ -12,12 +12,6 @@
 #include <ffa_svc.h>
 #include <test_helpers.h>
 
-/* Hypervisor ID at physical FFA instance */
-#define HYP_ID		(0)
-
-/* By convention, SP IDs (as opposed to VM IDs) have bit 15 set */
-#define SP_ID(x)	(x | (1 << 15))
-
 #define DIRECT_MSG_TEST_PATTERN1	(0xaaaa0000)
 #define DIRECT_MSG_TEST_PATTERN2	(0xbbbb0000)
 #define DIRECT_MSG_TEST_PATTERN3	(0xcccc0000)

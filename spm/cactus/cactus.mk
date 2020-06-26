@@ -36,7 +36,8 @@ CACTUS_SOURCES	:=					\
 # TODO: Remove dependency on TFTF files.
 CACTUS_SOURCES	+=					\
 	tftf/framework/debug.c				\
-	tftf/framework/${ARCH}/asm_debug.S
+	tftf/framework/${ARCH}/asm_debug.S		\
+	tftf/tests/runtime_services/secure_service/ffa_helpers.c
 
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/cache_helpers.S			\

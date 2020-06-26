@@ -6,9 +6,9 @@
 
 #include <drivers/arm/pl011.h>
 #include <drivers/console.h>
+#include <sp_helpers.h>
 
 #include "cactus.h"
-#include "ffa_helpers.h"
 
 static int (*putc_impl)(int);
 

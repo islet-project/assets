@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
-#include "ffa_helpers.h"
+#include <ffa_helpers.h>
 #include <sp_helpers.h>
 
 /* FFA version test helpers */
@@ -26,7 +26,7 @@ void ffa_tests(void)
 	uint32_t spm_version = (uint32_t)(0xFFFFFFFF & ret.ret0);
 
 	bool ffa_version_compatible = ((spm_version >> FFA_VERSION_MAJOR_SHIFT) == FFA_MAJOR &&
-				       (FFA_VERSION_MINOR_MASK & spm_version) >= FFA_MINOR);
+				       (spm_version & FFA_VERSION_MINOR_MASK) >= FFA_MINOR);
 
 	NOTICE("FFA_VERSION returned %u.%u; Compatible: %i\n",
 		spm_version >> FFA_VERSION_MAJOR_SHIFT,
