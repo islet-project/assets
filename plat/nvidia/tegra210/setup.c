@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) 2020, NVIDIA Corporation. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#include <debug.h>
+#include <drivers/console.h>
+#include <drivers/arm/gic_common.h>
+#include <drivers/arm/gic_v2.h>
+#include <platform.h>
+#include <platform_def.h>
+
+#include <xlat_tables_v2.h>
+
+/*
+ * Memory map
+ */
+static const mmap_region_t tegra210_mmap[] = {
+	MAP_REGION_FLAT(TEGRA_GICD_BASE, 0x1000, /* 4KB */
+			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(TEGRA_GICC_BASE, 0x1000, /* 4KB */
+			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(TEGRA_TIMERS_BASE, 0x1000, /* 4KB */
+			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(TEGRA_UARTA_BASE, 0x10000U, /* 64KB */
+			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(TEGRA_RTC_BASE, 0x1000, /* 4KB */
+			MT_DEVICE | MT_RW | MT_NS),
+	MAP_REGION_FLAT(DRAM_BASE + TFTF_NVM_OFFSET, TFTF_NVM_SIZE,
+			MT_MEMORY | MT_RW | MT_NS),
+	{0}
+};
+
+const mmap_region_t *tftf_platform_get_mmap(void)
+{
+	return tegra210_mmap;
+}
+
+void tftf_plat_arch_setup(void)
+{
+	tftf_plat_configure_mmu();
+}
+
+void tftf_early_platform_setup(void)
+{
+	/* Tegra210 platforms use UARTA as the console */
+	console_init(TEGRA_UARTA_BASE, TEGRA_CONSOLE_CLKRATE,
+			TEGRA_CONSOLE_BAUDRATE);
+}
+
+void tftf_platform_setup(void)
+{
+	gicv2_init(TEGRA_GICC_BASE, TEGRA_GICD_BASE);
+	gicv2_setup_distif();
+	gicv2_probe_gic_cpu_id();
+	gicv2_setup_cpuif();
+}
