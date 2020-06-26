@@ -27,7 +27,7 @@
  * located in NVM. This particular value is chosen
  * to make sure the corruption is done beyond fip header.
  */
-#define FIP_CORRUPT_OFFSET		(0x300)
+#define FIP_CORRUPT_OFFSET		(0x400)
 
 /*
  * This is the base address for backup fip.bin image in NVM
