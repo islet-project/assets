@@ -99,7 +99,7 @@ command from the TF-A root directory:
 
 ::
 
-    BL33=tftf.bin make PLAT=<platform> fip
+    BL33=<path/to/tftf.bin> make PLAT=<platform> fip
 
 Please refer to the `TF-A documentation`_ for further details.
 
