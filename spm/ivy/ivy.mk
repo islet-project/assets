@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -52,6 +52,9 @@ IVY_DEFINES	:=
 
 $(eval $(call add_define,IVY_DEFINES,DEBUG))
 $(eval $(call add_define,IVY_DEFINES,ENABLE_ASSERTIONS))
+$(eval $(call add_define,IVY_DEFINES,FVP_CLUSTER_COUNT))
+$(eval $(call add_define,IVY_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
+$(eval $(call add_define,IVY_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,IVY_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,IVY_DEFINES,PLAT_${PLAT}))
 

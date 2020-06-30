@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -364,6 +364,9 @@ unsigned int tftf_find_any_cpu_other_than(unsigned exclude_mpid)
 
 unsigned int tftf_find_random_cpu_other_than(unsigned int exclude_mpid)
 {
+#if (PLATFORM_CORE_COUNT == 1)
+	return INVALID_MPID;
+#else
 	unsigned int cpu_node, mpidr;
 	unsigned int possible_cpus_cnt = 0;
 	unsigned int possible_cpus[PLATFORM_CORE_COUNT];
@@ -378,4 +381,5 @@ unsigned int tftf_find_random_cpu_other_than(unsigned int exclude_mpid)
 		return INVALID_MPID;
 
 	return possible_cpus[rand() % possible_cpus_cnt];
+#endif
 }

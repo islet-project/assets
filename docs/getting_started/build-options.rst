@@ -70,6 +70,23 @@ payload, whose simplistic build system is mostly independent.
 -  ``V``: Verbose build. If assigned anything other than 0, the build commands
    are printed. Default is 0.
 
+Arm FVP Platform Specific Build Options
+---------------------------------------
+
+-  ``FVP_CLUSTER_COUNT`` : Configures the cluster count to be used to build the
+   topology tree within TFTF. By default TFTF is configured for dual cluster for
+   CPUs with single thread (ST) and single cluster for SMT CPUs.
+   For ST CPUs this option can be used to override the default number of clusters
+   with a value in the range 1-4.
+
+-  ``FVP_MAX_CPUS_PER_CLUSTER``: Sets the maximum number of CPUs implemented in
+   a single cluster. This option defaults to the maximum value of 4 for ST CPUs
+   and maximum value of 8 for SMT CPUs.
+
+-  ``FVP_MAX_PE_PER_CPU``: Sets the maximum number of PEs implemented on any CPU
+   in the system. This option defaults to 1 to select ST CPUs. For platforms with
+   SMT CPUs this value must be set to 2.
+
 TFTF-specific Build Options
 ---------------------------
 
@@ -107,4 +124,4 @@ FWU-specific Build Options
 
 --------------
 
-*Copyright (c) 2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2019-2020, Arm Limited. All rights reserved.*
