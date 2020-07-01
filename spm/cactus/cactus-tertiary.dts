@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -16,14 +16,14 @@
 	/* Properties */
 	description = "Base-1";
 	ffa-version = <0x00010000>; /* 31:16 - Major, 15:0 - Minor */
-	uuid = <0xd1582309 0xf02347b9 0x827c4464 0xf5578fc8>;
-	id = <2>;
+	uuid = <0x79b55c73 0x1d8c44b9 0x859361e1 0x770ad8d2>;
+	id = <3>;
 	auxiliary-id = <0xae>;
 	stream-endpoint-ids = <0 1 2 3>;
 	execution-ctx-count = <1>;
 	exception-level = <2>; /* S-EL1 */
 	execution-state = <0>; /* AARCH64 */
-	load-address = <0x7100000>;
+	load-address = <0x7200000>;
 	entrypoint-offset = <0x00001000>;
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
@@ -33,28 +33,8 @@
 	/* Boot protocol */
 	gp-register-num = <0x0>;
 
-	rx_tx-info {
-		compatible = "arm,ffa-manifest-rx_tx-buffer";
-		rx-buffer = <&rxbuffer>;
-		tx-buffer = <&txbuffer>;
-	};
-
 	memory-regions {
 		compatible = "arm,ffa-manifest-memory-regions";
-
-		rxbuffer: rx-buffer {
-			description = "rx-buffer";
-			pages-count = <1>;
-			base-address = <0x00000000 0x7302000>;
-			attributes = <0x1>; /* read-only */
-		};
-
-		txbuffer: tx-buffer {
-			description = "tx-buffer";
-			pages-count = <1>;
-			base-address = <0x00000000 0x7303000>;
-			attributes = <0x3>; /* read-write */
-		};
 
 		/* Without optional base-address */
 		test-memory {
@@ -69,7 +49,7 @@
 
 		test-reg {
 			/* Dummy values */
-			base-address = <0x00000000 0x24000000>;
+			base-address = <0x00000000 0x25000000>;
 			pages-count = <16>;
 			attributes = <0x3>; /* read-write */
 			reg = <0x10000008 0x00000001 1>;

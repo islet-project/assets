@@ -17,8 +17,9 @@
 GENERATED_JSON=build/$2/$3/sp_layout.json
 
 # To demonstrate communication between SP's, two cactus S-EL1 instances used.
-# cactus-primary and cactus-secondary has same binary but different
-# partition manifest.
+# To also test mapping of the RXTX region a third cactus S-EL1 instance is used.
+# cactus-primary, cactus-secondary and cactus-tertiary have same binary but
+# different partition manifests.
 if [ "$1" == "cactus" ]; then
 	echo -e "{\n\t\"$1-primary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
@@ -26,7 +27,9 @@ if [ "$1" == "cactus" ]; then
 	\t\"owner\": \"SiP\"\n\t},\n\n\t\"$1-secondary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
 	\t\"pm\": \"../../../spm/$1/$1-secondary.dts\",\n \
-	\t\"owner\": \"Plat\"\n \
+	\t\"owner\": \"Plat\"\n\t},\n\n\t\"$1-tertiary\" : {\n \
+	\t\"image\": \"$1.bin\",\n \
+	\t\"pm\": \"../../../spm/$1/$1-tertiary.dts\" \n \
 	}\n}" \
 	> "$GENERATED_JSON"
 else
