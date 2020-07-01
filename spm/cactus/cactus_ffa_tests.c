@@ -142,17 +142,14 @@ static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 	announce_test_section_end(test_partition_info);
 }
 
-void ffa_tests(struct mailbox_buffers *mb)
+void ffa_version_test(void)
 {
-	const char *test_ffa = "FFA Interfaces";
 	const char *test_ffa_version = "FFA Version interface";
-
-	announce_test_section_start(test_ffa);
 
 	announce_test_start(test_ffa_version);
 
 	smc_ret_values ret = ffa_version(MAKE_FFA_VERSION(FFA_MAJOR, FFA_MINOR));
-	uint32_t spm_version = (uint32_t)(0xFFFFFFFF & ret.ret0);
+	uint32_t spm_version = (uint32_t)ret.ret0;
 
 	bool ffa_version_compatible =
 		((spm_version >> FFA_VERSION_MAJOR_SHIFT) == FFA_MAJOR &&
@@ -166,8 +163,16 @@ void ffa_tests(struct mailbox_buffers *mb)
 	expect((int)ffa_version_compatible, (int)true);
 
 	announce_test_end(test_ffa_version);
+}
+
+void ffa_tests(struct mailbox_buffers *mb)
+{
+	const char *test_ffa = "FFA Interfaces";
+
+	announce_test_section_start(test_ffa);
 
 	ffa_features_test();
+	ffa_version_test();
 	ffa_partition_info_get_test(mb);
 
 	announce_test_section_end(test_ffa);
