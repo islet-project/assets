@@ -25,6 +25,11 @@ static void send_event_common(event_t *event, unsigned int inc)
 	event->cnt += inc;
 	spin_unlock(&event->lock);
 
+	/*
+	 * Make sure the cnt increment is observable by all CPUs
+	 * before the event is sent.
+	 */
+	dsbsy();
 	sev();
 }
 
