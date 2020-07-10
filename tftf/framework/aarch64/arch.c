@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2020, NVIDIA Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,6 +11,9 @@ void tftf_arch_setup(void)
 {
 	/* Do not try to configure EL2 if TFTF is running at NS-EL1 */
 	if (IS_IN_EL2()) {
+		/* Enable asynchronous SError aborts to EL2 */
+		enable_serror();
+
 		/*
 		 * Route physical interrupts to EL2 regardless of the value of
 		 * the IMO/FMO bits. Without this, interrupts would not be taken
