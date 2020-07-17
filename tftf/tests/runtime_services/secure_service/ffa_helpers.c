@@ -247,3 +247,16 @@ smc_ret_values ffa_rx_release(void)
 
 	return tftf_smc(&args);
 }
+
+/* Map the RXTX buffer */
+smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages)
+{
+	smc_args args = {
+		.fid = FFA_RXTX_MAP_SMC64,
+		.arg1 = send,
+		.arg2 = recv,
+		.arg3 = pages
+	};
+
+	return tftf_smc(&args);
+}

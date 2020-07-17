@@ -59,6 +59,7 @@ smc_ret_values ffa_error(int32_t error_code);
 smc_ret_values ffa_features(uint32_t feature);
 smc_ret_values ffa_partition_info_get(const uint32_t uuid[4]);
 smc_ret_values ffa_rx_release(void);
+smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages);
 
 #endif /* __ASSEMBLY__ */
 
