@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,24 +16,29 @@
  * void zeromem(void *mem, unsigned int length);
  *
  * Initialise a memory region to 0.
- * The memory address and length must be 4-byte aligned.
+ * The memory address must be 4-byte aligned.
  * -----------------------------------------------------------------------
  */
 func zeromem
 #if ENABLE_ASSERTIONS
 	tst	r0, #0x3
 	ASM_ASSERT(eq)
-	tst	r1, #0x3
-	ASM_ASSERT(eq)
 #endif
-	add	r2, r0, r1
-	mov	r1, #0
-z_loop:
-	cmp	r2, r0
-	beq	z_end
-	str	r1, [r0], #4
-	b	z_loop
-z_end:
+	mov	r2, #0
+/* zero 4 bytes at a time */
+z_loop4:
+	cmp	r1, #4
+	blo	z_loop1
+	str	r2, [r0], #4
+	subs	r1, r1, #4
+	bne	z_loop4
+	bx	lr
+
+/* zero byte per byte */
+z_loop1:
+	strb	r2, [r0], #1
+	subs	r1, r1, #1
+	bne	z_loop1
 	bx	lr
 endfunc zeromem
 
@@ -54,20 +59,19 @@ func memcpy4
 /* copy 4 bytes at a time */
 m_loop4:
 	cmp	r2, #4
-	blt	m_loop1
+	blo	m_loop1
 	ldr	r3, [r1], #4
 	str	r3, [r0], #4
-	sub	r2, r2, #4
-	b	m_loop4
+	subs	r2, r2, #4
+	bne	m_loop4
+	bx	lr
+
 /* copy byte per byte */
 m_loop1:
-	cmp	r2,#0
-	beq	m_end
 	ldrb	r3, [r1], #1
 	strb	r3, [r0], #1
 	subs	r2, r2, #1
 	bne	m_loop1
-m_end:
 	bx	lr
 endfunc memcpy4
 
