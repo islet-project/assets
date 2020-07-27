@@ -9,6 +9,11 @@
 #include <ffa_helpers.h>
 #include <ffa_svc.h>
 
+#define OPTEE_FFA_GET_API_VERSION	(0)
+#define OPTEE_FFA_GET_OS_VERSION	(1)
+#define OPTEE_FFA_GET_OS_VERSION_MAJOR	(3)
+#define OPTEE_FFA_GET_OS_VERSION_MINOR	(8)
+
 /*-----------------------------------------------------------------------------
  * FFA_RUN
  *
@@ -108,6 +113,49 @@ smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
 }
 
 /*
+ * check_spmc_execution_level
+ *
+ * Attempt sending impdef protocol messages to OP-TEE through direct messaging.
+ * Criteria for detecting OP-TEE presence is that responses match defined
+ * version values. In the case of SPMC running at S-EL2 (and Cactus instances
+ * running at S-EL1) the response will not match the pre-defined version IDs.
+ *
+ * Returns true if SPMC is probed as being OP-TEE at S-EL1.
+ *
+ */
+bool check_spmc_execution_level(void)
+{
+	unsigned int is_optee_spmc_criteria = 0U;
+	smc_ret_values ret_values;
+
+	/*
+	 * Send a first OP-TEE-defined protocol message through
+	 * FFA direct message.
+	 *
+	 */
+	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(1),
+					      OPTEE_FFA_GET_API_VERSION);
+	if ((ret_values.ret3 == FFA_VERSION_MAJOR) &&
+	    (ret_values.ret4 == FFA_VERSION_MINOR)) {
+		is_optee_spmc_criteria++;
+	}
+
+	/*
+	 * Send a second OP-TEE-defined protocol message through
+	 * FFA direct message.
+	 *
+	 */
+	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(1),
+					      OPTEE_FFA_GET_OS_VERSION);
+	if ((ret_values.ret3 == OPTEE_FFA_GET_OS_VERSION_MAJOR) &&
+	    (ret_values.ret4 == OPTEE_FFA_GET_OS_VERSION_MINOR)) {
+		is_optee_spmc_criteria++;
+	}
+
+	return (is_optee_spmc_criteria == 2U);
+}
+
+/*
  * FFA Version ABI helper.
  * Version fields:
  *	-Bits[30:16]: Major version.
@@ -160,6 +208,41 @@ smc_ret_values ffa_error(int32_t error_code)
 		.fid = FFA_ERROR,
 		.arg1 = 0,
 		.arg2 = error_code
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Query the higher EL if the requested FF-A feature is implemented. */
+smc_ret_values ffa_features(uint32_t feature)
+{
+	smc_args args = {
+		.fid = FFA_FEATURES,
+		.arg1 = feature
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Get information about VMs or SPs based on UUID */
+smc_ret_values ffa_partition_info_get(const uint32_t uuid[4])
+{
+	smc_args args = {
+		.fid = FFA_PARTITION_INFO_GET,
+		.arg1 = uuid[0],
+		.arg2 = uuid[1],
+		.arg3 = uuid[2],
+		.arg4 = uuid[3]
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Query SPMD that the rx buffer of the partition can be released */
+smc_ret_values ffa_rx_release(void)
+{
+	smc_args args = {
+		.fid = FFA_RX_RELEASE
 	};
 
 	return tftf_smc(&args);
