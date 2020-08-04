@@ -54,7 +54,7 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id)
 			continue;
 		}
 
-		if (ffa_ret.ret1 != SP_ID(vm_id)) {
+		if (ffa_ret.ret1 != vm_id) {
 			ffa_ret = ffa_error(-2);
 			continue;
 		}
@@ -74,8 +74,7 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id)
 		 * Send a response through direct messaging then block
 		 * until receiving a new message request.
 		 */
-		ffa_ret = ffa_msg_send_direct_resp(SP_ID(vm_id),
-						     HYP_ID, sp_response);
+		ffa_ret = ffa_msg_send_direct_resp(vm_id, HYP_ID, sp_response);
 	}
 }
 
@@ -188,7 +187,7 @@ void __dead2 cactus_main(void)
 		NOTICE("Booting Secondary Cactus Secure Partition (ID: %u)\n%s\n%s\n",
 			ffa_id, build_message, version_string);
 
-		if (ffa_id == SPM_VM_ID_THIRD) {
+		if (ffa_id == (SPM_VM_ID_FIRST + 2)) {
 			NOTICE("Mapping RXTX Region\n");
 
 			/* Declare RX/TX buffers at virtual FF-A instance */

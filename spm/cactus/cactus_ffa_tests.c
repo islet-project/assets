@@ -121,9 +121,9 @@ static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 	const char *test_all = "Get all partitions info";
 
 	const struct ffa_partition_info expected_info[] = {
-		{.id = SPM_VM_ID_FIRST, .exec_context = 8, .properties = 0}, /* Primary partition info */
-		{.id = SPM_VM_ID_SECOND, .exec_context = 2, .properties = 0}, /* Secondary partition info */
-		{.id = SPM_VM_ID_THIRD, .exec_context = 2, .properties = 0} /* Tertiary partition info */
+		{.id = SPM_VM_ID_FIRST, .exec_context = 8U, .properties = 0U}, /* Primary partition info */
+		{.id = SPM_VM_ID_FIRST + 1U, .exec_context = 8U, .properties = 0U}, /* Secondary partition info */
+		{.id = SPM_VM_ID_FIRST + 2U, .exec_context = 8U, .properties = 0U} /* Tertiary partition info */
 	};
 
 	announce_test_section_start(test_partition_info);
