@@ -22,9 +22,11 @@ GENERATED_JSON=build/$2/$3/sp_layout.json
 if [ "$1" == "cactus" ]; then
 	echo -e "{\n\t\"$1-primary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"../../../spm/$1/$1.dts\"\n\t},\n\n\t\"$1-secondary\" : {\n \
+	\t\"pm\": \"../../../spm/$1/$1.dts\",\n \
+	\t\"owner\": \"SiP\"\n\t},\n\n\t\"$1-secondary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"../../../spm/$1/$1-secondary.dts\" \n \
+	\t\"pm\": \"../../../spm/$1/$1-secondary.dts\",\n \
+	\t\"owner\": \"Plat\"\n \
 	}\n}" \
 	> "$GENERATED_JSON"
 else
