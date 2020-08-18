@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+include branch_protection.mk
 include lib/xlat_tables_v2/xlat_tables.mk
 
 CACTUS_DTB	:= $(BUILD_PLAT)/cactus.dtb
@@ -53,11 +54,15 @@ CACTUS_LINKERFILE	:=	spm/cactus/cactus.ld.S
 
 CACTUS_DEFINES	:=
 
+$(eval $(call add_define,CACTUS_DEFINES,ARM_ARCH_MAJOR))
+$(eval $(call add_define,CACTUS_DEFINES,ARM_ARCH_MINOR))
 $(eval $(call add_define,CACTUS_DEFINES,DEBUG))
+$(eval $(call add_define,CACTUS_DEFINES,ENABLE_ASSERTIONS))
+$(eval $(call add_define,CACTUS_DEFINES,ENABLE_BTI))
+$(eval $(call add_define,CACTUS_DEFINES,ENABLE_PAUTH))
 $(eval $(call add_define,CACTUS_DEFINES,FVP_CLUSTER_COUNT))
 $(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_PE_PER_CPU))
-$(eval $(call add_define,CACTUS_DEFINES,ENABLE_ASSERTIONS))
 $(eval $(call add_define,CACTUS_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,CACTUS_DEFINES,PLAT_${PLAT}))
 

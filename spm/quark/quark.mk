@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+include branch_protection.mk
 include lib/sprt/sprt_client.mk
 
 QUARK_DTB		:= $(BUILD_PLAT)/quark.dtb
@@ -47,8 +48,12 @@ QUARK_LINKERFILE	:=	spm/quark/quark.ld.S
 
 QUARK_DEFINES	:=
 
+$(eval $(call add_define,QUARK_DEFINES,ARM_ARCH_MAJOR))
+$(eval $(call add_define,QUARK_DEFINES,ARM_ARCH_MINOR))
 $(eval $(call add_define,QUARK_DEFINES,DEBUG))
 $(eval $(call add_define,QUARK_DEFINES,ENABLE_ASSERTIONS))
+$(eval $(call add_define,QUARK_DEFINES,ENABLE_BTI))
+$(eval $(call add_define,QUARK_DEFINES,ENABLE_PAUTH))
 $(eval $(call add_define,QUARK_DEFINES,FVP_CLUSTER_COUNT))
 $(eval $(call add_define,QUARK_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,QUARK_DEFINES,FVP_MAX_PE_PER_CPU))

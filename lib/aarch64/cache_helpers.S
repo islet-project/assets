@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2020, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -30,7 +30,7 @@ loop_\op:
 	dc	\op, x0
 	add	x0, x0, x2
 	cmp	x0, x1
-	b.lo    loop_\op
+	b.lo	loop_\op
 	dsb	sy
 exit_loop_\op:
 	ret
@@ -91,6 +91,9 @@ func do_dcsw_op
 	cbz	x3, exit
 	adr	x14, dcsw_loop_table	// compute inner loop address
 	add	x14, x14, x0, lsl #5	// inner loop is 8x32-bit instructions
+#if ENABLE_BTI
+	add	x14, x14, x0, lsl #2	// inner loop is + "bti j" instruction
+#endif
 	mov	x0, x9
 	mov	w8, #1
 loop1:
@@ -116,6 +119,9 @@ loop1:
 	br	x14			// jump to DC operation specific loop
 
 	.macro	dcsw_loop _op
+#if ENABLE_BTI
+	bti	j
+#endif
 loop2_\_op:
 	lsl	w7, w6, w2		// w7 = aligned max set number
 
@@ -134,7 +140,7 @@ loop3_\_op:
 level_done:
 	add	x10, x10, #2		// increment cache number
 	cmp	x3, x10
-	b.hi    loop1
+	b.hi	loop1
 	msr	csselr_el1, xzr		// select cache level 0 in csselr
 	dsb	sy			// barrier to complete final cache operation
 	isb

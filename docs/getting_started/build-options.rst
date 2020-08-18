@@ -30,6 +30,37 @@ payload, whose simplistic build system is mostly independent.
 -  ``ARM_ARCH_MINOR``: The minor version of Arm Architecture to target when
    compiling TF-A Tests. Its value must be a numeric, and defaults to 0.
 
+-  ``BRANCH_PROTECTION``: Numeric value to enable ARMv8.3 Pointer Authentication
+   (``ARMv8.3-PAuth``) and ARMv8.5 Branch Target Identification (``ARMv8.5-BTI``)
+   support in the Trusted Firmware-A Test Framework itself.
+   If enabled, it is needed to use a compiler that supports the option
+   ``-mbranch-protection`` (GCC 9 and later).
+   Selects the branch protection features to use:
+-  0: Default value turns off all types of branch protection
+-  1: Enables all types of branch protection features
+-  2: Return address signing to its standard level
+-  3: Extend the signing to include leaf functions
+-  4: Turn on branch target identification mechanism
+
+   The table below summarizes ``BRANCH_PROTECTION`` values, GCC compilation
+   options and resulting PAuth/BTI features.
+
+   +-------+--------------+-------+-----+
+   | Value |  GCC option  | PAuth | BTI |
+   +=======+==============+=======+=====+
+   |   0   |     none     |   N   |  N  |
+   +-------+--------------+-------+-----+
+   |   1   |   standard   |   Y   |  Y  |
+   +-------+--------------+-------+-----+
+   |   2   |   pac-ret    |   Y   |  N  |
+   +-------+--------------+-------+-----+
+   |   3   | pac-ret+leaf |   Y   |  N  |
+   +-------+--------------+-------+-----+
+   |   4   |     bti      |   N   |  Y  |
+   +-------+--------------+-------+-----+
+
+   This option defaults to 0 and this is an experimental feature.
+
 -  ``DEBUG``: Chooses between a debug and a release build. A debug build
    typically embeds assertions checking the validity of some assumptions and its
    output is more verbose. The option can take either 0 (release) or 1 (debug)
@@ -89,11 +120,6 @@ Arm FVP Platform Specific Build Options
 
 TFTF-specific Build Options
 ---------------------------
-
--  ``ENABLE_PAUTH``: Boolean option to enable ARMv8.3 Pointer Authentication
-   (``ARMv8.3-PAuth``) support in the Trusted Firmware-A Test Framework itself.
-   If enabled, it is needed to use a compiler that supports the option
-   ``-mbranch-protection`` (GCC 9 and later). It defaults to 0.
 
 -  ``NEW_TEST_SESSION``: Choose whether a new test session should be started
    every time or whether the framework should determine whether a previous

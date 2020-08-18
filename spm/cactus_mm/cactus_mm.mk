@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+include branch_protection.mk
+
 CACTUS_MM_INCLUDES :=					\
 	-Iinclude					\
 	-Iinclude/common				\
@@ -52,7 +54,11 @@ CACTUS_MM_DEFINES	:=
 # that is done.
 CACTUS_MM_DEFINES	+= -DENABLE_ASSERTIONS=0
 
+$(eval $(call add_define,CACTUS_MM_DEFINES,ARM_ARCH_MAJOR))
+$(eval $(call add_define,CACTUS_MM_DEFINES,ARM_ARCH_MINOR))
 $(eval $(call add_define,CACTUS_MM_DEFINES,DEBUG))
+$(eval $(call add_define,CACTUS_MM_DEFINES,ENABLE_BTI))
+$(eval $(call add_define,CACTUS_MM_DEFINES,ENABLE_PAUTH))
 $(eval $(call add_define,CACTUS_MM_DEFINES,FVP_CLUSTER_COUNT))
 $(eval $(call add_define,CACTUS_MM_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,CACTUS_MM_DEFINES,FVP_MAX_PE_PER_CPU))
