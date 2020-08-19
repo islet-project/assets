@@ -16,6 +16,7 @@
 
 static const uint32_t primary_uuid[4] = PRIMARY_UUID;
 static const uint32_t secondary_uuid[4] = SECONDARY_UUID;
+static const uint32_t tertiary_uuid[4] = TERTIARY_UUID;
 static const uint32_t null_uuid[4] = {0};
 
 struct feature_test {
@@ -116,14 +117,20 @@ static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 	const char *test_partition_info = "FFA Partition info interface";
 	const char *test_primary = "Get primary partition info";
 	const char *test_secondary = "Get secondary partition info";
+	const char *test_tertiary = "Get tertiary partition info";
 	const char *test_all = "Get all partitions info";
 
 	const struct ffa_partition_info expected_info[] = {
 		{.id = SPM_VM_ID_FIRST, .exec_context = 8, .properties = 0}, /* Primary partition info */
-		{.id = 2, .exec_context = 2, .properties = 0} /* Secondary partition info */
+		{.id = SPM_VM_ID_SECOND, .exec_context = 2, .properties = 0}, /* Secondary partition info */
+		{.id = SPM_VM_ID_THIRD, .exec_context = 2, .properties = 0} /* Tertiary partition info */
 	};
 
 	announce_test_section_start(test_partition_info);
+
+	announce_test_start(test_tertiary);
+	ffa_partition_info_helper(mb, tertiary_uuid, &expected_info[2], 1);
+	announce_test_end(test_tertiary);
 
 	announce_test_start(test_secondary);
 	ffa_partition_info_helper(mb, secondary_uuid, &expected_info[1], 1);
@@ -134,7 +141,7 @@ static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 	announce_test_end(test_primary);
 
 	announce_test_start(test_all);
-	ffa_partition_info_helper(mb, null_uuid, expected_info, 2);
+	ffa_partition_info_helper(mb, null_uuid, expected_info, 3);
 	announce_test_end(test_all);
 
 	ffa_partition_info_wrong_test();
