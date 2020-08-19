@@ -45,14 +45,14 @@
 		rxbuffer: rx-buffer {
 			description = "rx-buffer";
 			pages-count = <1>;
-			base-address = <0x00000000 0x7200000>;
+			base-address = <0x00000000 0x7300000>;
 			attributes = <0x1>; /* read-only */
 		};
 
 		txbuffer: tx-buffer {
 			description = "tx-buffer";
 			pages-count = <1>;
-			base-address = <0x00000000 0x7201000>;
+			base-address = <0x00000000 0x7301000>;
 			attributes = <0x3>; /* read-write */
 		};
 
