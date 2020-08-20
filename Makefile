@@ -527,7 +527,8 @@ cscope:
 
 .PHONY: help
 help:
-	@echo "usage: ${MAKE} PLAT=<${PLATFORMS}> <all|tftf|ns_bl1u|ns_bl2u|cactus|ivy|quark|el3_payload|distclean|clean|checkcodebase|checkpatch>"
+	@echo "usage: ${MAKE} PLAT=<${PLATFORMS}> \
+<all|tftf|ns_bl1u|ns_bl2u|cactus|ivy|quark|el3_payload|distclean|clean|checkcodebase|checkpatch|help_tests>"
 	@echo ""
 	@echo "PLAT is used to specify which platform you wish to build."
 	@echo "If no platform is specified, PLAT defaults to: ${DEFAULT_PLAT}"
@@ -550,6 +551,7 @@ help:
 	@echo "  clean          Clean the build for the selected platform"
 	@echo "  cscope         Generate cscope index"
 	@echo "  distclean      Remove all build artifacts for all platforms"
+	@echo "  help_tests     List all possible sets of tests"
 	@echo ""
 	@echo "note: most build targets require PLAT to be set to a specific platform."
 	@echo ""
