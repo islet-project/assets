@@ -1,15 +1,17 @@
 #
-# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
 include branch_protection.mk
 include lib/sprt/sprt_client.mk
+include lib/xlat_tables_v2/xlat_tables.mk
 
 IVY_DTB		:= $(BUILD_PLAT)/ivy.dtb
 
 IVY_INCLUDES :=					\
+	-Itftf/framework/include			\
 	-Iinclude					\
 	-Iinclude/common				\
 	-Iinclude/common/${ARCH}			\
@@ -21,12 +23,12 @@ IVY_INCLUDES :=					\
 	-Iinclude/runtime_services			\
 	-Iinclude/runtime_services/secure_el0_payloads	\
 	-Ispm/ivy					\
-	-Ispm/common					\
-	${SPRT_LIB_INCLUDES}
+	-Ispm/common
 
 IVY_SOURCES	:=					\
 	$(addprefix spm/ivy/,			\
 		aarch64/ivy_entrypoint.S		\
+		aarch64/spm_shim_exceptions.S		\
 		ivy_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
@@ -37,7 +39,8 @@ IVY_SOURCES	:=					\
 # TODO: Remove dependency on TFTF files.
 IVY_SOURCES	+=					\
 	tftf/framework/debug.c				\
-	tftf/framework/${ARCH}/asm_debug.S
+	tftf/framework/${ARCH}/asm_debug.S		\
+	tftf/tests/runtime_services/secure_service/ffa_helpers.c
 
 IVY_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			drivers/console/console.c			\
@@ -45,7 +48,8 @@ IVY_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/${ARCH}/misc_helpers.S			\
 			lib/locks/${ARCH}/spinlock.S			\
 			lib/utils/mp_printf.c				\
-			${SPRT_LIB_SOURCES}
+			${SPRT_LIB_SOURCES}				\
+			${XLAT_TABLES_LIB_SRCS}
 
 IVY_LINKERFILE	:=	spm/ivy/ivy.ld.S
 

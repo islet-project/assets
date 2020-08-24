@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -76,6 +76,15 @@
 	.macro end_vector_entry label
 	.cfi_endproc
 	.fill	\label + (32 * 4) - .
+	.endm
+
+	/*
+	 * Create a vector entry that just spins making the exception unrecoverable.
+	 */
+	.macro vector_entry_spin name
+	vector_entry \name
+	b \name
+	end_vector_entry \name
 	.endm
 
 	/*

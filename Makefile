@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -289,9 +289,9 @@ CACTUS_LDFLAGS		+= ${COMMON_LDFLAGS} $(PIE_LDFLAGS)
 
 IVY_SOURCES		+= ${LIBC_SRCS}
 IVY_INCLUDES		+= ${PLAT_INCLUDES}
-IVY_CFLAGS		+= ${COMMON_CFLAGS}
+IVY_CFLAGS		+= ${COMMON_CFLAGS} -fpie
 IVY_ASFLAGS		+= ${COMMON_ASFLAGS}
-IVY_LDFLAGS		+= ${COMMON_LDFLAGS}
+IVY_LDFLAGS		+= ${COMMON_LDFLAGS} $(PIE_LDFLAGS)
 
 QUARK_SOURCES		+= ${LIBC_SRCS}
 QUARK_INCLUDES		+= ${PLAT_INCLUDES}
