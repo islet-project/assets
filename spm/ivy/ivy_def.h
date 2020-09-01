@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,7 +12,7 @@
  */
 
 /* Up to 2 MiB at an arbitrary address that doesn't overlap the devices. */
-#define IVY_IMAGE_BASE			ULL(0x90000000)
+#define IVY_IMAGE_BASE			ULL(0x1000)
 #define IVY_IMAGE_SIZE			ULL(0x200000)
 
 /* Memory reserved for stacks */

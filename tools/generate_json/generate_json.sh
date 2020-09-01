@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (c) 2020, Arm Limited. All rights reserved.
+# Copyright (c) 2020-2021, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -29,6 +29,9 @@ if [ "$1" == "cactus" ]; then
 	\t\"owner\": \"Plat\"\n\t},\n\n\t\"$1-tertiary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
 	\t\"pm\": \"$1-tertiary.dts\" \n \
+	},\n\n\t\"ivy\" : {\n \
+	\t\"image\": \"ivy.bin\",\n \
+	\t\"pm\": \"ivy.dts\" \n \
 	}\n}" \
 	> "$GENERATED_JSON"
 else
