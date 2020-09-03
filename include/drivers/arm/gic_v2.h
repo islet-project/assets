@@ -242,6 +242,11 @@ unsigned int gicv2_gicd_get_ispendr(unsigned int interrupt_id);
 unsigned int gicv2_gicc_read_iar(void);
 
 /*
+ * Read and return the target core mask of interrupt ID `num`.
+ */
+uint8_t gicv2_read_itargetsr_value(unsigned int num);
+
+/*
  * Set the bit corresponding to `num` in the GICD ICENABLER register.
  */
 void gicv2_gicd_set_icenabler(unsigned int num);

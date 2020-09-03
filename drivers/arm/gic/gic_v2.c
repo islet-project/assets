@@ -44,6 +44,11 @@ static unsigned int core_pos_to_gic_id(unsigned int core_pos)
 /*******************************************************************************
  * GIC Distributor interface accessors for reading entire registers
  ******************************************************************************/
+uint8_t gicd_read_itargetsr_byte(unsigned int base, unsigned int interrupt_id)
+{
+	return mmio_read_8(base + GICD_ITARGETSR + interrupt_id);
+}
+
 unsigned int gicd_read_itargetsr(unsigned int base, unsigned int interrupt_id)
 {
 	unsigned n = interrupt_id >> ITARGETSR_SHIFT;
@@ -266,12 +271,19 @@ void gicv2_set_itargetsr(unsigned int num, unsigned int core_pos)
 	gicd_set_itargetsr(gicd_base_addr, num, gic_cpu_id);
 }
 
+uint8_t gicv2_read_itargetsr_value(unsigned int num)
+{
+	return gicd_read_itargetsr_byte(gicd_base_addr, num);
+}
+
 void gicv2_set_itargetsr_value(unsigned int num, unsigned int val)
 {
 	assert(gicd_base_addr);
 	assert(IS_SPI(num));
 
 	gicd_write_itargetsr_byte(gicd_base_addr, num, val);
+
+	assert(gicv2_read_itargetsr_value(num) == val);
 }
 
 unsigned int gicv2_gicd_get_isenabler(unsigned int num)
