@@ -214,7 +214,7 @@ test_result_t test_affinity_info_level1_off(void)
 	 * CPU on the platform. The PSCI implementation should ignore the
 	 * affinity 0 field.
 	 */
-#if FVP_MAX_PE_PER_CPU > 1
+#if PLAT_MAX_PE_PER_CPU > 1
 	target_mpid = make_mpid(cluster_id, 0, 0xE1);
 #else
 	target_mpid = make_mpid(cluster_id, 0xE1);

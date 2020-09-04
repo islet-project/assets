@@ -208,7 +208,7 @@ void tftf_notify_reboot(void);
 unsigned int tftf_is_rebooted(void);
 
 static inline unsigned int make_mpid(unsigned int clusterid,
-#if FVP_MAX_PE_PER_CPU > 1
+#if PLAT_MAX_PE_PER_CPU > 1
 				     unsigned int coreid,
 				     unsigned int threadid)
 #else
@@ -221,7 +221,7 @@ static inline unsigned int make_mpid(unsigned int clusterid,
 	 */
 	if ((read_mpidr_el1() & MPIDR_MT_MASK) != 0)
 		return MPIDR_MT_MASK |
-#if FVP_MAX_PE_PER_CPU > 1
+#if PLAT_MAX_PE_PER_CPU > 1
 			((threadid & MPIDR_AFFLVL_MASK) << MPIDR_AFF0_SHIFT) |
 #endif
 			((coreid & MPIDR_AFFLVL_MASK) << MPIDR_AFF1_SHIFT)   |

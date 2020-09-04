@@ -160,6 +160,8 @@
 					 PLATFORM_CORE_COUNT)
 #define PLATFORM_MAX_AFFLVL		MPIDR_AFFLVL2
 
+#define PLAT_MAX_PE_PER_CPU		FVP_MAX_PE_PER_CPU
+
 /* TODO : Migrate complete TFTF from affinity level to power levels */
 #define PLAT_MAX_PWR_LEVEL		PLATFORM_MAX_AFFLVL
 #define PLAT_MAX_PWR_STATES_PER_LVL	2
