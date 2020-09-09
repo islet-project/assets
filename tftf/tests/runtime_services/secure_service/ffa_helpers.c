@@ -260,3 +260,89 @@ smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages)
 
 	return tftf_smc(&args);
 }
+
+/* Donate memory to another partition */
+smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
+				uint32_t fragment_length)
+{
+	smc_args args = {
+		.fid = FFA_MEM_DONATE_SMC32,
+		.arg1 = descriptor_length,
+		.arg2 = fragment_length,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Lend memory to another partition */
+smc_ret_values ffa_mem_lend(uint32_t descriptor_length,
+				uint32_t fragment_length)
+{
+	smc_args args = {
+		.fid = FFA_MEM_LEND_SMC32,
+		.arg1 = descriptor_length,
+		.arg2 = fragment_length,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Share memory with another partition */
+smc_ret_values ffa_mem_share(uint32_t descriptor_length,
+				uint32_t fragment_length)
+{
+	smc_args args = {
+		.fid = FFA_MEM_SHARE_SMC32,
+		.arg1 = descriptor_length,
+		.arg2 = fragment_length,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Retrieve memory shared by another partition */
+smc_ret_values ffa_mem_retrieve_req(uint32_t descriptor_length,
+					uint32_t fragment_length)
+{
+	smc_args args = {
+		.fid = FFA_MEM_RETRIEVE_REQ_SMC32,
+		.arg1 = descriptor_length,
+		.arg2 = fragment_length,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ,
+		.arg5 = FFA_PARAM_MBZ,
+		.arg6 = FFA_PARAM_MBZ,
+		.arg7 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Relinquish access to memory region */
+smc_ret_values ffa_mem_relinquish(void)
+{
+	smc_args args = {
+		.fid = FFA_MEM_RELINQUISH,
+	};
+
+	return tftf_smc(&args);
+}
+
+/* Reclaim exclusive access to owned memory region */
+smc_ret_values ffa_mem_reclaim(uint64_t handle, uint32_t flags)
+{
+	smc_args args = {
+		.fid = FFA_MEM_RECLAIM,
+		.arg1 = (uint32_t) handle,
+		.arg2 = (uint32_t) (handle >> 32),
+		.arg3 = flags
+	};
+
+	return tftf_smc(&args);
+}

@@ -62,6 +62,17 @@ smc_ret_values ffa_partition_info_get(const uint32_t uuid[4]);
 smc_ret_values ffa_rx_release(void);
 smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages);
 
+smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
+			      uint32_t fragment_length);
+smc_ret_values ffa_mem_lend(uint32_t descriptor_length,
+			    uint32_t fragment_length);
+smc_ret_values ffa_mem_share(uint32_t descriptor_length,
+			     uint32_t fragment_length);
+smc_ret_values ffa_mem_retrieve_req(uint32_t descriptor_length,
+			            uint32_t fragment_length);
+smc_ret_values ffa_mem_relinquish(void);
+smc_ret_values ffa_mem_reclaim(uint64_t handle, uint32_t flags);
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* FFA_HELPERS_H */
