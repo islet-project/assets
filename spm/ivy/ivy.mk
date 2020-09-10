@@ -33,7 +33,9 @@ IVY_SOURCES	:=					\
 	)						\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
+		sp_debug.c				\
 		sp_helpers.c				\
+		spm_helpers.c				\
 	)						\
 
 # TODO: Remove dependency on TFTF files.
@@ -43,9 +45,11 @@ IVY_SOURCES	+=					\
 	tftf/tests/runtime_services/secure_service/ffa_helpers.c
 
 IVY_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
-			drivers/console/console.c			\
 			lib/${ARCH}/cache_helpers.S			\
 			lib/${ARCH}/misc_helpers.S			\
+			lib/smc/${ARCH}/asm_smc.S			\
+			lib/smc/${ARCH}/smc.c				\
+			lib/smc/${ARCH}/hvc.c				\
 			lib/locks/${ARCH}/spinlock.S			\
 			lib/utils/mp_printf.c				\
 			${SPRT_LIB_SOURCES}				\

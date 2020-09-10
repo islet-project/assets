@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 #include <tftf_lib.h>
-#include <ffa_helpers.h>
+#include <spm_common.h>
 
 typedef struct {
 	u_register_t fid;
