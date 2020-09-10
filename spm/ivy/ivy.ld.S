@@ -10,7 +10,7 @@
 
 OUTPUT_FORMAT(PLATFORM_LINKER_FORMAT)
 OUTPUT_ARCH(PLATFORM_LINKER_ARCH)
-ENTRY(ivy_entrypoint)
+ENTRY(shim_entrypoint)
 
 SECTIONS
 {
@@ -18,6 +18,48 @@ SECTIONS
 
     ASSERT(. == ALIGN(PAGE_SIZE),
            "TEXT_START address is not aligned to PAGE_SIZE.")
+
+    /*----------------- START S-EL1 SHIM ----------------*/
+
+    .shim_text : {
+        __SHIM_TEXT_START__ = .;
+        *spm_shim_entrypoint.o(.text*)
+        *(.vectors)
+        . = NEXT(PAGE_SIZE);
+        __SHIM_TEXT_END__ = .;
+    }
+
+    .shim_rodata : {
+        . = ALIGN(PAGE_SIZE);
+        __SHIM_RODATA_START__ = .;
+
+        . = NEXT(PAGE_SIZE);
+        __SHIM_RODATA_END__ = .;
+    }
+
+    .shim_data : {
+        . = ALIGN(PAGE_SIZE);
+        __SHIM_DATA_START__ = .;
+
+        . = NEXT(PAGE_SIZE);
+        __SHIM_DATA_END__ = .;
+    }
+
+    .shim_bss (NOLOAD) : {
+        . = ALIGN(PAGE_SIZE);
+        __SHIM_BSS_START__ = .;
+
+        *(.bss.shim_stacks)
+        *(.bss.tf_base_xlat_table)
+        *(.bss.tf_mmap)
+        *xlat_tables_context.o(COMMON)
+	*xlat_tables_context.o(xlat_table)
+
+        . = NEXT(PAGE_SIZE);
+        __SHIM_BSS_END__ = .;
+    }
+
+    /*----------------- END S-EL1 SHIM ----------------*/
 
     .text : {
         __TEXT_START__ = .;
@@ -32,6 +74,7 @@ SECTIONS
         . = ALIGN(PAGE_SIZE);
         __RODATA_START__ = .;
         *(.rodata*)
+
         /*
          * Keep the .got section in the RO section as it is patched
          * prior to enabling the MMU, so having it in RO is better for

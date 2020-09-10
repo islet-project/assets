@@ -20,14 +20,19 @@ IVY_INCLUDES :=					\
 	-Iinclude/lib/xlat_tables			\
 	-Iinclude/runtime_services			\
 	-Iinclude/runtime_services/secure_el0_payloads	\
-	-Ispm/ivy					\
+	-Ispm/ivy/app				\
+	-Ispm/ivy/shim					\
 	-Ispm/common
 
 IVY_SOURCES	:=					\
-	$(addprefix spm/ivy/,			\
+	$(addprefix spm/ivy/app/,			\
 		aarch64/ivy_entrypoint.S		\
-		aarch64/spm_shim_exceptions.S		\
 		ivy_main.c				\
+	)						\
+	$(addprefix spm/ivy/shim/,			\
+		aarch64/spm_shim_entrypoint.S		\
+		aarch64/spm_shim_exceptions.S		\
+		shim_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
@@ -69,10 +74,10 @@ $(eval $(call add_define,IVY_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,IVY_DEFINES,PLAT_${PLAT}))
 
 $(IVY_DTB) : $(BUILD_PLAT)/ivy $(BUILD_PLAT)/ivy/ivy.elf
-$(IVY_DTB) : spm/ivy/ivy.dts
-	@echo "  DTBGEN  spm/ivy/ivy.dts"
+$(IVY_DTB) : spm/ivy/app/ivy.dts
+	@echo "  DTBGEN  spm/ivy/app/ivy.dts"
 	${Q}tools/generate_dtb/generate_dtb.sh \
-		ivy spm/ivy/ivy.dts $(BUILD_PLAT)
+		ivy spm/ivy/app/ivy.dts $(BUILD_PLAT)
 	@echo
 	@echo "Built $@ successfully"
 	@echo
