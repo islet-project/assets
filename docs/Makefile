@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019, ARM Limited. All rights reserved.
+# Copyright (c) 2019-2020, ARM Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -7,11 +7,11 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = TrustedFirmware-A Tests
-SOURCEDIR     = .
-BUILDDIR      = build
+SPHINXOPTS    ?=
+SPHINXBUILD   ?= sphinx-build
+SPHINXPROJ    ?= TrustedFirmware-A Tests
+SOURCEDIR     ?= $(CURDIR)
+BUILDDIR      ?= build
 
 # Put it first so that "make" without argument is like "make help".
 help:
