@@ -8,11 +8,14 @@
 VERSION_MAJOR		:= 2
 VERSION_MINOR		:= 3
 
+MAKE_HELPERS_DIRECTORY := make_helpers/
+include ${MAKE_HELPERS_DIRECTORY}build_macros.mk
+
 ################################################################################
 # Default values for build configurations, and their dependencies
 ################################################################################
 
-include defaults.mk
+include ${MAKE_HELPERS_DIRECTORY}defaults.mk
 
 PLAT			:= ${DEFAULT_PLAT}
 
@@ -79,31 +82,6 @@ PLATFORMS		:=	$(shell find plat/ -name '${PLAT_MAKEFILE}' -print0 |			\
 					sed -r 's/\|$$//')
 
 DOCS_PATH		:=	docs
-
-# Convenience function for adding build definitions
-# $(eval $(call add_define,BAR_DEFINES,FOO)) will have:
-# -DFOO if $(FOO) is empty; -DFOO=$(FOO) otherwise
-# inside the BAR_DEFINES variable.
-define add_define
-$(1) += -D$(2)$(if $(value $(2)),=$(value $(2)),)
-endef
-
-# Convenience function for verifying option has a boolean value
-# $(eval $(call assert_boolean,FOO)) will assert FOO is 0 or 1
-define assert_boolean
-$(and $(patsubst 0,,$(value $(1))),$(patsubst 1,,$(value $(1))),$(error $(1) must be boolean))
-endef
-
-# CREATE_SEQ is a recursive function to create sequence of numbers from 1 to
-# $(2) and assign the sequence to $(1)
-define CREATE_SEQ
-$(if $(word $(2), $($(1))),\
-  $(eval $(1) += $(words $($(1))))\
-  $(eval $(1) := $(filter-out 0,$($(1)))),\
-  $(eval $(1) += $(words $($(1))))\
-  $(call CREATE_SEQ,$(1),$(2))\
-)
-endef
 
 ifeq (${PLAT},)
   $(error "Error: Unknown platform. Please use PLAT=<platform name> to specify the platform")
