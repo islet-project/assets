@@ -23,6 +23,7 @@
 typedef unsigned short ffa_vm_id_t;
 typedef unsigned short ffa_vm_count_t;
 typedef unsigned short ffa_vcpu_count_t;
+typedef uint32_t ffa_int_id_t;
 
 #ifndef __ASSEMBLY__
 

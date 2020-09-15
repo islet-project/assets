@@ -13,6 +13,8 @@
 
 #define SPM_VM_ID_FIRST                 SP_ID(1)
 
+/* Should match with IDs defined in SPM/Hafnium */
+#define SPM_INTERRUPT_GET               (0xFF04)
 #define SPM_DEBUG_LOG                   (0xBD000000)
 
 typedef struct {
@@ -67,9 +69,7 @@ void sp_sleep(uint32_t ms);
  * Hypervisor Calls Wrappers
  */
 
-ffa_vcpu_count_t spm_vcpu_get_count(ffa_vm_id_t vm_id);
-
-ffa_vm_count_t spm_vm_get_count(void);
+ffa_int_id_t spm_interrupt_get(void);
 
 void spm_debug_log(char c);
 
