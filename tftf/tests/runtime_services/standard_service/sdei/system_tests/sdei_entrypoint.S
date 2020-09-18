@@ -12,6 +12,7 @@
 	.globl	sdei_entrypoint
 	.globl	sdei_entrypoint_resume
 	.globl	sdei_handler_done
+	.globl	sdei_rm_any_entrypoint
 
 	.local	event_handled
 	.comm	event_handled, PLATFORM_CORE_COUNT * 4, 8
@@ -115,6 +116,16 @@ func sdei_state_entrypoint
 	b	.
 endfunc sdei_state_entrypoint
 
+func sdei_rm_any_entrypoint
+	stp	xzr, x30, [sp, #-16]!
+	bl	test_sdei_routing_any_handler
+	ldp	xzr, x30, [sp],#16
+	mov_imm	x0, SDEI_EVENT_COMPLETE
+	mov	x1, xzr
+	smc	#0
+	b	.
+endfunc sdei_rm_any_entrypoint
+
 #else /* AARCH32 */
 func sdei_entrypoint
 	/* SDEI is not supported on AArch32. */
@@ -135,4 +146,9 @@ func sdei_state_entrypoint
 	/* SDEI is not supported on AArch32. */
 	b	.
 endfunc sdei_state_entrypoint
+
+func sdei_rm_any_entrypoint
+	/* SDEI is not supported on AArch32. */
+	b	.
+endfunc sdei_rm_any_entrypoint
 #endif
