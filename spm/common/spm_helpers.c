@@ -30,3 +30,22 @@ void spm_debug_log(char c)
 
 	(void)tftf_hvc(&args);
 }
+
+/**
+ * Hypervisor call to enable/disable SP delivery of a virtual interrupt of
+ * int_id value through the IRQ or FIQ vector (pin).
+ * Returns 0 on success, or -1 if passing an invalid interrupt id.
+ */
+int64_t spm_interrupt_enable(uint32_t int_id, bool enable, enum interrupt_pin pin)
+{
+	hvc_args args = {
+		.fid = SPM_INTERRUPT_ENABLE,
+		.arg1 = int_id,
+		.arg2 = enable,
+		.arg3 = pin
+	};
+
+	hvc_ret_values ret = tftf_hvc(&args);
+
+	return (int64_t)ret.ret0;
+}
