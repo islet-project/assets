@@ -50,18 +50,21 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id)
 	for (;;) {
 
 		if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_REQ_SMC32) {
-			ffa_ret = ffa_error(-1);
-			continue;
+			ERROR("%s(%u) unknown func id 0x%lx\n",
+				__func__, vm_id, ffa_ret.ret0);
+			break;
 		}
 
-		if (ffa_ret.ret1 != SP_ID(vm_id)) {
-			ffa_ret = ffa_error(-2);
-			continue;
+		if (ffa_ret.ret1 != vm_id) {
+			ERROR("%s(%u) invalid vm id 0x%lx\n",
+				__func__, vm_id, ffa_ret.ret1);
+			break;
 		}
 
 		if (ffa_ret.ret2 != HYP_ID) {
-			ffa_ret = ffa_error(-3);
-			continue;
+			ERROR("%s(%u) invalid hyp id 0x%lx\n",
+				__func__, vm_id, ffa_ret.ret2);
+			break;
 		}
 
 		/*
@@ -74,9 +77,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id)
 		 * Send a response through direct messaging then block
 		 * until receiving a new message request.
 		 */
-		ffa_ret = ffa_msg_send_direct_resp(SP_ID(vm_id),
-						     HYP_ID, sp_response);
+		ffa_ret = ffa_msg_send_direct_resp(vm_id, HYP_ID, sp_response);
 	}
+
+	panic();
 }
 
 static const mmap_region_t cactus_mmap[] __attribute__((used)) = {
@@ -188,7 +192,7 @@ void __dead2 cactus_main(void)
 		NOTICE("Booting Secondary Cactus Secure Partition (ID: %u)\n%s\n%s\n",
 			ffa_id, build_message, version_string);
 
-		if (ffa_id == SPM_VM_ID_THIRD) {
+		if (ffa_id == (SPM_VM_ID_FIRST + 2)) {
 			NOTICE("Mapping RXTX Region\n");
 
 			/* Declare RX/TX buffers at virtual FF-A instance */

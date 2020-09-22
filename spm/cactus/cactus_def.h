@@ -31,10 +31,10 @@
 /*
  * RX/TX buffer helpers.
  */
-#define get_sp_rx_start(sp_id) (CACTUS_RX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE))
-#define get_sp_rx_end(sp_id) (CACTUS_RX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE) + PAGE_SIZE)
-#define get_sp_tx_start(sp_id) (CACTUS_TX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE))
-#define get_sp_tx_end(sp_id) (CACTUS_TX_BASE + ((sp_id - 1) * CACTUS_RX_TX_SIZE) + PAGE_SIZE)
+#define get_sp_rx_start(sp_id) (CACTUS_RX_BASE + (((sp_id & 0x7FFFU) - 1U) * CACTUS_RX_TX_SIZE))
+#define get_sp_rx_end(sp_id) (CACTUS_RX_BASE + (((sp_id & 0x7FFFU) - 1U) * CACTUS_RX_TX_SIZE) + PAGE_SIZE)
+#define get_sp_tx_start(sp_id) (CACTUS_TX_BASE + (((sp_id & 0x7FFFU) - 1U) * CACTUS_RX_TX_SIZE))
+#define get_sp_tx_end(sp_id) (CACTUS_TX_BASE + (((sp_id & 0x7FFFU) - 1U) * CACTUS_RX_TX_SIZE) + PAGE_SIZE)
 
 /*
  * UUID of secure partition as defined in the respective manifests.

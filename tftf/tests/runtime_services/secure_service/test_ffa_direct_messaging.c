@@ -22,8 +22,7 @@ static test_result_t send_receive_direct_msg(unsigned int sp_id,
 	smc_ret_values ret_values;
 
 	/* Send a message to SP through direct messaging */
-	ret_values = ffa_msg_send_direct_req(HYP_ID, SP_ID(sp_id),
-					      test_pattern);
+	ret_values = ffa_msg_send_direct_req(HYP_ID, sp_id, test_pattern);
 
 	/*
 	 * Return responses may be FFA_MSG_SEND_DIRECT_RESP or FFA_INTERRUPT,
@@ -70,7 +69,7 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Send a message to SP1 through direct messaging
 	 **********************************************************************/
-	result = send_receive_direct_msg(1, DIRECT_MSG_TEST_PATTERN1);
+	result = send_receive_direct_msg(SP_ID(1), DIRECT_MSG_TEST_PATTERN1);
 	if (result != TEST_RESULT_SUCCESS) {
 		return result;
 	}
@@ -78,7 +77,7 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Send a message to SP2 through direct messaging
 	 **********************************************************************/
-	result = send_receive_direct_msg(2, DIRECT_MSG_TEST_PATTERN2);
+	result = send_receive_direct_msg(SP_ID(2), DIRECT_MSG_TEST_PATTERN2);
 	if (result != TEST_RESULT_SUCCESS) {
 		return result;
 	}
@@ -86,13 +85,7 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Send a message to SP1 through direct messaging
 	 **********************************************************************/
-	result = send_receive_direct_msg(1, DIRECT_MSG_TEST_PATTERN3);
-	if (result != TEST_RESULT_SUCCESS) {
-		return result;
-	}
+	result = send_receive_direct_msg(SP_ID(1), DIRECT_MSG_TEST_PATTERN3);
 
-	/**********************************************************************
-	 * All tests passed.
-	 **********************************************************************/
-	return TEST_RESULT_SUCCESS;
+	return result;
 }
