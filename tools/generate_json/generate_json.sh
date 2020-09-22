@@ -10,11 +10,10 @@
 # Secure Partitions as part of FIP.
 
 # $1 = Secure Partition (cactus)
-# $2 = Platform (fvp)
-# $3 = Build Type
-# Output = build/plat/<Build Type>/sp_layout.json
+# $2 = Platform built path
+# Output = $2/sp_layout.json
 
-GENERATED_JSON=build/$2/$3/sp_layout.json
+GENERATED_JSON=$2/sp_layout.json
 
 # To demonstrate communication between SP's, two cactus S-EL1 instances used.
 # To also test mapping of the RXTX region a third cactus S-EL1 instance is used.
@@ -23,13 +22,13 @@ GENERATED_JSON=build/$2/$3/sp_layout.json
 if [ "$1" == "cactus" ]; then
 	echo -e "{\n\t\"$1-primary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"../../../spm/$1/$1.dts\",\n \
+	\t\"pm\": \"$1.dts\",\n \
 	\t\"owner\": \"SiP\"\n\t},\n\n\t\"$1-secondary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"../../../spm/$1/$1-secondary.dts\",\n \
+	\t\"pm\": \"$1-secondary.dts\",\n \
 	\t\"owner\": \"Plat\"\n\t},\n\n\t\"$1-tertiary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"../../../spm/$1/$1-tertiary.dts\" \n \
+	\t\"pm\": \"$1-tertiary.dts\" \n \
 	}\n}" \
 	> "$GENERATED_JSON"
 else

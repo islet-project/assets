@@ -68,7 +68,7 @@ $(eval $(call add_define,NS_BL2U_DEFINES,FVP_CLUSTER_COUNT))
 $(eval $(call add_define,NS_BL2U_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,NS_BL2U_DEFINES,FVP_MAX_PE_PER_CPU))
 
-PLAT_INCLUDES	:=	-Iplat/arm/fvp/include/
+PLAT_INCLUDES	+=	-Iplat/arm/fvp/include/
 
 PLAT_SOURCES	:=	drivers/arm/gic/arm_gic_v2v3.c			\
 			drivers/arm/gic/gic_v2.c			\
