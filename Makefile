@@ -127,10 +127,18 @@ include tftf/framework/framework.mk
 include tftf/tests/tests.mk
 include fwu/ns_bl1u/ns_bl1u.mk
 include fwu/ns_bl2u/ns_bl2u.mk
+
+# Only platform fvp supports cactus_mm, ivy, quark
+ifeq (${ARCH}-${PLAT},aarch64-fvp)
 include spm/cactus_mm/cactus_mm.mk
-include spm/cactus/cactus.mk
 include spm/ivy/ivy.mk
 include spm/quark/quark.mk
+endif
+
+# cactus is supported on platforms: fvp, tc0
+ifeq (${ARCH}-${PLAT},$(filter ${ARCH}-${PLAT},aarch64-fvp aarch64-tc0))
+include spm/cactus/cactus.mk
+endif
 
 ################################################################################
 # Include libc
@@ -359,11 +367,6 @@ cactus_mm:
 	@echo "ERROR: $@ is supported only on AArch64 FVP."
 	@exit 1
 
-.PHONY: cactus
-cactus:
-	@echo "ERROR: $@ is supported only on AArch64 FVP."
-	@exit 1
-
 .PHONY: ivy
 ivy:
 	@echo "ERROR: $@ is supported only on AArch64 FVP."
@@ -372,6 +375,13 @@ ivy:
 .PHONY: quark
 quark:
 	@echo "ERROR: $@ is supported only on AArch64 FVP."
+	@exit 1
+endif
+
+ifneq (${ARCH}-${PLAT},$(filter ${ARCH}-${PLAT},aarch64-fvp aarch64-tc0))
+.PHONY: cactus
+cactus:
+	@echo "ERROR: $@ is supported only on AArch64 FVP or TC0."
 	@exit 1
 endif
 
@@ -502,6 +512,10 @@ ifeq (${ARCH}-${PLAT},aarch64-fvp)
   $(eval $(call MAKE_IMG,cactus))
   $(eval $(call MAKE_IMG,ivy))
   $(eval $(call MAKE_IMG,quark))
+endif
+
+ifeq (${ARCH}-${PLAT},aarch64-tc0)
+  $(eval $(call MAKE_IMG,cactus))
 endif
 
 # The EL3 test payload is only supported in AArch64. It has an independent build
