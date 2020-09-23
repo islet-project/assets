@@ -35,6 +35,12 @@ pie_fixup:
 	add	x1, x1, x0
 	bl	fixup_gdt_reloc
 
+	/* Set up exceptions vector table */
+	adrp	x0, tftf_vector
+	add	x0, x0, :lo12:tftf_vector
+	msr	vbar_el1, x0
+	isb
+
 	/* And jump to the C entrypoint. */
 	b	cactus_main
 
