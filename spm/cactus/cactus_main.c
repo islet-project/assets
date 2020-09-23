@@ -180,12 +180,6 @@ void __dead2 cactus_main(void)
 
 		NOTICE("Booting Primary Cactus Secure Partition\n%s\n%s\n",
 			build_message, version_string);
-
-		/* Get number of VMs */
-		NOTICE("VM count: %u\n", spm_vm_get_count());
-
-		/* Get virtual CPU count for current VM */
-		NOTICE("vCPU count: %u\n", spm_vcpu_get_count(ffa_id));
 	} else {
 		set_putc_impl(HVC_CALL_AS_STDOUT);
 

@@ -75,29 +75,6 @@ void sp_sleep(uint32_t ms)
  * Hypervisor Calls Wrappers
  ******************************************************************************/
 
-ffa_vcpu_count_t spm_vcpu_get_count(ffa_vm_id_t vm_id)
-{
-	hvc_args args = {
-		.fid = SPM_VCPU_GET_COUNT,
-		.arg1 = vm_id
-	};
-
-	hvc_ret_values ret = tftf_hvc(&args);
-
-	return ret.ret0;
-}
-
-ffa_vm_count_t spm_vm_get_count(void)
-{
-	hvc_args args = {
-		.fid = SPM_VM_GET_COUNT
-	};
-
-	hvc_ret_values ret = tftf_hvc(&args);
-
-	return ret.ret0;
-}
-
 void spm_debug_log(char c)
 {
 	hvc_args args = {
