@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -104,8 +104,9 @@ static int amu_group0_cnt_valid(unsigned int idx, uint64_t value)
 {
 	int answer = 0;
 
-	if ((idx <= 2) && (value == 0))
+	if ((idx <= 2) && (value == 0)) {
 		answer = -1;
+	}
 
 	return answer;
 }
@@ -117,16 +118,18 @@ static int amu_group0_cnt_valid(unsigned int idx, uint64_t value)
  */
 test_result_t test_amu_valid_ctr(void)
 {
-	int i;
+	unsigned int i;
 
-	if (!amu_supported())
+	if (amu_get_version() == 0U) {
 		return TEST_RESULT_SKIPPED;
+	}
 
 	/* If counters are not enabled, then skip the test */
-	if (read_amcntenset0_el0() != AMU_GROUP0_COUNTERS_MASK)
+	if (read_amcntenset0_el0() != AMU_GROUP0_COUNTERS_MASK) {
 		return TEST_RESULT_SKIPPED;
+	}
 
-	for (i = 0; i < AMU_GROUP0_NR_COUNTERS; i++) {
+	for (i = 0U; i < AMU_GROUP0_NR_COUNTERS; i++) {
 		uint64_t value;
 
 		value = amu_group0_cnt_read(i);
@@ -145,19 +148,49 @@ test_result_t test_amu_valid_ctr(void)
  */
 test_result_t test_amu_suspend_resume(void)
 {
-	uint64_t group0_ctrs[AMU_GROUP0_MAX_NR_COUNTERS];
-	int i;
+	uint64_t group0_ctrs[AMU_GROUP0_NR_COUNTERS];
+	unsigned int i;
 
-	if (!amu_supported())
+	if (amu_get_version() == 0U) {
 		return TEST_RESULT_SKIPPED;
+	}
 
 	/* If counters are not enabled, then skip the test */
 	if (read_amcntenset0_el0() != AMU_GROUP0_COUNTERS_MASK)
 		return TEST_RESULT_SKIPPED;
 
 	/* Save counters values before suspend */
-	for (i = 0; i < AMU_GROUP0_NR_COUNTERS; i++)
+	for (i = 0U; i < AMU_GROUP0_NR_COUNTERS; i++) {
 		group0_ctrs[i] = amu_group0_cnt_read(i);
+	}
+
+	/*
+	 * If FEAT_AMUv1p1 supported then make sure the save/restore works for
+	 * virtual counter values.  Write known values into the virtual offsets
+	 * and then make sure they are still there after resume.  The virtual
+	 * offset registers are only accessible in AARCH64 mode in EL2 or EL3.
+	 */
+#if __aarch64__
+	if (amu_get_version() >= ID_AA64PFR0_AMU_V1P1) {
+		/* Enabling voffsets in HCR_EL2. */
+		write_hcr_el2(read_hcr_el2() | HCR_AMVOFFEN_BIT);
+
+		/* Writing known values into voffset registers. */
+		amu_group0_voffset_write(0U, 0xDEADBEEF);
+		amu_group0_voffset_write(2U, 0xDEADBEEF);
+		amu_group0_voffset_write(3U, 0xDEADBEEF);
+
+#if AMU_GROUP1_NR_COUNTERS
+		u_register_t amcg1idr = read_amcg1idr_el0() >> 16;
+
+		for (i = 0U; i < AMU_GROUP1_NR_COUNTERS; i++) {
+			if (((amcg1idr >> i) & 1U) != 0U) {
+				amu_group1_voffset_write(i, 0xDEADBEEF);
+			}
+		}
+#endif
+	}
+#endif
 
 	/* Suspend/resume current core */
 	suspend_and_resume_this_cpu();
@@ -177,6 +210,35 @@ test_result_t test_amu_suspend_resume(void)
 			return TEST_RESULT_FAIL;
 		}
 	}
+
+#if __aarch64__
+	if (amu_get_version() >= ID_AA64PFR0_AMU_V1P1) {
+		for (i = 0U; i < AMU_GROUP0_NR_COUNTERS; i++) {
+			if ((i != 1U) &&
+				(amu_group0_voffset_read(i) != 0xDEADBEEF)) {
+				tftf_testcase_printf(
+					"Invalid G0 voffset %u: 0x%llx\n", i,
+					amu_group0_voffset_read(i));
+				return TEST_RESULT_FAIL;
+			}
+		}
+
+#if AMU_GROUP1_NR_COUNTERS
+		u_register_t amcg1idr = read_amcg1idr_el0() >> 16;
+
+		for (i = 0U; i < AMU_GROUP1_NR_COUNTERS; i++) {
+			if (((amcg1idr >> i) & 1U) != 0U) {
+				if (amu_group1_voffset_read(i) != 0xDEADBEEF) {
+					tftf_testcase_printf("Invalid G1 " \
+						"voffset %u: 0x%llx\n", i,
+						amu_group1_voffset_read(i));
+					return TEST_RESULT_FAIL;
+				}
+			}
+		}
+#endif
+	}
+#endif
 
 	return TEST_RESULT_SUCCESS;
 }
