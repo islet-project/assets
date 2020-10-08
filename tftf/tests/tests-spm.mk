@@ -10,4 +10,5 @@ TESTS_SOURCES	+=							\
 		test_ffa_direct_messaging.c				\
 		test_ffa_version.c					\
 		test_ffa_features.c					\
+		test_ffa_memory_sharing.c				\
 	)
