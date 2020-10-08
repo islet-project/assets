@@ -360,13 +360,14 @@ uint32_t ffa_memory_region_init(
 	enum ffa_memory_shareability shareability, uint32_t *total_length,
 	uint32_t *fragment_length);
 
-/*
- * TODO: In the future this file should be placed in a common folder, and not
- * under tftf. The functions in this file are also used by SPs for SPM tests.
- */
 bool check_spmc_execution_level(void);
 smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id, uint32_t message);
 smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id, uint64_t message);
+smc_ret_values ffa_msg_send_direct_req64_5args(uint32_t source_id, uint32_t dest_id,
+					   uint64_t arg0, uint64_t arg1,
+					   uint64_t arg2, uint64_t arg3,
+					   uint64_t arg4);
+
 smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id);
 smc_ret_values ffa_version(uint32_t input_version);
 smc_ret_values ffa_id_get(void);

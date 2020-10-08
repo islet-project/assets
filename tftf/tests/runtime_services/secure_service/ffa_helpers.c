@@ -86,7 +86,7 @@ smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id,
 					      message, 0, 0, 0, 0);
 }
 
-static smc_ret_values __ffa_msg_send_direct_req64_5(uint32_t source_id,
+smc_ret_values ffa_msg_send_direct_req64_5args(uint32_t source_id,
 						     uint32_t dest_id,
 						     uint64_t arg0,
 						     uint64_t arg1,
@@ -108,7 +108,7 @@ static smc_ret_values __ffa_msg_send_direct_req64_5(uint32_t source_id,
 smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
 					uint64_t message)
 {
-	return __ffa_msg_send_direct_req64_5(source_id, dest_id,
+	return ffa_msg_send_direct_req64_5args(source_id, dest_id,
 					      message, 0, 0, 0, 0);
 }
 
