@@ -74,6 +74,7 @@ $(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,CACTUS_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,CACTUS_DEFINES,PLAT_${PLAT}))
+$(eval $(call add_define,CACTUS_DEFINES,PLAT_XLAT_TABLES_DYNAMIC))
 
 $(CACTUS_DTB) : $(BUILD_PLAT)/cactus $(BUILD_PLAT)/cactus/cactus.elf
 $(CACTUS_DTB) : $(CACTUS_DTS)
