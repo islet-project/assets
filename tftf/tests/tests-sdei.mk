@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2020, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -9,4 +9,5 @@ TESTS_SOURCES	+=								\
 		sdei_entrypoint.S 						\
 		test_sdei.c 							\
 		test_sdei_state.c 						\
+		test_sdei_rm_any.c 						\
 	)
