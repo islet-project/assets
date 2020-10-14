@@ -28,21 +28,31 @@ ifeq ($(FVP_MAX_PE_PER_CPU),2)
 $(eval $(call CREATE_SEQ,CLS,1))
 $(eval $(call CREATE_SEQ,CPU,8))
 else
+# CPU inside DynamIQ Shared Unit: 1 cluster with up to 8 CPUs
+ifeq ($(FVP_CLUSTER_COUNT),1)
+$(eval $(call CREATE_SEQ,CLS,1))
+$(eval $(call CREATE_SEQ,CPU,8))
+else
 # CPU with single thread: max 4 clusters with up to 4 CPUs
 $(eval $(call CREATE_SEQ,CLS,4))
 $(eval $(call CREATE_SEQ,CPU,4))
+endif
 endif
 
 # Check cluster count
 ifneq ($(FVP_CLUSTER_COUNT),$(filter $(FVP_CLUSTER_COUNT),$(CLS)))
   $(error "Incorrect FVP_CLUSTER_COUNT = ${FVP_CLUSTER_COUNT} \
-  specified for FVP port with FVP_MAX_PE_PER_CPU = ${FVP_MAX_PE_PER_CPU}")
+  specified for FVP port with \
+  FVP_MAX_CPUS_PER_CLUSTER = ${FVP_MAX_CPUS_PER_CLUSTER} \
+  FVP_MAX_PE_PER_CPU = ${FVP_MAX_PE_PER_CPU}")
 endif
 
 # Check number of CPUs per cluster
 ifneq ($(FVP_MAX_CPUS_PER_CLUSTER),$(filter $(FVP_MAX_CPUS_PER_CLUSTER),$(CPU)))
   $(error "Incorrect FVP_MAX_CPUS_PER_CLUSTER = ${FVP_MAX_CPUS_PER_CLUSTER} \
-  specified for FVP port with FVP_MAX_PE_PER_CPU = ${FVP_MAX_PE_PER_CPU}")
+  specified for FVP port with \
+  FVP_CLUSTER_COUNT = ${FVP_CLUSTER_COUNT} \
+  FVP_MAX_PE_PER_CPU = ${FVP_MAX_PE_PER_CPU}")
 endif
 
 # Pass FVP topology definitions to the build system
