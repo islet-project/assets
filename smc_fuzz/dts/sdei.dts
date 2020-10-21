@@ -1,0 +1,46 @@
+/*
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+
+
+
+/dts-v1/;
+
+/ {
+
+	sdei {
+		bias = <30>;
+		sdei_version {
+			bias = <30>;
+			functionname = "sdei_version";
+		};
+		sdei_pe_unmask {
+			bias = <30>;
+			functionname = "sdei_pe_unmask";
+		};
+		sdei_pe_mask {
+			bias = <30>;
+			functionname = "sdei_pe_mask";
+		};
+		sdei_event_status {
+			bias = <30>;
+			functionname = "sdei_event_status";
+		};
+		sdei_event_signal {
+			bias = <30>;
+			functionname = "sdei_event_signal";
+		};
+		sdei_private_reset {
+			bias = <30>;
+			functionname = "sdei_private_reset";
+		};
+		sdei_shared_reset {
+			bias = <30>;
+			functionname = "sdei_shared_reset";
+		};
+	};
+
+};

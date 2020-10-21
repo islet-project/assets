@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -72,6 +72,14 @@ SECTIONS
      */
     xlat_table (NOLOAD) : {
         *(xlat_table)
+    } >RAM
+
+    /*
+     * The SMC fuzzing module requires alignment due to malloc
+     * constraints. Also size must be at least around 64K
+     */
+    smcfuzz (NOLOAD) : {
+        *(smcfuzz)
     } >RAM
 
     /*

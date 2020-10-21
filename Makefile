@@ -29,10 +29,12 @@ ENABLE_ASSERTIONS	:= ${DEBUG}
 CHECKCODE_ARGS		:=	--no-patch
 # Do not check the coding style on imported library files or documentation files
 INC_LIB_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
+					include/lib/libfdt		\
 					include/lib/libc,		\
 					$(wildcard include/lib/*)))
 LIB_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
 					lib/compiler-rt			\
+					lib/libfdt%			\
 					lib/libc,			\
 					$(wildcard lib/*)))
 ROOT_DIRS_TO_CHECK	:=	$(sort $(filter-out			\
@@ -210,11 +212,12 @@ PP			:=	${CROSS_COMPILE}gcc
 
 ################################################################################
 
-TFTF_SOURCES		:= ${FRAMEWORK_SOURCES}	${TESTS_SOURCES} ${PLAT_SOURCES} ${LIBC_SRCS}
+TFTF_SOURCES		:= ${FRAMEWORK_SOURCES}	${TESTS_SOURCES} ${PLAT_SOURCES} ${LIBC_SRCS} ${LIBFDT_SRCS}
 TFTF_INCLUDES		+= ${PLAT_INCLUDES}
 TFTF_CFLAGS		+= ${COMMON_CFLAGS}
 TFTF_ASFLAGS		+= ${COMMON_ASFLAGS}
 TFTF_LDFLAGS		+= ${COMMON_LDFLAGS}
+TFTF_EXTRA_OBJS 	:=
 
 ifneq (${BP_OPTION},none)
 TFTF_CFLAGS		+= -mbranch-protection=${BP_OPTION}
@@ -224,6 +227,10 @@ CACTUS_MM_CFLAGS	+= -mbranch-protection=${BP_OPTION}
 CACTUS_CFLAGS		+= -mbranch-protection=${BP_OPTION}
 IVY_CFLAGS		+= -mbranch-protection=${BP_OPTION}
 QUARK_CFLAGS		+= -mbranch-protection=${BP_OPTION}
+endif
+
+ifeq ($(SMC_FUZZING), 1)
+TFTF_EXTRA_OBJS += ${BUILD_PLAT}/smcf/dtb.o
 endif
 
 #####################################################################################
@@ -297,13 +304,14 @@ realclean distclean:
 checkcodebase:		locate-checkpatch
 	@echo "  CHECKING STYLE"
 	@if test -d .git ; then						\
-		git ls-files | grep -E -v 'libc|docs|\.md|\.rst' |	\
+		git ls-files | grep -E -v 'libfdt|libc|docs|\.md|\.rst' |	\
 		while read GIT_FILE ;					\
 		do ${CHECKPATCH} ${CHECKCODE_ARGS} -f $$GIT_FILE ;	\
 		done ;							\
 	else								\
 		 find . -type f -not -iwholename "*.git*"		\
 		 -not -iwholename "*build*"				\
+		 -not -iwholename "*libfdt*"				\
 		 -not -iwholename "*libc*"				\
 		 -not -iwholename "*docs*"				\
 		 -not -iwholename "*.md"				\
@@ -423,6 +431,7 @@ define MAKE_IMG
 	$(eval BUILD_DIR  := ${BUILD_PLAT}/$(1))
 	$(eval SOURCES    := $(${IMG_PREFIX}_SOURCES))
 	$(eval OBJS       := $(addprefix $(BUILD_DIR)/,$(call SOURCES_TO_OBJS,$(SOURCES))))
+	$(eval OBJS       += $(${IMG_PREFIX}_EXTRA_OBJS))
 	$(eval LINKERFILE := $(BUILD_DIR)/$(1).ld)
 	$(eval MAPFILE    := $(BUILD_DIR)/$(1).map)
 	$(eval ELF        := $(BUILD_DIR)/$(1).elf)
@@ -467,6 +476,13 @@ $(AUTOGEN_DIR):
 $(AUTOGEN_DIR)/tests_list.c $(AUTOGEN_DIR)/tests_list.h: $(AUTOGEN_DIR) ${TESTS_FILE} ${PLAT_TESTS_SKIP_LIST}
 	@echo "  AUTOGEN $@"
 	tools/generate_test_list/generate_test_list.pl $(AUTOGEN_DIR)/tests_list.c $(AUTOGEN_DIR)/tests_list.h  ${TESTS_FILE} $(PLAT_TESTS_SKIP_LIST)
+ifeq ($(SMC_FUZZING), 1)
+	$(Q)mkdir -p  ${BUILD_PLAT}/smcf
+	dtc ${SMC_FUZZ_DTS} >> ${BUILD_PLAT}/smcf/dtb
+	$(OC) -I binary -O elf64-littleaarch64 -B aarch64 ${BUILD_PLAT}/smcf/dtb ${BUILD_PLAT}/smcf/dtb.o \
+	--redefine-sym _binary___build_fvp_debug_smcf_dtb_start=_binary___dtb_start \
+	--redefine-sym _binary___build_fvp_debug_smcf_dtb_end=_binary___dtb_end
+endif
 
 $(eval $(call MAKE_IMG,tftf))
 
