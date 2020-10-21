@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * This file is a Partition Manifest (PM) for a minimal Secure Partition (SP)
+ * that has additional optional properties defined.
+ *
+ */
+
+/dts-v1/;
+
+/ {
+	compatible = "arm,ffa-manifest-1.0";
+
+	/* Properties */
+	description = "cactus-1";
+	ffa-version = <0x00010000>; /* 31:16 - Major, 15:0 - Minor */
+	uuid = <0xb4b5671e 0x4a904fe1 0xb81ffb13 0xdae1dacb>;
+	id = <1>;
+	execution-ctx-count = <4>;
+	exception-level = <2>; /* S-EL1 */
+	execution-state = <0>; /* AARCH64 */
+	load-address = <0xfe000000>;
+	entrypoint-offset = <0x00001000>;
+	xlat-granule = <0>; /* 4KiB */
+	boot-order = <0>;
+	messaging-method = <0>; /* Direct messaging only */
+	run-time-model = <1>; /* Run to completion */
+
+	/* Boot protocol */
+	gp-register-num = <0x0>;
+
+	rx_tx-info {
+		compatible = "arm,ffa-manifest-rx_tx-buffer";
+		rx-buffer = <&rxbuffer>;
+		tx-buffer = <&txbuffer>;
+	};
+
+	memory-regions {
+		compatible = "arm,ffa-manifest-memory-regions";
+
+		rxbuffer: rx-buffer {
+			description = "rx-buffer";
+			pages-count = <1>;
+			base-address = <0x00000000 0xfe300000>;
+			attributes = <0x1>; /* read-only */
+		};
+
+		txbuffer: tx-buffer {
+			description = "tx-buffer";
+			pages-count = <1>;
+			base-address = <0x00000000 0xfe301000>;
+			attributes = <0x3>; /* read-write */
+		};
+	};
+};

@@ -9,6 +9,7 @@
 
 #include "cactus.h"
 #include "cactus_def.h"
+#include <cactus_platform_def.h>
 #include "cactus_tests.h"
 #include <debug.h>
 #include <drivers/arm/pl011.h>
@@ -84,8 +85,9 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id)
 }
 
 static const mmap_region_t cactus_mmap[] __attribute__((used)) = {
-	/* DEVICE0 area includes UART2 necessary to console */
-	MAP_REGION_FLAT(DEVICE0_BASE, DEVICE0_SIZE, MT_DEVICE | MT_RW),
+	/* PLAT_ARM_DEVICE0 area includes UART2 necessary to console */
+	MAP_REGION_FLAT(PLAT_ARM_DEVICE0_BASE, PLAT_ARM_DEVICE0_SIZE,
+			MT_DEVICE | MT_RW),
 	{0}
 };
 
@@ -179,9 +181,9 @@ void __dead2 cactus_main(void)
 	enable_mmu_el1(0);
 
 	if (ffa_id == SPM_VM_ID_FIRST) {
-		console_init(PL011_UART2_BASE,
-			PL011_UART2_CLK_IN_HZ,
-			PL011_BAUDRATE);
+		console_init(CACTUS_PL011_UART_BASE,
+			     CACTUS_PL011_UART_CLK_IN_HZ,
+			     PL011_BAUDRATE);
 
 		set_putc_impl(PL011_AS_STDOUT);
 

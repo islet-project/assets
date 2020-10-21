@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2020, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * This file is a Partition Manifest (PM) for a minimal Secure Partition (SP)
+ * that has additional optional properties defined.
+ *
+ */
+
+/dts-v1/;
+
+/ {
+	compatible = "arm,ffa-manifest-1.0";
+
+	/* Properties */
+	description = "cactus-3";
+	ffa-version = <0x00010000>; /* 31:16 - Major, 15:0 - Minor */
+	uuid = <0x79b55c73 0x1d8c44b9 0x859361e1 0x770ad8d2>;
+	id = <3>;
+	execution-ctx-count = <4>;
+	exception-level = <2>; /* S-EL1 */
+	execution-state = <0>; /* AARCH64 */
+	load-address = <0xfe200000>;
+	entrypoint-offset = <0x00001000>;
+	xlat-granule = <0>; /* 4KiB */
+	boot-order = <0>;
+	messaging-method = <0>; /* Direct messaging only */
+	run-time-model = <1>; /* Run to completion */
+
+	/* Boot protocol */
+	gp-register-num = <0x0>;
+
+	memory-regions {
+		compatible = "arm,ffa-manifest-memory-regions";
+
+		/* Without optional base-address */
+		test-memory {
+			description = "test-memory";
+			pages-count = <4>;
+			attributes = <0x7>; /* read-write-execute */
+		};
+	};
+
+	device-regions {
+		compatible = "arm,ffa-manifest-device-regions";
+
+		test-reg {
+			/* Dummy values */
+			base-address = <0x00000000 0x25000000>;
+			pages-count = <16>;
+			attributes = <0x3>; /* read-write */
+			reg = <0x10000008 0x00000001 1>;
+			smmu-id = <1>;
+			stream-ids = <0x0 0x1>;
+			interrupts = <0x2 0x3>,
+					<0x4 0x5>;
+		};
+	};
+
+};

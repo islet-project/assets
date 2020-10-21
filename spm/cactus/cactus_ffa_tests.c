@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <errno.h>
+#include <cactus_platform_def.h>
 #include <cactus_def.h>
 #include <ffa_helpers.h>
 #include <sp_helpers.h>
@@ -121,9 +122,24 @@ static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 	const char *test_all = "Get all partitions info";
 
 	const struct ffa_partition_info expected_info[] = {
-		{.id = SPM_VM_ID_FIRST, .exec_context = 8U, .properties = 0U}, /* Primary partition info */
-		{.id = SPM_VM_ID_FIRST + 1U, .exec_context = 8U, .properties = 0U}, /* Secondary partition info */
-		{.id = SPM_VM_ID_FIRST + 2U, .exec_context = 8U, .properties = 0U} /* Tertiary partition info */
+		/* Primary partition info */
+		{
+			.id = SPM_VM_ID_FIRST,
+			.exec_context = CACTUS_PRIMARY_EC_COUNT,
+			.properties = 0U
+		},
+		/* Secondary partition info */
+		{
+			.id = SPM_VM_ID_FIRST + 1U,
+			.exec_context = CACTUS_SECONDARY_EC_COUNT,
+			.properties = 0U
+		},
+		/* Tertiary partition info */
+		{
+			.id = SPM_VM_ID_FIRST + 2U,
+			.exec_context = CACTUS_TERTIARY_EC_COUNT,
+			.properties = 0U
+		}
 	};
 
 	announce_test_section_start(test_partition_info);

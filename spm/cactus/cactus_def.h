@@ -24,7 +24,7 @@
  * RX/TX buffer used by VM's in SPM for memory sharing
  * Each VM allocated 2 pages, one for RX and one for TX buffer.
  */
-#define CACTUS_RX_BASE			ULL(0x7300000)
+#define CACTUS_RX_BASE			PLAT_CACTUS_RX_BASE
 #define CACTUS_TX_BASE			CACTUS_RX_BASE + PAGE_SIZE
 #define CACTUS_RX_TX_SIZE		PAGE_SIZE * 2
 

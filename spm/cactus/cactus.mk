@@ -7,6 +7,12 @@
 include branch_protection.mk
 include lib/xlat_tables_v2/xlat_tables.mk
 
+# Include cactus platform make file
+CACTUS_PLAT_PATH	:= $(shell find spm/cactus/plat -wholename '*/${PLAT}')
+ifneq (${CACTUS_PLAT_PATH},)
+	include ${CACTUS_PLAT_PATH}/platform.mk
+endif
+
 CACTUS_DTB	:= $(BUILD_PLAT)/cactus.dtb
 
 CACTUS_INCLUDES :=					\
@@ -69,16 +75,32 @@ $(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,CACTUS_DEFINES,LOG_LEVEL))
 $(eval $(call add_define,CACTUS_DEFINES,PLAT_${PLAT}))
 
-
 $(CACTUS_DTB) : $(BUILD_PLAT)/cactus $(BUILD_PLAT)/cactus/cactus.elf
-$(CACTUS_DTB) : spm/cactus/cactus.dts
-	@echo "  DTBGEN  spm/cactus/cactus.dts"
+$(CACTUS_DTB) : $(CACTUS_DTS)
+	@echo "  DTBGEN  $@"
 	${Q}tools/generate_dtb/generate_dtb.sh \
-		cactus spm/cactus/cactus.dts $(BUILD_PLAT)
+		cactus ${CACTUS_DTS} $(BUILD_PLAT)
 	${Q}tools/generate_json/generate_json.sh \
-		cactus $(PLAT) $(BUILD_TYPE)
+		cactus $(BUILD_PLAT)
 	@echo
 	@echo "Built $@ successfully"
 	@echo
 
 cactus: $(CACTUS_DTB)
+
+# FDTS_CP copies flattened device tree sources
+#   $(1) = output directory
+#   $(2) = flattened device tree source file to copy
+define FDTS_CP
+        $(eval FDTS := $(addprefix $(1)/,$(notdir $(2))))
+FDTS_LIST += $(FDTS)
+$(FDTS): $(2) $(CACTUS_DTB)
+	@echo "  CP      $$<"
+	${Q}cp $$< $$@
+endef
+
+ifdef FDTS_CP_LIST
+        $(eval files := $(filter %.dts,$(FDTS_CP_LIST)))
+        $(eval $(foreach file,$(files),$(call FDTS_CP,$(BUILD_PLAT),$(file))))
+cactus: $(FDTS_LIST)
+endif
