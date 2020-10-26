@@ -29,3 +29,6 @@ Boot requirement tests
 Timer framework Validation/Target timer to a power down cpu
 Timer framework Validation/Test scenario where multiple CPUs call same timeout
 Timer framework Validation/Stress test the timer framework
+
+# Tegra194 uses all 27:0 bits of the PSTATE
+EL3 power state parser validation/Create all power states and validate EL3 power state parsing
