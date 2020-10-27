@@ -202,6 +202,21 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (0)
 
+#define SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, uuid)			\
+	do {									\
+		const uint32_t ffa_uuid[4] = uuid;				\
+		smc_ret_values smc_ret = ffa_partition_info_get(ffa_uuid);	\
+		ffa_rx_release();						\
+		if (smc_ret.ret0 == FFA_ERROR && 				\
+		    smc_ret.ret2 == FFA_ERROR_INVALID_PARAMETER) {		\
+			tftf_testcase_printf("FFA endpoint not deployed!\n");	\
+			return TEST_RESULT_SKIPPED;				\
+		} else if (smc_ret.ret0 != FFA_SUCCESS_SMC32) {			\
+			ERROR("ffa_partition_info_get failed!\n");		\
+			return TEST_RESULT_FAIL;				\
+		}								\
+	} while (0)
+
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp_supported()	\
 		(tftf_get_psci_feature_info(SMC_PSCI_SYSTEM_SUSPEND)		\
