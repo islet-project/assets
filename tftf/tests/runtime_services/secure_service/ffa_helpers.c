@@ -6,13 +6,9 @@
 
 #include <debug.h>
 #include <smccc.h>
+#include <ffa_endpoints.h>
 #include <ffa_helpers.h>
 #include <ffa_svc.h>
-
-#define OPTEE_FFA_GET_API_VERSION	(0)
-#define OPTEE_FFA_GET_OS_VERSION	(1)
-#define OPTEE_FFA_GET_OS_VERSION_MAJOR	(3)
-#define OPTEE_FFA_GET_OS_VERSION_MINOR	(8)
 
 /*-----------------------------------------------------------------------------
  * FFA_RUN

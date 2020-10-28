@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <cactus_platform_def.h>
 #include <cactus_def.h>
+#include <ffa_endpoints.h>
 #include <ffa_helpers.h>
 #include <sp_helpers.h>
 
