@@ -8,11 +8,11 @@
 #include <asm_macros.S>
 #include <sdei.h>
 
-	.globl	serror_sdei_event_handler
+	.globl	tegra194_serror_sdei_event_handler
 /*
  * SDEI event handler for SErrors.
  */
-func serror_sdei_event_handler
+func tegra194_serror_sdei_event_handler
 	stp	x29, x30, [sp, #-16]!
 	bl	sdei_handler
 	ldp	x29, x30, [sp], #16
@@ -20,4 +20,4 @@ func serror_sdei_event_handler
 	mov	x1, xzr
 	smc	#0
 	b	.
-endfunc serror_sdei_event_handler
+endfunc tegra194_serror_sdei_event_handler

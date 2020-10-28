@@ -30,10 +30,10 @@
 
 static inline void aowake_write_32(uint32_t offset, uint32_t value)
 {
-	mmio_write_32(TEGRA194_AOWAKE_BASE + offset, value);
+	mmio_write_32(TEGRA_AOWAKE_BASE + offset, value);
 }
 
-void tegra194_set_rtc_as_wakeup_source(void)
+void tegra_set_rtc_as_wakeup_source(void)
 {
 	/*
 	 * Configure RTC as the wake source to tier2 = CCPLEX,
