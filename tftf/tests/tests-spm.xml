@@ -30,6 +30,16 @@
 
   </testsuite>
 
+  <testsuite name="FF-A Memory Sharing"
+             description="Test FF-A Memory Sharing ABIs" >
+  <testcase name="Lend Memory to Secure World"
+              function="test_mem_lend_sp" />
+  <testcase name="Share Memory with Secure World"
+              function="test_mem_share_sp" />
+  <testcase name="Donate Memory to Secure World"
+              function="test_mem_donate_sp"/>
+  </testsuite>
+
   <testsuite name="PSA FF-A features"
              description="Test FFA_FEATURES ABI" >
      <testcase name="Test FFA_FEATURES"

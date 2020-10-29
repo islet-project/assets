@@ -72,6 +72,7 @@ SECTIONS
         __BSS_START__ = .;
         *(SORT_BY_ALIGNMENT(.bss*))
         *(COMMON)
+	*(xlat_table*)
         . = NEXT(PAGE_SIZE);
         __BSS_END__ = .;
     }

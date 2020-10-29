@@ -36,12 +36,4 @@
 #define get_sp_tx_start(sp_id) (CACTUS_TX_BASE + (((sp_id & 0x7FFFU) - 1U) * CACTUS_RX_TX_SIZE))
 #define get_sp_tx_end(sp_id) (CACTUS_TX_BASE + (((sp_id & 0x7FFFU) - 1U) * CACTUS_RX_TX_SIZE) + PAGE_SIZE)
 
-/*
- * UUID of secure partition as defined in the respective manifests.
- */
-#define PRIMARY_UUID {0xb4b5671e, 0x4a904fe1, 0xb81ffb13, 0xdae1dacb}
-#define SECONDARY_UUID {0xd1582309, 0xf02347b9, 0x827c4464, 0xf5578fc8}
-#define TERTIARY_UUID {0x79b55c73, 0x1d8c44b9, 0x859361e1, 0x770ad8d2}
-
-
 #endif /* CACTUS_DEF_H */

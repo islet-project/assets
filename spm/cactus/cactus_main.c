@@ -24,6 +24,8 @@
 #include <plat_arm.h>
 #include <platform_def.h>
 
+#include <cactus_test_cmds.h>
+
 /* Host machine information injected by the build system in the ELF file. */
 extern const char build_message[];
 extern const char version_string[];
@@ -36,21 +38,25 @@ extern const char version_string[];
  * but rather through Hafnium print hypercall.
  *
  */
-static void __dead2 message_loop(ffa_vm_id_t vm_id)
+static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 {
 	smc_ret_values ffa_ret;
 	uint32_t sp_response;
+	ffa_vm_id_t source;
 
 	/*
-	 * This initial wait call is necessary to inform SPMD that
-	 * SP initialization has completed. It blocks until receiving
-	 * a direct message request.
-	 */
+	* This initial wait call is necessary to inform SPMD that
+	* SP initialization has completed. It blocks until receiving
+	* a direct message request.
+	*/
+
 	ffa_ret = ffa_msg_wait();
 
 	for (;;) {
+		VERBOSE("Woke up with func id: %lx\n", ffa_ret.ret0);
 
-		if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_REQ_SMC32) {
+		if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_REQ_SMC32 &&
+		    ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_REQ_SMC64) {
 			ERROR("%s(%u) unknown func id 0x%lx\n",
 				__func__, vm_id, ffa_ret.ret0);
 			break;
@@ -61,24 +67,46 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id)
 				__func__, vm_id, ffa_ret.ret1);
 			break;
 		}
+		source = ffa_ret.ret2;
 
-		if (ffa_ret.ret2 != HYP_ID) {
+		if (source != HYP_ID) {
 			ERROR("%s(%u) invalid hyp id 0x%lx\n",
 				__func__, vm_id, ffa_ret.ret2);
 			break;
 		}
 
-		/*
-		 * For the sake of testing, add the vm id to the
-		 * received message.
-		 */
-		sp_response = ffa_ret.ret3 | vm_id;
+		PRINT_CMD(ffa_ret);
 
-		/*
-		 * Send a response through direct messaging then block
-		 * until receiving a new message request.
-		 */
-		ffa_ret = ffa_msg_send_direct_resp(vm_id, HYP_ID, sp_response);
+		switch (CACTUS_GET_CMD(ffa_ret)) {
+		case FFA_MEM_SHARE_SMC32:
+		case FFA_MEM_LEND_SMC32:
+		case FFA_MEM_DONATE_SMC32:
+			ffa_memory_management_test(
+					mb, vm_id, source,
+					CACTUS_GET_CMD(ffa_ret),
+					CACTUS_MEM_SEND_GET_HANDLE(ffa_ret));
+
+			/*
+			 * If execution gets to this point means all operations
+			 * with memory retrieval went well, as such replying
+			 */
+			ffa_ret = CACTUS_SUCCESS_RESP(vm_id, source);
+			break;
+		default:
+			/*
+			 * Currently direct message test is handled here.
+			 * TODO: create a case within the switch case
+			 * For the sake of testing, add the vm id to the
+			 * received message.
+			 */
+			NOTICE("Replying to Direct MSG test\n");
+			sp_response = ffa_ret.ret3 | vm_id;
+			ffa_ret = ffa_msg_send_direct_resp(vm_id,
+							   HYP_ID,
+							   sp_response);
+
+			break;
+		}
 	}
 
 	panic();
@@ -227,7 +255,7 @@ void __dead2 cactus_main(void)
 	ffa_tests(&mb);
 
 	/* End up to message loop */
-	message_loop(ffa_id);
+	message_loop(ffa_id, &mb);
 
 	/* Not reached */
 }
