@@ -16,9 +16,6 @@
 /* timer granularity in ms */
 #define TEGRA_RTC_STEP_VALUE_MS			U(5)
 
-/* IRQ value for Tegra Timer0 */
-#define TEGRA_RTC_IRQ				U(42)
-
 /* set to 1 = busy every eight 32kHz clocks during copy of sec+msec to AHB */
 #define TEGRA_RTC_REG_BUSY			U(0x004)
 #define TEGRA_RTC_REG_SECONDS			U(0x008)

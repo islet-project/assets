@@ -39,8 +39,8 @@
  ******************************************************************************/
 
 /* Translation table constants */
-#define MAX_XLAT_TABLES			20
-#define MAX_MMAP_REGIONS		20
+#define MAX_XLAT_TABLES			10
+#define MAX_MMAP_REGIONS		15
 
 /* stack memory available to each CPU */
 #define PLATFORM_STACK_SIZE		0x1400
@@ -50,17 +50,17 @@
 #define PLATFORM_SYSTEM_COUNT		1
 
 /* total number of clusters implemented by the platform */
-#define PLATFORM_CLUSTER_COUNT		4
-#define PLATFORM_CORES_PER_CLUSTER	2
+#define PLATFORM_CLUSTER_COUNT		1
+#define PLATFORM_CORES_PER_CLUSTER	4
 
 /* total number of CPUs implemented by the platform across all clusters */
-#define PLATFORM_CORE_COUNT		(PLATFORM_CORES_PER_CLUSTER * \
-					PLATFORM_CLUSTER_COUNT)
+#define PLATFORM_CORE_COUNT		(PLATFORM_CLUSTER_COUNT * \
+					 PLATFORM_CORES_PER_CLUSTER)
 
 /* total number of nodes in the affinity hierarchy at all affinity levels */
 #define PLATFORM_NUM_AFFS		(PLATFORM_SYSTEM_COUNT + \
-					PLATFORM_CLUSTER_COUNT + \
-					PLATFORM_CORE_COUNT)
+					 PLATFORM_CLUSTER_COUNT + \
+					 PLATFORM_CORE_COUNT)
 
 /*
  * maximum number of affinity levels in the system that the platform
@@ -81,7 +81,7 @@
  * starting from interrupt ID 32. This offset ID corresponds to the last SPI
  * number, to which 32 must be added to get the corresponding last GIC IRQ ID.
  */
-#define PLAT_MAX_SPI_OFFSET_ID		415
+#define PLAT_MAX_SPI_OFFSET_ID		280
 
 /* Local state bit width for each level in the state-ID field of power state */
 #define PLAT_LOCAL_PSTATE_WIDTH		4
@@ -89,11 +89,9 @@
 /*
  * We want to run without support for non-volatile memory and hence using a
  * portion of DRAM as workaround.
- * The TFTF binary itself is loaded at 0xA0600000 so we have plenty of free
- * memory at the beginning of the DRAM. Let's use 256MB from the start.
  */
-#define TFTF_NVM_OFFSET			0x0FF80000
-#define TFTF_NVM_SIZE			0x10000000
+#define TFTF_NVM_OFFSET			0x0F900000
+#define TFTF_NVM_SIZE			0x00100000
 
 /*
  * Times (in ms) used by test code for completion of different events.
@@ -104,9 +102,9 @@
 #define PLAT_SUSPEND_ENTRY_TIME		500
 #define PLAT_SUSPEND_ENTRY_EXIT_TIME	1000
 
-/*******************************************************************************
- * Non-Secure Software Generated Interupts IDs
- ******************************************************************************/
+/******************************************************************************
+* Non-Secure Software Generated Interupts IDs
+******************************************************************************/
 #define IRQ_NS_SGI_0			0
 #define IRQ_NS_SGI_1			1
 #define IRQ_NS_SGI_2			2
@@ -122,9 +120,9 @@
 #define IRQ_PCPU_HP_TIMER		26
 
 /*******************************************************************************
- * IRQ value for Tegra Timer0
+ * IRQ value for Tegra RTC
  ******************************************************************************/
-#define TEGRA_RTC_IRQ			U(42)
+#define TEGRA_RTC_IRQ			U(34)
 
 /*******************************************************************************
  * Platform specific page table and MMU setup constants
@@ -149,26 +147,17 @@
 /*******************************************************************************
  * Platform MMIO devices
  ******************************************************************************/
-#define TEGRA_MC_BASE			U(0x02C10000)
-#define TEGRA_TMR0_BASE			U(0x03020000)
-#define TEGRA_WDT0_BASE			U(0x030c0000)
-#define TEGRA_GICD_BASE			U(0x03881000)
-#define TEGRA_GICC_BASE			U(0x03882000)
-#define TEGRA_SPE_BASE			U(0x0C168000)
-#define TEGRA_UARTC_BASE		U(0x0C280000)
-#define TEGRA_RTC_BASE			U(0x0C2A0000)
-#define TEGRA_TMRUS_BASE		U(0x0C2E0000)
+#define TEGRA_GICD_BASE			U(0x50041000)
+#define TEGRA_GICC_BASE			U(0x50042000)
+#define TEGRA_TIMERS_BASE		U(0x60005000)
+#define TEGRA_TMRUS_BASE		U(0x60005010)
+#define TEGRA_TMR0_BASE			U(0x60005088)
+#define TEGRA_WDT0_BASE			U(0x60005100)
+#define TEGRA_UARTA_BASE		U(0x70006000)
+#define TEGRA_RTC_BASE			U(0x7000e000)
 #define SYS_CNT_BASE1			TEGRA_TMRUS_BASE
-#define TEGRA_AOWAKE_BASE		U(0x0C370000)
-#define TEGRA_SCRATCH_BASE		U(0x0C390000)
-#define TEGRA_SMMU0_BASE		U(0x12000000)
 
-/*******************************************************************************
- * DRAM carveout to save the SMMU context
- ******************************************************************************/
-#define TEGRA_SMMU_CTX_BASE		(DRAM_END - 0x1000)
-
-#ifndef __ASSEMBLY__
+#ifndef __ASSEMBLER__
 
 /*
  * Platform functions
@@ -176,6 +165,6 @@
 void tegra_pwr_mgmt_setup(void);
 void tegra_set_rtc_as_wakeup_source(void);
 
-#endif /* __ASSEMBLY__ */
+#endif /* __ASSEMBLER__ */
 
 #endif /* PLATFORM_DEF_H */

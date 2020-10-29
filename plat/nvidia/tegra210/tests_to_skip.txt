@@ -1,0 +1,34 @@
+#
+# Copyright (c) 2020, NVIDIA Coprporation. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+################################################################################
+# Disable the following tests from tests-psci.xml as a result
+################################################################################
+
+# Tegra210 platforms cannot be woken up from CPU_SUSPEND by an SGI
+PSCI CPU Suspend/CPU suspend to standby at level 0
+PSCI CPU Suspend/CPU suspend to standby at level 1
+PSCI CPU Suspend/CPU suspend to standby at level 2
+PSCI CPU Suspend/CPU suspend to powerdown at level 1
+PSCI CPU Suspend/CPU suspend to powerdown at level 2
+
+# Tegra210 platforms enter system suspend only from the boot core
+PSCI System Suspend Validation
+
+# Tegra210 platforms do not support CPU suspend with PSTATE_TYPE_POWERDOWN
+PSCI STAT/Stats test cases for CPU OFF
+PSCI STAT/Stats test cases after system suspend
+
+# Tegra210 platforms do not support memory mapped timers
+Boot requirement tests
+
+# CPUs cannot be woken up with a timer interrupt after power off
+Timer framework Validation/Target timer to a power down cpu
+Timer framework Validation/Test scenario where multiple CPUs call same timeout
+Timer framework Validation/Stress test the timer framework
+
+# Tegra210 uses all 27:0 bits of the PSTATE
+EL3 power state parser validation/Create all power states and validate EL3 power state parsing

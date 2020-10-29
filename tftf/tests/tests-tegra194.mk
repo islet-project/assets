@@ -13,3 +13,6 @@ TESTS_SOURCES	+=	$(addprefix tftf/tests/plat/nvidia/tegra194/,		\
 	test_ras_uncorrectable.c						\
 	serror_handler.S							\
 )
+
+include tftf/tests/tests-standard.mk
+TESTS_SOURCES += $(sort ${TESTS_SOURCES})

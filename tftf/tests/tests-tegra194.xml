@@ -6,15 +6,18 @@
   SPDX-License-Identifier: BSD-3-Clause
 -->
 
-<testsuites>
-  <testsuite name="Tegra SiP tests" description="SiP tests for Tegra platforms">
-     <testcase name="Video Memory Configuration test" function="test_sip_videomem_incorrect_inputs" />
-     <testcase name="Video Memory Resize test" function="test_sip_videomem_resize" />
-     <testcase name="Read SMMU_PER register contents test" function="test_get_smmu_per" />
-  </testsuite>
- <testsuite name="Tegra194 platform tests" description="Tests for Tegra194 platforms">
-     <testcase name="RAS corrected error test" function="test_ras_corrected" />
-     <testcase name="RAS uncorrectable error test" function="test_ras_uncorrectable" />
-  </testsuite>
-
-</testsuites>
+<document>
+  <!-- External reference to standard tests files. -->
+  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="tests-standard.xml" />
+  <testsuites>
+    <testsuite name="Tegra SiP tests" description="SiP tests for Tegra platforms">
+      <testcase name="Video Memory Configuration test" function="test_sip_videomem_incorrect_inputs" />
+      <testcase name="Video Memory Resize test" function="test_sip_videomem_resize" />
+      <testcase name="Read SMMU_PER register contents test" function="test_get_smmu_per" />
+    </testsuite>
+    <testsuite name="Tegra194 platform tests" description="Tests for Tegra194 platforms">
+      <testcase name="RAS corrected error test" function="test_ras_corrected" />
+      <testcase name="RAS uncorrectable error test" function="test_ras_uncorrectable" />
+    </testsuite>
+  </testsuites>
+</document>

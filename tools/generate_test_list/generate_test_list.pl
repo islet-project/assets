@@ -37,6 +37,7 @@ my $failure_elem;
 if (-e $XML_TEST_FILENAME) {
   my $parser = XML::LibXML->new(expand_entities => 1);
   $doc = $parser->parse_file($XML_TEST_FILENAME);
+  $parser->process_xincludes($doc);
 } else {
   exit 1
 }
