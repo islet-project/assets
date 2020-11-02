@@ -30,6 +30,14 @@
 
   </testsuite>
 
+  <testsuite name="FF-A RXTX Mapping"
+             description="Test to FF-A RXTX mapping ABI" >
+     <testcase name="FF-A RXTX Map API success"
+               function="test_ffa_rxtx_map_success" />
+     <testcase name="FF-A RXTX Map API consecutive"
+               function="test_ffa_rxtx_map_fail" />
+  </testsuite>
+
   <testsuite name="FF-A Memory Sharing"
              description="Test FF-A Memory Sharing ABIs" >
   <testcase name="Lend Memory to Secure World"
