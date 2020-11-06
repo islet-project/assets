@@ -194,7 +194,7 @@ void ffa_version_test(void)
 }
 
 bool ffa_memory_retrieve_test(struct mailbox_buffers *mb,
-			 struct ffa_memory_region *retrieved,
+			 struct ffa_memory_region **retrieved,
 			 uint64_t handle, ffa_vm_id_t sender,
 			 ffa_vm_id_t receiver, uint32_t mem_func)
 {
@@ -208,14 +208,13 @@ bool ffa_memory_retrieve_test(struct mailbox_buffers *mb,
 		return false;
 	}
 
-
 	/*
 	 * TODO: Revise shareability attribute in function call
 	 * below.
 	 * https://lists.trustedfirmware.org/pipermail/hafnium/2020-June/000023.html
 	 */
 	descriptor_size = ffa_memory_retrieve_request_init(
-	    mb->send,  handle, sender, receiver, 0, 0,
+	    mb->send, handle, sender, receiver, 0, 0,
 	    FFA_DATA_ACCESS_RW,
 	    FFA_INSTRUCTION_ACCESS_NX,
 	    FFA_MEMORY_NORMAL_MEM,
@@ -225,7 +224,8 @@ bool ffa_memory_retrieve_test(struct mailbox_buffers *mb,
 	ret = ffa_mem_retrieve_req(descriptor_size, descriptor_size);
 
 	if (ret.ret0 != FFA_MEM_RETRIEVE_RESP) {
-		ERROR("Couldn't retrieve the memory page!\n");
+		ERROR("Couldn't retrieve the memory page. Error: %lx\n",
+		      ret.ret2);
 		return false;
 	}
 
@@ -251,16 +251,12 @@ bool ffa_memory_retrieve_test(struct mailbox_buffers *mb,
 		return false;
 	}
 
-	memcpy((void *)retrieved, mb->recv, fragment_size);
+	*retrieved = (struct ffa_memory_region *)mb->recv;
 
-	if (ffa_rx_release().ret0 != FFA_SUCCESS_SMC32) {
-		ERROR("Failed to release Rx buffer!\n");
+	if ((*retrieved)->receiver_count > MAX_MEM_SHARE_RECIPIENTS) {
+		VERBOSE("SPMC memory sharing operations support max of %u "
+			"receivers!\n", MAX_MEM_SHARE_RECIPIENTS);
 		return false;
-	}
-
-	if (retrieved->receiver_count != 1) {
-		VERBOSE("This memory has been shared with multiple"
-			" receivers!\n");
 	}
 
 	NOTICE("Memory Retrieved!\n");
@@ -288,7 +284,7 @@ void ffa_memory_management_test(struct mailbox_buffers *mb, ffa_vm_id_t vm_id,
 				uint64_t handle)
 {
 	const char *test_ffa = "Memory Management";
-	struct ffa_memory_region m;
+	struct ffa_memory_region *m;
 	struct ffa_composite_memory_region *composite;
 	int ret;
 	unsigned int mem_attrs;
@@ -300,7 +296,7 @@ void ffa_memory_management_test(struct mailbox_buffers *mb, ffa_vm_id_t vm_id,
 				mb, &m, handle, sender, vm_id, mem_func),
 		true);
 
-	composite = ffa_memory_region_get_composite(&m, 0);
+	composite = ffa_memory_region_get_composite(m, 0);
 
 	NOTICE("Address: %p; page_count: %x %x\n",
 		composite->constituents[0].address,
@@ -308,7 +304,7 @@ void ffa_memory_management_test(struct mailbox_buffers *mb, ffa_vm_id_t vm_id,
 
 	/* This test is only concerned with RW permissions. */
 	expect(ffa_get_data_access_attr(
-			m.receivers[0].receiver_permissions.permissions),
+			m->receivers[0].receiver_permissions.permissions),
 		FFA_DATA_ACCESS_RW);
 
 	mem_attrs = MT_RW_DATA | MT_NS | MT_EXECUTE_NEVER;
@@ -341,9 +337,11 @@ void ffa_memory_management_test(struct mailbox_buffers *mb, ffa_vm_id_t vm_id,
 
 		expect(ffa_memory_relinquish_test(
 			   (struct ffa_mem_relinquish *)mb->send,
-			   m.handle, vm_id),
+			   m->handle, vm_id),
 		       true);
 	}
+
+	expect(ffa_rx_release().ret0, FFA_SUCCESS_SMC32);
 
 	announce_test_section_end(test_ffa);
 }
