@@ -17,8 +17,17 @@
 /* Hypervisor ID at physical FFA instance */
 #define HYP_ID          (0)
 
-/* By convention, SP IDs (as opposed to VM IDs) have bit 15 set */
-#define SP_ID(x)        ((x) | (1 << 15))
+/*
+ * The bit 15 of the FF-A ID indicates whether the partition is executing
+ * in the normal world, in case it is a Virtual Machine (VM); or in the
+ * secure world, in case it is a Secure Partition (SP).
+ *
+ * If bit 15 is set partition is an SP; if bit 15 is clear partition is
+ * a VM.
+ */
+#define SP_ID_MASK	U(1 << 15)
+#define SP_ID(x)	((x) | SP_ID_MASK)
+#define IS_SP_ID(x)	((x & SP_ID_MASK) != 0U)
 
 typedef unsigned short ffa_vm_id_t;
 typedef unsigned short ffa_vm_count_t;
