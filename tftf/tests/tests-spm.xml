@@ -22,20 +22,23 @@
 
   </testsuite>
 
-  <testsuite name="FF-A Direct messaging"
-             description="Test FF-A Direct messaging ABI" >
-
-     <testcase name="FF-A direct messaging API"
-               function="test_ffa_direct_messaging" />
-
-  </testsuite>
-
   <testsuite name="FF-A RXTX Mapping"
              description="Test to FF-A RXTX mapping ABI" >
      <testcase name="FF-A RXTX Map API success"
                function="test_ffa_rxtx_map_success" />
      <testcase name="FF-A RXTX Map API consecutive"
                function="test_ffa_rxtx_map_fail" />
+  </testsuite>
+
+  <testsuite name="FF-A Direct messaging"
+             description="Test FF-A Direct messaging" >
+
+     <testcase name="FF-A direct messaging"
+               function="test_ffa_direct_messaging" />
+
+     <testcase name="FF-A Request SP-to-SP direct messaging"
+               function="test_ffa_sp_to_sp_direct_messaging" />
+
   </testsuite>
 
   <testsuite name="FF-A Memory Sharing"
