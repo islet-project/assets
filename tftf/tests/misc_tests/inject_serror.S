@@ -16,9 +16,7 @@
 
 /*
  * Program fault injection register, and wait for ever for the fault to trigger.
- * Note that Trusted Firmware must be compiled for ARMv8.4 along with
- * FAULT_INJECTION_SUPPORT=1 for this to work. Besides, the model has to be
- * launched with fault inject support.
+ * Note that the model must be launched with fault inject support.
  *
  * x0: Fault record number to program
  * x1: Injected fault properties
@@ -26,6 +24,10 @@
  * x3: Memory location to wait for, or 0 if no waiting is required
  */
 func inject_serror_record
+	/* Clear SError received flag if necessary */
+	cbz	x3, 1f
+	str	xzr, [x3, #0]
+1:
 	/* Choose Error record 0 on the PE */
 	msr	ERRSELR_EL1, x0
 	isb
@@ -43,18 +45,17 @@ func inject_serror_record
 	msr	ERXPFGCTL_EL1, x2
 	isb
 
-	cbz	x3, 2f
+	/* If no waiting is required, jump to end */
+	cbz	x3, 3f
 
-	/* Clear SError received flag */
-	str	xzr, [x3, #0]
 	sevl
 
-1:
+2:
 	wfe
 	ldr	x0, [x3, #0]
-	cbz	x0, 1b
+	cbz	x0, 2b
 
-2:
+3:
 	ret
 endfunc inject_serror_record
 
