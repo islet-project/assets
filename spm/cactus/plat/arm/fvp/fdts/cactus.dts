@@ -67,6 +67,12 @@
 	device-regions {
 		compatible = "arm,ffa-manifest-device-regions";
 
+		uart2 {
+			base-address = <0x00000000 0x1c0b0000>;
+			pages-count = <1>;
+			attributes = <0x3>; /* read-write */
+		};
+
 		test-reg {
 			/* Dummy Values */
 			base-address = <0x00000000 0x22000000>;
