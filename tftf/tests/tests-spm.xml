@@ -8,8 +8,8 @@
 
 <testsuites>
 
-  <testsuite name="PSA FF-A Version"
-             description="Test PSA FF-A Version ABI" >
+  <testsuite name="FF-A Version"
+             description="Test FF-A Version ABI" >
 
     <testcase name="Same FFA version as SPM"
               function="test_ffa_version_equal" />
@@ -22,10 +22,10 @@
 
   </testsuite>
 
-  <testsuite name="PSA FF-A Direct messaging"
-             description="Test PSA FF-A Direct messaging ABI" >
+  <testsuite name="FF-A Direct messaging"
+             description="Test FF-A Direct messaging ABI" >
 
-     <testcase name="PSA FF-A direct messaging API"
+     <testcase name="FF-A direct messaging API"
                function="test_ffa_direct_messaging" />
 
   </testsuite>
@@ -48,7 +48,7 @@
               function="test_mem_donate_sp"/>
   </testsuite>
 
-  <testsuite name="PSA FF-A features"
+  <testsuite name="FF-A features"
              description="Test FFA_FEATURES ABI" >
      <testcase name="Test FFA_FEATURES"
                function="test_ffa_features" />
