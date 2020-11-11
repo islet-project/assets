@@ -39,6 +39,9 @@
      <testcase name="FF-A Request SP-to-SP direct messaging"
                function="test_ffa_sp_to_sp_direct_messaging" />
 
+     <testcase name="FF-A Request SP-to-SP direct messaging deadlock"
+           function="test_ffa_sp_to_sp_deadlock" />
+
   </testsuite>
 
   <testsuite name="FF-A Memory Sharing"
