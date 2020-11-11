@@ -23,6 +23,7 @@
     <testcase name="Use trace buffer control Registers" function="test_trbe_enabled" />
     <testcase name="Use trace filter control Registers" function="test_trf_enabled" />
     <testcase name="Use trace system Registers" function="test_sys_reg_trace_enabled" />
+    <testcase name="SME support" function="test_sme_support" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">
