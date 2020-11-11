@@ -44,6 +44,8 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 	uint32_t sp_response;
 	ffa_vm_id_t source;
 	ffa_vm_id_t destination;
+	uint64_t cactus_cmd;
+
 
 	/*
 	* This initial wait call is necessary to inform SPMD that
@@ -80,7 +82,9 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 
 		PRINT_CMD(ffa_ret);
 
-		switch (CACTUS_GET_CMD(ffa_ret)) {
+		cactus_cmd = CACTUS_GET_CMD(ffa_ret);
+
+		switch (cactus_cmd) {
 		case FFA_MEM_SHARE_SMC32:
 		case FFA_MEM_LEND_SMC32:
 		case FFA_MEM_DONATE_SMC32:
@@ -131,6 +135,67 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 
 			ffa_ret = success ? CACTUS_SUCCESS_RESP(vm_id, source) :
 					    CACTUS_ERROR_RESP(vm_id, source);
+			break;
+		}
+		case CACTUS_DEADLOCK_CMD:
+		case CACTUS_REQ_DEADLOCK_CMD:
+		{
+			ffa_vm_id_t deadlock_dest =
+				CACTUS_DEADLOCK_GET_NEXT_DEST(ffa_ret);
+			ffa_vm_id_t deadlock_next_dest = source;
+
+			if (cactus_cmd == CACTUS_DEADLOCK_CMD) {
+				VERBOSE("%x is creating deadlock. next: %x\n",
+					source, deadlock_dest);
+			} else if (cactus_cmd == CACTUS_REQ_DEADLOCK_CMD) {
+				VERBOSE(
+				"%x requested deadlock with %x and %x\n",
+				source, deadlock_dest, deadlock_next_dest);
+
+				deadlock_next_dest =
+					CACTUS_DEADLOCK_GET_NEXT_DEST2(ffa_ret);
+			}
+
+			ffa_ret = CACTUS_DEADLOCK_SEND_CMD(vm_id, deadlock_dest,
+							   deadlock_next_dest);
+
+			/*
+			 * Should be true for the last partition to attempt
+			 * an FF-A direct message, to the first partition.
+			 */
+			bool is_deadlock_detected =
+				(ffa_ret.ret0 == FFA_ERROR) &&
+				(ffa_ret.ret2 == FFA_ERROR_BUSY);
+
+			/*
+			 * Should be true after the deadlock has been detected
+			 * and after the first response has been sent down the
+			 * request chain.
+			 */
+			bool is_returning_from_deadlock =
+				(ffa_ret.ret0 == FFA_MSG_SEND_DIRECT_RESP_SMC32)
+				&& (CACTUS_IS_SUCCESS_RESP(ffa_ret));
+
+			if (is_deadlock_detected) {
+				NOTICE("Attempting dealock but got error %lx\n",
+					ffa_ret.ret2);
+			}
+
+			if (is_deadlock_detected ||
+			    is_returning_from_deadlock) {
+				/*
+				 * This is not the partition, that would have
+				 * created the deadlock. As such, reply back
+				 * to the partitions.
+				 */
+				ffa_ret = CACTUS_SUCCESS_RESP(vm_id, source);
+				break;
+			}
+
+			/* Shouldn't get to this point */
+			ERROR("Deadlock test went wrong!\n");
+			ffa_ret = CACTUS_ERROR_RESP(vm_id, source);
+
 			break;
 		}
 		default:

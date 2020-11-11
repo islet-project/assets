@@ -64,6 +64,36 @@
 #define CACTUS_REQ_ECHO_GET_ECHO_DEST(smc_ret) smc_ret.ret5
 
 /**
+ * Command to create a cyclic dependency between SPs, which could result in
+ * a deadlock. This aims at proving such scenario cannot happen.
+ * If the deadlock happens, the system will just hang.
+ * If the deadlock is prevented, the last partition to use the command will
+ * send response CACTUS_SUCCESS.
+ *
+ * The id is the hex representation of the string 'dead'.
+ */
+#define CACTUS_DEADLOCK_CMD U(0x64656164)
+
+#define CACTUS_DEADLOCK_SEND_CMD(source, dest, next_dest)		\
+		CACTUS_SEND_CMD(source, dest, CACTUS_DEADLOCK_CMD, next_dest, \
+				0, 0, 0)
+
+#define CACTUS_DEADLOCK_GET_NEXT_DEST(smc_ret) smc_ret.ret4
+
+/**
+ * Command to request a sequence CACTUS_DEADLOCK_CMD between the partitions
+ * of specified IDs.
+ */
+#define CACTUS_REQ_DEADLOCK_CMD (CACTUS_DEADLOCK_CMD + 1)
+
+#define CACTUS_REQ_DEADLOCK_SEND_CMD(source, dest, next_dest1, next_dest2)  \
+		CACTUS_SEND_CMD(source, dest, CACTUS_REQ_DEADLOCK_CMD,	 \
+				next_dest1, next_dest2, 0, 0)
+
+/*To get next_dest1 use CACTUS_DEADLOCK_GET_NEXT_DEST*/
+#define CACTUS_DEADLOCK_GET_NEXT_DEST2(smc_ret) smc_ret.ret5
+
+/**
  * Command to notify cactus of a memory management operation. The cmd value
  * should be the memory management smc function id.
  */
