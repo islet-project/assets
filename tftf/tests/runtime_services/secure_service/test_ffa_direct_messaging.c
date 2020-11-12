@@ -11,6 +11,8 @@
 #include <cactus_test_cmds.h>
 #include <ffa_endpoints.h>
 #include <ffa_svc.h>
+#include <lib/events.h>
+#include <lib/power_management.h>
 #include <platform.h>
 #include <test_helpers.h>
 
@@ -21,6 +23,9 @@
 static const struct ffa_uuid expected_sp_uuids[] = {
 		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
 	};
+
+
+static event_t cpu_booted[PLATFORM_CORE_COUNT];
 
 static test_result_t send_cactus_echo_cmd(ffa_vm_id_t sender,
 					  ffa_vm_id_t dest,
@@ -146,13 +151,119 @@ test_result_t test_ffa_sp_to_sp_deadlock(void)
 
 	ret = cactus_req_deadlock_send_cmd(HYP_ID, SP_ID(1), SP_ID(2), SP_ID(3));
 
-	if (!is_ffa_direct_response(ret)) {
+	if (is_ffa_direct_response(ret) == false) {
 		return TEST_RESULT_FAIL;
 	}
 
 	if (cactus_get_response(ret) == CACTUS_ERROR) {
 		return TEST_RESULT_FAIL;
 	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * Handler that is passed during tftf_cpu_on to individual CPU cores.
+ * Runs a specific core and send a direct message request.
+ * Expects core_pos | SP_ID as a response.
+ */
+static test_result_t cpu_on_handler(void)
+{
+	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
+	unsigned int core_pos = platform_get_core_pos(mpid);
+	test_result_t ret = TEST_RESULT_SUCCESS;
+	smc_ret_values ffa_ret;
+
+	/*
+	 * Send a direct message request to SP1 from current physical CPU.
+	 * Notice SP1 ECs are already woken as a result of the PSCI_CPU_ON
+	 * invocation so they already reached the message loop.
+	 * The SPMC uses the MP pinned context corresponding to the physical
+	 * CPU emitting the request.
+	 */
+	ret = send_cactus_echo_cmd(HYP_ID, SP_ID(1), ECHO_VAL1);
+	if (ret != TEST_RESULT_SUCCESS) {
+		goto out;
+	}
+
+	/*
+	 * Secure Partitions beyond the first SP only have their first
+	 * EC (or vCPU0) woken up at boot time by the SPMC.
+	 * Other ECs need one round of ffa_run to reach the message loop.
+	 */
+	ffa_ret = ffa_run(SP_ID(2), core_pos);
+	if (ffa_func_id(ffa_ret) != FFA_MSG_WAIT) {
+		ERROR("Failed to run SP%x on core %u\n", SP_ID(2),
+				core_pos);
+		ret = TEST_RESULT_FAIL;
+		goto out;
+	}
+
+	/*
+	 * Send a direct message request to SP2 from current physical CPU.
+	 * The SPMC uses the MP pinned context corresponding to the physical
+	 * CPU emitting the request.
+	 */
+	ret = send_cactus_echo_cmd(HYP_ID, SP_ID(2), ECHO_VAL2);
+	if (ret != TEST_RESULT_SUCCESS) {
+		goto out;
+	}
+
+out:
+	/* Tell the lead CPU that the calling CPU has completed the test */
+	tftf_send_event(&cpu_booted[core_pos]);
+
+	return ret;
+}
+
+/**
+ * Test direct messaging in multicore setup. Runs SPs on all the cores and sends
+ * direct messages to SPs.
+ */
+test_result_t test_ffa_secondary_core_direct_msg(void)
+{
+	unsigned int lead_mpid = read_mpidr_el1() & MPID_MASK;
+	unsigned int core_pos, cpu_node, mpidr;
+	int32_t ret;
+
+	/**********************************************************************
+	 * Check SPMC has ffa_version and expected FFA endpoints are deployed.
+	 **********************************************************************/
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+
+	for (unsigned int i = 0U; i < PLATFORM_CORE_COUNT; i++) {
+		tftf_init_event(&cpu_booted[i]);
+	}
+
+	for_each_cpu(cpu_node) {
+		mpidr = tftf_get_mpidr_from_node(cpu_node);
+		if (mpidr == lead_mpid) {
+			continue;
+		}
+
+		ret = tftf_cpu_on(mpidr, (uintptr_t)cpu_on_handler, 0U);
+		if (ret != 0) {
+			ERROR("tftf_cpu_on mpidr 0x%x returns %d\n", mpidr, ret);
+		}
+	}
+
+	VERBOSE("Waiting secondary CPUs to turn off ...\n");
+
+	for_each_cpu(cpu_node) {
+		mpidr = tftf_get_mpidr_from_node(cpu_node);
+		if (mpidr == lead_mpid) {
+			continue;
+		}
+
+		core_pos = platform_get_core_pos(mpidr);
+		tftf_wait_for_event(&cpu_booted[core_pos]);
+	}
+
+	VERBOSE("Done exiting.\n");
+
+	/**********************************************************************
+	 * All tests passed.
+	 **********************************************************************/
 
 	return TEST_RESULT_SUCCESS;
 }
