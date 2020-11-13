@@ -7,6 +7,275 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+Version 2.4
+-----------
+
+New features
+^^^^^^^^^^^^
+-  More tests are made available in this release to help validate the
+   functionalities in the following areas:
+   -  SMCCC.
+   -  New architecture specific features.
+   -  FF-A features.
+   -  New platform ports.
+
+-  Various improvements to test framework and test suite such as documentation,
+   removing un-necessary dependencies, etc.
+
+TFTF
+~~~~
+
+-  Remove dependencies from FVP to generic code by converting some FVP platform
+   specific macros to the common macros.
+
+-  Remove make as a package dependency to compile TF-A test code.
+
+-  Move defaults values and macro defs in a separate folder from Makefile.
+
+-  Allow alternate stdout to be used apart from pl011 UART.
+
+-  Get FVP platform's topology from build options to make FVP platform
+   configuration more flexible and eliminate test errors when the platform
+   is configured with number of CPUs less than default values in the makefile.
+
+-  Update the FIP corrupt address which is used to corrupt BL2 image that helps
+   to trigger firmware update process.
+
+-  Add explicit barrier before sev() in tftf_send_event_common API to avoid
+   core hang.
+
+-  Align output properly on issuing make help_tests by removing dashes
+   and sort tests.
+
+-  Moved a few FVP and Juno specific defined from common header files to platform
+   specific header files.
+
+-  Replace SPCI with PSA FF-A in code as SPCI is now called as FF-A.
+
+-  Add owner field to sp_layout generation to differentiate owner of SP which
+   could either be Silicon Provider or Platform provider.
+
+-  Add v8.5 Branch Target Identifier(BTI) support in TFTF.
+
+-  Remove dependency on SYS_CNT_BASE1 to read the memory mapped timers.
+
+-  Enables SError aborts for all CPUs, during their power on sequence.
+
+-  Documentation:
+
+   -  Use conditional assignment on sphinx variables so that they can be
+      overwritten by environment and/or command line.
+
+   -  Add support for documentation build as a target in Makefile.
+
+   -  Update list of maintainers.
+
+   -  Update documentation to explain how to locally build the documentation.
+
+   -  Add .editorconfig from TF-A to define the coding style.
+
+   -  Fix documentation to include 'path/to' prefix when specifying tftf.bin on
+      make fip cmd.
+
+   -  Use docker to build documentation.
+
+   -  Replace SPCI with PSA FF-A in documentation as SPCI is now called
+      as FF-A.
+
+-  NVIDIA Tegra194:
+
+   -  Skip CPU suspend tests requiring SGI as wake source as Tegra194 platforms
+      do not support CPU suspend power down and cannot be woken up with an SGI.
+
+   -  Disable some system suspend test cases.
+
+   -  Create dummy SMMU context for system resume to allow the System Resume
+      Firmware to complete without any errors or warnings.
+
+   -  Increase RTC step value to 5ms as RTC consumes 250us for each register
+      read/write. Increase the step value to 5ms to cover all the register
+      read/write in program_timer().
+
+   -  Skip some timer framework validation tests as CPUs on Tegra194 platforms
+      cannot be woken up with the RTC timer interrupt after power off.
+
+   -  Introduce per-CPU Hypervisor Timer Interrupt ID.
+
+   -  Skip PSCI STAT tests requiring PSTATE_TYPE_POWERDOWN as Tegra194 platforms
+      do not support CPU suspend with state type as PSTATE_TYPE_POWERDOWN.
+
+   -  Disable boot requirement tests as Tegra194 platforms do not support memory
+      mapped timers.
+
+   -  Skips the test "Create all power states and validate EL3 power state parsing"
+      from the "EL3 power state parser validation" test suite as it is not in
+      sync with this expectation.
+
+   -  Moved reset, timers. wake, watchdog drivers from Tegra194 specific folder to
+      common driver folder so that these drivers can be used for other NVIDIA platforms.
+
+-  New tests:
+
+   -  Add test for SDEI RM_ANY routing mode.
+
+   -  Add initial platform support for TC0.
+
+   -  Add SMC fuzzing module test.
+
+   -  Add test case for SMCCC_ARCH_SOC_ID feature.
+
+   -  Add test that supports ARMv8.6-FGT in TF-A.
+
+   -  Add test that supports ARMv8.6-ECV in TF-A.
+
+   -  Add test for FFA_VERSION interface.
+
+   -  Add test for FFA_FEATURES interface.
+
+   -  Add console driver for the TI UART 16550.
+
+   -  Add tests for FF-A memory sharing interfaces between tftf
+      and cactus secure partitions.
+
+   -  NVIDIA Tegra194:
+
+      -  Introduce platform port for Tegra194 to to initialize the tftf
+         framework and execute tests on the CPUs.
+
+      -  Introduce power management support.
+
+      -  Introduce support for RTC as wake source.
+
+      -  Introduce system reset functionality test.
+
+      -  Introduce watchdog timer test.
+
+      -  Introduce support for NVIDIA Denver CPUs.
+
+      -  Introduce RAS uncorrectable error injection test.
+
+      -  Introduce tests to verify the Video Memory resize interface.
+
+      -  Introduce test to inject RAS corrected errors for all supported
+         nodes from all CPUs.
+
+      -  Introduce a test to get return value from SMC SiP function
+         TEGRA_SIP_GET_SMMU_PER.
+
+   -  NVIDIA Tegra196:
+
+      -  Introduce initial support for Tegra186 platforms.
+
+   -  NVIDIA Tegra210:
+
+      -  Introduce initial support for Tegra210 platforms.
+
+Secure partition - Cactus
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  TFTF doesn't need to boot Secondary Cactus as Hafnium now boots all
+   partitions according to "boot-order" field value in the partition
+   manifests.
+
+-  Remove test files related to deprecated SPCI Alpha specification and
+   SPRT interface.
+
+-  Select different stdout device at runtime as primary VM can access
+   to UART while secondary VM's use hypervisor call to SPM for debug
+   logging.
+
+-  An SP maps its RX/TX buffers in its EL1&0 Stage-1 translation regime.
+   The same RX/TX buffers are mapped by the SPMC in the SP's EL1&0
+   Stage-2 translation regime during boot time.
+
+-  Update memory/device region nodes in manifest. Memory region has 3
+   entries such as RX buffer, TX buffer and dummy. These memory region
+   entries are mapped with attributes as "RX buffer: read-only",
+   "TX buffer: read-write" and "dummy: read-write-execute".
+   Device region mapped with read-write attribute.
+
+-  Create tertiary partition without RX_TX region specified to test the
+   RXTX_MAP API.
+
+-  Add third partition to ffa_partition_info_get test to test that a
+   partition can successfully get information about the third cactus
+   partition.
+
+-  Map RXTX region to third partition to point the mailbox to this RXTX
+   region.
+
+-  Adjust the number of EC context to max number of PEs as per the FF-A
+   specification mandating that a SP must either "Implement as many ECs
+   as the number of PEs (in case of a "multi-processor" SP with pinned
+   contexts)" or "Implement a single EC (in case of a migratable
+   "uni-processor" SP).
+
+-  Updated cactus test payload and TFTF ids as it is decided to have
+   secure partition FF-A ids in the range from 0x8001 to 0xfffe, 0x8000
+   and 0xffff FF-A ids are reserved for the SPMC and the SPMD respectively
+   and in the non-secure worlds, FF-A id 0 is reserved for the hypervisor
+   and 1 to 0x7fff FF-A ids are reserved for VMs.
+
+-  Break the message loop on bad message request instead of replying
+   with the FF-A error ABI to the SPMC.
+
+-  Remove deprecated hypervisor calls spm_vm_get_count and spm_vcpu_get_count.
+   Instead use FFA_PARTITION_INFO_GET discovery ABI.
+
+-  Implement hvc call 'SPM_INTERRUPT_GET' to get interrupt id.
+
+-  Re-structure platform dependent files by moving platform dependent files
+   and macros to platform specific folder.
+
+-  Adjust partition info get properties to support receipt of direct
+   message request.
+
+-  New tests:
+
+   -  Add FFA Version Test.
+
+   -  Add FFA_FEATURES test.
+
+   -  Add FFA_MEM_SHARE test
+
+   -  Add FFA_MEM_LEND test.
+
+   -  Add FFA_MEM_DONATE test.
+
+   -  Add FFA_PARTITION_INFO_GET test.
+
+   -  Add exception/interrupt framework.
+
+   -  Add cactus support for TC0 platform.
+
+Issues resolved since last release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  Update link to SMCCC specification.
+
+-  Trim down the top-level readme file to give brief overview of the project
+   and also fix/update a number of broken/out-dated links in it.
+
+-  Bug fix in Multicore IRQ spurious test.
+
+-  Fix memory regions mapping with no NS bit set.
+
+-  Reenable PSCI NODE_HW_STATE test which was disabled earlier due to
+   outdated SCP firmware.
+
+-  Fix Aarch32 zeromem() function by avoiding infinite loop in 'zeromem'
+   function and optimizing 'memcpy4' function.
+
+-  Add missing help_tests info on help target in the top-level Makefile.
+
+-  Trim down the readme file as it does not need to provide detailed
+   information, instead it can simply be a landing page providing a brief
+   overview of the project and redirecting the reader to RTD for further
+   information.
+
+-  Fix maximum number of CPUs in DSU cluster by setting maximum number of CPUs
+   in DSU cluster to 8.
+
 Version 2.3
 -----------
 
