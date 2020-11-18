@@ -17,46 +17,44 @@
 #define SENDER HYP_ID
 #define RECEIVER SP_ID(1)
 
+static const struct ffa_uuid expected_sp_uuids[] = {
+		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
+	};
+
 /* Memory section to be sent over mem management ABIs */
 static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
 
+/**
+ * Tests that it is possible to share memory with SWd from NWd.
+ * After calling the respective memory send API, it will expect a reply from
+ * cactus SP, at which point it will reclaim access to the memory region and
+ * check the memory region has been used by receiver SP.
+ *
+ * Accessing memory before a memory reclaim operation should only be possible
+ * in the context of a memory share operation.
+ * According to the FF-A spec, the owner is temporarily relinquishing
+ * access to the memory region on a memory lend operation, and on a
+ * memory donate operation the access is relinquished permanently.
+ * SPMC is positioned in S-EL2, and doesn't control stage-1 mapping for
+ * EL2. Therefore, it is impossible to enforce the expected access
+ * policy for a donate and lend operations within the SPMC.
+ * Current SPMC implementation is under the assumption of trust that
+ * Hypervisor (sitting in EL2) would relinquish access from EL1/EL0
+ * FF-A endpoint at relevant moment.
+ */
 static test_result_t test_memory_send_sp(uint32_t mem_func)
 {
 	smc_ret_values ret;
-	uint32_t remaining_constituent_count;
-	uint32_t total_length;
-	uint32_t fragment_length;
-	uint32_t sent_length;
 	ffa_memory_handle_t handle;
 	uint32_t *ptr;
 	struct mailbox_buffers mb;
-	const uint32_t primary_uuid[] = PRIMARY_UUID;
 
-	/**********************************************************************
-	 * Verify that FFA is there and that it has the correct version.
+	/***********************************************************************
+	 * Check if SPMC has ffa_version and expected FFA endpoints are deployed.
 	 **********************************************************************/
-	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 0);
+	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
-	/**********************************************************************
-	 * If OPTEE is SPMC skip this test.
-	 **********************************************************************/
-	if (check_spmc_execution_level()) {
-		VERBOSE("OPTEE as SPMC at S-EL1. Skipping test!\n");
-		return TEST_RESULT_SKIPPED;
-	}
-
-	if (!get_tftf_mailbox(&mb)) {
-		ERROR("Mailbox not configured!\n This test relies on"
-		      " test suite \"FF-A RXTX Mapping\" to map/configure"
-		      " RXTX buffers\n");
-		return TEST_RESULT_FAIL;
-	}
-
-
-	/**********************************************************************
-	 * Verify that cactus primary SP is deployed in the system.
-	 **********************************************************************/
-	SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, primary_uuid);
+	GET_TFTF_MAILBOX(mb);
 
 	struct ffa_memory_region_constituent constituents[] = {
 						{(void *)share_page, 1, 0}
@@ -65,61 +63,14 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	const uint32_t constituents_count = sizeof(constituents) /
 			sizeof(struct ffa_memory_region_constituent);
 
-	enum ffa_data_access data_access = (mem_func == FFA_MEM_DONATE_SMC32) ?
-						FFA_DATA_ACCESS_NOT_SPECIFIED :
-						FFA_DATA_ACCESS_RW;
+	handle = ffa_memory_init_and_send((struct ffa_memory_region *)mb.send,
+					MAILBOX_SIZE, SENDER, RECEIVER,
+					constituents, constituents_count,
+					mem_func);
 
-	/*
-	 * TODO: Revise shareability attribute in function call
-	 * below.
-	 * https://lists.trustedfirmware.org/pipermail/hafnium/2020-June/000023.html
-	 */
-	remaining_constituent_count = ffa_memory_region_init(
-		mb.send, MAILBOX_SIZE, SENDER, RECEIVER, constituents,
-		constituents_count, 0, 0,
-		data_access,
-		FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED,
-		FFA_MEMORY_NORMAL_MEM,
-		FFA_MEMORY_CACHE_WRITE_BACK,
-		FFA_MEMORY_OUTER_SHAREABLE,
-		&total_length,
-		&fragment_length
-	);
-
-	switch (mem_func) {
-	case FFA_MEM_SHARE_SMC32:
-		ret = ffa_mem_share(total_length, fragment_length);
-		break;
-	case FFA_MEM_LEND_SMC32:
-		ret = ffa_mem_lend(total_length, fragment_length);
-		break;
-	case FFA_MEM_DONATE_SMC32:
-		ret = ffa_mem_donate(total_length, fragment_length);
-		break;
-	default:
-		NOTICE("TFTF - Invalid func id!\n");
+	if (handle == FFA_MEMORY_HANDLE_INVALID) {
 		return TEST_RESULT_FAIL;
 	}
-
-	sent_length = fragment_length;
-
-	if (ret.ret0 != FFA_SUCCESS_SMC32) {
-		tftf_testcase_printf("Failed to send memory to SP %x.\n",
-				      RECEIVER);
-		return TEST_RESULT_FAIL;
-	}
-
-	if (sent_length != total_length) {
-		tftf_testcase_printf("Sent and Total lengths must be equal!\n");
-		return TEST_RESULT_FAIL;
-	}
-
-	if (remaining_constituent_count != 0) {
-		tftf_testcase_printf("Remaining constituent should be 0\n");
-		return TEST_RESULT_FAIL;
-	}
-
-	handle = ffa_mem_success_handle(ret);
 
 	VERBOSE("TFTF - Handle: %llx\nTFTF - Address: %p\n",
 					handle, constituents[0].address);
@@ -135,7 +86,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	}
 
 	if (CACTUS_GET_RESPONSE(ret) != CACTUS_SUCCESS) {
-		tftf_testcase_printf("Failed memory send operation!\n");
+		ERROR("Failed memory send operation!\n");
 		return TEST_RESULT_FAIL;
 	}
 
