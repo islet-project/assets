@@ -21,7 +21,7 @@ static const struct ffa_uuid expected_sp_uuids[] = {
 		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
 	};
 
-/* Memory section to be sent over mem management ABIs */
+/* Memory section to be used for memory share operations */
 static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
 
 /**
@@ -124,4 +124,52 @@ test_result_t test_mem_lend_sp(void)
 test_result_t test_mem_donate_sp(void)
 {
 	return test_memory_send_sp(FFA_MEM_DONATE_SMC32);
+}
+
+/*
+ * Test requests a memory send operation between cactus SPs.
+ * Cactus SP should reply to TFTF on whether the test succeeded or not.
+ */
+static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
+						ffa_vm_id_t sender_sp,
+						ffa_vm_id_t receiver_sp)
+{
+	smc_ret_values ret;
+
+	/***********************************************************************
+	 * Check if SPMC's ffa_version and presence of expected FF-A endpoints.
+	 **********************************************************************/
+	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+
+	ret = CACTUS_REQ_MEM_SEND_SEND_CMD(HYP_ID, sender_sp, mem_func,
+					   receiver_sp);
+
+	if (ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+		ERROR("Failed to send message. error: %lx\n", ret.ret2);
+		return TEST_RESULT_FAIL;
+	}
+
+	if (CACTUS_IS_ERROR_RESP(ret)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+test_result_t test_req_mem_share_sp_to_sp(void)
+{
+	return test_req_mem_send_sp_to_sp(FFA_MEM_SHARE_SMC32, SP_ID(3),
+					  SP_ID(2));
+}
+
+test_result_t test_req_mem_lend_sp_to_sp(void)
+{
+	return test_req_mem_send_sp_to_sp(FFA_MEM_LEND_SMC32, SP_ID(2),
+					  SP_ID(1));
+}
+
+test_result_t test_req_mem_donate_sp_to_sp(void)
+{
+	return test_req_mem_send_sp_to_sp(FFA_MEM_DONATE_SMC32, SP_ID(1),
+					  SP_ID(3));
 }
