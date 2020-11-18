@@ -307,7 +307,11 @@ void ffa_memory_management_test(struct mailbox_buffers *mb, ffa_vm_id_t vm_id,
 			m->receivers[0].receiver_permissions.permissions),
 		FFA_DATA_ACCESS_RW);
 
-	mem_attrs = MT_RW_DATA | MT_NS | MT_EXECUTE_NEVER;
+	mem_attrs = MT_RW_DATA | MT_EXECUTE_NEVER;
+
+	if (!IS_SP_ID(sender)) {
+		mem_attrs |= MT_NS;
+	}
 
 	ret = mmap_add_dynamic_region(
 			(uint64_t)composite->constituents[0].address,

@@ -30,6 +30,9 @@
 extern const char build_message[];
 extern const char version_string[];
 
+/* Memory section to be used for memory share operations */
+static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
+
 /*
  *
  * Message loop function
@@ -45,7 +48,6 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 	ffa_vm_id_t source;
 	ffa_vm_id_t destination;
 	uint64_t cactus_cmd;
-
 
 	/*
 	* This initial wait call is necessary to inform SPMD that
@@ -99,7 +101,91 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 */
 			ffa_ret = CACTUS_SUCCESS_RESP(vm_id, source);
 			break;
+		case CACTUS_REQ_MEM_SEND_CMD:
+		{
+			uint32_t mem_func =
+				CACTUS_REQ_MEM_SEND_GET_MEM_FUNC(ffa_ret);
+			ffa_vm_id_t receiver =
+				CACTUS_REQ_MEM_SEND_GET_RECEIVER(ffa_ret);
+			ffa_memory_handle_t handle;
 
+			VERBOSE("%x requested to send memory to %x (func: %x)\n",
+				source, receiver, mem_func);
+
+			const struct ffa_memory_region_constituent
+							constituents[] = {
+				{(void *)share_page, 1, 0}
+			};
+
+			const uint32_t constituents_count = (
+				sizeof(constituents) /
+				sizeof(constituents[0])
+			);
+
+			handle = ffa_memory_init_and_send(
+				(struct ffa_memory_region *)mb->send, PAGE_SIZE,
+				vm_id, receiver, constituents,
+				constituents_count, mem_func);
+
+			/*
+			 * If returned an invalid handle, we should break the
+			 * test.
+			 */
+			expect(handle != FFA_MEMORY_HANDLE_INVALID, true);
+
+			ffa_ret = CACTUS_MEM_SEND_CMD(vm_id, receiver, mem_func,
+						      handle);
+
+			if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+				ERROR("Failed to send message. error: %lx\n",
+					ffa_ret.ret2);
+				ffa_ret = CACTUS_ERROR_RESP(vm_id, source);
+				break;
+			}
+
+			/* If anything went bad on the receiver's end. */
+			if (CACTUS_IS_ERROR_RESP(ffa_ret)) {
+				ERROR("Received error from receiver!\n");
+				ffa_ret = CACTUS_ERROR_RESP(vm_id, source);
+				break;
+			}
+
+			if (mem_func != FFA_MEM_DONATE_SMC32) {
+				/*
+				 * Do a memory reclaim only if the mem_func
+				 * regards to memory share or lend operations,
+				 * as with a donate the owner is permanently
+				 * given up access to the memory region.
+				 */
+				if (ffa_mem_reclaim(handle, 0)
+							.ret0 == FFA_ERROR) {
+					ERROR("Failed to reclaim memory!\n");
+					ffa_ret = CACTUS_ERROR_RESP(vm_id,
+								    source);
+					break;
+				}
+
+				/**
+				 * Read Content that has been written to memory
+				 * to validate access to memory segment has been
+				 * reestablished, and receiver made use of
+				 * memory region.
+				 */
+				#if (LOG_LEVEL >= LOG_LEVEL_VERBOSE)
+					uint32_t *ptr =
+						(uint32_t *)constituents
+								->address;
+					VERBOSE("Memory contents after receiver"
+						" SP's use:\n");
+					for (unsigned int i = 0U; i < 5U; i++)
+						VERBOSE("      %u: %x\n", i,
+									ptr[i]);
+				#endif
+			}
+
+			ffa_ret = CACTUS_SUCCESS_RESP(vm_id, source);
+		}
+		break;
 		case CACTUS_ECHO_CMD:
 		{
 			uint64_t echo_val = CACTUS_ECHO_GET_VAL(ffa_ret);
