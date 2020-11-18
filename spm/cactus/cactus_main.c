@@ -84,27 +84,28 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 
 		PRINT_CMD(ffa_ret);
 
-		cactus_cmd = CACTUS_GET_CMD(ffa_ret);
+		cactus_cmd = cactus_get_cmd(ffa_ret);
 
 		switch (cactus_cmd) {
 		case CACTUS_MEM_SEND_CMD:
 			ffa_memory_management_test(
 					mb, vm_id, source,
-					CACTUS_MEM_SEND_GET_FUNC(ffa_ret),
-					CACTUS_MEM_SEND_GET_HANDLE(ffa_ret));
+					cactus_req_mem_send_get_mem_func(
+						ffa_ret),
+					cactus_mem_send_get_handle(ffa_ret));
 
 			/*
 			 * If execution gets to this point means all operations
 			 * with memory retrieval went well, as such replying
 			 */
-			ffa_ret = CACTUS_SUCCESS_RESP(vm_id, source);
+			ffa_ret = cactus_success_resp(vm_id, source);
 			break;
 		case CACTUS_REQ_MEM_SEND_CMD:
 		{
 			uint32_t mem_func =
-				CACTUS_REQ_MEM_SEND_GET_MEM_FUNC(ffa_ret);
+				cactus_req_mem_send_get_mem_func(ffa_ret);
 			ffa_vm_id_t receiver =
-				CACTUS_REQ_MEM_SEND_GET_RECEIVER(ffa_ret);
+				cactus_req_mem_send_get_receiver(ffa_ret);
 			ffa_memory_handle_t handle;
 
 			VERBOSE("%x requested to send memory to %x (func: %x)\n",
@@ -131,20 +132,20 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 */
 			expect(handle != FFA_MEMORY_HANDLE_INVALID, true);
 
-			ffa_ret = CACTUS_MEM_SEND_CMD_SEND(vm_id, receiver,
-							   mem_func, handle);
+			ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func,
+						      handle);
 
 			if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
 				ERROR("Failed to send message. error: %lx\n",
 					ffa_ret.ret2);
-				ffa_ret = CACTUS_ERROR_RESP(vm_id, source);
+				ffa_ret = cactus_error_resp(vm_id, source);
 				break;
 			}
 
 			/* If anything went bad on the receiver's end. */
-			if (CACTUS_IS_ERROR_RESP(ffa_ret)) {
+			if (cactus_get_response(ffa_ret) == CACTUS_ERROR) {
 				ERROR("Received error from receiver!\n");
-				ffa_ret = CACTUS_ERROR_RESP(vm_id, source);
+				ffa_ret = cactus_error_resp(vm_id, source);
 				break;
 			}
 
@@ -158,7 +159,7 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 				if (ffa_mem_reclaim(handle, 0)
 							.ret0 == FFA_ERROR) {
 					ERROR("Failed to reclaim memory!\n");
-					ffa_ret = CACTUS_ERROR_RESP(vm_id,
+					ffa_ret = cactus_error_resp(vm_id,
 								    source);
 					break;
 				}
@@ -181,29 +182,29 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 				#endif
 			}
 
-			ffa_ret = CACTUS_SUCCESS_RESP(vm_id, source);
+			ffa_ret = cactus_success_resp(vm_id, source);
+			break;
 		}
-		break;
 		case CACTUS_ECHO_CMD:
 		{
-			uint64_t echo_val = CACTUS_ECHO_GET_VAL(ffa_ret);
+			uint64_t echo_val = cactus_echo_get_val(ffa_ret);
 
 			VERBOSE("Received echo at %x, value %llx.\n",
 				destination, echo_val);
-			ffa_ret = CACTUS_RESPONSE(vm_id, source, echo_val);
+			ffa_ret = cactus_response(vm_id, source, echo_val);
 			break;
 		}
 		case CACTUS_REQ_ECHO_CMD:
 		{
 			ffa_vm_id_t echo_dest =
-					CACTUS_REQ_ECHO_GET_ECHO_DEST(ffa_ret);
-			uint64_t echo_val = CACTUS_ECHO_GET_VAL(ffa_ret);
+					cactus_req_echo_get_echo_dest(ffa_ret);
+			uint64_t echo_val = cactus_echo_get_val(ffa_ret);
 			bool success = true;
 
 			VERBOSE("%x requested to send echo to %x, value %llx\n",
 				source, echo_dest, echo_val);
 
-			ffa_ret = CACTUS_ECHO_SEND_CMD(vm_id, echo_dest,
+			ffa_ret = cactus_echo_send_cmd(vm_id, echo_dest,
 							echo_val);
 
 			if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
@@ -212,20 +213,20 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 				success = false;
 			}
 
-			if (CACTUS_GET_RESPONSE(ffa_ret) != echo_val) {
+			if (cactus_get_response(ffa_ret) != echo_val) {
 				ERROR("Echo Failed!\n");
 				success = false;
 			}
 
-			ffa_ret = success ? CACTUS_SUCCESS_RESP(vm_id, source) :
-					    CACTUS_ERROR_RESP(vm_id, source);
+			ffa_ret = success ? cactus_success_resp(vm_id, source) :
+					    cactus_error_resp(vm_id, source);
 			break;
 		}
 		case CACTUS_DEADLOCK_CMD:
 		case CACTUS_REQ_DEADLOCK_CMD:
 		{
 			ffa_vm_id_t deadlock_dest =
-				CACTUS_DEADLOCK_GET_NEXT_DEST(ffa_ret);
+				cactus_deadlock_get_next_dest(ffa_ret);
 			ffa_vm_id_t deadlock_next_dest = source;
 
 			if (cactus_cmd == CACTUS_DEADLOCK_CMD) {
@@ -237,10 +238,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 				source, deadlock_dest, deadlock_next_dest);
 
 				deadlock_next_dest =
-					CACTUS_DEADLOCK_GET_NEXT_DEST2(ffa_ret);
+					cactus_deadlock_get_next_dest2(ffa_ret);
 			}
 
-			ffa_ret = CACTUS_DEADLOCK_SEND_CMD(vm_id, deadlock_dest,
+			ffa_ret = cactus_deadlock_send_cmd(vm_id, deadlock_dest,
 							   deadlock_next_dest);
 
 			/*
@@ -258,7 +259,8 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 */
 			bool is_returning_from_deadlock =
 				(ffa_ret.ret0 == FFA_MSG_SEND_DIRECT_RESP_SMC32)
-				&& (CACTUS_IS_SUCCESS_RESP(ffa_ret));
+				&&
+				(cactus_get_response(ffa_ret) == CACTUS_SUCCESS);
 
 			if (is_deadlock_detected) {
 				NOTICE("Attempting dealock but got error %lx\n",
@@ -272,14 +274,13 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 				 * created the deadlock. As such, reply back
 				 * to the partitions.
 				 */
-				ffa_ret = CACTUS_SUCCESS_RESP(vm_id, source);
+				ffa_ret = cactus_success_resp(vm_id, source);
 				break;
 			}
 
 			/* Shouldn't get to this point */
 			ERROR("Deadlock test went wrong!\n");
-			ffa_ret = CACTUS_ERROR_RESP(vm_id, source);
-
+			ffa_ret = cactus_error_resp(vm_id, source);
 			break;
 		}
 		default:
