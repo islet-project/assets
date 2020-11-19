@@ -147,3 +147,33 @@ bool get_tftf_mailbox(struct mailbox_buffers *mb)
 	}
 	return false;
 }
+
+test_result_t check_hafnium_spmc_testing_set_up(
+	uint32_t ffa_version_major, uint32_t ffa_version_minor,
+	const struct ffa_uuid *ffa_uuids, size_t ffa_uuids_size)
+{
+	struct  mailbox_buffers mb;
+
+	if (ffa_uuids == NULL) {
+		ERROR("Invalid parameter ffa_uuids!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(ffa_version_major,
+					   ffa_version_minor);
+
+	/**********************************************************************
+	 * If OP-TEE is SPMC skip the current test.
+	 **********************************************************************/
+	if (check_spmc_execution_level()) {
+		VERBOSE("OPTEE as SPMC at S-EL1. Skipping test!\n");
+		return TEST_RESULT_SKIPPED;
+	}
+
+	GET_TFTF_MAILBOX(mb);
+
+	for (unsigned int i = 0U; i < ffa_uuids_size; i++)
+		SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(*mb, ffa_uuids[i].uuid);
+
+	return TEST_RESULT_SUCCESS;
+}

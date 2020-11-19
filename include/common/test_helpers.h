@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef __TEST_HELPERS_H__
-#define __TEST_HELPERS_H__
+#ifndef TEST_HELPERS_H__
+#define TEST_HELPERS_H__
 
 #include <uuid.h>
 #include <arch_features.h>
@@ -202,9 +202,8 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (0)
 
-#define SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, uuid)			\
+#define SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, ffa_uuid)			\
 	do {									\
-		const uint32_t ffa_uuid[4] = uuid;				\
 		smc_ret_values smc_ret = ffa_partition_info_get(ffa_uuid);	\
 		ffa_rx_release();						\
 		if (smc_ret.ret0 == FFA_ERROR && 				\
@@ -216,6 +215,28 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 			return TEST_RESULT_FAIL;				\
 		}								\
 	} while (0)
+
+#define GET_TFTF_MAILBOX(mb)							\
+	do {									\
+		if (!get_tftf_mailbox(&mb)) {					\
+			ERROR("Mailbox not configured!\nThis test relies on"	\
+			" test suite \"FF-A RXTX Mapping\" to map/configure"	\
+			" RXTX buffers\n");					\
+			return TEST_RESULT_FAIL;				\
+		}								\
+	} while (false);
+
+#define CHECK_HAFNIUM_SPMC_TESTING_SETUP(ffa_major, ffa_minor, expected_uuids)	\
+	do {									\
+		const size_t expected_uuids_size =				\
+			 sizeof(expected_uuids) / sizeof(struct ffa_uuid);	\
+		test_result_t ret = check_hafnium_spmc_testing_set_up(		\
+			ffa_major, ffa_minor, expected_uuids, 			\
+			expected_uuids_size);					\
+		if (ret != TEST_RESULT_SUCCESS) {				\
+			return ret;						\
+		}								\
+	} while (false);
 
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp_supported()	\
@@ -281,5 +302,9 @@ void set_tftf_mailbox(const struct mailbox_buffers *mb);
  * test to rely on RX and TX buffers.
  */
 bool get_tftf_mailbox(struct mailbox_buffers *mb);
+
+test_result_t check_hafnium_spmc_testing_set_up(uint32_t ffa_version_major,
+	uint32_t ffa_version_minor, const struct ffa_uuid *ffa_uuids,
+	size_t ffa_uuids_size);
 
 #endif /* __TEST_HELPERS_H__ */

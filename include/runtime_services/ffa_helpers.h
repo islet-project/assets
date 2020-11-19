@@ -28,6 +28,10 @@ typedef uint64_t ffa_memory_handle_t;
 /** Flags to indicate properties of receivers during memory region retrieval. */
 typedef uint8_t ffa_memory_receiver_flags_t;
 
+struct ffa_uuid {
+	const uint32_t uuid[4];
+};
+
 #ifndef __ASSEMBLY__
 
 #include <stdint.h>

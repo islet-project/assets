@@ -30,6 +30,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	ffa_memory_handle_t handle;
 	uint32_t *ptr;
 	struct mailbox_buffers mb;
+	const uint32_t primary_uuid[] = PRIMARY_UUID;
 
 	/**********************************************************************
 	 * Verify that FFA is there and that it has the correct version.
@@ -55,7 +56,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	/**********************************************************************
 	 * Verify that cactus primary SP is deployed in the system.
 	 **********************************************************************/
-	SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, PRIMARY_UUID);
+	SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, primary_uuid);
 
 	struct ffa_memory_region_constituent constituents[] = {
 						{(void *)share_page, 1, 0}
