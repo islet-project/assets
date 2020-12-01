@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2021, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -64,6 +64,12 @@
              description="Test FFA_FEATURES ABI" >
      <testcase name="Test FFA_FEATURES"
                function="test_ffa_features" />
+  </testsuite>
+
+  <testsuite name="SIMD,SVE Registers context"
+             description="Validate context switch between NWd and SWd" >
+     <testcase name="Check that SIMD registers context is preserved"
+               function="test_simd_vectors_preserved" />
   </testsuite>
 
 </testsuites>

@@ -1,9 +1,10 @@
 /*
- * Copyright (c) 2017-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2017-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <arch.h>
 #include <asm_macros.S>
 #include <cactus_def.h>
 #include <platform_def.h>
@@ -25,6 +26,16 @@ func cactus_entrypoint
 	mrs	x0, sctlr_el1
 	orr	x0, x0, #SCTLR_I_BIT
 	msr	sctlr_el1, x0
+	isb
+
+	/*
+	 * Set CPACR_EL1.FPEN=11 no EL1/0 trapping of
+	 * SVE/Adv. SIMD/FP instructions.
+	 */
+	mov	x1, CPACR_EL1_FPEN(CPACR_EL1_FP_TRAP_NONE)
+	mrs	x0, cpacr_el1
+	orr	x0, x0, x1
+	msr	cpacr_el1, x0
 	isb
 
 	/* Relocate symbols */

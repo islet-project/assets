@@ -282,6 +282,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			ffa_ret = cactus_error_resp(vm_id, source);
 			break;
 		}
+		case CACTUS_REQ_SIMD_FILL_CMD:
+			fill_simd_vectors();
+			ffa_ret = cactus_success_resp(vm_id, source);
+			break;
 		default:
 			/*
 			 * Currently direct message test is handled here.
