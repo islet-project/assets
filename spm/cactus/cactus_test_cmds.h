@@ -96,11 +96,18 @@
 /**
  * Command to notify cactus of a memory management operation. The cmd value
  * should be the memory management smc function id.
+ *
+ * The id is the hex representation of the string "mem"
  */
-#define CACTUS_MEM_SEND_CMD(source, dest, mem_func, handle) 			\
-		CACTUS_SEND_CMD(source, dest, mem_func, handle, 0, 0, 0)
+#define CACTUS_MEM_SEND_CMD U(0x6d656d)
 
-#define CACTUS_MEM_SEND_GET_HANDLE(smc_ret) smc_ret.ret4
+#define CACTUS_MEM_SEND_CMD_SEND(source, dest, mem_func, handle) 	\
+		CACTUS_SEND_CMD(source, dest, CACTUS_MEM_SEND_CMD, 	\
+				mem_func, handle, 0, 0)
+
+#define CACTUS_MEM_SEND_GET_FUNC(smc_ret) smc_ret.ret4
+
+#define CACTUS_MEM_SEND_GET_HANDLE(smc_ret) smc_ret.ret5
 
 /**
  * Command to request a memory management operation. The 'mem_func' argument
@@ -111,8 +118,8 @@
  */
 #define CACTUS_REQ_MEM_SEND_CMD U(0x6d656d6f7279)
 
-#define CACTUS_REQ_MEM_SEND_SEND_CMD(source, dest, mem_func, receiver)		\
-	CACTUS_SEND_CMD(source, dest, CACTUS_REQ_MEM_SEND_CMD, mem_func,	\
+#define CACTUS_REQ_MEM_SEND_SEND_CMD(source, dest, mem_func, receiver)	\
+	CACTUS_SEND_CMD(source, dest, CACTUS_REQ_MEM_SEND_CMD, mem_func, \
 			receiver, 0, 0)
 
 #define CACTUS_REQ_MEM_SEND_GET_MEM_FUNC(smc_ret) smc_ret.ret4

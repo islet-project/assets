@@ -87,12 +87,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 		cactus_cmd = CACTUS_GET_CMD(ffa_ret);
 
 		switch (cactus_cmd) {
-		case FFA_MEM_SHARE_SMC32:
-		case FFA_MEM_LEND_SMC32:
-		case FFA_MEM_DONATE_SMC32:
+		case CACTUS_MEM_SEND_CMD:
 			ffa_memory_management_test(
 					mb, vm_id, source,
-					CACTUS_GET_CMD(ffa_ret),
+					CACTUS_MEM_SEND_GET_FUNC(ffa_ret),
 					CACTUS_MEM_SEND_GET_HANDLE(ffa_ret));
 
 			/*
@@ -133,8 +131,8 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 */
 			expect(handle != FFA_MEMORY_HANDLE_INVALID, true);
 
-			ffa_ret = CACTUS_MEM_SEND_CMD(vm_id, receiver, mem_func,
-						      handle);
+			ffa_ret = CACTUS_MEM_SEND_CMD_SEND(vm_id, receiver,
+							   mem_func, handle);
 
 			if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
 				ERROR("Failed to send message. error: %lx\n",

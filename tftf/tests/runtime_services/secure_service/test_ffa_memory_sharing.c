@@ -77,7 +77,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 
 	ptr = (uint32_t *)constituents[0].address;
 
-	ret = CACTUS_MEM_SEND_CMD(SENDER, RECEIVER, mem_func, handle);
+	ret = CACTUS_MEM_SEND_CMD_SEND(SENDER, RECEIVER, mem_func, handle);
 
 	if (ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
 		ERROR("Failed to send message. error: %lx\n",
