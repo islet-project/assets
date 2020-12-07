@@ -180,12 +180,26 @@ endif
 
 # Set the compiler's target architecture profile based on ARM_ARCH_MINOR option
 ifeq (${ARM_ARCH_MINOR},0)
-march32-directive	= 	-march=armv8-a
-march64-directive	= 	-march=armv8-a
+march32-directive	= 	-march=armv${ARM_ARCH_MAJOR}-a
+march64-directive	= 	-march=armv${ARM_ARCH_MAJOR}-a
 else
-march32-directive	= 	-march=armv8.${ARM_ARCH_MINOR}-a
-march64-directive	= 	-march=armv8.${ARM_ARCH_MINOR}-a
+march32-directive	= 	-march=armv${ARM_ARCH_MAJOR}.${ARM_ARCH_MINOR}-a
+march64-directive	= 	-march=armv${ARM_ARCH_MAJOR}.${ARM_ARCH_MINOR}-a
 endif
+
+# Get architecture feature modifiers
+arch-features		=	${ARM_ARCH_FEATURE}
+
+# Set the compiler's architecture feature modifiers
+ifneq ($(arch-features), none)
+ifeq ($(ARCH), aarch32)
+march32-directive	:=	$(march32-directive)+$(arch-features)
+else
+march64-directive	:=	$(march64-directive)+$(arch-features)
+endif
+# Print features
+$(info Arm Architecture Features specified: $(subst +, ,$(arch-features)))
+endif	# arch-features
 
 COMMON_ASFLAGS_aarch64	:=	-mgeneral-regs-only ${march64-directive}
 COMMON_CFLAGS_aarch64	:=	-mgeneral-regs-only -mstrict-align ${march64-directive}

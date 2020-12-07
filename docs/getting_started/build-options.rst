@@ -24,6 +24,12 @@ payload, whose simplistic build system is mostly independent.
    either ``aarch64`` or ``aarch32`` as values. By default, it is defined to
    ``aarch64``. Not all test images support this build option.
 
+-  ``ARM_ARCH_FEATURE``: Optional Arm Architecture build option which specifies
+   one or more feature modifiers. This option has the form ``[no]feature+...``
+   and defaults to ``none``. It translates into compiler option
+   ``-march=armvX[.Y]-a+[no]feature+...``. See compiler's documentation for the
+   list of supported feature modifiers.
+
 -  ``ARM_ARCH_MAJOR``: The major version of Arm Architecture to target when
    compiling TF-A Tests. Its value must be numeric, and defaults to 8.
 
