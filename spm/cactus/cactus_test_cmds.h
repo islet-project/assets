@@ -13,8 +13,8 @@
 /**
  * Success and error return to be sent over a msg response.
  */
-#define CACTUS_SUCCESS	 0
-#define CACTUS_ERROR	-1
+#define CACTUS_SUCCESS	 U(0)
+#define CACTUS_ERROR	 U(-1)
 
 /**
  * Get command from struct smc_ret_values.

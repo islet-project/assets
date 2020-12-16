@@ -28,14 +28,39 @@ typedef uint64_t ffa_memory_handle_t;
 /** Flags to indicate properties of receivers during memory region retrieval. */
 typedef uint8_t ffa_memory_receiver_flags_t;
 
+struct ffa_uuid {
+	const uint32_t uuid[4];
+};
+
 #ifndef __ASSEMBLY__
 
 #include <stdint.h>
 
 struct mailbox_buffers {
-	const void *recv;
+	void *recv;
 	void *send;
 };
+
+#define CONFIGURE_MAILBOX(mb_name, buffers_size) 				\
+	do {									\
+	/* Declare RX/TX buffers at virtual FF-A instance */			\
+	static struct {								\
+			uint8_t rx[buffers_size];				\
+			uint8_t tx[buffers_size];				\
+	} __aligned(PAGE_SIZE) mb_buffers;					\
+	mb_name.recv = (void *)mb_buffers.rx;					\
+	mb_name.send = (void *)mb_buffers.tx;					\
+	} while (false)
+
+#define CONFIGURE_AND_MAP_MAILBOX(mb_name, buffers_size, smc_ret)		\
+	do {									\
+	CONFIGURE_MAILBOX(mb_name, buffers_size);				\
+	smc_ret = ffa_rxtx_map(							\
+				(uintptr_t)mb_name.send,			\
+				(uintptr_t)mb_name.recv, 			\
+				buffers_size / PAGE_SIZE			\
+			);							\
+	} while (false)
 
 struct ffa_partition_info {
 	/** The ID of the VM the information is about */

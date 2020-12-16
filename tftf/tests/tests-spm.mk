@@ -11,4 +11,5 @@ TESTS_SOURCES	+=							\
 		test_ffa_version.c					\
 		test_ffa_features.c					\
 		test_ffa_memory_sharing.c				\
+		test_ffa_rxtx_map.c					\
 	)

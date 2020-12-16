@@ -20,17 +20,6 @@
 /* Memory section to be sent over mem management ABIs */
 static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
 
-static __aligned(PAGE_SIZE) uint8_t send_page[PAGE_SIZE];
-static __aligned(PAGE_SIZE) uint8_t recv_page[PAGE_SIZE];
-
-/* Within the same test the RXTX Buffers only need to be shared once */
-static bool rxtx_mapped;
-
-static struct mailbox_buffers mb = {
-					.recv = (void *)recv_page,
-					.send = (void *)send_page,
-				};
-
 static test_result_t test_memory_send_sp(uint32_t mem_func)
 {
 	smc_ret_values ret;
@@ -40,6 +29,8 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	uint32_t sent_length;
 	ffa_memory_handle_t handle;
 	uint32_t *ptr;
+	struct mailbox_buffers mb;
+	const uint32_t primary_uuid[] = PRIMARY_UUID;
 
 	/**********************************************************************
 	 * Verify that FFA is there and that it has the correct version.
@@ -54,20 +45,18 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	if (!rxtx_mapped) {
-		ret = ffa_rxtx_map((uintptr_t)mb.send, (uintptr_t)mb.recv, 1);
-
-		if (ret.ret0 != FFA_SUCCESS_SMC32) {
-			ERROR("ffa_rxtx_map failed (%lx)\n", ret.ret0);
-			return TEST_RESULT_FAIL;
-		}
-		rxtx_mapped = true;
+	if (!get_tftf_mailbox(&mb)) {
+		ERROR("Mailbox not configured!\n This test relies on"
+		      " test suite \"FF-A RXTX Mapping\" to map/configure"
+		      " RXTX buffers\n");
+		return TEST_RESULT_FAIL;
 	}
+
 
 	/**********************************************************************
 	 * Verify that cactus primary SP is deployed in the system.
 	 **********************************************************************/
-	SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, PRIMARY_UUID);
+	SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(mb, primary_uuid);
 
 	struct ffa_memory_region_constituent constituents[] = {
 						{(void *)share_page, 1, 0}
