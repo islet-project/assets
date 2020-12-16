@@ -28,10 +28,11 @@ if [ "$1" == "cactus" ]; then
 	\t\"pm\": \"$1-secondary.dts\",\n \
 	\t\"owner\": \"Plat\"\n\t},\n\n\t\"$1-tertiary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"$1-tertiary.dts\" \n \
-	},\n\n\t\"ivy\" : {\n \
+	\t\"pm\": \"$1-tertiary.dts\", \n \
+	\t\"owner\": \"Plat\"\n\t},\n\n\t\"ivy\" : {\n \
 	\t\"image\": \"ivy.bin\",\n \
-	\t\"pm\": \"ivy.dts\" \n \
+	\t\"pm\": \"ivy.dts\", \n \
+	\t\"owner\": \"Plat\"\n \
 	}\n}" \
 	> "$GENERATED_JSON"
 else

@@ -7,6 +7,7 @@
 enum stdout_route {
 	PL011_AS_STDOUT = 0,
 	HVC_CALL_AS_STDOUT,
+	SVC_CALL_AS_STDOUT,
 };
 
 void set_putc_impl(enum stdout_route);
