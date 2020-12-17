@@ -15,13 +15,22 @@ test_result_t test_mte_instructions(void)
 #ifdef __aarch64__
 	SKIP_TEST_IF_MTE_SUPPORT_LESS_THAN(MTE_IMPLEMENTED_EL0);
 
-	/* irg */
-	__asm__ volatile (".inst 0xD29BD5A9");
-	__asm__ volatile (".inst 0x9ADF1129");
-	/* addg */
-	__asm__ volatile (".inst 0x91800129");
-	/* subg */
-	__asm__ volatile (".inst 0xD1800129");
+	/*
+	 * This code must be compiled with '-march=armv8.5-memtag' option
+	 * by setting 'ARM_ARCH_FEATURE=memtag' and 'ARM_ARCH_MINOR=5'
+	 * build flags in tftf_config/fvp-cpu-extensions when this CI
+	 * configuration is built separately.
+	 * Otherwise this compiler's option must be specified explicitly.
+	 *
+	 * Execute Memory Tagging Extension instructions.
+	 */
+	__asm__ volatile (
+		".arch	armv8.5-a+memtag\n"
+		"mov	x0, #0xDEAD\n"
+		"irg	x0, x0\n"
+		"addg	x0, x0, #0x0, #0x0\n"
+		"subg	x0, x0, #0x0, #0x0"
+	);
 
 	return TEST_RESULT_SUCCESS;
 #endif /* __aarch64__ */
