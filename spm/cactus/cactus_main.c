@@ -99,8 +99,8 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 * For the sake of testing, add the vm id to the
 			 * received message.
 			 */
-			NOTICE("Replying to Direct MSG test\n");
 			sp_response = ffa_ret.ret3 | vm_id;
+			VERBOSE("Replying with direct message response: %x\n", sp_response);
 			ffa_ret = ffa_msg_send_direct_resp(vm_id,
 							   HYP_ID,
 							   sp_response);
@@ -121,25 +121,25 @@ static const mmap_region_t cactus_mmap[] __attribute__((used)) = {
 
 static void cactus_print_memory_layout(unsigned int vm_id)
 {
-	NOTICE("Secure Partition memory layout:\n");
+	INFO("Secure Partition memory layout:\n");
 
-	NOTICE("  Text region            : %p - %p\n",
+	INFO("  Text region            : %p - %p\n",
 		(void *)CACTUS_TEXT_START, (void *)CACTUS_TEXT_END);
 
-	NOTICE("  Read-only data region  : %p - %p\n",
+	INFO("  Read-only data region  : %p - %p\n",
 		(void *)CACTUS_RODATA_START, (void *)CACTUS_RODATA_END);
 
-	NOTICE("  Data region            : %p - %p\n",
+	INFO("  Data region            : %p - %p\n",
 		(void *)CACTUS_DATA_START, (void *)CACTUS_DATA_END);
 
-	NOTICE("  BSS region             : %p - %p\n",
+	INFO("  BSS region             : %p - %p\n",
 		(void *)CACTUS_BSS_START, (void *)CACTUS_BSS_END);
 
-	NOTICE("  RX                     : %p - %p\n",
+	INFO("  RX                     : %p - %p\n",
 		(void *)get_sp_rx_start(vm_id),
 		(void *)get_sp_rx_end(vm_id));
 
-	NOTICE("  TX                     : %p - %p\n",
+	INFO("  TX                     : %p - %p\n",
 		(void *)get_sp_tx_start(vm_id),
 		(void *)get_sp_tx_end(vm_id));
 }
@@ -221,11 +221,11 @@ void __dead2 cactus_main(void)
 		smc_ret_values ret;
 		set_putc_impl(HVC_CALL_AS_STDOUT);
 
-		NOTICE("Booting Secondary Cactus Secure Partition (ID: %u)\n%s\n%s\n",
+		NOTICE("Booting Secondary Cactus Secure Partition (ID: %x)\n%s\n%s\n",
 			ffa_id, build_message, version_string);
 
 		if (ffa_id == (SPM_VM_ID_FIRST + 2)) {
-			NOTICE("Mapping RXTX Region\n");
+			VERBOSE("Mapping RXTX Region\n");
 			CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);
 			if (ret.ret0 != FFA_SUCCESS_SMC32) {
 				ERROR(
@@ -236,7 +236,7 @@ void __dead2 cactus_main(void)
 		}
 	}
 
-	NOTICE("FFA id: %u\n", ffa_id);
+	INFO("FF-A id: %x\n", ffa_id);
 	cactus_print_memory_layout(ffa_id);
 
 	/* Invoking Tests */
