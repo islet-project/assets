@@ -49,6 +49,7 @@ CACTUS_SOURCES	:=					\
 		cactus_test_ffa.c 			\
 		cactus_test_interrupts.c		\
 		cactus_test_memory_sharing.c		\
+		cactus_tests_smmuv3.c			\
 	)
 
 # TODO: Remove dependency on TFTF files.

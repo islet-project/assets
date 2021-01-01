@@ -299,4 +299,17 @@ static inline enum interrupt_pin cactus_get_interrupt_pin(smc_ret_values ret)
 	return (enum interrupt_pin)ret.ret6;
 }
 
+/**
+ * Request to initiate DMA transaction by upstream peripheral.
+ *
+ * The command id is the hex representation of the string "SMMU"
+ */
+#define CACTUS_DMA_SMMUv3_CMD           (0x534d4d55)
+
+static inline smc_ret_values cactus_send_dma_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_DMA_SMMUv3_CMD, 0, 0, 0,
+			       0);
+}
 #endif
