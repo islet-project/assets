@@ -1,7 +1,12 @@
-This is a prototype loosely based on the PSA FF-A v1.0 specification.
-Any interface / platform API introduced for this is subject to
-change as it evolves.
+This directory provides sample Secure Partitions:
 
-Cactus is meant to be the main test Secure Partition run at S-EL1.
-It is the one meant to have most of the tests that a Secure Partition
-has to do. Ivy is meant to be more minimalistic and run at S-EL0.
+-Cactus is the main test Secure Partition run at S-EL1 on top of the S-EL2
+firmware. It complies with the FF-A 1.0 specification and provides sample
+ABI calls for setup and discovery, direct request/response messages, and
+memory sharing interfaces.
+
+-Cactus-MM is a sample partition complying with the MM communication
+interface (not related to FF-A). It is run at S-EL0 on top of TF-A's
+SPM-MM implementation at EL3.
+
+-Ivy and Quark are currently deprecated.
