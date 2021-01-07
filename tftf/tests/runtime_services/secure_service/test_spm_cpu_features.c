@@ -55,8 +55,9 @@ test_result_t test_simd_vectors_preserved(void)
 
 	smc_ret_values ret = cactus_req_simd_fill_send_cmd(SENDER, RECEIVER);
 
-	if (ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
-		ERROR("Failed to send message. error: %lx\n", ret.ret2);
+	if (ffa_func_id(ret) != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+		ERROR("Failed to send message. error: %x\n",
+		      ffa_error_code(ret));
 		return TEST_RESULT_FAIL;
 	}
 
