@@ -367,6 +367,7 @@ DEFINE_SYSREG_RW_FUNCS(cntp_ctl_el0)
 DEFINE_SYSREG_RW_FUNCS(cntp_tval_el0)
 DEFINE_SYSREG_RW_FUNCS(cntp_cval_el0)
 DEFINE_SYSREG_READ_FUNC(cntpct_el0)
+DEFINE_SYSREG_READ_FUNC(cntvct_el0)
 DEFINE_SYSREG_RW_FUNCS(cnthctl_el2)
 
 #define get_cntp_ctl_enable(x)  (((x) >> CNTP_CTL_ENABLE_SHIFT) & \

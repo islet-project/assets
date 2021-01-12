@@ -60,14 +60,15 @@ void announce_test_end(const char *test_desc)
 
 void sp_sleep(uint32_t ms)
 {
-	uint64_t timer_freq = mmio_read_32(SYS_CNT_CONTROL_BASE + CNTFID_OFF);
+	uint64_t timer_freq = read_cntfrq_el0();
+
 	VERBOSE("%s: Timer frequency = %llu\n", __func__, timer_freq);
 
 	VERBOSE("%s: Sleeping for %u milliseconds...\n", __func__, ms);
-	uint64_t time1 = mmio_read_64(SYS_CNT_READ_BASE);
+	uint64_t time1 = read_cntvct_el0();
 	volatile uint64_t time2 = time1;
 	while ((time2 - time1) < ((ms * timer_freq) / 1000U)) {
-		time2 = mmio_read_64(SYS_CNT_READ_BASE);
+		time2 = read_cntvct_el0();
 	}
 }
 
