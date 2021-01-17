@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -17,8 +17,8 @@
 
 #define PLAT_CACTUS_RX_BASE		ULL(0xfe300000)
 
-#define CACTUS_PRIMARY_EC_COUNT		(4U)
-#define CACTUS_SECONDARY_EC_COUNT	(4U)
-#define CACTUS_TERTIARY_EC_COUNT	(4U)
+#define CACTUS_PRIMARY_EC_COUNT		(8U)
+#define CACTUS_SECONDARY_EC_COUNT	(8U)
+#define CACTUS_TERTIARY_EC_COUNT	(8U)
 
 #endif /* CACTUS_PLATFORM_DEF_H */

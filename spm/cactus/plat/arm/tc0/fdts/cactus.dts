@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -18,7 +18,7 @@
 	ffa-version = <0x00010000>; /* 31:16 - Major, 15:0 - Minor */
 	uuid = <0xb4b5671e 0x4a904fe1 0xb81ffb13 0xdae1dacb>;
 	id = <1>;
-	execution-ctx-count = <4>;
+	execution-ctx-count = <8>;
 	exception-level = <2>; /* S-EL1 */
 	execution-state = <0>; /* AARCH64 */
 	load-address = <0xfe000000>;
@@ -51,6 +51,15 @@
 			description = "tx-buffer";
 			pages-count = <1>;
 			base-address = <0x00000000 0xfe301000>;
+			attributes = <0x3>; /* read-write */
+		};
+	};
+
+	device-regions {
+		compatible = "arm,ffa-manifest-device-regions";
+		uart2 {
+			base-address = <0x00000000 0x7FF80000>;
+			pages-count = <1>;
 			attributes = <0x3>; /* read-write */
 		};
 	};
