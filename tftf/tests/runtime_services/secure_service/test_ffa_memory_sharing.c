@@ -52,7 +52,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	/***********************************************************************
 	 * Check if SPMC has ffa_version and expected FFA endpoints are deployed.
 	 **********************************************************************/
-	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	GET_TFTF_MAILBOX(mb);
 
@@ -139,7 +139,7 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 	/***********************************************************************
 	 * Check if SPMC's ffa_version and presence of expected FF-A endpoints.
 	 **********************************************************************/
-	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	ret = CACTUS_REQ_MEM_SEND_SEND_CMD(HYP_ID, sender_sp, mem_func,
 					   receiver_sp);

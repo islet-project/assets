@@ -148,7 +148,7 @@ bool get_tftf_mailbox(struct mailbox_buffers *mb)
 	return false;
 }
 
-test_result_t check_hafnium_spmc_testing_set_up(
+test_result_t check_spmc_testing_set_up(
 	uint32_t ffa_version_major, uint32_t ffa_version_minor,
 	const struct ffa_uuid *ffa_uuids, size_t ffa_uuids_size)
 {

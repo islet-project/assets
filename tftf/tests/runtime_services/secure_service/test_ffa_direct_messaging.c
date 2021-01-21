@@ -62,7 +62,7 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Check SPMC has ffa_version and expected FFA endpoints are deployed.
 	 **********************************************************************/
-	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	/**********************************************************************
 	 * Send a message to SP1 through direct messaging
@@ -122,7 +122,7 @@ test_result_t test_ffa_sp_to_sp_direct_messaging(void)
 {
 	test_result_t result;
 
-	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	result = send_cactus_req_echo_cmd(HYP_ID, SP_ID(1), SP_ID(2),
 					  ECHO_VAL1);
@@ -153,7 +153,7 @@ test_result_t test_ffa_sp_to_sp_deadlock(void)
 	/**********************************************************************
 	 * Check SPMC has ffa_version and expected FFA endpoints are deployed.
 	 **********************************************************************/
-	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	ret = CACTUS_REQ_DEADLOCK_SEND_CMD(HYP_ID, SP_ID(1), SP_ID(2),
 					   SP_ID(3));
