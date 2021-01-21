@@ -96,27 +96,53 @@
 /**
  * Command to notify cactus of a memory management operation. The cmd value
  * should be the memory management smc function id.
+ *
+ * The id is the hex representation of the string "mem"
  */
-#define CACTUS_MEM_SEND_CMD(source, dest, mem_func, handle) 		\
-		CACTUS_SEND_CMD(source, dest, mem_func, handle, 0, 0, 0)
+#define CACTUS_MEM_SEND_CMD U(0x6d656d)
 
-#define CACTUS_MEM_SEND_GET_HANDLE(smc_ret) smc_ret.ret4
+#define CACTUS_MEM_SEND_CMD_SEND(source, dest, mem_func, handle) 	\
+		CACTUS_SEND_CMD(source, dest, CACTUS_MEM_SEND_CMD, 	\
+				mem_func, handle, 0, 0)
+
+#define CACTUS_MEM_SEND_GET_FUNC(smc_ret) smc_ret.ret4
+
+#define CACTUS_MEM_SEND_GET_HANDLE(smc_ret) smc_ret.ret5
+
+/**
+ * Command to request a memory management operation. The 'mem_func' argument
+ * identifies the operation that is to be performend, and 'receiver' is the id
+ * of the partition to receive the memory region.
+ *
+ * The command id is the hex representation of the string "memory".
+ */
+#define CACTUS_REQ_MEM_SEND_CMD U(0x6d656d6f7279)
+
+#define CACTUS_REQ_MEM_SEND_SEND_CMD(source, dest, mem_func, receiver)	\
+	CACTUS_SEND_CMD(source, dest, CACTUS_REQ_MEM_SEND_CMD, mem_func, \
+			receiver, 0, 0)
+
+#define CACTUS_REQ_MEM_SEND_GET_MEM_FUNC(smc_ret) smc_ret.ret4
+#define CACTUS_REQ_MEM_SEND_GET_RECEIVER(smc_ret) smc_ret.ret5
 
 /**
  * Template for responses to CACTUS commands.
  */
-#define CACTUS_RESPONSE(source, dest, response) 			\
+#define CACTUS_RESPONSE(source, dest, response) 				\
 		ffa_msg_send_direct_resp(source, dest, response)
 
-#define CACTUS_SUCCESS_RESP(source, dest) 				\
+#define CACTUS_SUCCESS_RESP(source, dest) 					\
 		CACTUS_RESPONSE(source, dest, CACTUS_SUCCESS)
 
-#define CACTUS_ERROR_RESP(source, dest) 				\
+#define CACTUS_ERROR_RESP(source, dest) 					\
 		CACTUS_RESPONSE(source, dest, CACTUS_ERROR)
 
 #define CACTUS_GET_RESPONSE(smc_ret) smc_ret.ret3
 
 #define CACTUS_IS_SUCCESS_RESP(smc_ret)					\
 		(CACTUS_GET_RESPONSE(smc_ret) == CACTUS_SUCCESS)
+
+#define CACTUS_IS_ERROR_RESP(smc_ret)						\
+		(CACTUS_GET_RESPONSE(smc_ret) == CACTUS_ERROR)
 
 #endif

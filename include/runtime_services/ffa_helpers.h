@@ -397,6 +397,16 @@ uint32_t ffa_memory_region_init(
 	enum ffa_memory_shareability shareability, uint32_t *total_length,
 	uint32_t *fragment_length);
 
+ffa_memory_handle_t ffa_memory_send(
+	struct ffa_memory_region *memory_region, uint32_t mem_func,
+	uint32_t fragment_length, uint32_t total_length);
+
+ffa_memory_handle_t ffa_memory_init_and_send(
+	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
+	ffa_vm_id_t sender, ffa_vm_id_t receiver,
+	const struct ffa_memory_region_constituent* constituents,
+	uint32_t constituents_count, uint32_t mem_func);
+
 bool check_spmc_execution_level(void);
 smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id, uint32_t message);
 smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id, uint64_t message);

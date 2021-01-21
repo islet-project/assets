@@ -46,12 +46,18 @@
 
   <testsuite name="FF-A Memory Sharing"
              description="Test FF-A Memory Sharing ABIs" >
-  <testcase name="Lend Memory to Secure World"
-              function="test_mem_lend_sp" />
-  <testcase name="Share Memory with Secure World"
-              function="test_mem_share_sp" />
-  <testcase name="Donate Memory to Secure World"
-              function="test_mem_donate_sp"/>
+     <testcase name="Lend Memory to Secure World"
+               function="test_mem_lend_sp" />
+     <testcase name="Share Memory with Secure World"
+               function="test_mem_share_sp" />
+     <testcase name="Donate Memory to Secure World"
+               function="test_mem_donate_sp"/>
+     <testcase name="Request Share Memory SP-to-SP"
+               function="test_req_mem_share_sp_to_sp" />
+     <testcase name="Request Lend Memory SP-to-SP"
+               function="test_req_mem_lend_sp_to_sp" />
+     <testcase name="Request Donate Memory SP-to-SP"
+               function="test_req_mem_donate_sp_to_sp" />
   </testsuite>
 
   <testsuite name="FF-A features"
