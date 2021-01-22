@@ -103,7 +103,7 @@ static test_result_t send_cactus_req_echo_cmd(ffa_vm_id_t sender,
 {
 	smc_ret_values ret;
 
-	ret = CACTUS_REQ_ECHO_SEND_CMD(sender, dest, echo_dest, value);
+	ret = cactus_req_echo_send_cmd(sender, dest, echo_dest, value);
 
 	if (ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
 		ERROR("Failed to send message. error: %lx\n",
@@ -111,7 +111,7 @@ static test_result_t send_cactus_req_echo_cmd(ffa_vm_id_t sender,
 		return TEST_RESULT_FAIL;
 	}
 
-	if (CACTUS_GET_RESPONSE(ret) == CACTUS_ERROR) {
+	if (cactus_get_response(ret) == CACTUS_ERROR) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -155,8 +155,7 @@ test_result_t test_ffa_sp_to_sp_deadlock(void)
 	 **********************************************************************/
 	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
-	ret = CACTUS_REQ_DEADLOCK_SEND_CMD(HYP_ID, SP_ID(1), SP_ID(2),
-					   SP_ID(3));
+	ret = cactus_req_deadlock_send_cmd(HYP_ID, SP_ID(1), SP_ID(2), SP_ID(3));
 
 	if (ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
 		ERROR("Failed to send message. error: %lx\n",
@@ -164,8 +163,7 @@ test_result_t test_ffa_sp_to_sp_deadlock(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	if (CACTUS_GET_RESPONSE(ret) == CACTUS_ERROR) {
-		ERROR("cactus SP response is CACTUS_ERROR!\n");
+	if (cactus_get_response(ret) == CACTUS_ERROR) {
 		return TEST_RESULT_FAIL;
 	}
 

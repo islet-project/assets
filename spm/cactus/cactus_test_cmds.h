@@ -19,15 +19,22 @@
 /**
  * Get command from struct smc_ret_values.
  */
-#define CACTUS_GET_CMD(smc_ret) smc_ret.ret3
+static inline uint64_t cactus_get_cmd(smc_ret_values ret)
+{
+	return (uint64_t)ret.ret3;
+}
 
 /**
  * Template for commands to be sent to CACTUS partitions over direct
  * messages interfaces.
  */
-#define CACTUS_SEND_CMD(source, dest, cmd, val0, val1, val2, val3)	\
-	ffa_msg_send_direct_req64_5args(source, dest, cmd, 		\
-					val0, val1, val2, val3)
+static inline smc_ret_values cactus_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint64_t cmd, uint64_t val0,
+	uint64_t val1, uint64_t val2, uint64_t val3)
+{
+	return 	ffa_msg_send_direct_req64_5args(source, dest, cmd, val0, val1,
+						val2, val3);
+}
 
 #define PRINT_CMD(smc_ret)						\
 	VERBOSE("cmd %lx; args: %lx, %lx, %lx, %lx\n",	 		\
@@ -42,11 +49,17 @@
  */
 #define CACTUS_ECHO_CMD U(0x6563686f)
 
-#define CACTUS_ECHO_SEND_CMD(source, dest, echo_val) 			\
-		CACTUS_SEND_CMD(source, dest, CACTUS_ECHO_CMD, echo_val,\
-				0, 0, 0)
+static inline smc_ret_values cactus_echo_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint64_t echo_val)
+{
+	return cactus_send_cmd(source, dest, CACTUS_ECHO_CMD, echo_val, 0, 0,
+			       0);
+}
 
-#define CACTUS_ECHO_GET_VAL(smc_ret) smc_ret.ret4
+static inline uint64_t cactus_echo_get_val(smc_ret_values ret)
+{
+	return (uint64_t)ret.ret4;
+}
 
 /**
  * Command to request a cactus secure partition to send an echo command to
@@ -57,11 +70,18 @@
  */
 #define CACTUS_REQ_ECHO_CMD (CACTUS_ECHO_CMD + 1)
 
-#define CACTUS_REQ_ECHO_SEND_CMD(source, dest, echo_dest, echo_val) 	\
-		CACTUS_SEND_CMD(source, dest, CACTUS_REQ_ECHO_CMD, echo_val, \
-				echo_dest, 0, 0)
+static inline smc_ret_values cactus_req_echo_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, ffa_vm_id_t echo_dest,
+	uint64_t echo_val)
+{
+	return cactus_send_cmd(source, dest, CACTUS_REQ_ECHO_CMD, echo_val,
+			       echo_dest, 0, 0);
+}
 
-#define CACTUS_REQ_ECHO_GET_ECHO_DEST(smc_ret) smc_ret.ret5
+static inline ffa_vm_id_t cactus_req_echo_get_echo_dest(smc_ret_values ret)
+{
+	return (ffa_vm_id_t)ret.ret5;
+}
 
 /**
  * Command to create a cyclic dependency between SPs, which could result in
@@ -74,11 +94,17 @@
  */
 #define CACTUS_DEADLOCK_CMD U(0x64656164)
 
-#define CACTUS_DEADLOCK_SEND_CMD(source, dest, next_dest)		\
-		CACTUS_SEND_CMD(source, dest, CACTUS_DEADLOCK_CMD, next_dest, \
-				0, 0, 0)
+static inline smc_ret_values cactus_deadlock_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, ffa_vm_id_t next_dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_DEADLOCK_CMD, next_dest, 0,
+			       0, 0);
+}
 
-#define CACTUS_DEADLOCK_GET_NEXT_DEST(smc_ret) smc_ret.ret4
+static inline ffa_vm_id_t cactus_deadlock_get_next_dest(smc_ret_values ret)
+{
+	return (ffa_vm_id_t)ret.ret4;
+}
 
 /**
  * Command to request a sequence CACTUS_DEADLOCK_CMD between the partitions
@@ -86,12 +112,19 @@
  */
 #define CACTUS_REQ_DEADLOCK_CMD (CACTUS_DEADLOCK_CMD + 1)
 
-#define CACTUS_REQ_DEADLOCK_SEND_CMD(source, dest, next_dest1, next_dest2)  \
-		CACTUS_SEND_CMD(source, dest, CACTUS_REQ_DEADLOCK_CMD,	 \
-				next_dest1, next_dest2, 0, 0)
+static inline smc_ret_values cactus_req_deadlock_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, ffa_vm_id_t next_dest1,
+	ffa_vm_id_t next_dest2)
+{
+	return cactus_send_cmd(source, dest, CACTUS_REQ_DEADLOCK_CMD,
+			       next_dest1, next_dest2, 0, 0);
+}
 
-/*To get next_dest1 use CACTUS_DEADLOCK_GET_NEXT_DEST*/
-#define CACTUS_DEADLOCK_GET_NEXT_DEST2(smc_ret) smc_ret.ret5
+/* To get next_dest1 use CACTUS_DEADLOCK_GET_NEXT_DEST */
+static inline ffa_vm_id_t cactus_deadlock_get_next_dest2(smc_ret_values ret)
+{
+	return (ffa_vm_id_t)ret.ret5;
+}
 
 /**
  * Command to notify cactus of a memory management operation. The cmd value
@@ -101,13 +134,18 @@
  */
 #define CACTUS_MEM_SEND_CMD U(0x6d656d)
 
-#define CACTUS_MEM_SEND_CMD_SEND(source, dest, mem_func, handle) 	\
-		CACTUS_SEND_CMD(source, dest, CACTUS_MEM_SEND_CMD, 	\
-				mem_func, handle, 0, 0)
+static inline smc_ret_values cactus_mem_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t mem_func,
+	ffa_memory_handle_t handle)
+{
+	return cactus_send_cmd(source, dest, CACTUS_MEM_SEND_CMD, mem_func,
+			       handle, 0, 0);
+}
 
-#define CACTUS_MEM_SEND_GET_FUNC(smc_ret) smc_ret.ret4
-
-#define CACTUS_MEM_SEND_GET_HANDLE(smc_ret) smc_ret.ret5
+static inline ffa_memory_handle_t cactus_mem_send_get_handle(smc_ret_values ret)
+{
+	return (ffa_memory_handle_t)ret.ret5;
+}
 
 /**
  * Command to request a memory management operation. The 'mem_func' argument
@@ -118,31 +156,48 @@
  */
 #define CACTUS_REQ_MEM_SEND_CMD U(0x6d656d6f7279)
 
-#define CACTUS_REQ_MEM_SEND_SEND_CMD(source, dest, mem_func, receiver)	\
-	CACTUS_SEND_CMD(source, dest, CACTUS_REQ_MEM_SEND_CMD, mem_func, \
-			receiver, 0, 0)
+static inline smc_ret_values cactus_req_mem_send_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t mem_func,
+	ffa_vm_id_t receiver)
+{
+	return cactus_send_cmd(source, dest, CACTUS_REQ_MEM_SEND_CMD, mem_func,
+			       receiver, 0, 0);
+}
 
-#define CACTUS_REQ_MEM_SEND_GET_MEM_FUNC(smc_ret) smc_ret.ret4
-#define CACTUS_REQ_MEM_SEND_GET_RECEIVER(smc_ret) smc_ret.ret5
+static inline uint32_t cactus_req_mem_send_get_mem_func(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret4;
+}
+
+static inline ffa_vm_id_t cactus_req_mem_send_get_receiver(smc_ret_values ret)
+{
+	return (ffa_vm_id_t)ret.ret5;
+}
 
 /**
  * Template for responses to CACTUS commands.
  */
-#define CACTUS_RESPONSE(source, dest, response) 				\
-		ffa_msg_send_direct_resp(source, dest, response)
+static inline smc_ret_values cactus_response(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t response)
+{
+	return ffa_msg_send_direct_resp(source, dest, response);
+}
 
-#define CACTUS_SUCCESS_RESP(source, dest) 					\
-		CACTUS_RESPONSE(source, dest, CACTUS_SUCCESS)
+static inline smc_ret_values cactus_success_resp(
+		ffa_vm_id_t source, ffa_vm_id_t dest)
+{
+	return cactus_response(source, dest, CACTUS_SUCCESS);
+}
 
-#define CACTUS_ERROR_RESP(source, dest) 					\
-		CACTUS_RESPONSE(source, dest, CACTUS_ERROR)
+static inline smc_ret_values cactus_error_resp(
+		ffa_vm_id_t source, ffa_vm_id_t dest)
+{
+	return cactus_response(source, dest, CACTUS_ERROR);
+}
 
-#define CACTUS_GET_RESPONSE(smc_ret) smc_ret.ret3
-
-#define CACTUS_IS_SUCCESS_RESP(smc_ret)					\
-		(CACTUS_GET_RESPONSE(smc_ret) == CACTUS_SUCCESS)
-
-#define CACTUS_IS_ERROR_RESP(smc_ret)						\
-		(CACTUS_GET_RESPONSE(smc_ret) == CACTUS_ERROR)
+static inline uint32_t cactus_get_response(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret3;
+}
 
 #endif

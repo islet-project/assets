@@ -77,7 +77,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 
 	ptr = (uint32_t *)constituents[0].address;
 
-	ret = CACTUS_MEM_SEND_CMD_SEND(SENDER, RECEIVER, mem_func, handle);
+	ret = cactus_mem_send_cmd(SENDER, RECEIVER, mem_func, handle);
 
 	if (ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
 		ERROR("Failed to send message. error: %lx\n",
@@ -85,7 +85,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 		return TEST_RESULT_FAIL;
 	}
 
-	if (CACTUS_GET_RESPONSE(ret) != CACTUS_SUCCESS) {
+	if (cactus_get_response(ret) != CACTUS_SUCCESS) {
 		ERROR("Failed memory send operation!\n");
 		return TEST_RESULT_FAIL;
 	}
@@ -141,7 +141,7 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 	 **********************************************************************/
 	CHECK_HAFNIUM_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
-	ret = CACTUS_REQ_MEM_SEND_SEND_CMD(HYP_ID, sender_sp, mem_func,
+	ret = cactus_req_mem_send_send_cmd(HYP_ID, sender_sp, mem_func,
 					   receiver_sp);
 
 	if (ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
@@ -149,7 +149,7 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 		return TEST_RESULT_FAIL;
 	}
 
-	if (CACTUS_IS_ERROR_RESP(ret)) {
+	if (cactus_get_response(ret) == CACTUS_ERROR) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -164,8 +164,8 @@ test_result_t test_req_mem_share_sp_to_sp(void)
 
 test_result_t test_req_mem_lend_sp_to_sp(void)
 {
-	return test_req_mem_send_sp_to_sp(FFA_MEM_LEND_SMC32, SP_ID(2),
-					  SP_ID(1));
+	return test_req_mem_send_sp_to_sp(FFA_MEM_LEND_SMC32, SP_ID(3),
+					  SP_ID(2));
 }
 
 test_result_t test_req_mem_donate_sp_to_sp(void)
