@@ -35,11 +35,17 @@ CACTUS_SOURCES	:=					\
 		cactus_debug.c				\
 		cactus_ffa_tests.c 			\
 		cactus_main.c				\
+		cactus_test_cmds.c			\
 	)						\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
 		sp_helpers.c				\
 	)						\
+	$(addprefix spm/cactus/cactus_tests/,		\
+		cactus_test_cpu_features.c		\
+		cactus_test_direct_messaging.c		\
+		cactus_test_memory_sharing.c		\
+	)
 
 # TODO: Remove dependency on TFTF files.
 CACTUS_SOURCES	+=					\

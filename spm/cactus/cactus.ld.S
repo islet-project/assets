@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2017-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -52,6 +52,10 @@ SECTIONS
         . = ALIGN(PAGE_SIZE);
         __DATA_START__ = .;
         *(.data*)
+        . = ALIGN(PAGE_SIZE);
+        cactus_cmd_handler_begin = .;
+        KEEP(*(.cactus_handler))
+        cactus_cmd_handler_end = .;
         . = NEXT(PAGE_SIZE);
         __DATA_END__ = .;
     }

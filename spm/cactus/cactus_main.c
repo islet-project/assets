@@ -29,9 +29,6 @@
 extern const char build_message[];
 extern const char version_string[];
 
-/* Memory section to be used for memory share operations */
-static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
-
 /*
  *
  * Message loop function
@@ -40,11 +37,11 @@ static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
  * but rather through Hafnium print hypercall.
  *
  */
+
 static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 {
 	smc_ret_values ffa_ret;
 	uint32_t sp_response;
-	ffa_vm_id_t source;
 	ffa_vm_id_t destination;
 	uint64_t cactus_cmd;
 
@@ -57,6 +54,8 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 	ffa_ret = ffa_msg_wait();
 
 	for (;;) {
+		/* temporary 'skip_switch' label. Deleted in following commit */
+		skip_switch:
 		VERBOSE("Woke up with func id: %x\n", ffa_func_id(ffa_ret));
 
 		if (ffa_func_id(ffa_ret) == FFA_ERROR) {
@@ -73,8 +72,6 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 
 		destination = ffa_dir_msg_dest(ffa_ret);
 
-		source = ffa_dir_msg_source(ffa_ret);
-
 		if (destination != vm_id) {
 			ERROR("%s(%u) invalid vm id 0x%x\n",
 				__func__, vm_id, destination);
@@ -85,208 +82,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 
 		cactus_cmd = cactus_get_cmd(ffa_ret);
 
+		if (cactus_handle_cmd(&ffa_ret, &ffa_ret, mb)) {
+			goto skip_switch;
+		}
 		switch (cactus_cmd) {
-		case CACTUS_MEM_SEND_CMD:
-			ffa_memory_management_test(
-					mb, vm_id, source,
-					cactus_req_mem_send_get_mem_func(
-						ffa_ret),
-					cactus_mem_send_get_handle(ffa_ret));
-
-			/*
-			 * If execution gets to this point means all operations
-			 * with memory retrieval went well, as such replying
-			 */
-			ffa_ret = cactus_success_resp(vm_id, source, 0);
-			break;
-		case CACTUS_REQ_MEM_SEND_CMD:
-		{
-			uint32_t mem_func =
-				cactus_req_mem_send_get_mem_func(ffa_ret);
-			ffa_vm_id_t receiver =
-				cactus_req_mem_send_get_receiver(ffa_ret);
-			ffa_memory_handle_t handle;
-
-			VERBOSE("%x requested to send memory to %x (func: %x)\n",
-				source, receiver, mem_func);
-
-			const struct ffa_memory_region_constituent
-							constituents[] = {
-				{(void *)share_page, 1, 0}
-			};
-
-			const uint32_t constituents_count = (
-				sizeof(constituents) /
-				sizeof(constituents[0])
-			);
-
-			handle = ffa_memory_init_and_send(
-				(struct ffa_memory_region *)mb->send, PAGE_SIZE,
-				vm_id, receiver, constituents,
-				constituents_count, mem_func);
-
-			/*
-			 * If returned an invalid handle, we should break the
-			 * test.
-			 */
-			expect(handle != FFA_MEMORY_HANDLE_INVALID, true);
-
-			ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func,
-						      handle);
-
-			if (!is_ffa_direct_response(ffa_ret)) {
-				ERROR("Failed to send message. error: %x\n",
-					ffa_error_code(ffa_ret));
-				ffa_ret = cactus_error_resp(vm_id, source, 0);
-				break;
-			}
-
-			/* If anything went bad on the receiver's end. */
-			if (cactus_get_response(ffa_ret) == CACTUS_ERROR) {
-				ERROR("Received error from receiver!\n");
-				ffa_ret = cactus_error_resp(vm_id, source, 0);
-				break;
-			}
-
-			if (mem_func != FFA_MEM_DONATE_SMC32) {
-				/*
-				 * Do a memory reclaim only if the mem_func
-				 * regards to memory share or lend operations,
-				 * as with a donate the owner is permanently
-				 * given up access to the memory region.
-				 */
-				if (ffa_mem_reclaim(handle, 0)
-							.ret0 == FFA_ERROR) {
-					ERROR("Failed to reclaim memory!\n");
-					ffa_ret = cactus_error_resp(vm_id,
-								    source, 0);
-					break;
-				}
-
-				/**
-				 * Read Content that has been written to memory
-				 * to validate access to memory segment has been
-				 * reestablished, and receiver made use of
-				 * memory region.
-				 */
-				#if (LOG_LEVEL >= LOG_LEVEL_VERBOSE)
-					uint32_t *ptr =
-						(uint32_t *)constituents
-								->address;
-					VERBOSE("Memory contents after receiver"
-						" SP's use:\n");
-					for (unsigned int i = 0U; i < 5U; i++)
-						VERBOSE("      %u: %x\n", i,
-									ptr[i]);
-				#endif
-			}
-
-			ffa_ret = cactus_success_resp(vm_id, source, 0);
-			break;
-		}
-		case CACTUS_ECHO_CMD:
-		{
-			uint64_t echo_val = cactus_echo_get_val(ffa_ret);
-
-			VERBOSE("Received echo at %x, value %llx from %x.\n",
-				destination, echo_val, source);
-			ffa_ret = cactus_response(destination, source, echo_val);
-			break;
-		}
-		case CACTUS_REQ_ECHO_CMD:
-		{
-			ffa_vm_id_t echo_dest =
-					cactus_req_echo_get_echo_dest(ffa_ret);
-			uint64_t echo_val = cactus_echo_get_val(ffa_ret);
-			bool success = true;
-
-			VERBOSE("%x requested to send echo to %x, value %llx\n",
-				source, echo_dest, echo_val);
-
-			ffa_ret = cactus_echo_send_cmd(vm_id, echo_dest,
-							echo_val);
-
-			if (!is_ffa_direct_response(ffa_ret)) {
-				ERROR("Failed to send message. error: %x\n",
-					ffa_error_code(ffa_ret));
-				success = false;
-			}
-
-			if (cactus_get_response(ffa_ret) != echo_val) {
-				ERROR("Echo Failed!\n");
-				success = false;
-			}
-
-			ffa_ret = success ?
-				  cactus_success_resp(vm_id, source, 0) :
-				  cactus_error_resp(vm_id, source, 0);
-			break;
-		}
-		case CACTUS_DEADLOCK_CMD:
-		case CACTUS_REQ_DEADLOCK_CMD:
-		{
-			ffa_vm_id_t deadlock_dest =
-				cactus_deadlock_get_next_dest(ffa_ret);
-			ffa_vm_id_t deadlock_next_dest = source;
-
-			if (cactus_cmd == CACTUS_DEADLOCK_CMD) {
-				VERBOSE("%x is creating deadlock. next: %x\n",
-					source, deadlock_dest);
-			} else if (cactus_cmd == CACTUS_REQ_DEADLOCK_CMD) {
-				VERBOSE(
-				"%x requested deadlock with %x and %x\n",
-				source, deadlock_dest, deadlock_next_dest);
-
-				deadlock_next_dest =
-					cactus_deadlock_get_next_dest2(ffa_ret);
-			}
-
-			ffa_ret = cactus_deadlock_send_cmd(vm_id, deadlock_dest,
-							   deadlock_next_dest);
-
-			/*
-			 * Should be true for the last partition to attempt
-			 * an FF-A direct message, to the first partition.
-			 */
-			bool is_deadlock_detected =
-				(ffa_func_id(ffa_ret) == FFA_ERROR) &&
-				(ffa_error_code(ffa_ret) == FFA_ERROR_BUSY);
-
-			/*
-			 * Should be true after the deadlock has been detected
-			 * and after the first response has been sent down the
-			 * request chain.
-			 */
-			bool is_returning_from_deadlock =
-				(is_ffa_direct_response(ffa_ret))
-				&&
-				(cactus_get_response(ffa_ret) == CACTUS_SUCCESS);
-
-			if (is_deadlock_detected) {
-				NOTICE("Attempting dealock but got error %x\n",
-					ffa_error_code(ffa_ret));
-			}
-
-			if (is_deadlock_detected ||
-			    is_returning_from_deadlock) {
-				/*
-				 * This is not the partition, that would have
-				 * created the deadlock. As such, reply back
-				 * to the partitions.
-				 */
-				ffa_ret = cactus_success_resp(vm_id, source, 0);
-				break;
-			}
-
-			/* Shouldn't get to this point */
-			ERROR("Deadlock test went wrong!\n");
-			ffa_ret = cactus_error_resp(vm_id, source, 0);
-			break;
-		}
-		case CACTUS_REQ_SIMD_FILL_CMD:
-			fill_simd_vectors();
-			ffa_ret = cactus_success_resp(vm_id, source, 0);
-			break;
 		default:
 			/*
 			 * Currently direct message test is handled here.
