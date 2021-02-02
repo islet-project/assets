@@ -223,6 +223,14 @@
 #define ID_AA64MMFR0_EL1_TGRAN16_SUPPORTED	ULL(0x1)
 #define ID_AA64MMFR0_EL1_TGRAN16_NOT_SUPPORTED	ULL(0x0)
 
+/* ID_AA64MMFR1_EL1 definitions */
+#define ID_AA64MMFR1_EL1_PAN_SHIFT		U(20)
+#define ID_AA64MMFR1_EL1_PAN_MASK		ULL(0xf)
+#define ID_AA64MMFR1_EL1_PAN_NOT_SUPPORTED	ULL(0x0)
+#define ID_AA64MMFR1_EL1_PAN_SUPPORTED		ULL(0x1)
+#define ID_AA64MMFR1_EL1_PAN2_SUPPORTED		ULL(0x2)
+#define ID_AA64MMFR1_EL1_PAN3_SUPPORTED		ULL(0x3)
+
 /* ID_AA64MMFR2_EL1 definitions */
 #define ID_AA64MMFR2_EL1		S3_0_C0_C7_2
 
@@ -289,6 +297,7 @@
 #define SCTLR_WXN_BIT		(ULL(1) << 19)
 #define SCTLR_UWXN_BIT		(ULL(1) << 20)
 #define SCTLR_IESB_BIT		(ULL(1) << 21)
+#define SCTLR_SPAN_BIT		(ULL(1) << 23)
 #define SCTLR_E0E_BIT		(ULL(1) << 24)
 #define SCTLR_EE_BIT		(ULL(1) << 25)
 #define SCTLR_UCI_BIT		(ULL(1) << 26)
@@ -371,6 +380,7 @@
 #define HCR_AMVOFFEN_BIT	(ULL(1) << 51)
 #define HCR_API_BIT		(ULL(1) << 41)
 #define HCR_APK_BIT		(ULL(1) << 40)
+#define HCR_E2H_BIT		(ULL(1) << 34)
 #define HCR_TGE_BIT		(ULL(1) << 27)
 #define HCR_RW_SHIFT		U(31)
 #define HCR_RW_BIT		(ULL(1) << HCR_RW_SHIFT)
@@ -950,6 +960,12 @@
 #define ERXPFGCTL_UC_BIT	(U(1) << 1)
 #define ERXPFGCTL_UEU_BIT	(U(1) << 2)
 #define ERXPFGCTL_CDEN_BIT	(U(1) << 31)
+
+/*******************************************************************************
+ * Armv8.1 Registers - Privileged Access Never Registers
+ ******************************************************************************/
+#define PAN			S3_0_C4_C2_3
+#define PAN_BIT			BIT(22)
 
 /*******************************************************************************
  * Armv8.3 Pointer Authentication Registers

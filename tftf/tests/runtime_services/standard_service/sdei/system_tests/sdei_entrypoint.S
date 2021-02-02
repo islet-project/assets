@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,6 +13,7 @@
 	.globl	sdei_entrypoint_resume
 	.globl	sdei_handler_done
 	.globl	sdei_rm_any_entrypoint
+	.globl	sdei_check_pstate_entrypoint
 
 	.local	event_handled
 	.comm	event_handled, PLATFORM_CORE_COUNT * 4, 8
@@ -125,6 +126,33 @@ func sdei_rm_any_entrypoint
 	smc	#0
 	b	.
 endfunc sdei_rm_any_entrypoint
+
+func sdei_check_pstate_entrypoint
+	stp	x2, x30, [sp, #-16]!
+
+	/* Dispatch to C handler */
+	bl	sdei_check_pstate_handler
+
+	/* Calculate address of event completion variable */
+	mrs	x0, mpidr_el1
+	mov_imm	x1, MPID_MASK
+	and	x0, x0, x1
+	bl	platform_get_core_pos
+	lsl	x0, x0, #2
+	adrp	x1, event_handled
+	add	x1, x1, :lo12:event_handled
+	add	x1, x0, x1
+
+	/* Mark event handling as complete so `sdei_handler_done` can return */
+	mov	w2, #1
+	str	w2, [x1]
+	sev
+
+	/* Populate `x0` and `x1` to prepare for SMC call */
+	ldp	x1, x30, [sp], #16
+	mov_imm	x0, SDEI_EVENT_COMPLETE_AND_RESUME
+	smc	#0
+endfunc sdei_check_pstate_entrypoint
 
 #else /* AARCH32 */
 func sdei_entrypoint
