@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,7 +13,7 @@
 #define PLATFORM_LINKER_ARCH		aarch64
 
 #define TC0_CLUSTER_COUNT		1
-#define TC0_MAX_CPUS_PER_CLUSTER	4
+#define TC0_MAX_CPUS_PER_CLUSTER	8
 #define TC0_MAX_PE_PER_CPU		1
 
 /*******************************************************************************

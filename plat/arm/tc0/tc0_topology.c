@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,11 +12,15 @@ static const struct {
 	unsigned int cluster_id;
 	unsigned int cpu_id;
 } tc0_cores[] = {
-	/* Cluster0: 4 cores*/
+	/* Cluster0: 8 cores*/
 	{ 0, 0 },
 	{ 0, 1 },
 	{ 0, 2 },
-	{ 0, 3 }
+	{ 0, 3 },
+	{ 0, 4 },
+	{ 0, 5 },
+	{ 0, 6 },
+	{ 0, 7 }
 };
 
 /*
