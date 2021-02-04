@@ -226,11 +226,11 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (false);
 
-#define CHECK_HAFNIUM_SPMC_TESTING_SETUP(ffa_major, ffa_minor, expected_uuids)	\
+#define CHECK_SPMC_TESTING_SETUP(ffa_major, ffa_minor, expected_uuids)		\
 	do {									\
 		const size_t expected_uuids_size =				\
 			 sizeof(expected_uuids) / sizeof(struct ffa_uuid);	\
-		test_result_t ret = check_hafnium_spmc_testing_set_up(		\
+		test_result_t ret = check_spmc_testing_set_up(			\
 			ffa_major, ffa_minor, expected_uuids, 			\
 			expected_uuids_size);					\
 		if (ret != TEST_RESULT_SUCCESS) {				\
@@ -303,7 +303,7 @@ void set_tftf_mailbox(const struct mailbox_buffers *mb);
  */
 bool get_tftf_mailbox(struct mailbox_buffers *mb);
 
-test_result_t check_hafnium_spmc_testing_set_up(uint32_t ffa_version_major,
+test_result_t check_spmc_testing_set_up(uint32_t ffa_version_major,
 	uint32_t ffa_version_minor, const struct ffa_uuid *ffa_uuids,
 	size_t ffa_uuids_size);
 
