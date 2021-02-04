@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <debug.h>
+#include <smccc.h>
+
 #include <arch_helpers.h>
 #include <cactus_test_cmds.h>
-#include <debug.h>
 #include <ffa_endpoints.h>
-#include <platform.h>
-#include <smccc.h>
-#include <ffa_helpers.h>
 #include <ffa_svc.h>
+#include <platform.h>
 #include <test_helpers.h>
 
 #define ECHO_VAL1 U(0xa0a0a0a0)

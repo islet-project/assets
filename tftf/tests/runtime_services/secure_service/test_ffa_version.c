@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <ffa_helpers.h>
 #include <ffa_svc.h>
 #include <test_helpers.h>
 #include <tftf_lib.h>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,16 +7,16 @@
 #ifndef TEST_HELPERS_H__
 #define TEST_HELPERS_H__
 
-#include <uuid.h>
 #include <arch_features.h>
-#include <ffa_helpers.h>
 #include <ffa_svc.h>
+#include <plat_topology.h>
 #include <psci.h>
+#include <spm_common.h>
 #include <tftf_lib.h>
 #include <trusted_os.h>
 #include <tsp.h>
 #include <uuid_utils.h>
-#include <plat_topology.h>
+#include <uuid.h>
 
 typedef struct {
 	uintptr_t addr;
