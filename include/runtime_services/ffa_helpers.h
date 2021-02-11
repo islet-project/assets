@@ -388,6 +388,14 @@ smc_ret_values ffa_msg_send_direct_req64_5args(uint32_t source_id, uint32_t dest
 					   uint64_t arg2, uint64_t arg3,
 					   uint64_t arg4);
 
+smc_ret_values ffa_msg_send_direct_resp64_5args(ffa_vm_id_t source_id,
+						ffa_vm_id_t dest_id,
+						uint64_t arg0,
+						uint64_t arg1,
+						uint64_t arg2,
+						uint64_t arg3,
+						uint64_t arg4);
+
 smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id);
 smc_ret_values ffa_version(uint32_t input_version);
 smc_ret_values ffa_id_get(void);

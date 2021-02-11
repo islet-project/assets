@@ -389,13 +389,30 @@ smc_ret_values ffa_msg_wait(void)
 }
 
 smc_ret_values ffa_msg_send_direct_resp(ffa_vm_id_t source_id,
+					ffa_vm_id_t dest_id,
+					uint32_t message)
+{
+	return ffa_msg_send_direct_resp64_5args(source_id, dest_id, message,
+						0, 0, 0, 0);
+}
+
+smc_ret_values ffa_msg_send_direct_resp64_5args(ffa_vm_id_t source_id,
 						ffa_vm_id_t dest_id,
-						uint32_t message)
+						uint64_t arg0,
+						uint64_t arg1,
+						uint64_t arg2,
+						uint64_t arg3,
+						uint64_t arg4)
 {
 	smc_args args = {
-		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32,
-		.arg1 = ((uint32_t)source_id << 16) | dest_id,
-		.arg3 = message
+		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC64,
+		.arg1 = (source_id << 16) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
 	};
 
 	return tftf_smc(&args);
