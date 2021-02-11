@@ -396,6 +396,12 @@ smc_ret_values ffa_msg_send_direct_resp64_5args(ffa_vm_id_t source_id,
 						uint64_t arg3,
 						uint64_t arg4);
 
+static inline bool is_ffa_direct_response(smc_ret_values ret)
+{
+	return (ffa_func_id(ret) == FFA_MSG_SEND_DIRECT_RESP_SMC32) ||
+	       (ffa_func_id(ret) == FFA_MSG_SEND_DIRECT_RESP_SMC64);
+}
+
 smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id);
 smc_ret_values ffa_version(uint32_t input_version);
 smc_ret_values ffa_id_get(void);

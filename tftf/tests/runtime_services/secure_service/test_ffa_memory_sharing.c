@@ -79,7 +79,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 
 	ret = cactus_mem_send_cmd(SENDER, RECEIVER, mem_func, handle);
 
-	if (ffa_func_id(ret) != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+	if (!is_ffa_direct_response(ret)) {
 		ERROR("Failed to send message. error: %x\n",
 		      ffa_error_code(ret));
 		return TEST_RESULT_FAIL;
@@ -144,7 +144,7 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 	ret = cactus_req_mem_send_send_cmd(HYP_ID, sender_sp, mem_func,
 					   receiver_sp);
 
-	if (ffa_func_id(ret) != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+	if (!is_ffa_direct_response(ret)) {
 		ERROR("Failed to send message. error: %x\n",
 		      ffa_error_code(ret));
 		return TEST_RESULT_FAIL;

@@ -134,8 +134,7 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func,
 						      handle);
 
-			if (ffa_func_id(ffa_ret) !=
-					FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+			if (!is_ffa_direct_response(ffa_ret)) {
 				ERROR("Failed to send message. error: %x\n",
 					ffa_error_code(ffa_ret));
 				ffa_ret = cactus_error_resp(vm_id, source);
@@ -207,8 +206,7 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			ffa_ret = cactus_echo_send_cmd(vm_id, echo_dest,
 							echo_val);
 
-			if (ffa_func_id(ffa_ret) !=
-			    FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+			if (!is_ffa_direct_response(ffa_ret)) {
 				ERROR("Failed to send message. error: %x\n",
 					ffa_error_code(ffa_ret));
 				success = false;
@@ -259,8 +257,7 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 * request chain.
 			 */
 			bool is_returning_from_deadlock =
-				(ffa_func_id(ffa_ret) ==
-				 FFA_MSG_SEND_DIRECT_RESP_SMC32)
+				(is_ffa_direct_response(ffa_ret))
 				&&
 				(cactus_get_response(ffa_ret) == CACTUS_SUCCESS);
 

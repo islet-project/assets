@@ -55,7 +55,7 @@ test_result_t test_simd_vectors_preserved(void)
 
 	smc_ret_values ret = cactus_req_simd_fill_send_cmd(SENDER, RECEIVER);
 
-	if (ffa_func_id(ret) != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+	if (!is_ffa_direct_response(ret)) {
 		ERROR("Failed to send message. error: %x\n",
 		      ffa_error_code(ret));
 		return TEST_RESULT_FAIL;
