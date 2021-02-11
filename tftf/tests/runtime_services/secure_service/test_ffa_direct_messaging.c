@@ -175,8 +175,8 @@ static test_result_t cpu_on_handler(void)
 	smc_ret_values ffa_ret;
 
 	/*
-	 * Send a direct message request to SP1 from current physical CPU.
-	 * Notice SP1 ECs are already woken as a result of the PSCI_CPU_ON
+	 * Send a direct message request to SP1 (MP SP) from current physical
+	 * CPU. Notice SP1 ECs are already woken as a result of the PSCI_CPU_ON
 	 * invocation so they already reached the message loop.
 	 * The SPMC uses the MP pinned context corresponding to the physical
 	 * CPU emitting the request.
@@ -200,14 +200,47 @@ static test_result_t cpu_on_handler(void)
 	}
 
 	/*
-	 * Send a direct message request to SP2 from current physical CPU.
-	 * The SPMC uses the MP pinned context corresponding to the physical
-	 * CPU emitting the request.
+	 * Send a direct message request to SP2 (MP SP) from current physical
+	 * CPU. The SPMC uses the MP pinned context corresponding to the
+	 * physical CPU emitting the request.
 	 */
 	ret = send_cactus_echo_cmd(HYP_ID, SP_ID(2), ECHO_VAL2);
 	if (ret != TEST_RESULT_SUCCESS) {
 		goto out;
 	}
+
+	/*
+	 * Send a direct message request to SP3 (UP SP) from current physical CPU.
+	 * The SPMC uses the single vCPU migrated to the new physical core.
+	 * The single SP vCPU may receive requests from multiple physical CPUs.
+	 * Thus it is possible one message is being processed on one core while
+	 * another (or multiple) cores attempt sending a new direct message
+	 * request. In such case the cores attempting the new request receive
+	 * a busy response from the SPMC. To handle this case a retry loop is
+	 * implemented permitting some fairness.
+	 */
+	uint32_t trial_loop = 5U;
+	while (trial_loop--) {
+		ffa_ret = cactus_echo_send_cmd(HYP_ID, SP_ID(3), ECHO_VAL3);
+		if ((ffa_func_id(ffa_ret) == FFA_ERROR) &&
+		    (ffa_error_code(ffa_ret) == FFA_ERROR_BUSY)) {
+			VERBOSE("%s(%u) trial %u\n", __func__, core_pos, trial_loop);
+			waitms(1);
+			continue;
+		}
+
+		if (is_ffa_direct_response(ffa_ret) == true) {
+			if (cactus_get_response(ffa_ret) != CACTUS_SUCCESS ||
+				cactus_echo_get_val(ffa_ret) != ECHO_VAL3) {
+				ERROR("Echo Failed!\n");
+				ret = TEST_RESULT_FAIL;
+			}
+
+			goto out;
+		}
+	}
+
+	ret = TEST_RESULT_FAIL;
 
 out:
 	/* Tell the lead CPU that the calling CPU has completed the test */
