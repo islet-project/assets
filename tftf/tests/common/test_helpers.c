@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <arch_helpers.h>
-#include <ffa_helpers.h>
 #include <plat_topology.h>
 #include <platform.h>
 #include <power_management.h>

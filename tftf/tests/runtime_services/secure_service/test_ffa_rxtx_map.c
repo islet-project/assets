@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <debug.h>
-#include <ffa_helpers.h>
+
 #include <test_helpers.h>
 #include <xlat_tables_defs.h>
 

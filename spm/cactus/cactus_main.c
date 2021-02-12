@@ -1,30 +1,29 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <assert.h>
 #include <errno.h>
-
-#include "cactus.h"
-#include "cactus_def.h"
-#include <cactus_platform_def.h>
-#include "cactus_tests.h"
 #include <debug.h>
+
+#include <cactus_platform_def.h>
+#include <cactus_test_cmds.h>
 #include <drivers/arm/pl011.h>
 #include <drivers/console.h>
-#include <ffa_helpers.h>
 #include <lib/aarch64/arch_helpers.h>
 #include <lib/xlat_tables/xlat_mmu_helpers.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
+#include <plat_arm.h>
+#include <plat/common/platform.h>
+#include <platform_def.h>
 #include <sp_helpers.h>
 #include <std_svc.h>
-#include <plat/common/platform.h>
-#include <plat_arm.h>
-#include <platform_def.h>
 
-#include <cactus_test_cmds.h>
+#include "cactus_def.h"
+#include "cactus_tests.h"
+#include "cactus.h"
 
 /* Host machine information injected by the build system in the ELF file. */
 extern const char build_message[];
@@ -283,6 +282,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			ffa_ret = cactus_error_resp(vm_id, source);
 			break;
 		}
+		case CACTUS_REQ_SIMD_FILL_CMD:
+			fill_simd_vectors();
+			ffa_ret = cactus_success_resp(vm_id, source);
+			break;
 		default:
 			/*
 			 * Currently direct message test is handled here.

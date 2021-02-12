@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,21 +13,6 @@
 
 /* This error code must be different to the ones used by FFA */
 #define FFA_TFTF_ERROR		-42
-
-/* Hypervisor ID at physical FFA instance */
-#define HYP_ID          (0)
-
-/*
- * The bit 15 of the FF-A ID indicates whether the partition is executing
- * in the normal world, in case it is a Virtual Machine (VM); or in the
- * secure world, in case it is a Secure Partition (SP).
- *
- * If bit 15 is set partition is an SP; if bit 15 is clear partition is
- * a VM.
- */
-#define SP_ID_MASK	U(1 << 15)
-#define SP_ID(x)	((x) | SP_ID_MASK)
-#define IS_SP_ID(x)	((x & SP_ID_MASK) != 0U)
 
 typedef unsigned short ffa_vm_id_t;
 typedef unsigned short ffa_vm_count_t;
@@ -44,32 +29,6 @@ struct ffa_uuid {
 #ifndef __ASSEMBLY__
 
 #include <stdint.h>
-
-struct mailbox_buffers {
-	void *recv;
-	void *send;
-};
-
-#define CONFIGURE_MAILBOX(mb_name, buffers_size) 				\
-	do {									\
-	/* Declare RX/TX buffers at virtual FF-A instance */			\
-	static struct {								\
-			uint8_t rx[buffers_size];				\
-			uint8_t tx[buffers_size];				\
-	} __aligned(PAGE_SIZE) mb_buffers;					\
-	mb_name.recv = (void *)mb_buffers.rx;					\
-	mb_name.send = (void *)mb_buffers.tx;					\
-	} while (false)
-
-#define CONFIGURE_AND_MAP_MAILBOX(mb_name, buffers_size, smc_ret)		\
-	do {									\
-	CONFIGURE_MAILBOX(mb_name, buffers_size);				\
-	smc_ret = ffa_rxtx_map(							\
-				(uintptr_t)mb_name.send,			\
-				(uintptr_t)mb_name.recv, 			\
-				buffers_size / PAGE_SIZE			\
-			);							\
-	} while (false)
 
 struct ffa_partition_info {
 	/** The ID of the VM the information is about */
@@ -407,7 +366,6 @@ ffa_memory_handle_t ffa_memory_init_and_send(
 	const struct ffa_memory_region_constituent* constituents,
 	uint32_t constituents_count, uint32_t mem_func);
 
-bool check_spmc_execution_level(void);
 smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id, uint32_t message);
 smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id, uint64_t message);
 smc_ret_values ffa_msg_send_direct_req64_5args(uint32_t source_id, uint32_t dest_id,

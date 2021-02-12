@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2017-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,11 +7,17 @@
 #ifndef CACTUS_TESTS_H
 #define CACTUS_TESTS_H
 
-#include <ffa_helpers.h>
+#include <spm_common.h>
 
 /*
  * Test functions
  */
+
+/*
+ * Alter SIMD vectors to check saving of the context while switching between
+ * the normal world and the secure world.
+ */
+void fill_simd_vectors(void);
 
 /*
  * Test to FFA interfaces.

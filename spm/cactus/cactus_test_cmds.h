@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -172,6 +172,21 @@ static inline uint32_t cactus_req_mem_send_get_mem_func(smc_ret_values ret)
 static inline ffa_vm_id_t cactus_req_mem_send_get_receiver(smc_ret_values ret)
 {
 	return (ffa_vm_id_t)ret.ret5;
+}
+
+/**
+ * Request to fill SIMD vectors with dummy values with purpose to check a
+ * save/restore routine during the context switches between secure world and
+ * normal world.
+ *
+ * The command id is the hex representation of the string "SIMD"
+ */
+#define CACTUS_REQ_SIMD_FILL_CMD U(0x53494d44)
+
+static inline smc_ret_values cactus_req_simd_fill_send_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_REQ_SIMD_FILL_CMD, 0, 0, 0, 0);
 }
 
 /**
