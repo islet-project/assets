@@ -33,16 +33,16 @@ CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
 		aarch64/cactus_entrypoint.S		\
 		cactus_debug.c				\
-		cactus_ffa_tests.c 			\
 		cactus_main.c				\
-		cactus_test_cmds.c			\
 	)						\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
 		sp_helpers.c				\
 	)						\
 	$(addprefix spm/cactus/cactus_tests/,		\
+		cactus_ffa_tests.c 			\
 		cactus_test_cpu_features.c		\
+		cactus_test_cmds.c			\
 		cactus_test_direct_messaging.c		\
 		cactus_test_memory_sharing.c		\
 	)
