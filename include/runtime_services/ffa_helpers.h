@@ -364,16 +364,6 @@ uint32_t ffa_memory_region_init(
 	enum ffa_memory_shareability shareability, uint32_t *total_length,
 	uint32_t *fragment_length);
 
-ffa_memory_handle_t ffa_memory_send(
-	struct ffa_memory_region *memory_region, uint32_t mem_func,
-	uint32_t fragment_length, uint32_t total_length);
-
-ffa_memory_handle_t ffa_memory_init_and_send(
-	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver,
-	const struct ffa_memory_region_constituent* constituents,
-	uint32_t constituents_count, uint32_t mem_func);
-
 static inline ffa_vm_id_t ffa_dir_msg_dest(smc_ret_values val) {
 	return (ffa_vm_id_t)val.ret1 & U(0xFFFF);
 }

@@ -63,7 +63,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	const uint32_t constituents_count = sizeof(constituents) /
 			sizeof(struct ffa_memory_region_constituent);
 
-	handle = ffa_memory_init_and_send((struct ffa_memory_region *)mb.send,
+	handle = memory_init_and_send((struct ffa_memory_region *)mb.send,
 					MAILBOX_SIZE, SENDER, RECEIVER,
 					constituents, constituents_count,
 					mem_func);

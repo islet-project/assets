@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <debug.h>
 #include <ffa_endpoints.h>
 #include <spm_common.h>
+#include <xlat_tables_v2.h>
 
 #define __STR(x) #x
 #define STR(x) __STR(x)
@@ -145,4 +147,177 @@ unsigned int get_ffa_feature_test_target(
 
 	return sizeof(ffa_feature_test_target) /
 	       sizeof(struct ffa_features_test);
+}
+
+bool memory_retrieve(struct mailbox_buffers *mb,
+		     struct ffa_memory_region **retrieved, uint64_t handle,
+		     ffa_vm_id_t sender, ffa_vm_id_t receiver,
+		     uint32_t mem_func)
+{
+	smc_ret_values ret;
+	uint32_t fragment_size;
+	uint32_t total_size;
+	uint32_t descriptor_size;
+
+	if (retrieved == NULL || mb == NULL) {
+		ERROR("Invalid parameters!\n");
+		return false;
+	}
+
+	/*
+	 * TODO: Revise shareability attribute in function call
+	 * below.
+	 * https://lists.trustedfirmware.org/pipermail/hafnium/2020-June/000023.html
+	 */
+	descriptor_size = ffa_memory_retrieve_request_init(
+	    mb->send, handle, sender, receiver, 0, 0,
+	    FFA_DATA_ACCESS_RW,
+	    FFA_INSTRUCTION_ACCESS_NX,
+	    FFA_MEMORY_NORMAL_MEM,
+	    FFA_MEMORY_CACHE_WRITE_BACK,
+	    FFA_MEMORY_OUTER_SHAREABLE);
+
+	ret = ffa_mem_retrieve_req(descriptor_size, descriptor_size);
+
+	if (ffa_func_id(ret) != FFA_MEM_RETRIEVE_RESP) {
+		ERROR("Couldn't retrieve the memory page. Error: %x\n",
+		      ffa_error_code(ret));
+		return false;
+	}
+
+	/*
+	 * Following total_size and fragment_size are useful to keep track
+	 * of the state of transaction. When the sum of all fragment_size of all
+	 * fragments is equal to total_size, the memory transaction has been
+	 * completed.
+	 * This is a simple test with only one segment. As such, upon
+	 * successful ffa_mem_retrieve_req, total_size must be equal to
+	 * fragment_size.
+	 */
+	total_size = ret.ret1;
+	fragment_size = ret.ret2;
+
+	if (total_size != fragment_size) {
+		ERROR("Only expect one memory segment to be sent!\n");
+		return false;
+	}
+
+	if (fragment_size > PAGE_SIZE) {
+		ERROR("Fragment should be smaller than RX buffer!\n");
+		return false;
+	}
+
+	*retrieved = (struct ffa_memory_region *)mb->recv;
+
+	if ((*retrieved)->receiver_count > MAX_MEM_SHARE_RECIPIENTS) {
+		VERBOSE("SPMC memory sharing operations support max of %u "
+			"receivers!\n", MAX_MEM_SHARE_RECIPIENTS);
+		return false;
+	}
+
+	VERBOSE("Memory Retrieved!\n");
+
+	return true;
+}
+
+bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
+		       ffa_vm_id_t id)
+{
+	smc_ret_values ret;
+
+	ffa_mem_relinquish_init(m, handle, 0, id);
+	ret = ffa_mem_relinquish();
+	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
+		ERROR("%s failed to relinquish memory! error: %x\n",
+		      __func__, ffa_error_code(ret));
+		return false;
+	}
+
+	VERBOSE("Memory Relinquished!\n");
+	return true;
+}
+
+/**
+ * Helper to call memory send function whose func id is passed as a parameter.
+ * Returns a valid handle in case of successful operation or
+ * FFA_MEMORY_HANDLE_INVALID if something goes wrong.
+ *
+ * TODO: Do memory send with 'ffa_memory_region' taking multiple segments
+ */
+ffa_memory_handle_t memory_send(
+	struct ffa_memory_region *memory_region, uint32_t mem_func,
+	uint32_t fragment_length, uint32_t total_length)
+{
+	smc_ret_values ret;
+	ffa_vm_id_t receiver =
+		memory_region->receivers[0].receiver_permissions.receiver;
+
+	if (fragment_length != total_length) {
+		ERROR("For now, fragment_length and total_length need to be"
+		      " equal");
+		return FFA_MEMORY_HANDLE_INVALID;
+	}
+
+	switch (mem_func) {
+	case FFA_MEM_SHARE_SMC32:
+		ret = ffa_mem_share(total_length, fragment_length);
+		break;
+	case FFA_MEM_LEND_SMC32:
+		ret = ffa_mem_lend(total_length, fragment_length);
+		break;
+	case FFA_MEM_DONATE_SMC32:
+		ret = ffa_mem_donate(total_length, fragment_length);
+		break;
+	default:
+		ERROR("TFTF - Invalid func id %x!\n", mem_func);
+		return FFA_MEMORY_HANDLE_INVALID;
+	}
+
+	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
+		ERROR("Failed to send memory to %x, error: %x.\n",
+				      receiver, ffa_error_code(ret));
+		return FFA_MEMORY_HANDLE_INVALID;
+	}
+
+	return ffa_mem_success_handle(ret);
+}
+
+/**
+ * Helper that initializes and sends a memory region. The memory region's
+ * configuration is statically defined and is implementation specific. However,
+ * doing it in this file for simplicity and for testing purposes.
+ */
+ffa_memory_handle_t memory_init_and_send(
+	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
+	ffa_vm_id_t sender, ffa_vm_id_t receiver,
+	const struct ffa_memory_region_constituent *constituents,
+	uint32_t constituents_count, uint32_t mem_func)
+{
+	uint32_t remaining_constituent_count;
+	uint32_t total_length;
+	uint32_t fragment_length;
+
+	enum ffa_data_access data_access = (mem_func == FFA_MEM_DONATE_SMC32) ?
+						FFA_DATA_ACCESS_NOT_SPECIFIED :
+						FFA_DATA_ACCESS_RW;
+
+	remaining_constituent_count = ffa_memory_region_init(
+		memory_region, memory_region_max_size, sender, receiver, constituents,
+		constituents_count, 0, 0, data_access,
+		FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED,
+		FFA_MEMORY_NORMAL_MEM, FFA_MEMORY_CACHE_WRITE_BACK,
+		FFA_MEMORY_INNER_SHAREABLE, &total_length, &fragment_length
+	);
+
+	/*
+	 * For simplicity of the test, and at least for the time being,
+	 * the following condition needs to be true.
+	 */
+	if (remaining_constituent_count != 0U) {
+		ERROR("Remaining constituent should be 0\n");
+		return FFA_MEMORY_HANDLE_INVALID;
+	}
+
+	return memory_send(memory_region, mem_func, fragment_length,
+			       total_length);
 }
