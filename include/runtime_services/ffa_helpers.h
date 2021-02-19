@@ -372,19 +372,25 @@ static inline ffa_vm_id_t ffa_dir_msg_source(smc_ret_values val) {
 	return (ffa_vm_id_t)(val.ret1 >> 16U);
 }
 
-smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id, uint32_t message);
-smc_ret_values ffa_msg_send_direct_req64_5args(uint32_t source_id, uint32_t dest_id,
-					   uint64_t arg0, uint64_t arg1,
-					   uint64_t arg2, uint64_t arg3,
-					   uint64_t arg4);
+smc_ret_values ffa_msg_send_direct_req64(ffa_vm_id_t source_id,
+					 ffa_vm_id_t dest_id, uint64_t arg0,
+					 uint64_t arg1, uint64_t arg2,
+					 uint64_t arg3, uint64_t arg4);
 
-smc_ret_values ffa_msg_send_direct_resp64_5args(ffa_vm_id_t source_id,
-						ffa_vm_id_t dest_id,
-						uint64_t arg0,
-						uint64_t arg1,
-						uint64_t arg2,
-						uint64_t arg3,
-						uint64_t arg4);
+smc_ret_values ffa_msg_send_direct_req32(ffa_vm_id_t source_id,
+					 ffa_vm_id_t dest_id, uint32_t arg0,
+					 uint32_t arg1, uint32_t arg2,
+					 uint32_t arg3, uint32_t arg4);
+
+smc_ret_values ffa_msg_send_direct_resp64(ffa_vm_id_t source_id,
+					  ffa_vm_id_t dest_id, uint64_t arg0,
+					  uint64_t arg1, uint64_t arg2,
+					  uint64_t arg3, uint64_t arg4);
+
+smc_ret_values ffa_msg_send_direct_resp32(ffa_vm_id_t source_id,
+					  ffa_vm_id_t dest_id, uint32_t arg0,
+					  uint32_t arg1, uint32_t arg2,
+					  uint32_t arg3, uint32_t arg4);
 
 static inline bool is_ffa_direct_response(smc_ret_values ret)
 {
@@ -396,14 +402,11 @@ smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id);
 smc_ret_values ffa_version(uint32_t input_version);
 smc_ret_values ffa_id_get(void);
 smc_ret_values ffa_msg_wait(void);
-smc_ret_values ffa_msg_send_direct_resp(ffa_vm_id_t source_id,
-					ffa_vm_id_t dest_id, uint32_t message);
 smc_ret_values ffa_error(int32_t error_code);
 smc_ret_values ffa_features(uint32_t feature);
 smc_ret_values ffa_partition_info_get(const uint32_t uuid[4]);
 smc_ret_values ffa_rx_release(void);
 smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages);
-
 smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
 			      uint32_t fragment_length);
 smc_ret_values ffa_mem_lend(uint32_t descriptor_length,

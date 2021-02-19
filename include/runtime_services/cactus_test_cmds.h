@@ -41,8 +41,8 @@ static inline smc_ret_values cactus_send_cmd(
 	ffa_vm_id_t source, ffa_vm_id_t dest, uint64_t cmd, uint64_t val0,
 	uint64_t val1, uint64_t val2, uint64_t val3)
 {
-	return 	ffa_msg_send_direct_req64_5args(source, dest, cmd, val0, val1,
-						val2, val3);
+	return 	ffa_msg_send_direct_req64(source, dest, cmd, val0, val1, val2,
+					  val3);
 }
 
 /**
@@ -54,8 +54,8 @@ static inline smc_ret_values cactus_send_response(
 	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t resp, uint32_t val0,
 	uint64_t val1, uint64_t val2, uint64_t val3)
 {
-	return ffa_msg_send_direct_resp64_5args(source, dest, resp, val0, val1,
-						val2, val3);
+	return ffa_msg_send_direct_resp64(source, dest, resp, val0, val1,
+					  val2, val3);
 }
 
 /**
@@ -64,7 +64,7 @@ static inline smc_ret_values cactus_send_response(
 static inline smc_ret_values cactus_response(
 	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t response)
 {
-	return ffa_msg_send_direct_resp(source, dest, response);
+	return ffa_msg_send_direct_resp64(source, dest, response, 0, 0, 0, 0);
 }
 
 static inline uint32_t cactus_get_response(smc_ret_values ret)

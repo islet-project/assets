@@ -57,57 +57,82 @@ smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id)
  *     -BUSY: Message target is busy
  *     -ABORTED: Message target ran into an unexpected error and has aborted
  */
-static smc_ret_values __ffa_msg_send_direct_req32_5(uint32_t source_id,
-						     uint32_t dest_id,
-						     uint32_t arg0,
-						     uint32_t arg1,
-						     uint32_t arg2,
-						     uint32_t arg3,
-						     uint32_t arg4)
+smc_ret_values ffa_msg_send_direct_req64(ffa_vm_id_t source_id,
+					 ffa_vm_id_t dest_id, uint64_t arg0,
+					 uint64_t arg1, uint64_t arg2,
+					 uint64_t arg3, uint64_t arg4)
 {
 	smc_args args = {
-		FFA_MSG_SEND_DIRECT_REQ_SMC32,
-		(source_id << 16) | dest_id,
-		0,
-		arg0, arg1, arg2, arg3, arg4
+		.fid = FFA_MSG_SEND_DIRECT_REQ_SMC64,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
 	};
 
 	return tftf_smc(&args);
 }
 
-/* Direct message send helper accepting a single 32b message argument */
-smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id,
-					uint32_t message)
-{
-	return __ffa_msg_send_direct_req32_5(source_id, dest_id,
-					      message, 0, 0, 0, 0);
-}
-
-smc_ret_values ffa_msg_send_direct_req64_5args(uint32_t source_id,
-						     uint32_t dest_id,
-						     uint64_t arg0,
-						     uint64_t arg1,
-						     uint64_t arg2,
-						     uint64_t arg3,
-						     uint64_t arg4)
+smc_ret_values ffa_msg_send_direct_req32(ffa_vm_id_t source_id,
+					 ffa_vm_id_t dest_id, uint32_t arg0,
+					 uint32_t arg1, uint32_t arg2,
+					 uint32_t arg3, uint32_t arg4)
 {
 	smc_args args = {
-		FFA_MSG_SEND_DIRECT_REQ_SMC64,
-		(source_id << 16) | dest_id,
-		0,
-		arg0, arg1, arg2, arg3, arg4
+		.fid = FFA_MSG_SEND_DIRECT_REQ_SMC32,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
 	};
 
 	return tftf_smc(&args);
 }
 
-/* Direct message send helper accepting a single 64b message argument */
-smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
-					uint64_t message)
+smc_ret_values ffa_msg_send_direct_resp64(ffa_vm_id_t source_id,
+					  ffa_vm_id_t dest_id, uint64_t arg0,
+					  uint64_t arg1, uint64_t arg2,
+					  uint64_t arg3, uint64_t arg4)
 {
-	return ffa_msg_send_direct_req64_5args(source_id, dest_id,
-					      message, 0, 0, 0, 0);
+	smc_args args = {
+		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC64,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
+	};
+
+	return tftf_smc(&args);
 }
+
+smc_ret_values ffa_msg_send_direct_resp32(ffa_vm_id_t source_id,
+					  ffa_vm_id_t dest_id, uint32_t arg0,
+					  uint32_t arg1, uint32_t arg2,
+					  uint32_t arg3, uint32_t arg4)
+{
+	smc_args args = {
+		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
+	};
+
+	return tftf_smc(&args);
+}
+
 
 /**
  * Initialises the header of the given `ffa_memory_region`, not including the
@@ -298,36 +323,6 @@ smc_ret_values ffa_msg_wait(void)
 {
 	smc_args args = {
 		.fid = FFA_MSG_WAIT
-	};
-
-	return tftf_smc(&args);
-}
-
-smc_ret_values ffa_msg_send_direct_resp(ffa_vm_id_t source_id,
-					ffa_vm_id_t dest_id,
-					uint32_t message)
-{
-	return ffa_msg_send_direct_resp64_5args(source_id, dest_id, message,
-						0, 0, 0, 0);
-}
-
-smc_ret_values ffa_msg_send_direct_resp64_5args(ffa_vm_id_t source_id,
-						ffa_vm_id_t dest_id,
-						uint64_t arg0,
-						uint64_t arg1,
-						uint64_t arg2,
-						uint64_t arg3,
-						uint64_t arg4)
-{
-	smc_args args = {
-		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC64,
-		.arg1 = (source_id << 16) | (dest_id),
-		.arg2 = 0,
-		.arg3 = arg0,
-		.arg4 = arg1,
-		.arg5 = arg2,
-		.arg6 = arg3,
-		.arg7 = arg4,
 	};
 
 	return tftf_smc(&args);
