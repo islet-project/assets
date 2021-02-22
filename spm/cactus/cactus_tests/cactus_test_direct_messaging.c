@@ -33,8 +33,6 @@ CACTUS_CMD_HANDLER(req_echo_cmd, CACTUS_REQ_ECHO_CMD)
 	ffa_ret = cactus_echo_send_cmd(vm_id, echo_dest, echo_val);
 
 	if (!is_ffa_direct_response(ffa_ret)) {
-		ERROR("Failed to send message. error: %x\n",
-			ffa_error_code(ffa_ret));
 		return cactus_error_resp(vm_id, ffa_dir_msg_source(*args),
 					 CACTUS_ERROR_FFA_CALL);
 	}

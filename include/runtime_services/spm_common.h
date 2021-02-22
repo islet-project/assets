@@ -53,10 +53,17 @@ struct mailbox_buffers {
 	CONFIGURE_MAILBOX(mb_name, buffers_size);				\
 	smc_ret = ffa_rxtx_map(							\
 				(uintptr_t)mb_name.send,			\
-				(uintptr_t)mb_name.recv, 			\
+				(uintptr_t)mb_name.recv,			\
 				buffers_size / PAGE_SIZE			\
 			);							\
 	} while (false)
+
+/**
+ * Helpers to evaluate returns of FF-A calls.
+ */
+bool is_ffa_call_error(smc_ret_values val);
+bool is_ffa_direct_response(smc_ret_values ret);
+bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id);
 
 /*
  * Vector length:

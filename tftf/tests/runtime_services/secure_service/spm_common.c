@@ -13,6 +13,52 @@
 #define STR(x) __STR(x)
 #define SIMD_TWO_VECTORS_BYTES_STR	(2 * SIMD_VECTOR_LEN_BYTES)
 
+/**
+ * Helper to log errors after FF-A calls.
+ */
+bool is_ffa_call_error(smc_ret_values ret)
+{
+	if (ffa_func_id(ret) == FFA_ERROR) {
+		ERROR("FF-A call returned error (%x): %d\n",
+		      ffa_func_id(ret), ffa_error_code(ret));
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Helper to verify return of FF-A call is an FFA_MSG_SEND_DIRECT_RESP.
+ * Should be used after FFA_MSG_SEND_DIRECT_REQ, or after sending a test command
+ * to an SP.
+ */
+bool is_ffa_direct_response(smc_ret_values ret)
+{
+	if ((ffa_func_id(ret) == FFA_MSG_SEND_DIRECT_RESP_SMC32) ||
+	    (ffa_func_id(ret) == FFA_MSG_SEND_DIRECT_RESP_SMC64)) {
+		return true;
+	}
+
+	ERROR("%x is not FF-A response.\n", ffa_func_id(ret));
+	/* To log error in case it is FFA_ERROR*/
+	is_ffa_call_error(ret);
+
+	return false;
+}
+
+/**
+ * Helper to check the return value of FF-A call is as expected.
+ */
+bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id)
+{
+	if (ffa_func_id(ret) == func_id) {
+		return true;
+	}
+
+	ERROR("Expecting %x, FF-A return was %x\n", func_id, ffa_func_id(ret));
+
+	return false;
+}
+
 void fill_simd_vector_regs(const simd_vector_t v[SIMD_NUM_VECTORS])
 {
 #ifdef __aarch64__
@@ -275,9 +321,8 @@ ffa_memory_handle_t memory_send(
 		return FFA_MEMORY_HANDLE_INVALID;
 	}
 
-	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
-		ERROR("Failed to send memory to %x, error: %x.\n",
-				      receiver, ffa_error_code(ret));
+	if (is_ffa_call_error(ret)) {
+		ERROR("Failed to send message to: %x\n", receiver);
 		return FFA_MEMORY_HANDLE_INVALID;
 	}
 

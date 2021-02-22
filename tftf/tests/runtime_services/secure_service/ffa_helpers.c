@@ -3,8 +3,6 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
-#include <debug.h>
 #include <smccc.h>
 
 #include <ffa_endpoints.h>

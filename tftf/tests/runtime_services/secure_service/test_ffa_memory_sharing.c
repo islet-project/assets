@@ -10,6 +10,7 @@
 #include <ffa_endpoints.h>
 #include <test_helpers.h>
 #include <tftf_lib.h>
+#include <spm_common.h>
 #include <xlat_tables_defs.h>
 
 #define MAILBOX_SIZE PAGE_SIZE
@@ -80,8 +81,6 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	ret = cactus_mem_send_cmd(SENDER, RECEIVER, mem_func, handle);
 
 	if (!is_ffa_direct_response(ret)) {
-		ERROR("Failed to send message. error: %x\n",
-		      ffa_error_code(ret));
 		return TEST_RESULT_FAIL;
 	}
 
@@ -103,7 +102,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 		(void)ptr;
 
 	if (mem_func != FFA_MEM_DONATE_SMC32 &&
-	    ffa_mem_reclaim(handle, 0).ret0 == FFA_ERROR) {
+	    is_ffa_call_error(ffa_mem_reclaim(handle, 0))) {
 			tftf_testcase_printf("Couldn't reclaim memory\n");
 			return TEST_RESULT_FAIL;
 	}
@@ -145,8 +144,6 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 					   receiver_sp);
 
 	if (!is_ffa_direct_response(ret)) {
-		ERROR("Failed to send message. error: %x\n",
-		      ffa_error_code(ret));
 		return TEST_RESULT_FAIL;
 	}
 

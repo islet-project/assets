@@ -137,9 +137,6 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 	ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func, handle);
 
 	if (!is_ffa_direct_response(ffa_ret)) {
-		ERROR("Failed to send message. ret: %x error: %x\n",
-		      ffa_func_id(ffa_ret),
-		      ffa_error_code(ffa_ret));
 		return cactus_error_resp(vm_id, source, CACTUS_ERROR_FFA_CALL);
 	}
 
@@ -156,9 +153,7 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 		 * permanently given up access to the memory region.
 		 */
 		ffa_ret = ffa_mem_reclaim(handle, 0);
-		if (ffa_func_id(ffa_ret) == FFA_ERROR) {
-			ERROR("Failed to reclaim memory! error: %x\n",
-			      ffa_error_code(ffa_ret));
+		if (is_ffa_call_error(ffa_ret)) {
 			return cactus_error_resp(vm_id, source,
 						 CACTUS_ERROR_TEST);
 		}
