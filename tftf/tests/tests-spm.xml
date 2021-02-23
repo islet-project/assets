@@ -28,6 +28,9 @@
 
      <testcase name="Test FFA_SPM_ID_GET"
                function="test_ffa_spm_id_get" />
+
+     <testcase name="Test FFA_PARTITION_INFO_GET"
+               function="test_ffa_partition_info" />
   </testsuite>
 
   <testsuite name="FF-A Direct messaging"
