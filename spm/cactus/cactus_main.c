@@ -33,6 +33,9 @@ extern const char version_string[];
 
 extern void secondary_cold_entry(void);
 
+/* Global ffa_id */
+ffa_vm_id_t g_ffa_id;
+
 /*
  *
  * Message loop function
@@ -176,17 +179,16 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 	/* Get current FFA id */
 	smc_ret_values ffa_id_ret = ffa_id_get();
+	ffa_vm_id_t ffa_id = (ffa_vm_id_t)(ffa_id_ret.ret2 & 0xffff);
 	if (ffa_func_id(ffa_id_ret) != FFA_SUCCESS_SMC32) {
 		ERROR("FFA_ID_GET failed.\n");
 		panic();
 	}
-	ffa_vm_id_t ffa_id = ffa_id_ret.ret2 & 0xffff;
 
 	if (primary_cold_boot == true) {
 		/* Clear BSS */
 		memset((void *)CACTUS_BSS_START,
 		       0, CACTUS_BSS_END - CACTUS_BSS_START);
-
 
 		mb.send = (void *) get_sp_tx_start(ffa_id);
 		mb.recv = (void *) get_sp_rx_start(ffa_id);
@@ -194,6 +196,12 @@ void __dead2 cactus_main(bool primary_cold_boot)
 		/* Configure and enable Stage-1 MMU, enable D-Cache */
 		cactus_plat_configure_mmu(ffa_id);
 	}
+
+	/*
+	 * The local ffa_id value is held on the stack. The global g_ffa_id
+	 * value is set after BSS is cleared.
+	 */
+	g_ffa_id = ffa_id;
 
 	enable_mmu_el1(0);
 
