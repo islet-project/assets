@@ -49,8 +49,8 @@ secondary_cold_entry:
 	isb
 
 	/* Set up exceptions vector table */
-	adrp	x1, tftf_vector
-	add	x1, x1, :lo12:tftf_vector
+	adrp	x1, cactus_vector
+	add	x1, x1, :lo12:cactus_vector
 	msr	vbar_el1, x1
 	isb
 

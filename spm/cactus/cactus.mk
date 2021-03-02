@@ -32,7 +32,9 @@ CACTUS_INCLUDES :=					\
 CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
 		aarch64/cactus_entrypoint.S		\
+		aarch64/cactus_exceptions.S		\
 		cactus_debug.c				\
+		cactus_interrupt.c			\
 		cactus_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
@@ -54,7 +56,6 @@ CACTUS_SOURCES	+=					\
 	tftf/framework/${ARCH}/asm_debug.S		\
 	tftf/tests/runtime_services/secure_service/ffa_helpers.c \
 	tftf/tests/runtime_services/secure_service/spm_common.c	\
-	tftf/framework/${ARCH}/exceptions.S		\
 	tftf/framework/${ARCH}/exception_report.c
 
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\

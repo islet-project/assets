@@ -197,6 +197,10 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 	enable_mmu_el1(0);
 
+	/* Enable IRQ/FIQ */
+	enable_irq();
+	enable_fiq();
+
 	if (primary_cold_boot == false) {
 		goto msg_loop;
 	}
