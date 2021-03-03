@@ -34,7 +34,7 @@ extern const char version_string[];
 extern void secondary_cold_entry(void);
 
 /* Global ffa_id */
-ffa_vm_id_t g_ffa_id;
+ffa_id_t g_ffa_id;
 
 /*
  *
@@ -45,10 +45,10 @@ ffa_vm_id_t g_ffa_id;
  *
  */
 
-static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
+static void __dead2 message_loop(ffa_id_t vm_id, struct mailbox_buffers *mb)
 {
 	smc_ret_values ffa_ret;
-	ffa_vm_id_t destination;
+	ffa_id_t destination;
 
 	/*
 	* This initial wait call is necessary to inform SPMD that
@@ -182,7 +182,7 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 	/* Get current FFA id */
 	smc_ret_values ffa_id_ret = ffa_id_get();
-	ffa_vm_id_t ffa_id = (ffa_vm_id_t)(ffa_id_ret.ret2 & 0xffff);
+	ffa_id_t ffa_id = (ffa_id_t)(ffa_id_ret.ret2 & 0xffff);
 	if (ffa_func_id(ffa_id_ret) != FFA_SUCCESS_SMC32) {
 		ERROR("FFA_ID_GET failed.\n");
 		panic();

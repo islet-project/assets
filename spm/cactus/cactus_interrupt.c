@@ -13,7 +13,7 @@
 #include "cactus_test_cmds.h"
 #include "spm_common.h"
 
-extern ffa_vm_id_t g_ffa_id;
+extern ffa_id_t g_ffa_id;
 
 static void managed_exit_handler(void)
 {

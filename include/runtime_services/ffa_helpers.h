@@ -14,7 +14,7 @@
 /* This error code must be different to the ones used by FFA */
 #define FFA_TFTF_ERROR		-42
 
-typedef unsigned short ffa_vm_id_t;
+typedef unsigned short ffa_id_t;
 typedef unsigned short ffa_vm_count_t;
 typedef unsigned short ffa_vcpu_count_t;
 typedef uint64_t ffa_memory_handle_t;
@@ -31,7 +31,7 @@ struct ffa_uuid {
 
 struct ffa_partition_info {
 	/** The ID of the VM the information is about */
-	ffa_vm_id_t id;
+	ffa_id_t id;
 	/** The number of execution contexts implemented by the partition */
 	uint16_t exec_context;
 	/** The Partition's properties, e.g. supported messaging methods */
@@ -196,7 +196,7 @@ struct ffa_composite_memory_region {
  */
 struct ffa_memory_region_attributes {
 	/** The ID of the VM to which the memory is being given or shared. */
-	ffa_vm_id_t receiver;
+	ffa_id_t receiver;
 	/**
 	 * The permissions with which the memory region should be mapped in the
 	 * receiver's page table.
@@ -264,7 +264,7 @@ struct ffa_memory_region {
 	 * The ID of the VM which originally sent the memory region, i.e. the
 	 * owner.
 	 */
-	ffa_vm_id_t sender;
+	ffa_id_t sender;
 	ffa_memory_attributes_t attributes;
 	/** Reserved field, must be 0. */
 	uint8_t reserved_0;
@@ -300,7 +300,7 @@ struct ffa_mem_relinquish {
 	ffa_memory_handle_t handle;
 	ffa_memory_region_flags_t flags;
 	uint32_t endpoint_count;
-	ffa_vm_id_t endpoints[];
+	ffa_id_t endpoints[];
 };
 
 static inline ffa_memory_handle_t ffa_assemble_handle(uint32_t h1, uint32_t h2)
@@ -335,18 +335,18 @@ ffa_memory_region_get_composite(struct ffa_memory_region *memory_region,
 static inline uint32_t ffa_mem_relinquish_init(
 	struct ffa_mem_relinquish *relinquish_request,
 	ffa_memory_handle_t handle, ffa_memory_region_flags_t flags,
-	ffa_vm_id_t sender)
+	ffa_id_t sender)
 {
 	relinquish_request->handle = handle;
 	relinquish_request->flags = flags;
 	relinquish_request->endpoint_count = 1;
 	relinquish_request->endpoints[0] = sender;
-	return sizeof(struct ffa_mem_relinquish) + sizeof(ffa_vm_id_t);
+	return sizeof(struct ffa_mem_relinquish) + sizeof(ffa_id_t);
 }
 
 uint32_t ffa_memory_retrieve_request_init(
 	struct ffa_memory_region *memory_region, ffa_memory_handle_t handle,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver, uint32_t tag,
+	ffa_id_t sender, ffa_id_t receiver, uint32_t tag,
 	ffa_memory_region_flags_t flags, enum ffa_data_access data_access,
 	enum ffa_instruction_access instruction_access,
 	enum ffa_memory_type type, enum ffa_memory_cacheability cacheability,
@@ -354,7 +354,7 @@ uint32_t ffa_memory_retrieve_request_init(
 
 uint32_t ffa_memory_region_init(
 	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver,
+	ffa_id_t sender, ffa_id_t receiver,
 	const struct ffa_memory_region_constituent constituents[],
 	uint32_t constituent_count, uint32_t tag,
 	ffa_memory_region_flags_t flags, enum ffa_data_access data_access,
@@ -363,31 +363,31 @@ uint32_t ffa_memory_region_init(
 	enum ffa_memory_shareability shareability, uint32_t *total_length,
 	uint32_t *fragment_length);
 
-static inline ffa_vm_id_t ffa_dir_msg_dest(smc_ret_values val) {
-	return (ffa_vm_id_t)val.ret1 & U(0xFFFF);
+static inline ffa_id_t ffa_dir_msg_dest(smc_ret_values val) {
+	return (ffa_id_t)val.ret1 & U(0xFFFF);
 }
 
-static inline ffa_vm_id_t ffa_dir_msg_source(smc_ret_values val) {
-	return (ffa_vm_id_t)(val.ret1 >> 16U);
+static inline ffa_id_t ffa_dir_msg_source(smc_ret_values val) {
+	return (ffa_id_t)(val.ret1 >> 16U);
 }
 
-smc_ret_values ffa_msg_send_direct_req64(ffa_vm_id_t source_id,
-					 ffa_vm_id_t dest_id, uint64_t arg0,
+smc_ret_values ffa_msg_send_direct_req64(ffa_id_t source_id,
+					 ffa_id_t dest_id, uint64_t arg0,
 					 uint64_t arg1, uint64_t arg2,
 					 uint64_t arg3, uint64_t arg4);
 
-smc_ret_values ffa_msg_send_direct_req32(ffa_vm_id_t source_id,
-					 ffa_vm_id_t dest_id, uint32_t arg0,
+smc_ret_values ffa_msg_send_direct_req32(ffa_id_t source_id,
+					 ffa_id_t dest_id, uint32_t arg0,
 					 uint32_t arg1, uint32_t arg2,
 					 uint32_t arg3, uint32_t arg4);
 
-smc_ret_values ffa_msg_send_direct_resp64(ffa_vm_id_t source_id,
-					  ffa_vm_id_t dest_id, uint64_t arg0,
+smc_ret_values ffa_msg_send_direct_resp64(ffa_id_t source_id,
+					  ffa_id_t dest_id, uint64_t arg0,
 					  uint64_t arg1, uint64_t arg2,
 					  uint64_t arg3, uint64_t arg4);
 
-smc_ret_values ffa_msg_send_direct_resp32(ffa_vm_id_t source_id,
-					  ffa_vm_id_t dest_id, uint32_t arg0,
+smc_ret_values ffa_msg_send_direct_resp32(ffa_id_t source_id,
+					  ffa_id_t dest_id, uint32_t arg0,
 					  uint32_t arg1, uint32_t arg2,
 					  uint32_t arg3, uint32_t arg4);
 

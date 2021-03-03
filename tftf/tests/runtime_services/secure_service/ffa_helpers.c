@@ -55,8 +55,8 @@ smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id)
  *     -BUSY: Message target is busy
  *     -ABORTED: Message target ran into an unexpected error and has aborted
  */
-smc_ret_values ffa_msg_send_direct_req64(ffa_vm_id_t source_id,
-					 ffa_vm_id_t dest_id, uint64_t arg0,
+smc_ret_values ffa_msg_send_direct_req64(ffa_id_t source_id,
+					 ffa_id_t dest_id, uint64_t arg0,
 					 uint64_t arg1, uint64_t arg2,
 					 uint64_t arg3, uint64_t arg4)
 {
@@ -74,8 +74,8 @@ smc_ret_values ffa_msg_send_direct_req64(ffa_vm_id_t source_id,
 	return tftf_smc(&args);
 }
 
-smc_ret_values ffa_msg_send_direct_req32(ffa_vm_id_t source_id,
-					 ffa_vm_id_t dest_id, uint32_t arg0,
+smc_ret_values ffa_msg_send_direct_req32(ffa_id_t source_id,
+					 ffa_id_t dest_id, uint32_t arg0,
 					 uint32_t arg1, uint32_t arg2,
 					 uint32_t arg3, uint32_t arg4)
 {
@@ -93,8 +93,8 @@ smc_ret_values ffa_msg_send_direct_req32(ffa_vm_id_t source_id,
 	return tftf_smc(&args);
 }
 
-smc_ret_values ffa_msg_send_direct_resp64(ffa_vm_id_t source_id,
-					  ffa_vm_id_t dest_id, uint64_t arg0,
+smc_ret_values ffa_msg_send_direct_resp64(ffa_id_t source_id,
+					  ffa_id_t dest_id, uint64_t arg0,
 					  uint64_t arg1, uint64_t arg2,
 					  uint64_t arg3, uint64_t arg4)
 {
@@ -112,8 +112,8 @@ smc_ret_values ffa_msg_send_direct_resp64(ffa_vm_id_t source_id,
 	return tftf_smc(&args);
 }
 
-smc_ret_values ffa_msg_send_direct_resp32(ffa_vm_id_t source_id,
-					  ffa_vm_id_t dest_id, uint32_t arg0,
+smc_ret_values ffa_msg_send_direct_resp32(ffa_id_t source_id,
+					  ffa_id_t dest_id, uint32_t arg0,
 					  uint32_t arg1, uint32_t arg2,
 					  uint32_t arg3, uint32_t arg4)
 {
@@ -137,9 +137,9 @@ smc_ret_values ffa_msg_send_direct_resp32(ffa_vm_id_t source_id,
  * composite memory region offset.
  */
 static void ffa_memory_region_init_header(
-	struct ffa_memory_region *memory_region, ffa_vm_id_t sender,
+	struct ffa_memory_region *memory_region, ffa_id_t sender,
 	ffa_memory_attributes_t attributes, ffa_memory_region_flags_t flags,
-	ffa_memory_handle_t handle, uint32_t tag, ffa_vm_id_t receiver,
+	ffa_memory_handle_t handle, uint32_t tag, ffa_id_t receiver,
 	ffa_memory_access_permissions_t permissions)
 {
 	memory_region->sender = sender;
@@ -168,7 +168,7 @@ static void ffa_memory_region_init_header(
  */
 uint32_t ffa_memory_region_init(
 	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver,
+	ffa_id_t sender, ffa_id_t receiver,
 	const struct ffa_memory_region_constituent constituents[],
 	uint32_t constituent_count, uint32_t tag,
 	ffa_memory_region_flags_t flags, enum ffa_data_access data_access,
@@ -259,7 +259,7 @@ uint32_t ffa_memory_region_init(
  */
 uint32_t ffa_memory_retrieve_request_init(
 	struct ffa_memory_region *memory_region, ffa_memory_handle_t handle,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver, uint32_t tag,
+	ffa_id_t sender, ffa_id_t receiver, uint32_t tag,
 	ffa_memory_region_flags_t flags, enum ffa_data_access data_access,
 	enum ffa_instruction_access instruction_access,
 	enum ffa_memory_type type, enum ffa_memory_cacheability cacheability,
@@ -290,7 +290,6 @@ uint32_t ffa_memory_retrieve_request_init(
 	return sizeof(struct ffa_memory_region) +
 	       memory_region->receiver_count * sizeof(struct ffa_memory_access);
 }
-
 
 /*
  * FFA Version ABI helper.

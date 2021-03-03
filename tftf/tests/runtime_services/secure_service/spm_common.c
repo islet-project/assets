@@ -199,7 +199,7 @@ unsigned int get_ffa_feature_test_target(
 
 bool memory_retrieve(struct mailbox_buffers *mb,
 		     struct ffa_memory_region **retrieved, uint64_t handle,
-		     ffa_vm_id_t sender, ffa_vm_id_t receiver,
+		     ffa_id_t sender, ffa_id_t receiver,
 		     uint32_t mem_func)
 {
 	smc_ret_values ret;
@@ -269,7 +269,7 @@ bool memory_retrieve(struct mailbox_buffers *mb,
 }
 
 bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
-		       ffa_vm_id_t id)
+		       ffa_id_t id)
 {
 	smc_ret_values ret;
 
@@ -297,7 +297,7 @@ ffa_memory_handle_t memory_send(
 	uint32_t fragment_length, uint32_t total_length)
 {
 	smc_ret_values ret;
-	ffa_vm_id_t receiver =
+	ffa_id_t receiver =
 		memory_region->receivers[0].receiver_permissions.receiver;
 
 	if (fragment_length != total_length) {
@@ -336,7 +336,7 @@ ffa_memory_handle_t memory_send(
  */
 ffa_memory_handle_t memory_init_and_send(
 	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver,
+	ffa_id_t sender, ffa_id_t receiver,
 	const struct ffa_memory_region_constituent *constituents,
 	uint32_t constituents_count, uint32_t mem_func)
 {

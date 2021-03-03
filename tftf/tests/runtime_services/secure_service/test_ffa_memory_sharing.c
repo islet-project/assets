@@ -130,8 +130,8 @@ test_result_t test_mem_donate_sp(void)
  * Cactus SP should reply to TFTF on whether the test succeeded or not.
  */
 static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
-						ffa_vm_id_t sender_sp,
-						ffa_vm_id_t receiver_sp)
+						ffa_id_t sender_sp,
+						ffa_id_t receiver_sp)
 {
 	smc_ret_values ret;
 
