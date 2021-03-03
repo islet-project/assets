@@ -47,6 +47,7 @@ CACTUS_SOURCES	:=					\
 		cactus_test_cpu_features.c		\
 		cactus_test_direct_messaging.c		\
 		cactus_test_ffa.c 			\
+		cactus_test_interrupts.c		\
 		cactus_test_memory_sharing.c		\
 	)
 

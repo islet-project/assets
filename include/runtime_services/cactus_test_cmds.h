@@ -8,6 +8,7 @@
 #define CACTUS_TEST_CMDS
 
 #include <ffa_helpers.h>
+#include <spm_common.h>
 
 /**
  * Success and error return to be sent over a msg response.
@@ -247,6 +248,55 @@ static inline smc_ret_values cactus_req_simd_fill_send_cmd(
 {
 	return cactus_send_cmd(source, dest, CACTUS_REQ_SIMD_FILL_CMD, 0, 0, 0,
 			       0);
+}
+
+/**
+ * Command to request cactus to sleep for the given time in ms
+ *
+ * The command id is the hex representation of string "sleep"
+ */
+#define CACTUS_SLEEP_CMD U(0x736c656570)
+
+static inline smc_ret_values cactus_sleep_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t sleep_time)
+{
+	return cactus_send_cmd(source, dest, CACTUS_SLEEP_CMD, sleep_time, 0, 0,
+			       0);
+}
+
+static inline uint32_t cactus_get_sleep_time(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret4;
+}
+
+/**
+ * Command to request cactus to enable/disable an interrupt
+ *
+ * The command id is the hex representation of string "intr"
+ */
+#define CACTUS_INTERRUPT_CMD U(0x696e7472)
+
+static inline smc_ret_values cactus_interrupt_cmd(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t interrupt_id,
+	bool enable, uint32_t pin)
+{
+	return cactus_send_cmd(source, dest, CACTUS_INTERRUPT_CMD, interrupt_id,
+			       enable, pin, 0);
+}
+
+static inline uint32_t cactus_get_interrupt_id(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret4;
+}
+
+static inline bool cactus_get_interrupt_enable(smc_ret_values ret)
+{
+	return (bool)ret.ret5;
+}
+
+static inline enum interrupt_pin cactus_get_interrupt_pin(smc_ret_values ret)
+{
+	return (enum interrupt_pin)ret.ret6;
 }
 
 #endif
