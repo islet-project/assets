@@ -316,6 +316,15 @@ smc_ret_values ffa_id_get(void)
 	return tftf_smc(&args);
 }
 
+smc_ret_values ffa_spm_id_get(void)
+{
+	smc_args args = {
+		.fid = FFA_SPM_ID_GET
+	};
+
+	return tftf_smc(&args);
+}
+
 smc_ret_values ffa_msg_wait(void)
 {
 	smc_args args = {

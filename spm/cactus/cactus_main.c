@@ -182,7 +182,7 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 	/* Get current FFA id */
 	smc_ret_values ffa_id_ret = ffa_id_get();
-	ffa_id_t ffa_id = (ffa_id_t)(ffa_id_ret.ret2 & 0xffff);
+	ffa_id_t ffa_id = ffa_endpoint_id(ffa_id_ret);
 	if (ffa_func_id(ffa_id_ret) != FFA_SUCCESS_SMC32) {
 		ERROR("FFA_ID_GET failed.\n");
 		panic();

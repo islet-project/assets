@@ -6,6 +6,7 @@
 
 #include <debug.h>
 #include <ffa_endpoints.h>
+#include <ffa_svc.h>
 #include <spm_common.h>
 #include <xlat_tables_v2.h>
 
@@ -166,6 +167,8 @@ static const struct ffa_features_test ffa_feature_test_target[] = {
 	{"FFA_RXTX_UNMAP_32 check", FFA_RXTX_UNMAP, FFA_ERROR},
 	{"FFA_PARTITION_INFO_GET_32 check", FFA_PARTITION_INFO_GET, FFA_SUCCESS_SMC32},
 	{"FFA_ID_GET_32 check", FFA_ID_GET, FFA_SUCCESS_SMC32},
+	{"FFA_SPM_ID_GET_32 check", FFA_SPM_ID_GET, FFA_SUCCESS_SMC32,
+		MAKE_FFA_VERSION(1, 1)},
 	{"FFA_MSG_POLL_32 check", FFA_MSG_POLL, FFA_SUCCESS_SMC32},
 	{"FFA_MSG_WAIT_32 check", FFA_MSG_WAIT, FFA_SUCCESS_SMC32},
 	{"FFA_YIELD_32 check", FFA_MSG_YIELD, FFA_SUCCESS_SMC32},

@@ -13,6 +13,8 @@
 
 /* Hypervisor ID at physical FFA instance */
 #define HYP_ID          (0)
+/* SPMC ID */
+#define SPMC_ID		U(0x8000)
 
 /* ID for the first Secure Partition. */
 #define SPM_VM_ID_FIRST                 SP_ID(1)
@@ -42,6 +44,7 @@ struct ffa_features_test {
 	const char *test_name;
 	unsigned int feature;
 	unsigned int expected_ret;
+	unsigned int version_added;
 };
 
 struct mailbox_buffers {

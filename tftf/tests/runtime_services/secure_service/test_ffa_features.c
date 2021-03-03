@@ -19,24 +19,30 @@ test_result_t test_ffa_features(void)
 	}
 
 	smc_ret_values ffa_ret;
+	unsigned int expected_ret;
 	const struct ffa_features_test *ffa_feature_test_target;
 	unsigned int i, test_target_size =
 		get_ffa_feature_test_target(&ffa_feature_test_target);
+	struct ffa_features_test test_target;
 
 	for (i = 0U; i < test_target_size; i++) {
-		ffa_ret = ffa_features(ffa_feature_test_target[i].feature);
-		if (ffa_func_id(ffa_ret) != ffa_feature_test_target[i].expected_ret) {
+		test_target = ffa_feature_test_target[i];
+		ffa_ret = ffa_features(test_target.feature);
+		expected_ret = FFA_VERSION_COMPILED
+				>= test_target.version_added ?
+				test_target.expected_ret : FFA_ERROR;
+		if (ffa_func_id(ffa_ret) != expected_ret) {
 			tftf_testcase_printf("%s returned %x, expected %x\n",
-					     ffa_feature_test_target[i].test_name,
+					     test_target.test_name,
 					     ffa_func_id(ffa_ret),
-					     ffa_feature_test_target[i].expected_ret);
+					     expected_ret);
 			return TEST_RESULT_FAIL;
 		}
-		if ((ffa_feature_test_target[i].expected_ret == FFA_ERROR) &&
+		if ((expected_ret == FFA_ERROR) &&
 		    (ffa_error_code(ffa_ret) != FFA_ERROR_NOT_SUPPORTED)) {
 			tftf_testcase_printf("%s failed for the wrong reason: "
 					     "returned %x, expected %x\n",
-					     ffa_feature_test_target[i].test_name,
+					     test_target.test_name,
 					     ffa_error_code(ffa_ret),
 					     FFA_ERROR_NOT_SUPPORTED);
 			return TEST_RESULT_FAIL;

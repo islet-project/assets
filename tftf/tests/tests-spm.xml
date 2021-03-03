@@ -89,4 +89,11 @@
      <testcase name="Check DMA command by SMMUv3TestEngine completes"
                function="test_smmu_spm" />
   </testsuite>
+
+  <testsuite name="FF-A Misc"
+             description="Test Misc FFA ABI Functions" >
+     <testcase name="Test FFA_SPM_ID_GET"
+               function="test_ffa_spm_id_get" />
+  </testsuite>
+
 </testsuites>
