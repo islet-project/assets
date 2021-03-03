@@ -41,9 +41,7 @@ extern const char version_string[];
 static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 {
 	smc_ret_values ffa_ret;
-	uint32_t sp_response;
 	ffa_vm_id_t destination;
-	uint64_t cactus_cmd;
 
 	/*
 	* This initial wait call is necessary to inform SPMD that
@@ -54,8 +52,6 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 	ffa_ret = ffa_msg_wait();
 
 	for (;;) {
-		/* temporary 'skip_switch' label. Deleted in following commit */
-		skip_switch:
 		VERBOSE("Woke up with func id: %x\n", ffa_func_id(ffa_ret));
 
 		if (ffa_func_id(ffa_ret) == FFA_ERROR) {
@@ -80,25 +76,7 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 
 		PRINT_CMD(ffa_ret);
 
-		cactus_cmd = cactus_get_cmd(ffa_ret);
-
-		if (cactus_handle_cmd(&ffa_ret, &ffa_ret, mb)) {
-			goto skip_switch;
-		}
-		switch (cactus_cmd) {
-		default:
-			/*
-			 * Currently direct message test is handled here.
-			 * TODO: create a case within the switch case
-			 * For the sake of testing, add the vm id to the
-			 * received message.
-			 */
-			sp_response = ffa_ret.ret3 | vm_id;
-			VERBOSE("Replying with direct message response: %x\n", sp_response);
-			ffa_ret = ffa_msg_send_direct_resp(vm_id,
-							   HYP_ID,
-							   sp_response);
-
+		if (!cactus_handle_cmd(&ffa_ret, &ffa_ret, mb)) {
 			break;
 		}
 	}

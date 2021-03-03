@@ -18,37 +18,26 @@
 #define ECHO_VAL2 U(0xb0b0b0b0)
 #define ECHO_VAL3 U(0xc0c0c0c0)
 
-#define DIRECT_MSG_TEST_PATTERN1	(0xaaaa0000)
-#define DIRECT_MSG_TEST_PATTERN2	(0xbbbb0000)
-#define DIRECT_MSG_TEST_PATTERN3	(0xcccc0000)
-
 static const struct ffa_uuid expected_sp_uuids[] = {
 		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
 	};
 
-static test_result_t send_receive_direct_msg(unsigned int sp_id,
-					     unsigned int test_pattern)
+static test_result_t send_cactus_echo_cmd(ffa_vm_id_t sender,
+					  ffa_vm_id_t dest,
+					  uint64_t value)
 {
-	smc_ret_values ret_values;
+	smc_ret_values ret;
+	ret = cactus_echo_send_cmd(sender, dest, value);
 
-	/* Send a message to SP through direct messaging */
-	ret_values = ffa_msg_send_direct_req(HYP_ID, sp_id, test_pattern);
-
-	/*
-	 * Return responses may be FFA_MSG_SEND_DIRECT_RESP or FFA_INTERRUPT,
-	 * but only expect the former. Expect SMC32 convention from SP.
-	 */
-	if (!is_ffa_direct_response(ret_values)) {
-		tftf_testcase_printf("ffa_msg_send_direct_req returned %x\n",
-				     ffa_func_id(ret_values));
+	if (!is_ffa_direct_response(ret)) {
+		ERROR("Failed to send message. error: %x\n",
+		      ffa_error_code(ret));
 		return TEST_RESULT_FAIL;
 	}
 
-	/*
-	 * Message loop in SP returns initial message with the running VM id
-	 * into the lower 16 bits of initial message.
-	 */
-	if (ret_values.ret3 != (test_pattern | sp_id)) {
+	if (cactus_get_response(ret) != CACTUS_SUCCESS ||
+	    cactus_echo_get_val(ret) != value) {
+		ERROR("Echo Failed!\n");
 		return TEST_RESULT_FAIL;
 	}
 
@@ -67,7 +56,7 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Send a message to SP1 through direct messaging
 	 **********************************************************************/
-	result = send_receive_direct_msg(SP_ID(1), DIRECT_MSG_TEST_PATTERN1);
+	result = send_cactus_echo_cmd(HYP_ID, SP_ID(1), ECHO_VAL1);
 	if (result != TEST_RESULT_SUCCESS) {
 		return result;
 	}
@@ -75,7 +64,7 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Send a message to SP2 through direct messaging
 	 **********************************************************************/
-	result = send_receive_direct_msg(SP_ID(2), DIRECT_MSG_TEST_PATTERN2);
+	result = send_cactus_echo_cmd(HYP_ID, SP_ID(2), ECHO_VAL2);
 	if (result != TEST_RESULT_SUCCESS) {
 		return result;
 	}
@@ -83,7 +72,7 @@ test_result_t test_ffa_direct_messaging(void)
 	/**********************************************************************
 	 * Send a message to SP1 through direct messaging
 	 **********************************************************************/
-	result = send_receive_direct_msg(SP_ID(1), DIRECT_MSG_TEST_PATTERN3);
+	result = send_cactus_echo_cmd(HYP_ID, SP_ID(1), ECHO_VAL3);
 
 	return result;
 }

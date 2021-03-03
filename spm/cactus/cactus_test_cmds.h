@@ -23,6 +23,7 @@
 #define CACTUS_ERROR_INVALID		U(1)
 #define CACTUS_ERROR_TEST		U(2)
 #define CACTUS_ERROR_FFA_CALL		U(3)
+#define CACTUS_ERROR_UNHANDLED		U(4)
 
 /**
  * Get command from struct smc_ret_values.
