@@ -9,12 +9,9 @@ TESTS_SOURCES	+=							\
 		ffa_helpers.c						\
 		spm_common.c						\
 		test_ffa_direct_messaging.c				\
-		test_ffa_features.c					\
 		test_ffa_interrupts.c					\
 		test_ffa_memory_sharing.c				\
-		test_ffa_misc.c						\
-		test_ffa_rxtx_map.c					\
-		test_ffa_version.c					\
+		test_ffa_setup_and_discovery.c				\
 		test_spm_cpu_features.c					\
 		test_spm_smmu.c						\
 	)

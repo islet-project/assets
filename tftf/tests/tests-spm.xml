@@ -7,27 +7,27 @@
 -->
 
 <testsuites>
+  <testsuite name="FF-A Setup and Discovery"
+             description="Test FF-A Setup and Discovery interfaces" >
+     <testcase name="Test FFA_FEATURES"
+               function="test_ffa_features" />
 
-  <testsuite name="FF-A Version"
-             description="Test FF-A Version ABI" >
+     <testcase name="Same FFA version as SPM"
+               function="test_ffa_version_equal" />
+     <testcase name="Setting bit 31 in input version"
+               function="test_ffa_version_bit31"/>
+     <testcase name="Bigger FFA version than SPM"
+               function="test_ffa_version_bigger" />
+     <testcase name="Smaller FFA version than SPM"
+               function="test_ffa_version_smaller" />
 
-    <testcase name="Same FFA version as SPM"
-              function="test_ffa_version_equal" />
-    <testcase name="Setting bit 31 in input version"
-              function="test_ffa_version_bit31"/>
-    <testcase name="Bigger FFA version than SPM"
-              function="test_ffa_version_bigger" />
-    <testcase name="Smaller FFA version than SPM"
-              function="test_ffa_version_smaller" />
-
-  </testsuite>
-
-  <testsuite name="FF-A RXTX Mapping"
-             description="Test to FF-A RXTX mapping ABI" >
      <testcase name="FF-A RXTX Map API success"
                function="test_ffa_rxtx_map_success" />
      <testcase name="FF-A RXTX Map API consecutive"
                function="test_ffa_rxtx_map_fail" />
+
+     <testcase name="Test FFA_SPM_ID_GET"
+               function="test_ffa_spm_id_get" />
   </testsuite>
 
   <testsuite name="FF-A Direct messaging"
@@ -66,12 +66,6 @@
                function="test_req_mem_donate_sp_to_sp" />
   </testsuite>
 
-  <testsuite name="FF-A features"
-             description="Test FFA_FEATURES ABI" >
-     <testcase name="Test FFA_FEATURES"
-               function="test_ffa_features" />
-  </testsuite>
-
   <testsuite name="SIMD,SVE Registers context"
              description="Validate context switch between NWd and SWd" >
      <testcase name="Check that SIMD registers context is preserved"
@@ -88,12 +82,6 @@
              description="Initiate stage2 translation for streams from upstream peripherals" >
      <testcase name="Check DMA command by SMMUv3TestEngine completes"
                function="test_smmu_spm" />
-  </testsuite>
-
-  <testsuite name="FF-A Misc"
-             description="Test Misc FFA ABI Functions" >
-     <testcase name="Test FFA_SPM_ID_GET"
-               function="test_ffa_spm_id_get" />
   </testsuite>
 
 </testsuites>
