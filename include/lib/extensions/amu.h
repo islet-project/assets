@@ -11,6 +11,7 @@
 
 #include <cassert.h>
 #include <platform_def.h>
+#include <utils_def.h>
 
 #define AMU_GROUP0_COUNTERS_MASK	U(0xf)
 #define AMU_GROUP0_NR_COUNTERS		U(4)
