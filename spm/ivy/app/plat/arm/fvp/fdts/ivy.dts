@@ -24,7 +24,7 @@
 	entrypoint-offset = <0x00001000>;
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
-	messaging-method = <0>; /* Direct messaging only */
+	messaging-method = <3>; /* Direct messaging only */
 	run-time-model = <1>; /* SP pre-emptible */
 
 	/* Boot protocol */

@@ -172,7 +172,7 @@ test_result_t check_spmc_testing_set_up(
 	GET_TFTF_MAILBOX(mb);
 
 	for (unsigned int i = 0U; i < ffa_uuids_size; i++)
-		SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(*mb, ffa_uuids[i].uuid);
+		SKIP_TEST_IF_FFA_ENDPOINT_NOT_DEPLOYED(*mb, ffa_uuids[i]);
 
 	return TEST_RESULT_SUCCESS;
 }

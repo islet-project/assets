@@ -357,14 +357,14 @@ smc_ret_values ffa_features(uint32_t feature)
 }
 
 /* Get information about VMs or SPs based on UUID */
-smc_ret_values ffa_partition_info_get(const uint32_t uuid[4])
+smc_ret_values ffa_partition_info_get(const struct ffa_uuid uuid)
 {
 	smc_args args = {
 		.fid = FFA_PARTITION_INFO_GET,
-		.arg1 = uuid[0],
-		.arg2 = uuid[1],
-		.arg3 = uuid[2],
-		.arg4 = uuid[3]
+		.arg1 = uuid.uuid[0],
+		.arg2 = uuid.uuid[1],
+		.arg3 = uuid.uuid[2],
+		.arg4 = uuid.uuid[3]
 	};
 
 	return tftf_smc(&args);

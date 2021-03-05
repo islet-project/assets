@@ -137,4 +137,9 @@ ffa_memory_handle_t memory_init_and_send(
 	const struct ffa_memory_region_constituent* constituents,
 	uint32_t constituents_count, uint32_t mem_func);
 
+bool ffa_partition_info_helper(struct mailbox_buffers *mb,
+			const struct ffa_uuid uuid,
+			const struct ffa_partition_info *expected,
+			const uint16_t expected_size);
+
 #endif /* SPM_COMMON_H */

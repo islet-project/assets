@@ -22,10 +22,37 @@
 
 static uint32_t spm_version;
 
-static const uint32_t primary_uuid[4] = PRIMARY_UUID;
-static const uint32_t secondary_uuid[4] = SECONDARY_UUID;
-static const uint32_t tertiary_uuid[4] = TERTIARY_UUID;
-static const uint32_t null_uuid[4] = {0};
+static const struct ffa_uuid sp_uuids[] = {
+		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
+	};
+static const struct ffa_uuid null_uuid = { .uuid = {0} };
+
+static const struct ffa_partition_info ffa_expected_partition_info[] = {
+	/* Primary partition info */
+	{
+		.id = SP_ID(1),
+		.exec_context = PRIMARY_EXEC_CTX_COUNT,
+		.properties = (FFA_PARTITION_DIRECT_REQ_RECV | FFA_PARTITION_DIRECT_REQ_SEND)
+	},
+	/* Secondary partition info */
+	{
+		.id = SP_ID(2),
+		.exec_context = SECONDARY_EXEC_CTX_COUNT,
+		.properties = (FFA_PARTITION_DIRECT_REQ_RECV | FFA_PARTITION_DIRECT_REQ_SEND)
+	},
+	/* Tertiary partition info */
+	{
+		.id = SP_ID(3),
+		.exec_context = TERTIARY_EXEC_CTX_COUNT,
+		.properties = (FFA_PARTITION_DIRECT_REQ_RECV | FFA_PARTITION_DIRECT_REQ_SEND)
+	},
+	/* Ivy partition info */
+	{
+		.id = SP_ID(4),
+		.exec_context = IVY_EXEC_CTX_COUNT,
+		.properties = (FFA_PARTITION_DIRECT_REQ_RECV | FFA_PARTITION_DIRECT_REQ_SEND)
+	}
+};
 
 /*
  * Test FFA_FEATURES interface.
@@ -64,29 +91,10 @@ static void ffa_features_test(void)
 	announce_test_section_end(test_features);
 }
 
-static void ffa_partition_info_helper(struct mailbox_buffers *mb, const uint32_t uuid[4],
-			       const struct ffa_partition_info *expected,
-			       const uint16_t expected_size)
-{
-	smc_ret_values ret = ffa_partition_info_get(uuid);
-	unsigned int i;
-	expect(ffa_func_id(ret), FFA_SUCCESS_SMC32);
-
-	struct ffa_partition_info *info = (struct ffa_partition_info *)(mb->recv);
-	for (i = 0U; i < expected_size; i++) {
-		expect(info[i].id, expected[i].id);
-		expect(info[i].exec_context, expected[i].exec_context);
-		expect(info[i].properties, expected[i].properties);
-	}
-
-	ret = ffa_rx_release();
-	expect(ffa_func_id(ret), FFA_SUCCESS_SMC32);
-}
-
 static void ffa_partition_info_wrong_test(void)
 {
 	const char *test_wrong_uuid = "Request wrong UUID";
-	uint32_t uuid[4] = {1};
+	const struct ffa_uuid uuid = { .uuid = {1} };
 
 	announce_test_start(test_wrong_uuid);
 
@@ -100,50 +108,20 @@ static void ffa_partition_info_wrong_test(void)
 static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 {
 	const char *test_partition_info = "FFA Partition info interface";
-	const char *test_primary = "Get primary partition info";
-	const char *test_secondary = "Get secondary partition info";
-	const char *test_tertiary = "Get tertiary partition info";
-	const char *test_all = "Get all partitions info";
-
-	const struct ffa_partition_info expected_info[] = {
-		/* Primary partition info */
-		{
-			.id = SPM_VM_ID_FIRST,
-			.exec_context = CACTUS_PRIMARY_EC_COUNT,
-			/* Supports receipt of direct message requests. */
-			.properties = 1U
-		},
-		/* Secondary partition info */
-		{
-			.id = SPM_VM_ID_FIRST + 1U,
-			.exec_context = CACTUS_SECONDARY_EC_COUNT,
-			.properties = 1U
-		},
-		/* Tertiary partition info */
-		{
-			.id = SPM_VM_ID_FIRST + 2U,
-			.exec_context = CACTUS_TERTIARY_EC_COUNT,
-			.properties = 1U
-		}
-	};
 
 	announce_test_section_start(test_partition_info);
 
-	announce_test_start(test_tertiary);
-	ffa_partition_info_helper(mb, tertiary_uuid, &expected_info[2], 1);
-	announce_test_end(test_tertiary);
+	expect(ffa_partition_info_helper(mb, sp_uuids[2],
+		&ffa_expected_partition_info[2], 1), true);
 
-	announce_test_start(test_secondary);
-	ffa_partition_info_helper(mb, secondary_uuid, &expected_info[1], 1);
-	announce_test_end(test_secondary);
+	expect(ffa_partition_info_helper(mb, sp_uuids[1],
+		&ffa_expected_partition_info[1], 1), true);
 
-	announce_test_start(test_primary);
-	ffa_partition_info_helper(mb, primary_uuid, &expected_info[0], 1);
-	announce_test_end(test_primary);
+	expect(ffa_partition_info_helper(mb, sp_uuids[0],
+		&ffa_expected_partition_info[0], 1), true);
 
-	announce_test_start(test_all);
-	ffa_partition_info_helper(mb, null_uuid, expected_info, 3);
-	announce_test_end(test_all);
+	expect(ffa_partition_info_helper(mb, null_uuid,
+		ffa_expected_partition_info, 4), true);
 
 	ffa_partition_info_wrong_test();
 
