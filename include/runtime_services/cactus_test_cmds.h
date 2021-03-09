@@ -312,4 +312,66 @@ static inline smc_ret_values cactus_send_dma_cmd(
 	return cactus_send_cmd(source, dest, CACTUS_DMA_SMMUv3_CMD, 0, 0, 0,
 			       0);
 }
+
+/*
+ * Request SP to bind a notification to a FF-A endpoint. In case of error
+ * when using the FFA_NOTIFICATION_BIND interface, include the error code
+ * in the response to the command's request. The receiver and sender arguments
+ * are propagated through the command's arguments, to allow the test of
+ * erroneous uses of the FFA_NOTIFICATION_BIND interface.
+ *
+ * The command id is the hex representation of the string "bind".
+ */
+#define CACTUS_NOTIFICATION_BIND_CMD U(0x62696e64)
+
+static inline smc_ret_values cactus_notification_bind_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	ffa_id_t sender, ffa_notification_bitmap_t notifications, uint32_t flags)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATION_BIND_CMD,
+			       receiver, sender, notifications, flags);
+}
+
+/**
+ * Request to SP unbind a notification. In case of error when using the
+ * FFA_NOTIFICATION_UNBIND interface, the test includes the error code in the
+ * response. The receiver and sender arguments are propagated throught the
+ * command's arguments, to allow the test of erroneous uses of the
+ * FFA_NOTIFICATION_BIND interface.
+ *
+ * The command id is the hex representation of the string "unbind".
+ */
+#define CACTUS_NOTIFICATION_UNBIND_CMD U(0x756e62696e64)
+
+static inline smc_ret_values cactus_notification_unbind_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	ffa_id_t sender, ffa_notification_bitmap_t notifications)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATION_UNBIND_CMD,
+			       receiver, sender, notifications, 0);
+}
+
+static inline ffa_id_t cactus_notification_get_receiver(
+	smc_ret_values ret)
+{
+	return (ffa_id_t)ret.ret4;
+}
+
+static inline ffa_id_t cactus_notification_get_sender(
+	smc_ret_values ret)
+{
+	return (ffa_id_t)ret.ret5;
+}
+
+static inline ffa_notification_bitmap_t cactus_notification_get_notifications(
+	smc_ret_values ret)
+{
+	return (uint64_t)ret.ret6;
+}
+
+static inline uint32_t cactus_notification_get_flags(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret7;
+}
+
 #endif
