@@ -27,6 +27,7 @@ struct ffa_uuid {
 
 #ifndef __ASSEMBLY__
 
+#include <cassert.h>
 #include <stdint.h>
 
 /** Partition property: partition supports receipt of direct requests. */
@@ -58,6 +59,16 @@ static inline int32_t ffa_error_code(smc_ret_values val) {
 static inline ffa_id_t ffa_endpoint_id(smc_ret_values val) {
 	return (ffa_id_t) val.ret2 & 0xffff;
 }
+
+typedef uint64_t ffa_notification_bitmap_t;
+
+#define FFA_NOTIFICATION(ID)		(UINT64_C(1) << ID)
+
+#define MAX_FFA_NOTIFICATIONS		UINT32_C(64)
+
+#define FFA_NOTIFICATIONS_FLAG_PER_VCPU	UINT32_C(0x1 << 0)
+
+#define FFA_NOTIFICATIONS_FLAGS_VCPU_ID(id) UINT32_C((id & 0xFFFF) << 16)
 
 enum ffa_data_access {
 	FFA_DATA_ACCESS_NOT_SPECIFIED,
@@ -318,7 +329,8 @@ struct ffa_mem_relinquish {
 
 static inline ffa_memory_handle_t ffa_assemble_handle(uint32_t h1, uint32_t h2)
 {
-	return (uint64_t)h1 | (uint64_t)h2 << 32;
+	return (ffa_notification_bitmap_t)h1 |
+	       (ffa_notification_bitmap_t)h2 << 32;
 }
 
 static inline ffa_memory_handle_t ffa_mem_success_handle(smc_ret_values r)
@@ -428,7 +440,11 @@ smc_ret_values ffa_mem_reclaim(uint64_t handle, uint32_t flags);
 smc_ret_values ffa_notification_bitmap_create(ffa_id_t vm_id,
 					      ffa_vcpu_count_t vcpu_count);
 smc_ret_values ffa_notification_bitmap_destroy(ffa_id_t vm_id);
-
+smc_ret_values ffa_notification_bind(ffa_id_t sender, ffa_id_t receiver,
+				     uint32_t flags,
+				     ffa_notification_bitmap_t notifications);
+smc_ret_values ffa_notification_unbind(ffa_id_t sender, ffa_id_t receiver,
+				       ffa_notification_bitmap_t notifications);
 #endif /* __ASSEMBLY__ */
 
 #endif /* FFA_HELPERS_H */
