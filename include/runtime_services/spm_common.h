@@ -77,8 +77,11 @@ struct mailbox_buffers {
  * Helpers to evaluate returns of FF-A calls.
  */
 bool is_ffa_call_error(smc_ret_values val);
+bool is_expected_ffa_error(smc_ret_values ret, int32_t error_code);
 bool is_ffa_direct_response(smc_ret_values ret);
 bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id);
+bool is_expected_cactus_response(smc_ret_values ret, uint32_t expected_resp,
+				 uint32_t arg);
 
 /*
  * Vector length:

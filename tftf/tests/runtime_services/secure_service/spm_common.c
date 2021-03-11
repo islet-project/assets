@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <cactus_test_cmds.h>
 #include <debug.h>
 #include <ffa_endpoints.h>
 #include <ffa_svc.h>
@@ -29,6 +30,19 @@ bool is_ffa_call_error(smc_ret_values ret)
 		      ffa_func_id(ret), ffa_error_code(ret));
 		return true;
 	}
+	return false;
+}
+
+bool is_expected_ffa_error(smc_ret_values ret, int32_t error_code)
+{
+	if (ffa_func_id(ret) == FFA_ERROR &&
+	    ffa_error_code(ret) == error_code) {
+		return true;
+	}
+
+	ERROR("Expected FFA_ERROR(%x), code: %d, got %x %d\n",
+	      FFA_ERROR, error_code, ffa_func_id(ret), ffa_error_code(ret));
+
 	return false;
 }
 
@@ -64,6 +78,26 @@ bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id)
 
 	return false;
 }
+
+bool is_expected_cactus_response(smc_ret_values ret, uint32_t expected_resp,
+				 uint32_t arg)
+{
+	if (!is_ffa_direct_response(ret)) {
+		return false;
+	}
+
+	if (cactus_get_response(ret) != expected_resp ||
+	    (uint32_t)ret.ret4 != arg) {
+		ERROR("Expected response %x and %x; "
+		      "Obtained %x and %x\n",
+		      expected_resp, arg, cactus_get_response(ret),
+		      (int32_t)ret.ret4);
+		return false;
+	}
+
+	return true;
+}
+
 void fill_simd_vector_regs(const simd_vector_t v[SIMD_NUM_VECTORS])
 {
 #ifdef __aarch64__
