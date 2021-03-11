@@ -425,6 +425,9 @@ smc_ret_values ffa_mem_retrieve_req(uint32_t descriptor_length,
 			            uint32_t fragment_length);
 smc_ret_values ffa_mem_relinquish(void);
 smc_ret_values ffa_mem_reclaim(uint64_t handle, uint32_t flags);
+smc_ret_values ffa_notification_bitmap_create(ffa_id_t vm_id,
+					      ffa_vcpu_count_t vcpu_count);
+smc_ret_values ffa_notification_bitmap_destroy(ffa_id_t vm_id);
 
 #endif /* __ASSEMBLY__ */
 

@@ -499,3 +499,39 @@ smc_ret_values ffa_mem_reclaim(uint64_t handle, uint32_t flags)
 
 	return tftf_smc(&args);
 }
+
+/** Create Notifications Bitmap for the given VM */
+smc_ret_values ffa_notification_bitmap_create(ffa_id_t vm_id,
+					      ffa_vcpu_count_t vcpu_count)
+{
+	smc_args args = {
+		.fid = FFA_NOTIFICATION_BITMAP_CREATE,
+		.arg1 = vm_id,
+		.arg2 = vcpu_count,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ,
+		.arg5 = FFA_PARAM_MBZ,
+		.arg6 = FFA_PARAM_MBZ,
+		.arg7 = FFA_PARAM_MBZ,
+	};
+
+	return tftf_smc(&args);
+}
+
+/** Destroy Notifications Bitmap for the given VM */
+smc_ret_values ffa_notification_bitmap_destroy(ffa_id_t vm_id)
+{
+	smc_args args = {
+		.fid = FFA_NOTIFICATION_BITMAP_DESTROY,
+		.arg1 = vm_id,
+		.arg2 = FFA_PARAM_MBZ,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ,
+		.arg5 = FFA_PARAM_MBZ,
+		.arg6 = FFA_PARAM_MBZ,
+		.arg7 = FFA_PARAM_MBZ,
+	};
+
+	return tftf_smc(&args);
+}
+
