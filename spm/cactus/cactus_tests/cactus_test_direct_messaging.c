@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include "cactus_message_loop.h"
 #include "cactus_test_cmds.h"
 #include <debug.h>
 #include <ffa_helpers.h>

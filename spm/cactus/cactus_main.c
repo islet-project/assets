@@ -8,8 +8,8 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <cactus_message_loop.h>
 #include <cactus_platform_def.h>
-#include <cactus_test_cmds.h>
 #include <drivers/arm/pl011.h>
 #include <drivers/console.h>
 #include <lib/aarch64/arch_helpers.h>
@@ -73,8 +73,6 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 				__func__, vm_id, destination);
 			break;
 		}
-
-		PRINT_CMD(ffa_ret);
 
 		if (!cactus_handle_cmd(&ffa_ret, &ffa_ret, mb)) {
 			break;

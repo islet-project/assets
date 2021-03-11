@@ -40,8 +40,8 @@ CACTUS_SOURCES	:=					\
 		sp_helpers.c				\
 	)						\
 	$(addprefix spm/cactus/cactus_tests/,		\
+		cactus_message_loop.c			\
 		cactus_test_cpu_features.c		\
-		cactus_test_cmds.c			\
 		cactus_test_direct_messaging.c		\
 		cactus_test_ffa.c 			\
 		cactus_test_memory_sharing.c		\

@@ -7,9 +7,7 @@
 #ifndef CACTUS_TEST_CMDS
 #define CACTUS_TEST_CMDS
 
-#include <debug.h>
 #include <ffa_helpers.h>
-#include <spm_common.h>
 
 /**
  * Success and error return to be sent over a msg response.
@@ -101,11 +99,6 @@ static inline uint32_t cactus_error_code(smc_ret_values ret)
 {
 	return (uint32_t) ret.ret4;
 }
-
-#define PRINT_CMD(smc_ret)						\
-	VERBOSE("cmd %lx; args: %lx, %lx, %lx, %lx\n",	 		\
-		smc_ret.ret3, smc_ret.ret4, smc_ret.ret5, 		\
-		smc_ret.ret6, smc_ret.ret7)
 
 /**
  * With this test command the sender transmits a 64-bit value that it then
@@ -255,41 +248,5 @@ static inline smc_ret_values cactus_req_simd_fill_send_cmd(
 	return cactus_send_cmd(source, dest, CACTUS_REQ_SIMD_FILL_CMD, 0, 0, 0,
 			       0);
 }
-
-/**
- * Pairs a command id with a function call, to handle the command ID.
- */
-struct cactus_cmd_handler {
-	const uint64_t id;
-	smc_ret_values (*fn)(const smc_ret_values *args,
-			     struct mailbox_buffers *mb);
-};
-
-/**
- * Helper to create the name of a handler function.
- */
-#define CACTUS_HANDLER_FN_NAME(name) cactus_##name##_handler
-
-/**
- * Define handler's function signature.
- */
-#define CACTUS_HANDLER_FN(name)						\
-	static smc_ret_values CACTUS_HANDLER_FN_NAME(name)(		\
-		const smc_ret_values *args, struct mailbox_buffers *mb)
-
-/**
- * Helper to define Cactus command handler, and pair it with a command ID.
- * It also creates a table with this information, to be traversed by
- * 'cactus_handle_cmd' function.
- */
-#define CACTUS_CMD_HANDLER(name, ID)					\
-	CACTUS_HANDLER_FN(name);					\
-	struct cactus_cmd_handler name __section(".cactus_handler") = {	\
-		.id = ID, .fn = CACTUS_HANDLER_FN_NAME(name),		\
-	};								\
-	CACTUS_HANDLER_FN(name)
-
-bool cactus_handle_cmd(smc_ret_values *cmd_args, smc_ret_values *ret,
-		       struct mailbox_buffers *mb);
 
 #endif
