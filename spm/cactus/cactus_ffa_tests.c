@@ -59,9 +59,9 @@ static void ffa_features_test(void)
 		announce_test_start(ffa_feature_test_target[i].test_name);
 
 		ffa_ret = ffa_features(ffa_feature_test_target[i].feature);
-		expect(ffa_ret.ret0, ffa_feature_test_target[i].expected_ret);
+		expect(ffa_func_id(ffa_ret), ffa_feature_test_target[i].expected_ret);
 		if (ffa_feature_test_target[i].expected_ret == FFA_ERROR) {
-			expect(ffa_ret.ret2, FFA_ERROR_NOT_SUPPORTED);
+			expect(ffa_error_code(ffa_ret), FFA_ERROR_NOT_SUPPORTED);
 		}
 
 		announce_test_end(ffa_feature_test_target[i].test_name);
@@ -76,7 +76,7 @@ static void ffa_partition_info_helper(struct mailbox_buffers *mb, const uint32_t
 {
 	smc_ret_values ret = ffa_partition_info_get(uuid);
 	unsigned int i;
-	expect(ret.ret0, FFA_SUCCESS_SMC32);
+	expect(ffa_func_id(ret), FFA_SUCCESS_SMC32);
 
 	struct ffa_partition_info *info = (struct ffa_partition_info *)(mb->recv);
 	for (i = 0U; i < expected_size; i++) {
@@ -86,7 +86,7 @@ static void ffa_partition_info_helper(struct mailbox_buffers *mb, const uint32_t
 	}
 
 	ret = ffa_rx_release();
-	expect(ret.ret0, FFA_SUCCESS_SMC32);
+	expect(ffa_func_id(ret), FFA_SUCCESS_SMC32);
 }
 
 static void ffa_partition_info_wrong_test(void)
@@ -97,8 +97,8 @@ static void ffa_partition_info_wrong_test(void)
 	announce_test_start(test_wrong_uuid);
 
 	smc_ret_values ret = ffa_partition_info_get(uuid);
-	expect(ret.ret0, FFA_ERROR);
-	expect(ret.ret2, FFA_ERROR_INVALID_PARAMETER);
+	expect(ffa_func_id(ret), FFA_ERROR);
+	expect(ffa_error_code(ret), FFA_ERROR_INVALID_PARAMETER);
 
 	announce_test_end(test_wrong_uuid);
 }
@@ -209,7 +209,7 @@ bool ffa_memory_retrieve_test(struct mailbox_buffers *mb,
 
 	ret = ffa_mem_retrieve_req(descriptor_size, descriptor_size);
 
-	if (ret.ret0 != FFA_MEM_RETRIEVE_RESP) {
+	if (ffa_func_id(ret) != FFA_MEM_RETRIEVE_RESP) {
 		ERROR("Couldn't retrieve the memory page. Error: %lx\n",
 		      ret.ret2);
 		return false;
@@ -254,10 +254,13 @@ bool ffa_memory_relinquish_test(struct ffa_mem_relinquish *m,
 			   uint64_t handle,
 			   ffa_vm_id_t id)
 {
-	ffa_mem_relinquish_init(m, handle, 0, id);
+	smc_ret_values ret;
 
-	if (ffa_mem_relinquish().ret0 != FFA_SUCCESS_SMC32) {
-		ERROR("%s failed to relinquish memory!\n", __func__);
+	ffa_mem_relinquish_init(m, handle, 0, id);
+	ret = ffa_mem_relinquish();
+	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
+		ERROR("%s failed to relinquish memory! error: %x\n",
+		      __func__, ffa_error_code(ret));
 		return false;
 	}
 
@@ -331,7 +334,7 @@ void ffa_memory_management_test(struct mailbox_buffers *mb, ffa_vm_id_t vm_id,
 		       true);
 	}
 
-	expect(ffa_rx_release().ret0, FFA_SUCCESS_SMC32);
+	expect(ffa_func_id(ffa_rx_release()), FFA_SUCCESS_SMC32);
 
 	announce_test_section_end(test_ffa);
 }

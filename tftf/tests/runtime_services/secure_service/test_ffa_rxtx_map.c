@@ -33,8 +33,8 @@ static test_result_t test_ffa_rxtx_map(uint32_t expected_return)
 	 * FFA_RXTX_MAP.
 	 */
 	CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);
-	if (ret.ret0 != expected_return) {
-		ERROR("Failed to map RXTX buffers %lx!\n", ret.ret2);
+	if (ffa_func_id(ret) != expected_return) {
+		ERROR("Failed to map RXTX buffers %x!\n", ffa_error_code(ret));
 		return TEST_RESULT_FAIL;
 	}
 

@@ -25,20 +25,20 @@ test_result_t test_ffa_features(void)
 
 	for (i = 0U; i < test_target_size; i++) {
 		ffa_ret = ffa_features(ffa_feature_test_target[i].feature);
-		if (ffa_ret.ret0 != ffa_feature_test_target[i].expected_ret) {
-			tftf_testcase_printf("%s returned %lx, expected %x\n",
+		if (ffa_func_id(ffa_ret) != ffa_feature_test_target[i].expected_ret) {
+			tftf_testcase_printf("%s returned %x, expected %x\n",
 					     ffa_feature_test_target[i].test_name,
-					     ffa_ret.ret0,
+					     ffa_func_id(ffa_ret),
 					     ffa_feature_test_target[i].expected_ret);
 			return TEST_RESULT_FAIL;
 		}
-		if ((ffa_feature_test_target[i].expected_ret == (u_register_t)FFA_ERROR) &&
-		    (ffa_ret.ret2 != (u_register_t)FFA_ERROR_NOT_SUPPORTED)) {
+		if ((ffa_feature_test_target[i].expected_ret == FFA_ERROR) &&
+		    (ffa_error_code(ffa_ret) != FFA_ERROR_NOT_SUPPORTED)) {
 			tftf_testcase_printf("%s failed for the wrong reason: "
-					     "returned %lx, expected %lx\n",
+					     "returned %x, expected %x\n",
 					     ffa_feature_test_target[i].test_name,
-					     ffa_ret.ret2,
-					     (u_register_t)FFA_ERROR_NOT_SUPPORTED);
+					     ffa_error_code(ffa_ret),
+					     FFA_ERROR_NOT_SUPPORTED);
 			return TEST_RESULT_FAIL;
 		}
 	}

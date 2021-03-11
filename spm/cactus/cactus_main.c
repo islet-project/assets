@@ -57,27 +57,27 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 	ffa_ret = ffa_msg_wait();
 
 	for (;;) {
-		VERBOSE("Woke up with func id: %lx\n", ffa_ret.ret0);
+		VERBOSE("Woke up with func id: %x\n", ffa_func_id(ffa_ret));
 
-		if (ffa_ret.ret0 == FFA_ERROR) {
-			ERROR("Error: %lx\n", ffa_ret.ret2);
+		if (ffa_func_id(ffa_ret) == FFA_ERROR) {
+			ERROR("Error: %x\n", ffa_error_code(ffa_ret));
 			break;
 		}
 
-		if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_REQ_SMC32 &&
-		    ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_REQ_SMC64) {
-			ERROR("%s(%u) unknown func id 0x%lx\n",
-				__func__, vm_id, ffa_ret.ret0);
+		if (ffa_func_id(ffa_ret) != FFA_MSG_SEND_DIRECT_REQ_SMC32 &&
+		    ffa_func_id(ffa_ret) != FFA_MSG_SEND_DIRECT_REQ_SMC64) {
+			ERROR("%s(%u) unknown func id 0x%x\n",
+				__func__, vm_id, ffa_func_id(ffa_ret));
 			break;
 		}
 
-		destination = ffa_ret.ret1 & U(0xFFFF);
+		destination = ffa_dir_msg_dest(ffa_ret);
 
-		source = ffa_ret.ret1 >> 16;
+		source = ffa_dir_msg_source(ffa_ret);
 
 		if (destination != vm_id) {
-			ERROR("%s(%u) invalid vm id 0x%lx\n",
-				__func__, vm_id, ffa_ret.ret1);
+			ERROR("%s(%u) invalid vm id 0x%x\n",
+				__func__, vm_id, destination);
 			break;
 		}
 
@@ -134,9 +134,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func,
 						      handle);
 
-			if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
-				ERROR("Failed to send message. error: %lx\n",
-					ffa_ret.ret2);
+			if (ffa_func_id(ffa_ret) !=
+					FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+				ERROR("Failed to send message. error: %x\n",
+					ffa_error_code(ffa_ret));
 				ffa_ret = cactus_error_resp(vm_id, source);
 				break;
 			}
@@ -188,9 +189,9 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 		{
 			uint64_t echo_val = cactus_echo_get_val(ffa_ret);
 
-			VERBOSE("Received echo at %x, value %llx.\n",
-				destination, echo_val);
-			ffa_ret = cactus_response(vm_id, source, echo_val);
+			VERBOSE("Received echo at %x, value %llx from %x.\n",
+				destination, echo_val, source);
+			ffa_ret = cactus_response(destination, source, echo_val);
 			break;
 		}
 		case CACTUS_REQ_ECHO_CMD:
@@ -206,9 +207,10 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			ffa_ret = cactus_echo_send_cmd(vm_id, echo_dest,
 							echo_val);
 
-			if (ffa_ret.ret0 != FFA_MSG_SEND_DIRECT_RESP_SMC32) {
-				ERROR("Failed to send message. error: %lx\n",
-					ffa_ret.ret2);
+			if (ffa_func_id(ffa_ret) !=
+			    FFA_MSG_SEND_DIRECT_RESP_SMC32) {
+				ERROR("Failed to send message. error: %x\n",
+					ffa_error_code(ffa_ret));
 				success = false;
 			}
 
@@ -248,8 +250,8 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 * an FF-A direct message, to the first partition.
 			 */
 			bool is_deadlock_detected =
-				(ffa_ret.ret0 == FFA_ERROR) &&
-				(ffa_ret.ret2 == FFA_ERROR_BUSY);
+				(ffa_func_id(ffa_ret) == FFA_ERROR) &&
+				(ffa_error_code(ffa_ret) == FFA_ERROR_BUSY);
 
 			/*
 			 * Should be true after the deadlock has been detected
@@ -257,13 +259,14 @@ static void __dead2 message_loop(ffa_vm_id_t vm_id, struct mailbox_buffers *mb)
 			 * request chain.
 			 */
 			bool is_returning_from_deadlock =
-				(ffa_ret.ret0 == FFA_MSG_SEND_DIRECT_RESP_SMC32)
+				(ffa_func_id(ffa_ret) ==
+				 FFA_MSG_SEND_DIRECT_RESP_SMC32)
 				&&
 				(cactus_get_response(ffa_ret) == CACTUS_SUCCESS);
 
 			if (is_deadlock_detected) {
-				NOTICE("Attempting dealock but got error %lx\n",
-					ffa_ret.ret2);
+				NOTICE("Attempting dealock but got error %x\n",
+					ffa_error_code(ffa_ret));
 			}
 
 			if (is_deadlock_detected ||
@@ -390,7 +393,7 @@ void __dead2 cactus_main(void)
 
 	/* Get current FFA id */
 	smc_ret_values ffa_id_ret = ffa_id_get();
-	if (ffa_id_ret.ret0 != FFA_SUCCESS_SMC32) {
+	if (ffa_func_id(ffa_id_ret) != FFA_SUCCESS_SMC32) {
 		ERROR("FFA_ID_GET failed.\n");
 		panic();
 	}
@@ -422,10 +425,10 @@ void __dead2 cactus_main(void)
 		if (ffa_id == (SPM_VM_ID_FIRST + 2)) {
 			VERBOSE("Mapping RXTX Region\n");
 			CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);
-			if (ret.ret0 != FFA_SUCCESS_SMC32) {
+			if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
 				ERROR(
-				    "Failed to map RXTX buffers. Error: %lx\n",
-				    ret.ret2);
+				    "Failed to map RXTX buffers. Error: %x\n",
+				    ffa_error_code(ret));
 				panic();
 			}
 		}
