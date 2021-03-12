@@ -3,8 +3,6 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
-#include <debug.h>
 #include <smccc.h>
 
 #include <ffa_endpoints.h>
@@ -57,57 +55,82 @@ smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id)
  *     -BUSY: Message target is busy
  *     -ABORTED: Message target ran into an unexpected error and has aborted
  */
-static smc_ret_values __ffa_msg_send_direct_req32_5(uint32_t source_id,
-						     uint32_t dest_id,
-						     uint32_t arg0,
-						     uint32_t arg1,
-						     uint32_t arg2,
-						     uint32_t arg3,
-						     uint32_t arg4)
+smc_ret_values ffa_msg_send_direct_req64(ffa_vm_id_t source_id,
+					 ffa_vm_id_t dest_id, uint64_t arg0,
+					 uint64_t arg1, uint64_t arg2,
+					 uint64_t arg3, uint64_t arg4)
 {
 	smc_args args = {
-		FFA_MSG_SEND_DIRECT_REQ_SMC32,
-		(source_id << 16) | dest_id,
-		0,
-		arg0, arg1, arg2, arg3, arg4
+		.fid = FFA_MSG_SEND_DIRECT_REQ_SMC64,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
 	};
 
 	return tftf_smc(&args);
 }
 
-/* Direct message send helper accepting a single 32b message argument */
-smc_ret_values ffa_msg_send_direct_req(uint32_t source_id, uint32_t dest_id,
-					uint32_t message)
-{
-	return __ffa_msg_send_direct_req32_5(source_id, dest_id,
-					      message, 0, 0, 0, 0);
-}
-
-smc_ret_values ffa_msg_send_direct_req64_5args(uint32_t source_id,
-						     uint32_t dest_id,
-						     uint64_t arg0,
-						     uint64_t arg1,
-						     uint64_t arg2,
-						     uint64_t arg3,
-						     uint64_t arg4)
+smc_ret_values ffa_msg_send_direct_req32(ffa_vm_id_t source_id,
+					 ffa_vm_id_t dest_id, uint32_t arg0,
+					 uint32_t arg1, uint32_t arg2,
+					 uint32_t arg3, uint32_t arg4)
 {
 	smc_args args = {
-		FFA_MSG_SEND_DIRECT_REQ_SMC64,
-		(source_id << 16) | dest_id,
-		0,
-		arg0, arg1, arg2, arg3, arg4
+		.fid = FFA_MSG_SEND_DIRECT_REQ_SMC32,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
 	};
 
 	return tftf_smc(&args);
 }
 
-/* Direct message send helper accepting a single 64b message argument */
-smc_ret_values ffa_msg_send_direct_req64(uint32_t source_id, uint32_t dest_id,
-					uint64_t message)
+smc_ret_values ffa_msg_send_direct_resp64(ffa_vm_id_t source_id,
+					  ffa_vm_id_t dest_id, uint64_t arg0,
+					  uint64_t arg1, uint64_t arg2,
+					  uint64_t arg3, uint64_t arg4)
 {
-	return ffa_msg_send_direct_req64_5args(source_id, dest_id,
-					      message, 0, 0, 0, 0);
+	smc_args args = {
+		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC64,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
+	};
+
+	return tftf_smc(&args);
 }
+
+smc_ret_values ffa_msg_send_direct_resp32(ffa_vm_id_t source_id,
+					  ffa_vm_id_t dest_id, uint32_t arg0,
+					  uint32_t arg1, uint32_t arg2,
+					  uint32_t arg3, uint32_t arg4)
+{
+	smc_args args = {
+		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32,
+		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
+		.arg2 = 0,
+		.arg3 = arg0,
+		.arg4 = arg1,
+		.arg5 = arg2,
+		.arg6 = arg3,
+		.arg7 = arg4,
+	};
+
+	return tftf_smc(&args);
+}
+
 
 /**
  * Initialises the header of the given `ffa_memory_region`, not including the
@@ -268,91 +291,6 @@ uint32_t ffa_memory_retrieve_request_init(
 	       memory_region->receiver_count * sizeof(struct ffa_memory_access);
 }
 
-/**
- * Helper to call memory send function whose func id is passed as a parameter.
- * Returns a valid handle in case of successful operation or
- * FFA_MEMORY_HANDLE_INVALID if something goes wrong.
- *
- * TODO: Do memory send with 'ffa_memory_region' taking multiple segments
- */
-ffa_memory_handle_t ffa_memory_send(
-	struct ffa_memory_region *memory_region, uint32_t mem_func,
-	uint32_t fragment_length, uint32_t total_length)
-{
-	smc_ret_values ret;
-	ffa_vm_id_t receiver =
-		memory_region->receivers[0].receiver_permissions.receiver;
-
-	if (fragment_length != total_length) {
-		ERROR("For now, fragment_length and total_length need to be"
-		      " equal");
-		return FFA_MEMORY_HANDLE_INVALID;
-	}
-
-	switch (mem_func) {
-	case FFA_MEM_SHARE_SMC32:
-		ret = ffa_mem_share(total_length, fragment_length);
-		break;
-	case FFA_MEM_LEND_SMC32:
-		ret = ffa_mem_lend(total_length, fragment_length);
-		break;
-	case FFA_MEM_DONATE_SMC32:
-		ret = ffa_mem_donate(total_length, fragment_length);
-		break;
-	default:
-		ERROR("TFTF - Invalid func id %x!\n", mem_func);
-		return FFA_MEMORY_HANDLE_INVALID;
-	}
-
-	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
-		ERROR("Failed to send memory to %x, error: %x.\n",
-				      receiver, ffa_error_code(ret));
-		return FFA_MEMORY_HANDLE_INVALID;
-	}
-
-	return ffa_mem_success_handle(ret);
-;
-}
-
-/**
- * Helper that initializes and sends a memory region. The memory region's
- * configuration is statically defined and is implementation specific. However,
- * doing it in this file for simplicity and for testing purposes.
- */
-ffa_memory_handle_t ffa_memory_init_and_send(
-	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver,
-	const struct ffa_memory_region_constituent *constituents,
-	uint32_t constituents_count, uint32_t mem_func)
-{
-	uint32_t remaining_constituent_count;
-	uint32_t total_length;
-	uint32_t fragment_length;
-
-	enum ffa_data_access data_access = (mem_func == FFA_MEM_DONATE_SMC32) ?
-						FFA_DATA_ACCESS_NOT_SPECIFIED :
-						FFA_DATA_ACCESS_RW;
-
-	remaining_constituent_count = ffa_memory_region_init(
-		memory_region, memory_region_max_size, sender, receiver, constituents,
-		constituents_count, 0, 0, data_access,
-		FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED,
-		FFA_MEMORY_NORMAL_MEM, FFA_MEMORY_CACHE_WRITE_BACK,
-		FFA_MEMORY_INNER_SHAREABLE, &total_length, &fragment_length
-	);
-
-	/*
-	 * For simplicity of the test, and at least for the time being,
-	 * the following condition needs to be true.
-	 */
-	if (remaining_constituent_count != 0U) {
-		ERROR("Remaining constituent should be 0\n");
-		return FFA_MEMORY_HANDLE_INVALID;
-	}
-
-	return ffa_memory_send(memory_region, mem_func, fragment_length,
-			       total_length);
-}
 
 /*
  * FFA Version ABI helper.
@@ -383,19 +321,6 @@ smc_ret_values ffa_msg_wait(void)
 {
 	smc_args args = {
 		.fid = FFA_MSG_WAIT
-	};
-
-	return tftf_smc(&args);
-}
-
-smc_ret_values ffa_msg_send_direct_resp(ffa_vm_id_t source_id,
-						ffa_vm_id_t dest_id,
-						uint32_t message)
-{
-	smc_args args = {
-		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32,
-		.arg1 = ((uint32_t)source_id << 16) | dest_id,
-		.arg3 = message
 	};
 
 	return tftf_smc(&args);

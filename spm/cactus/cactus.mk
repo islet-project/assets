@@ -33,13 +33,19 @@ CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
 		aarch64/cactus_entrypoint.S		\
 		cactus_debug.c				\
-		cactus_ffa_tests.c 			\
 		cactus_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
 		sp_helpers.c				\
 	)						\
+	$(addprefix spm/cactus/cactus_tests/,		\
+		cactus_message_loop.c			\
+		cactus_test_cpu_features.c		\
+		cactus_test_direct_messaging.c		\
+		cactus_test_ffa.c 			\
+		cactus_test_memory_sharing.c		\
+	)
 
 # TODO: Remove dependency on TFTF files.
 CACTUS_SOURCES	+=					\

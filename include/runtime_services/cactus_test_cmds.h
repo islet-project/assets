@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,14 +7,21 @@
 #ifndef CACTUS_TEST_CMDS
 #define CACTUS_TEST_CMDS
 
-#include <debug.h>
 #include <ffa_helpers.h>
 
 /**
  * Success and error return to be sent over a msg response.
  */
-#define CACTUS_SUCCESS	 U(0)
-#define CACTUS_ERROR	 U(-1)
+#define CACTUS_SUCCESS		U(0)
+#define CACTUS_ERROR		U(-1)
+
+/**
+ * Error codes.
+ */
+#define CACTUS_ERROR_INVALID		U(1)
+#define CACTUS_ERROR_TEST		U(2)
+#define CACTUS_ERROR_FFA_CALL		U(3)
+#define CACTUS_ERROR_UNHANDLED		U(4)
 
 /**
  * Get command from struct smc_ret_values.
@@ -32,14 +39,66 @@ static inline smc_ret_values cactus_send_cmd(
 	ffa_vm_id_t source, ffa_vm_id_t dest, uint64_t cmd, uint64_t val0,
 	uint64_t val1, uint64_t val2, uint64_t val3)
 {
-	return 	ffa_msg_send_direct_req64_5args(source, dest, cmd, val0, val1,
-						val2, val3);
+	return 	ffa_msg_send_direct_req64(source, dest, cmd, val0, val1, val2,
+					  val3);
 }
 
-#define PRINT_CMD(smc_ret)						\
-	VERBOSE("cmd %lx; args: %lx, %lx, %lx, %lx\n",	 		\
-		smc_ret.ret3, smc_ret.ret4, smc_ret.ret5, 		\
-		smc_ret.ret6, smc_ret.ret7)
+/**
+ * Template for responses to Cactus commands.
+ * 'cactus_send_response' is the template for custom responses, in case there is
+ * a need to propagate more than one value in the response of a command.
+ */
+static inline smc_ret_values cactus_send_response(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t resp, uint32_t val0,
+	uint64_t val1, uint64_t val2, uint64_t val3)
+{
+	return ffa_msg_send_direct_resp64(source, dest, resp, val0, val1,
+					  val2, val3);
+}
+
+/**
+ * For responses of one value only.
+ */
+static inline smc_ret_values cactus_response(
+	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t response)
+{
+	return ffa_msg_send_direct_resp64(source, dest, response, 0, 0, 0, 0);
+}
+
+static inline uint32_t cactus_get_response(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret3;
+}
+
+/**
+ * In a successful test, in case the SP needs to propagate an extra value
+ * to conclude the test.
+ * If more arguments are needed, a custom response should be defined for the
+ * specific test.
+ */
+static inline smc_ret_values cactus_success_resp(
+		ffa_vm_id_t source, ffa_vm_id_t dest, uint64_t value)
+{
+	return cactus_send_response(source, dest, CACTUS_SUCCESS, value,
+				    0, 0, 0);
+}
+
+/**
+ * In case the test fails on the SP side, the 'error_code' should help specify
+ * the reason, which can be specific to the test, or general ones as defined
+ * in the error code list.
+ */
+static inline smc_ret_values cactus_error_resp(
+		ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t error_code)
+{
+	return cactus_send_response(source, dest, CACTUS_ERROR, error_code,
+				    0, 0, 0);
+}
+
+static inline uint32_t cactus_error_code(smc_ret_values ret)
+{
+	return (uint32_t) ret.ret4;
+}
 
 /**
  * With this test command the sender transmits a 64-bit value that it then
@@ -186,33 +245,8 @@ static inline ffa_vm_id_t cactus_req_mem_send_get_receiver(smc_ret_values ret)
 static inline smc_ret_values cactus_req_simd_fill_send_cmd(
 	ffa_vm_id_t source, ffa_vm_id_t dest)
 {
-	return cactus_send_cmd(source, dest, CACTUS_REQ_SIMD_FILL_CMD, 0, 0, 0, 0);
-}
-
-/**
- * Template for responses to CACTUS commands.
- */
-static inline smc_ret_values cactus_response(
-	ffa_vm_id_t source, ffa_vm_id_t dest, uint32_t response)
-{
-	return ffa_msg_send_direct_resp(source, dest, response);
-}
-
-static inline smc_ret_values cactus_success_resp(
-		ffa_vm_id_t source, ffa_vm_id_t dest)
-{
-	return cactus_response(source, dest, CACTUS_SUCCESS);
-}
-
-static inline smc_ret_values cactus_error_resp(
-		ffa_vm_id_t source, ffa_vm_id_t dest)
-{
-	return cactus_response(source, dest, CACTUS_ERROR);
-}
-
-static inline uint32_t cactus_get_response(smc_ret_values ret)
-{
-	return (uint32_t)ret.ret3;
+	return cactus_send_cmd(source, dest, CACTUS_REQ_SIMD_FILL_CMD, 0, 0, 0,
+			       0);
 }
 
 #endif

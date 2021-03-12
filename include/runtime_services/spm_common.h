@@ -53,10 +53,17 @@ struct mailbox_buffers {
 	CONFIGURE_MAILBOX(mb_name, buffers_size);				\
 	smc_ret = ffa_rxtx_map(							\
 				(uintptr_t)mb_name.send,			\
-				(uintptr_t)mb_name.recv, 			\
+				(uintptr_t)mb_name.recv,			\
 				buffers_size / PAGE_SIZE			\
 			);							\
 	} while (false)
+
+/**
+ * Helpers to evaluate returns of FF-A calls.
+ */
+bool is_ffa_call_error(smc_ret_values val);
+bool is_ffa_direct_response(smc_ret_values ret);
+bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id);
 
 /*
  * Vector length:
@@ -81,5 +88,31 @@ void read_simd_vector_regs(simd_vector_t v[SIMD_NUM_VECTORS]);
 bool check_spmc_execution_level(void);
 
 unsigned int get_ffa_feature_test_target(const struct ffa_features_test **test_target);
+
+/**
+ * Helper to conduct a memory retrieve. This is to be called by the receiver
+ * of a memory share operation.
+ */
+bool memory_retrieve(struct mailbox_buffers *mb,
+		     struct ffa_memory_region **retrieved, uint64_t handle,
+		     ffa_vm_id_t sender, ffa_vm_id_t receiver,
+		     uint32_t mem_func);
+
+/**
+ * Helper to conduct a memory relinquish. The caller is usually the receiver,
+ * after it being done with the memory shared, identified by the 'handle'.
+ */
+bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
+		       ffa_vm_id_t id);
+
+ffa_memory_handle_t memory_send(
+	struct ffa_memory_region *memory_region, uint32_t mem_func,
+	uint32_t fragment_length, uint32_t total_length);
+
+ffa_memory_handle_t memory_init_and_send(
+	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
+	ffa_vm_id_t sender, ffa_vm_id_t receiver,
+	const struct ffa_memory_region_constituent* constituents,
+	uint32_t constituents_count, uint32_t mem_func);
 
 #endif /* SPM_COMMON_H */
