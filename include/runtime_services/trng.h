@@ -34,16 +34,20 @@
 #define SMC_TRNG_FEATURES			0x84000051
 #define SMC_TRNG_UUID				0x84000052
 
-#ifndef __aarch64__
-#define SMC_TRNG_RND				0x84000053
-#else
+#ifdef __aarch64__
 #define SMC_TRNG_RND				0xc4000053
+#define TRNG_MAX_BITS				U(192)
+#define TRNG_ENTROPY_MASK			U(0xFFFFFFFFFFFFFFFF)
+#else
+#define SMC_TRNG_RND				0x84000053
+#define TRNG_MAX_BITS				U(96)
+#define TRNG_ENTROPY_MASK			U(0xFFFFFFFF)
 #endif
 
 /*
  * Number of TRNG calls defined in the TRNG specification.
  */
-#define TRNG_NUM_CALLS				5
+#define TRNG_NUM_CALLS				4
 
 #ifndef __ASSEMBLY__
 typedef struct {

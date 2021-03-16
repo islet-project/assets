@@ -25,126 +25,104 @@ test_result_t test_trng_version(void)
 {
 	int32_t version = tftf_trng_version();
 
-	if (version > 0 && version < TRNG_VERSION(1, 0)) {
-		return TEST_RESULT_FAIL;
-	}
-	if (version < 0 && version == TRNG_E_NOT_SUPPORTED) {
+	if (version == TRNG_E_NOT_SUPPORTED) {
 		return TEST_RESULT_SKIPPED;
 	}
+
+
+	if (version < TRNG_VERSION(1, 0)) {
+		return TEST_RESULT_FAIL;
+	}
+
 	return TEST_RESULT_SUCCESS;
 }
 
 /*
  * @Test_Aim@ Verify that TRNG reports implemented functions.
  *
- * Check that TRNG Fetures reports that the TRNG extension:
- *  - reports implementing functions that we know for sure exist, such as TRNG
- *    Features itself
- *  - reports not implementing functions that are part of other standards
+ * Check that TRNG Features reports that all TRNG functions
+ * are implemented.
  */
 test_result_t test_trng_features(void)
 {
 	int32_t version = tftf_trng_version();
 
-	if (version < 0 && version == TRNG_E_NOT_SUPPORTED) {
+	if (version == TRNG_E_NOT_SUPPORTED) {
 		return TEST_RESULT_SKIPPED;
 	}
-	if (!tftf_trng_feature_implemented(SMC_TRNG_FEATURES)) {
+
+	if (!(tftf_trng_feature_implemented(SMC_TRNG_VERSION) &&
+	      tftf_trng_feature_implemented(SMC_TRNG_FEATURES) &&
+	      tftf_trng_feature_implemented(SMC_TRNG_UUID) &&
+	      tftf_trng_feature_implemented(SMC_TRNG_RND))) {
 		return TEST_RESULT_FAIL;
 	}
-	if (tftf_trng_feature_implemented(SMC_PSCI_SYSTEM_RESET)) {
-		return TEST_RESULT_FAIL;
-	}
+
 	return TEST_RESULT_SUCCESS;
 }
 
 /*
  * @Test_Aim@ TRNG_RND Meets the Zero-fill requirements of the spec
  */
-#ifndef __aarch64__
 test_result_t test_trng_rnd(void)
 {
-	int32_t version = tftf_trng_version();
 	smc_ret_values rnd_out;
+	size_t msb_shift = (TRNG_MAX_BITS/3) - U(1);
 
-	if (version < 0 && version == TRNG_E_NOT_SUPPORTED) {
-		return TEST_RESULT_SKIPPED;
-	}
-	if (!tftf_trng_feature_implemented(SMC_TRNG_RND)) {
-		return TEST_RESULT_SKIPPED;
-	}
-	rnd_out = tftf_trng_rnd(U(0));
-	if (rnd_out.ret0 != TRNG_E_INVALID_PARAMS) {
-		ERROR("RND 0 returned 0x%x\n", (uint32_t) rnd_out.ret0);
-		return TEST_RESULT_FAIL;
-	}
-	rnd_out = tftf_trng_rnd(U(1024));
-	if (rnd_out.ret0 != TRNG_E_INVALID_PARAMS) {
-		ERROR("RND 1024 returned 0x%x\n", (uint32_t) rnd_out.ret0);
-		return TEST_RESULT_FAIL;
-	}
-	rnd_out = tftf_trng_rnd(U(1));
-	if (rnd_out.ret0 == TRNG_E_NO_ENTOPY) {
-		WARN("There is not a single bit of entropy\n");
-		return TEST_RESULT_SKIPPED;
-	}
-	if ((rnd_out.ret1 & 0xFFFFFFFF) != 0) {
-		ERROR("non-zero w1 value 0x%x\n", (uint32_t) rnd_out.ret1);
-		return TEST_RESULT_FAIL;
-	}
-	if ((rnd_out.ret2 & 0xFFFFFFFF) != 0) {
-		ERROR("non-zero w2 value 0x%x\n", (uint32_t) rnd_out.ret2);
-		return TEST_RESULT_FAIL;
-	}
-	if ((rnd_out.ret3 & 0xFFFFFFFE) != 0) {
-	/* Note: there's an "E" here ^, because we asked for the least
-	 * significant bit to be random by passing a "1" to the RND function
-	 */
-		ERROR("Unexpected w3 value 0x%x\n", (uint32_t) rnd_out.ret3);
-		return TEST_RESULT_FAIL;
-	}
-	return TEST_RESULT_SUCCESS;
-}
-
-#else
-test_result_t test_trng_rnd(void)
-{
 	int32_t version = tftf_trng_version();
-	smc_ret_values rnd_out;
 
-	if (version < 0 && version == TRNG_E_NOT_SUPPORTED) {
+	if (version == TRNG_E_NOT_SUPPORTED) {
 		return TEST_RESULT_SKIPPED;
 	}
-	if (!tftf_trng_feature_implemented(SMC_TRNG_RND)) {
-		return TEST_RESULT_SKIPPED;
-	}
+
+	/* Test invalid entropy sizes */
 	rnd_out = tftf_trng_rnd(U(0));
 	if (rnd_out.ret0 != TRNG_E_INVALID_PARAMS) {
 		ERROR("RND 0 returned 0x%lx\n", rnd_out.ret0);
 		return TEST_RESULT_FAIL;
 	}
-	rnd_out = tftf_trng_rnd(U(1024));
+
+	rnd_out = tftf_trng_rnd(TRNG_MAX_BITS + U(1));
 	if (rnd_out.ret0 != TRNG_E_INVALID_PARAMS) {
-		ERROR("RND 1024 returned 0x%lx\n", rnd_out.ret0);
+		ERROR("RND 0x%x returned 0x%lx\n",  TRNG_MAX_BITS + U(1),
+				rnd_out.ret0);
 		return TEST_RESULT_FAIL;
 	}
+
+	/* Test valid corner cases.
+	 * Here we expect the bits in Entropy[MAX_BITS-1:N]
+	 * to be 0, where N is the requested number of bits
+	 * of entropy */
+
+	/* For N = 1, all returned entropy bits should be 0
+	 * except the least significant bit */
 	rnd_out = tftf_trng_rnd(U(1));
 	if (rnd_out.ret0 == TRNG_E_NO_ENTOPY) {
 		WARN("There is not a single bit of entropy\n");
 		return TEST_RESULT_SKIPPED;
 	}
-	if ((rnd_out.ret1 & 0xFFFFFFFFFFFFFFFF) != 0) {
-		ERROR("non-zero x1 value 0x%lx\n", rnd_out.ret1);
+	if ((rnd_out.ret1 & TRNG_ENTROPY_MASK) != 0) {
+		ERROR("non-zero r1 value 0x%lx\n", rnd_out.ret1);
 		return TEST_RESULT_FAIL;
 	}
-	if ((rnd_out.ret2 & 0xFFFFFFFFFFFFFFFF) != 0) {
-		ERROR("non-zero x2 value 0x%lx\n", rnd_out.ret2);
+	if ((rnd_out.ret2 & TRNG_ENTROPY_MASK) != 0) {
+		ERROR("non-zero r2 value 0x%lx\n", rnd_out.ret2);
 		return TEST_RESULT_FAIL;
 	}
-	if ((rnd_out.ret3 & 0xFFFFFFFFFFFFFFFE) != 0) {
-		ERROR("Unexpected x3 value 0x%lx\n", rnd_out.ret3);
+	if ((rnd_out.ret3 & (TRNG_ENTROPY_MASK - U(1))) != 0) {
+		ERROR("Unexpected r3 value 0x%lx\n", rnd_out.ret3);
+		return TEST_RESULT_FAIL;
+	}
+
+	/* For N = MAX_BITS-1, the most significant bit should be 0 */
+	rnd_out = tftf_trng_rnd(TRNG_MAX_BITS - U(1));
+	if (rnd_out.ret0 == TRNG_E_NO_ENTOPY) {
+		WARN("There is not a single bit of entropy\n");
+		return TEST_RESULT_SKIPPED;
+	}
+	if ((rnd_out.ret1 & (1 << msb_shift)) != 0) {
+		ERROR("Unexpected r1 value 0x%lx\n", rnd_out.ret1);
 		return TEST_RESULT_FAIL;
 	}
 	return TEST_RESULT_SUCCESS;
 }
-#endif
