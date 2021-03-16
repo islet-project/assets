@@ -44,6 +44,12 @@
 
   </testsuite>
 
+ <testsuite name="FF-A Power management"
+             description="Test FF-A power management" >
+    <testcase name="FF-A SP hotplug"
+              function="test_ffa_secondary_core_direct_msg" />
+  </testsuite>
+
   <testsuite name="FF-A Memory Sharing"
              description="Test FF-A Memory Sharing ABIs" >
      <testcase name="Lend Memory to Secure World"

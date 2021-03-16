@@ -7,25 +7,35 @@
 #include <arch.h>
 #include <asm_macros.S>
 #include <cactus_def.h>
-#include <platform_def.h>
+#include <cactus_platform_def.h>
 
 	.globl	cactus_entrypoint
+	.globl	secondary_cold_entry
 
+/* Provision one stack per Execution Context (or vCPU) */
 .section .bss.stacks
 	.balign CACHE_WRITEBACK_GRANULE
-	.fill	CACTUS_STACKS_SIZE
+	.fill	CACTUS_STACKS_SIZE * PLAT_CACTUS_CORE_COUNT
 stacks_end:
 
 func cactus_entrypoint
+	/* Entry reason is primary EC cold boot */
+	mov	x19, #1
+secondary_cold_entry:
+	/* Entry reason is secondary EC cold boot */
+	mrs	x0, mpidr_el1
+	bl	platform_get_core_pos
 
 	/* Setup the stack pointer. */
-	adr	x0, stacks_end
-	mov	sp, x0
+	adr	x1, stacks_end
+	mov	x2, #CACTUS_STACKS_SIZE
+	mul	x2, x0, x2
+	sub	sp, x1, x2
 
 	/* Enable I-Cache */
-	mrs	x0, sctlr_el1
-	orr	x0, x0, #SCTLR_I_BIT
-	msr	sctlr_el1, x0
+	mrs	x1, sctlr_el1
+	orr	x1, x1, #SCTLR_I_BIT
+	msr	sctlr_el1, x1
 	isb
 
 	/*
@@ -38,6 +48,15 @@ func cactus_entrypoint
 	msr	cpacr_el1, x0
 	isb
 
+	/* Set up exceptions vector table */
+	adrp	x1, tftf_vector
+	add	x1, x1, :lo12:tftf_vector
+	msr	vbar_el1, x1
+	isb
+
+	/* Skip to main if warm boot */
+	cbz	x19, 0f
+
 	/* Relocate symbols */
 pie_fixup:
 	ldr	x0, =pie_fixup
@@ -46,13 +65,7 @@ pie_fixup:
 	add	x1, x1, x0
 	bl	fixup_gdt_reloc
 
-	/* Set up exceptions vector table */
-	adrp	x0, tftf_vector
-	add	x0, x0, :lo12:tftf_vector
-	msr	vbar_el1, x0
-	isb
-
-	/* And jump to the C entrypoint. */
+	/* Jump to the C entrypoint (it does not return) */
+0:	mov	x0, x19
 	b	cactus_main
-
 endfunc cactus_entrypoint

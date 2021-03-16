@@ -22,7 +22,7 @@
 
 /* The macros below are used to identify FFA calls from the SMC function ID */
 #define FFA_FNUM_MIN_VALUE	U(0x60)
-#define FFA_FNUM_MAX_VALUE	U(0x7f)
+#define FFA_FNUM_MAX_VALUE	U(0x84)
 #define is_ffa_fid(fid) __extension__ ({		\
 	__typeof__(fid) _fid = (fid);			\
 	((GET_SMC_NUM(_fid) >= FFA_FNUM_MIN_VALUE) &&	\
@@ -84,6 +84,7 @@
 #define FFA_FNUM_MEM_RETRIEVE_RESP	U(0x75)
 #define FFA_FNUM_MEM_RELINQUISH	U(0x76)
 #define FFA_FNUM_MEM_RECLAIM		U(0x77)
+#define FFA_FNUM_SECONDARY_EP_REGISTER	U(0x84)
 
 /* FFA SMC32 FIDs */
 #define FFA_ERROR		FFA_FID(SMC_32, FFA_FNUM_ERROR)
@@ -126,6 +127,8 @@
 #define FFA_MEM_SHARE_SMC64	FFA_FID(SMC_64, FFA_FNUM_MEM_SHARE)
 #define FFA_MEM_RETRIEVE_REQ_SMC64 \
 	FFA_FID(SMC_64, FFA_FNUM_MEM_RETRIEVE_REQ)
+#define FFA_SECONDARY_EP_REGISTER_SMC64 \
+	FFA_FID(SMC_64, FFA_FNUM_SECONDARY_EP_REGISTER)
 
 /*
  * Reserve a special value for traffic targeted to the Hypervisor or SPM.
