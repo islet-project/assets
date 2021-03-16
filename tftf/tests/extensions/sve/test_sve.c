@@ -8,6 +8,7 @@
 #include <arch_helpers.h>
 #include <debug.h>
 #include <stdlib.h>
+#include <test_helpers.h>
 #include <tftf_lib.h>
 
 #include "./test_sve.h"
@@ -32,11 +33,7 @@ static int sve_op_2[SVE_ARRAYSIZE];
  */
 test_result_t test_sve_support(void)
 {
-	/* Check if SVE is implemented and usable */
-	if (is_armv8_2_sve_present() == false) {
-		tftf_testcase_printf("SVE support absent\n");
-		return TEST_RESULT_SKIPPED;
-	}
+	SKIP_TEST_IF_SVE_NOT_SUPPORTED();
 
 	for (int i = 0; i < SVE_ARRAYSIZE; i++) {
 		/* Generate a random number between 200 and 299 */

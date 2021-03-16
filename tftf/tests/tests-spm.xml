@@ -70,6 +70,8 @@
              description="Validate context switch between NWd and SWd" >
      <testcase name="Check that SIMD registers context is preserved"
                function="test_simd_vectors_preserved" />
+     <testcase name="Check that SVE registers context is preserved"
+               function="test_sve_vectors_preserved" />
   </testsuite>
 
    <testsuite name="FF-A Interrupt"

@@ -7,12 +7,17 @@
 #include <debug.h>
 #include <ffa_endpoints.h>
 #include <ffa_svc.h>
+#include <lib/extensions/sve.h>
 #include <spm_common.h>
 #include <xlat_tables_v2.h>
 
 #define __STR(x) #x
 #define STR(x) __STR(x)
-#define SIMD_TWO_VECTORS_BYTES_STR	(2 * SIMD_VECTOR_LEN_BYTES)
+
+#define fill_simd_helper(num1, num2) "ldp q"#num1", q"#num2",\
+	[%0], #"STR(2 * SIMD_VECTOR_LEN_BYTES)";"
+#define read_simd_helper(num1, num2) "stp q"#num1", q"#num2",\
+	[%0], #"STR(2 * SIMD_VECTOR_LEN_BYTES)";"
 
 /**
  * Helper to log errors after FF-A calls.
@@ -59,27 +64,26 @@ bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id)
 
 	return false;
 }
-
 void fill_simd_vector_regs(const simd_vector_t v[SIMD_NUM_VECTORS])
 {
 #ifdef __aarch64__
 	__asm__ volatile(
-		"ldp q0, q1, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q2, q3, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q4, q5, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q6, q7, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q8, q9, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q10, q11, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q12, q13, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q14, q15, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q16, q17, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q18, q19, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q20, q21, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q22, q23, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q24, q25, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q26, q27, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q28, q29, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"ldp q30, q31, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
+		fill_simd_helper(0, 1)
+		fill_simd_helper(2, 3)
+		fill_simd_helper(4, 5)
+		fill_simd_helper(6, 7)
+		fill_simd_helper(8, 9)
+		fill_simd_helper(10, 11)
+		fill_simd_helper(12, 13)
+		fill_simd_helper(14, 15)
+		fill_simd_helper(16, 17)
+		fill_simd_helper(18, 19)
+		fill_simd_helper(20, 21)
+		fill_simd_helper(22, 23)
+		fill_simd_helper(24, 25)
+		fill_simd_helper(26, 27)
+		fill_simd_helper(28, 29)
+		fill_simd_helper(30, 31)
 		"sub %0, %0, #" STR(SIMD_NUM_VECTORS * SIMD_VECTOR_LEN_BYTES) ";"
 		: : "r" (v));
 #endif
@@ -89,25 +93,109 @@ void read_simd_vector_regs(simd_vector_t v[SIMD_NUM_VECTORS])
 {
 #ifdef __aarch64__
 	memset(v, 0, sizeof(simd_vector_t) * SIMD_NUM_VECTORS);
-
 	__asm__ volatile(
-		"stp q0, q1, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q2, q3, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q4, q5, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q6, q7, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q8, q9, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q10, q11, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q12, q13, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q14, q15, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q16, q17, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q18, q19, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q20, q21, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q22, q23, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q24, q25, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q26, q27, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q28, q29, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
-		"stp q30, q31, [%0], #" STR(SIMD_TWO_VECTORS_BYTES_STR) ";"
+		read_simd_helper(0, 1)
+		read_simd_helper(2, 3)
+		read_simd_helper(4, 5)
+		read_simd_helper(6, 7)
+		read_simd_helper(8, 9)
+		read_simd_helper(10, 11)
+		read_simd_helper(12, 13)
+		read_simd_helper(14, 15)
+		read_simd_helper(16, 17)
+		read_simd_helper(18, 19)
+		read_simd_helper(20, 21)
+		read_simd_helper(22, 23)
+		read_simd_helper(24, 25)
+		read_simd_helper(26, 27)
+		read_simd_helper(28, 29)
+		read_simd_helper(30, 31)
 		"sub %0, %0, #" STR(SIMD_NUM_VECTORS * SIMD_VECTOR_LEN_BYTES) ";"
+		: : "r" (v));
+#endif
+}
+
+void fill_sve_vector_regs(const sve_vector_t v[SVE_NUM_VECTORS])
+{
+#ifdef __aarch64__
+	__asm__ volatile(
+		".arch_extension sve\n"
+		fill_sve_helper(0)
+		fill_sve_helper(1)
+		fill_sve_helper(2)
+		fill_sve_helper(3)
+		fill_sve_helper(4)
+		fill_sve_helper(5)
+		fill_sve_helper(6)
+		fill_sve_helper(7)
+		fill_sve_helper(8)
+		fill_sve_helper(9)
+		fill_sve_helper(10)
+		fill_sve_helper(11)
+		fill_sve_helper(12)
+		fill_sve_helper(13)
+		fill_sve_helper(14)
+		fill_sve_helper(15)
+		fill_sve_helper(16)
+		fill_sve_helper(17)
+		fill_sve_helper(18)
+		fill_sve_helper(19)
+		fill_sve_helper(20)
+		fill_sve_helper(21)
+		fill_sve_helper(22)
+		fill_sve_helper(23)
+		fill_sve_helper(24)
+		fill_sve_helper(25)
+		fill_sve_helper(26)
+		fill_sve_helper(27)
+		fill_sve_helper(28)
+		fill_sve_helper(29)
+		fill_sve_helper(30)
+		fill_sve_helper(31)
+		".arch_extension nosve\n"
+		: : "r" (v));
+#endif
+}
+
+void read_sve_vector_regs(sve_vector_t v[SVE_NUM_VECTORS])
+{
+#ifdef __aarch64__
+	memset(v, 0, sizeof(sve_vector_t) * SVE_NUM_VECTORS);
+	__asm__ volatile(
+		".arch_extension sve\n"
+		read_sve_helper(0)
+		read_sve_helper(1)
+		read_sve_helper(2)
+		read_sve_helper(3)
+		read_sve_helper(4)
+		read_sve_helper(5)
+		read_sve_helper(6)
+		read_sve_helper(7)
+		read_sve_helper(8)
+		read_sve_helper(9)
+		read_sve_helper(10)
+		read_sve_helper(11)
+		read_sve_helper(12)
+		read_sve_helper(13)
+		read_sve_helper(14)
+		read_sve_helper(15)
+		read_sve_helper(16)
+		read_sve_helper(17)
+		read_sve_helper(18)
+		read_sve_helper(19)
+		read_sve_helper(20)
+		read_sve_helper(21)
+		read_sve_helper(22)
+		read_sve_helper(23)
+		read_sve_helper(24)
+		read_sve_helper(25)
+		read_sve_helper(26)
+		read_sve_helper(27)
+		read_sve_helper(28)
+		read_sve_helper(29)
+		read_sve_helper(30)
+		read_sve_helper(31)
+		".arch_extension nosve\n"
 		: : "r" (v));
 #endif
 }
