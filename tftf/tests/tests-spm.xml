@@ -108,6 +108,18 @@
                function="test_ffa_notifications_destroy_not_created" />
      <testcase name="Notifications bitmap create after create"
                function="test_ffa_notifications_create_after_create" />
+     <testcase name="SP Notifications bind and unbind"
+               function="test_ffa_notifications_sp_bind_unbind" />
+     <testcase name="VM Notifications bind and unbind"
+               function="test_ffa_notifications_vm_bind_unbind" />
+     <testcase name="VM Notifications bind NS Sender"
+               function="test_ffa_notifications_vm_bind_vm" />
+     <testcase name="Notifications bind/unbind of bound Notifications"
+               function="test_ffa_notifications_already_bound" />
+     <testcase name="Notifications bind/unbind SPs spoofing receiver"
+               function="test_ffa_notifications_bind_unbind_spoofing" />
+     <testcase name="Notifications zeroed in bind and unbind"
+               function="test_ffa_notifications_bind_unbind_zeroed" />
   </testsuite>
 
 </testsuites>
