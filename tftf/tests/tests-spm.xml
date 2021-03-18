@@ -100,4 +100,14 @@
                function="test_smmu_spm" />
   </testsuite>
 
+  <testsuite name="FF-A Notifications"
+             description="Test Notifications functionality" >
+     <testcase name="Notifications bitmap create and destroy"
+               function="test_ffa_notifications_bitmap_create_destroy" />
+     <testcase name="Notifications bitmap destroy not created"
+               function="test_ffa_notifications_destroy_not_created" />
+     <testcase name="Notifications bitmap create after create"
+               function="test_ffa_notifications_create_after_create" />
+  </testsuite>
+
 </testsuites>
