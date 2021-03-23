@@ -32,6 +32,16 @@ secondary_cold_entry:
 	mul	x2, x0, x2
 	sub	sp, x1, x2
 
+	/*
+	 * Invalidate the data cache for the whole partition.
+	 * This prevents re-use of stale data cache entries from
+	 * prior bootloader stages.
+	 */
+	adrp	x0, __TEXT_START__
+	adrp	x1, __BSS_END__
+	sub	x1, x1, x0
+	bl	inv_dcache_range
+
 	/* Enable I-Cache */
 	mrs	x1, sctlr_el1
 	orr	x1, x1, #SCTLR_I_BIT
