@@ -369,9 +369,66 @@ static inline ffa_notification_bitmap_t cactus_notification_get_notifications(
 	return (uint64_t)ret.ret6;
 }
 
+/**
+ * Request SP to get notifications. The arguments to use in ffa_notification_get
+ * are propagated on the command to test erroneous uses of the interface.
+ * In a successful call to the interface, the SP's response payload should
+ * include all bitmaps returned by the SPMC.
+ *
+ * The command id is the hex representation of the string "getnot".
+ */
+#define CACTUS_NOTIFICATION_GET_CMD U(0x6765746e6f74)
+
+static inline smc_ret_values cactus_notification_get_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	uint32_t vcpu_id, uint32_t flags)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATION_GET_CMD,
+			       receiver, vcpu_id, 0, flags);
+}
+
+static inline uint32_t cactus_notification_get_vcpu(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret5;
+}
+
 static inline uint32_t cactus_notification_get_flags(smc_ret_values ret)
 {
 	return (uint32_t)ret.ret7;
+}
+
+static inline smc_ret_values cactus_notifications_get_success_resp(
+	ffa_id_t source, ffa_id_t dest, uint64_t from_sp,
+	uint64_t from_vm)
+{
+	return cactus_send_response(source, dest, CACTUS_SUCCESS, from_sp,
+				    from_vm, 0, 0);
+}
+
+static inline uint64_t cactus_notifications_get_from_sp(smc_ret_values ret)
+{
+	return (uint64_t)ret.ret4;
+}
+
+static inline uint64_t cactus_notifications_get_from_vm(smc_ret_values ret)
+{
+	return (uint64_t)ret.ret5;
+}
+
+/**
+ * Request SP to set notifications. The arguments to use in ffa_notification_set
+ * are propagated on the command to test erroneous uses of the interface.
+ * In case of error while calling the interface, the response should include the
+ * error code.
+ */
+#define CACTUS_NOTIFICATIONS_SET_CMD U(0x6e6f74736574)
+
+static inline smc_ret_values cactus_notifications_set_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	ffa_id_t sender, uint32_t flags, ffa_notification_bitmap_t notifications)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATIONS_SET_CMD,
+			       receiver, sender, notifications, flags);
 }
 
 #endif
