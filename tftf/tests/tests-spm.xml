@@ -120,6 +120,14 @@
                function="test_ffa_notifications_bind_unbind_spoofing" />
      <testcase name="Notifications zeroed in bind and unbind"
                function="test_ffa_notifications_bind_unbind_zeroed" />
+     <testcase name="Notifications VM signals SP"
+               function="test_ffa_notifications_vm_signals_sp" />
+     <testcase name="Notifications SP signals SP"
+               function="test_ffa_notifications_sp_signals_sp" />
+     <testcase name="Notifications SP signals VM"
+               function="test_ffa_notifications_sp_signals_vm" />
+     <testcase name="Notifications unbind while pending"
+               function="test_ffa_notifications_unbind_pending" />
   </testsuite>
 
 </testsuites>
