@@ -19,19 +19,19 @@
 	.endm
 
 vector_base exception_stubs
-vector_entry_spin SynchronousExceptionSP0
-vector_entry_spin IrqSP0
-vector_entry_spin FiqSP0
-vector_entry_spin SErrorSP0
-vector_entry_spin SynchronousExceptionSPx
-vector_entry_spin IrqSPx
-vector_entry_spin FiqSPx
-vector_entry_spin SErrorSPx
-vector_entry_spin SynchronousExceptionA64
-vector_entry_spin IrqA64
-vector_entry_spin FiqA64
-vector_entry_spin SErrorA64
-vector_entry_spin SynchronousExceptionA32
-vector_entry_spin IrqA32
-vector_entry_spin FiqA32
-vector_entry_spin SErrorA32
+vector_entry_spin sync_exception_sp_el0
+vector_entry_spin irq_sp_el0
+vector_entry_spin fiq_sp_el0
+vector_entry_spin serror_sp_el0
+vector_entry_spin sync_exception_sp_elx
+vector_entry_spin irq_sp_elx
+vector_entry_spin fiq_sp_elx
+vector_entry_spin serror_sp_elx
+vector_entry_spin sync_exception_aarch64
+vector_entry_spin irq_aarch64
+vector_entry_spin fiq_aarch64
+vector_entry_spin serror_aarch64
+vector_entry_spin sync_exception_aarch32
+vector_entry_spin irq_aarch32
+vector_entry_spin fiq_aarch32
+vector_entry_spin serror_aarch32

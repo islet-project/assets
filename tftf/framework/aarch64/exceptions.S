@@ -23,38 +23,38 @@ vector_base tftf_vector
 	/*
 	 * Current EL with SP0 : 0x0 - 0x200.
 	 */
-unhandled_exception SynchronousExceptionSP0
-unhandled_exception IrqSP0
-unhandled_exception FiqSP0
-unhandled_exception SErrorSP0
+unhandled_exception sync_exception_sp_el0
+unhandled_exception irq_sp_el0
+unhandled_exception fiq_sp_el0
+unhandled_exception serror_sp_el0
 
 	/*
 	 * Current EL with SPx : 0x200 - 0x400.
 	 */
-unhandled_exception SynchronousExceptionSPx
+unhandled_exception sync_exception_sp_elx
 
-vector_entry IrqSPx
+vector_entry irq_sp_elx
 	b	irq_vector_entry
-end_vector_entry IrqSPx
+end_vector_entry irq_sp_elx
 
-unhandled_exception FiqSPx
-unhandled_exception SErrorSPx
+unhandled_exception fiq_sp_elx
+unhandled_exception serror_sp_elx
 
 	/*
 	 * Lower EL using AArch64 : 0x400 - 0x600.
 	 */
-unhandled_exception SynchronousExceptionA64
-unhandled_exception IrqA64
-unhandled_exception FiqA64
-unhandled_exception SErrorA64
+unhandled_exception sync_exception_aarch64
+unhandled_exception irq_aarch64
+unhandled_exception fiq_aarch64
+unhandled_exception serror_aarch64
 
 	/*
 	 * Lower EL using AArch32 : 0x600 - 0x800.
 	 */
-unhandled_exception SynchronousExceptionA32
-unhandled_exception IrqA32
-unhandled_exception FiqA32
-unhandled_exception SErrorA32
+unhandled_exception sync_exception_aarch32
+unhandled_exception irq_aarch32
+unhandled_exception fiq_aarch32
+unhandled_exception serror_aarch32
 
 .macro save_gp_regs
 	stp	x0, x1, [sp, #0x0]
