@@ -11,6 +11,7 @@
 #include <cactus_platform_def.h>
 #include <ffa_endpoints.h>
 #include <sp_helpers.h>
+#include <spm_helpers.h>
 #include <spm_common.h>
 
 #include <lib/libc/string.h>

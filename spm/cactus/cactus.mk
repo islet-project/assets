@@ -38,6 +38,7 @@ CACTUS_SOURCES	:=					\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
 		sp_helpers.c				\
+		spm_helpers.c					\
 	)						\
 	$(addprefix spm/cactus/cactus_tests/,		\
 		cactus_message_loop.c			\

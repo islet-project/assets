@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,12 +10,6 @@
 #include <stdint.h>
 #include <tftf_lib.h>
 #include <ffa_helpers.h>
-
-#define SPM_VM_ID_FIRST                 SP_ID(1)
-
-/* Should match with IDs defined in SPM/Hafnium */
-#define SPM_INTERRUPT_GET               (0xFF04)
-#define SPM_DEBUG_LOG                   (0xBD000000)
 
 typedef struct {
 	u_register_t fid;
@@ -64,13 +58,5 @@ void announce_test_end(const char *test_desc);
 
 /* Sleep for at least 'ms' milliseconds. */
 void sp_sleep(uint32_t ms);
-
-/*
- * Hypervisor Calls Wrappers
- */
-
-ffa_int_id_t spm_interrupt_get(void);
-
-void spm_debug_log(char c);
 
 #endif /* SP_HELPERS_H */

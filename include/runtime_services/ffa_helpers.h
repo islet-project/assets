@@ -17,7 +17,6 @@
 typedef unsigned short ffa_vm_id_t;
 typedef unsigned short ffa_vm_count_t;
 typedef unsigned short ffa_vcpu_count_t;
-typedef uint32_t ffa_int_id_t;
 typedef uint64_t ffa_memory_handle_t;
 /** Flags to indicate properties of receivers during memory region retrieval. */
 typedef uint8_t ffa_memory_receiver_flags_t;

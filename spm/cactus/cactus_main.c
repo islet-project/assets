@@ -20,6 +20,7 @@
 #include <plat/common/platform.h>
 #include <platform_def.h>
 #include <sp_helpers.h>
+#include <spm_helpers.h>
 #include <std_svc.h>
 
 #include "cactus_def.h"

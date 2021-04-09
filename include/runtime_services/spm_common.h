@@ -14,6 +14,9 @@
 /* Hypervisor ID at physical FFA instance */
 #define HYP_ID          (0)
 
+/* ID for the first Secure Partition. */
+#define SPM_VM_ID_FIRST                 SP_ID(1)
+
 /*
  * The bit 15 of the FF-A ID indicates whether the partition is executing
  * in the normal world, in case it is a Virtual Machine (VM); or in the
