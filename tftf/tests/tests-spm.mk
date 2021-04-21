@@ -10,6 +10,7 @@ TESTS_SOURCES	+=							\
 		spm_common.c						\
 		test_ffa_direct_messaging.c				\
 		test_ffa_features.c					\
+		test_ffa_interrupts.c					\
 		test_ffa_memory_sharing.c				\
 		test_ffa_rxtx_map.c					\
 		test_ffa_version.c					\

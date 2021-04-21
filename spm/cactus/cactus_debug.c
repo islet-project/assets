@@ -6,7 +6,7 @@
 
 #include <drivers/arm/pl011.h>
 #include <drivers/console.h>
-#include <sp_helpers.h>
+#include <spm_helpers.h>
 
 #include "cactus.h"
 

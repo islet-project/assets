@@ -32,18 +32,22 @@ CACTUS_INCLUDES :=					\
 CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
 		aarch64/cactus_entrypoint.S		\
+		aarch64/cactus_exceptions.S		\
 		cactus_debug.c				\
+		cactus_interrupt.c			\
 		cactus_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
 		sp_helpers.c				\
+		spm_helpers.c					\
 	)						\
 	$(addprefix spm/cactus/cactus_tests/,		\
 		cactus_message_loop.c			\
 		cactus_test_cpu_features.c		\
 		cactus_test_direct_messaging.c		\
 		cactus_test_ffa.c 			\
+		cactus_test_interrupts.c		\
 		cactus_test_memory_sharing.c		\
 	)
 
@@ -53,7 +57,6 @@ CACTUS_SOURCES	+=					\
 	tftf/framework/${ARCH}/asm_debug.S		\
 	tftf/tests/runtime_services/secure_service/ffa_helpers.c \
 	tftf/tests/runtime_services/secure_service/spm_common.c	\
-	tftf/framework/${ARCH}/exceptions.S		\
 	tftf/framework/${ARCH}/exception_report.c
 
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
