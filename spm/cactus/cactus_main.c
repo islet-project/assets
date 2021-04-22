@@ -181,13 +181,6 @@ static void register_secondary_entrypoint(void)
 	tftf_smc(&args);
 }
 
-int tftf_irq_handler_dispatcher(void)
-{
-	ERROR("%s\n", __func__);
-
-	return 0;
-}
-
 void __dead2 cactus_main(bool primary_cold_boot)
 {
 	assert(IS_IN_EL1() != 0);

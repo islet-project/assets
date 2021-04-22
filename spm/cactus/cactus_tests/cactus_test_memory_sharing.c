@@ -14,6 +14,27 @@
 #include <sp_helpers.h>
 #include <xlat_tables_defs.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
+#include <sync.h>
+
+static volatile uint32_t data_abort_gpf_triggered;
+
+static bool data_abort_gpf_handler(void)
+{
+	uint64_t esr_el1 = read_esr_el1();
+
+	VERBOSE("%s count %u esr_el1 %llx elr_el1 %llx\n",
+		__func__, data_abort_gpf_triggered, esr_el1,
+		read_elr_el1());
+
+	/* Expect a data abort because of a GPF. */
+	if ((EC_BITS(esr_el1) == EC_DABORT_CUR_EL) &&
+	    ((ISS_BITS(esr_el1) & ISS_DFSC_MASK) == DFSC_GPF_DABORT)) {
+		data_abort_gpf_triggered++;
+		return true;
+	}
+
+	return false;
+}
 
 /**
  * Each Cactus SP has a memory region dedicated to memory sharing tests
@@ -51,7 +72,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 					 cactus_mem_send_get_retrv_flags(*args);
 	uint32_t words_to_write = cactus_mem_send_words_to_write(*args);
 
-	expect(memory_retrieve(mb, &m, handle, source, vm_id, mem_func,
+	expect(memory_retrieve(mb, &m, handle, source, vm_id,
 			       retrv_flags), true);
 
 	composite = ffa_memory_region_get_composite(m, 0);
@@ -104,11 +125,16 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 		}
 	}
 
+	data_abort_gpf_triggered = 0;
+	register_custom_sync_exception_handler(data_abort_gpf_handler);
+
 	/* Write mem_func to retrieved memory region for validation purposes. */
 	VERBOSE("Writing: %x\n", mem_func);
 	for (unsigned int i = 0U; i < words_to_write; i++) {
 		ptr[i] = mem_func;
 	}
+
+	unregister_custom_sync_exception_handler();
 
 	/*
 	 * A FFA_MEM_DONATE changes the ownership of the page, as such no
@@ -120,7 +146,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 			composite->constituents[0].page_count * PAGE_SIZE);
 
 		if (ret != 0) {
-			ERROR("Failed first mmap_add_dynamic_region!\n");
+			ERROR("Failed to unmap received memory region(%d)!\n", ret);
 			return cactus_error_resp(vm_id, source,
 						 CACTUS_ERROR_TEST);
 		}
@@ -139,7 +165,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 	}
 
 	return cactus_success_resp(vm_id,
-				   source, 0);
+				   source, data_abort_gpf_triggered);
 }
 
 CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
