@@ -27,6 +27,7 @@ func inject_serror_record
 	/* Clear SError received flag if necessary */
 	cbz	x3, 1f
 	str	xzr, [x3, #0]
+	dsb	st
 1:
 	/* Choose Error record 0 on the PE */
 	msr	ERRSELR_EL1, x0
@@ -52,6 +53,7 @@ func inject_serror_record
 
 2:
 	wfe
+	dsb	st
 	ldr	x0, [x3, #0]
 	cbz	x0, 2b
 
