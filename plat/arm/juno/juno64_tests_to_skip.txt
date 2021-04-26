@@ -4,5 +4,3 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-# The multicore spurious interrupt test is known to cause problems on Juno
-IRQ support in TSP/Multicore spurious interrupt test
