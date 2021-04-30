@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -217,7 +217,11 @@
 #define MAX_XLAT_TABLES			20
 #define MAX_MMAP_REGIONS		50
 #else
+#if IMAGE_CACTUS
+#define MAX_XLAT_TABLES			6
+#else
 #define MAX_XLAT_TABLES			5
+#endif
 #define MAX_MMAP_REGIONS		16
 #endif
 

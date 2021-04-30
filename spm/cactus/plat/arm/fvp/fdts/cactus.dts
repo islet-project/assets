@@ -62,6 +62,24 @@
 			pages-count = <4>;
 			attributes = <0x7>; /* read-write-execute */
 		};
+
+		/*
+		 * Scratch memory used for the purpose of testing SMMUv3 driver
+		 * through Cactus SP
+		 */
+		smmuv3-memcpy-src {
+			description = "smmuv3-memcpy-source";
+			pages-count = <4>;
+			base-address = <0x00000000 0x7400000>;
+			attributes = <0x3>; /* read-write */
+		};
+
+		smmuv3-memcpy-dst {
+			description = "smmuv3-memcpy-destination";
+			pages-count = <4>;
+			base-address = <0x00000000 0x7404000>;
+			attributes = <0x3>; /* read-write */
+		};
 	};
 
 	device-regions {
@@ -71,6 +89,20 @@
 			base-address = <0x00000000 0x1c0b0000>;
 			pages-count = <1>;
 			attributes = <0x3>; /* read-write */
+		};
+
+		smmuv3-testengine {
+			/*
+			 * SMMUv3TestEngine is a DMA IP modeled in the
+			 * Base-RevC FVP Model.
+			 * User Frame: 0x2bfe0000
+			 * Privileged Frame: 0x2bff0000
+			 */
+			base-address = <0x00000000 0x2bfe0000>;
+			pages-count = <32>; /* Two 64KB pages */
+			attributes = <0x3>; /* read-write */
+			smmu-id = <0>;
+			stream-ids = <0x0 0x1>;
 		};
 
 		test-reg {
