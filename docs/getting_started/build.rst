@@ -206,24 +206,11 @@ about its behaviour and how to build and run it.
 SPM test images
 ```````````````
 
-This repository contains 3 Secure Partitions that exercise the Secure Partition
-Manager (SPM) in TF-A [#]_. Cactus-MM is designed to test the SPM
-implementation based on the `ARM Management Mode Interface`_ (MM), while Cactus
-and Ivy can test the SPM implementation based on the SPCI and SPRT draft
-specifications. Note that it isn't possible to use both communication mechanisms
-at once: If Cactus-MM is used Cactus and Ivy can't be used.
+This repository contains three sample Secure Partitions (SP) meant to be used
+with one implementation of a Secure Partition Manager (SPM):
 
-They run in Secure-EL0 and perform the following tasks:
-
--  Test that TF-A has correctly setup the secure partition environment: They
-   should be allowed to perform cache maintenance operations, access floating
-   point registers, etc.
-
--  Test that TF-A accepts to change data access permissions and instruction
-   permissions on behalf of the Secure Partitions for memory regions the latter
-   owns.
-
--  Test communication with SPM through either MM, or both SPCI and SPRT.
+- Cactus-MM
+- Cactus and Ivy
 
 They are only supported on AArch64 FVP. They can be built independently of the
 other test images using the following command:
@@ -232,16 +219,35 @@ other test images using the following command:
 
    make PLAT=fvp cactus ivy cactus_mm
 
-In the TF-A boot flow, the partitions replace the ``BL32`` image and should be
-injected in the FIP image. To test SPM-MM with Cactus-MM, it is enough to use
-``cactus_mm.bin`` as BL32 image. To test the SPM based on SPCI and SPRT, it is
-needed to use ``sp_tool`` to build a Secure Partition package that can be used
-as BL32 image.
-
 To run the full set of tests in the Secure Partitions, they should be used in
 conjunction with the TFTF image.
 
-For SPM-MM, build TF-A following the `TF-A SPM User Guide`_ and the following
+Please refer to the `TF-A documentation`_ for further details.
+
+Cactus-MM
+'''''''''
+
+Cactus-MM is designed to test the TF-A EL3 SPM implementation
+(`TF-A Secure Partition Manager (MM)`_) based on the
+`Arm Management Mode Interface`_ (MM)
+
+This SP runs in Secure-EL0 and performs the following tasks:
+
+-  Test that TF-A has correctly setup the secure partition environment: it
+   should be allowed to perform cache maintenance operations, access floating
+   point registers, etc.
+
+-  Test that TF-A accepts to change data access permissions and instruction
+   permissions on behalf of the Secure Partition for memory regions the latter
+   owns.
+
+-  Test communication with SPM through MM interface.
+
+In the TF-A boot flow, the partition replaces the ``BL32`` image and should be
+injected in the FIP image. To test SPM-MM with Cactus-MM, it is enough to use
+``cactus_mm.bin`` as BL32 image.
+
+For SPM-MM, build TF-A following `Building TF-A Secure Partition Manager (MM)`_ and the following
 commands can be used to build the tests:
 
 ::
@@ -250,8 +256,40 @@ commands can be used to build the tests:
 
     make PLAT=fvp TESTS=spm-mm tftf cactus_mm
 
-For SPM based on SPCI and SPRT, build TF-A following the `TF-A SPM User Guide`_
-and the following commands can be used to build the tests:
+Cactus and Ivy
+''''''''''''''
+
+Cactus and Ivy are designed to test the FF-A based SPM implementation with
+secure virtualization enabled. Refer to `Arm Firmware Framework for Armv8-A`_
+
+In the TF-A reference code base, BL31 implements the SPMD and BL32 the SPMC.
+The SPMC runs at S-EL2 and acts as a partition manager for multiple secure
+partitions (`TF-A Secure Partition Manager (FF-A)`_):
+
+- Cactus is a sample FF-A compliant S-EL1 partition. As a matter of providing
+  a realistic test harness, three instances of the same partition binary are
+  launched as separate SPs (hence assigned three different FF-A IDs
+  corresponding each to a different secure partition). Each secure partition
+  instance has a separate manifest (`Cactus sample manifest`_,
+  `Cactus secondary manifest`_, `Cactus tertiary manifest`_ ). First two
+  instances are MP SPs. Third instance is a UP SP. Each instance runs a set
+  of built-in tests at boot time. They exercise SP to SPMC FF-A interfaces
+  contained in the secure world. The partition interacts with the SPMC through
+  SMC. Once the NWd and TFTF are started, another set of run-time tests
+  exercise the normal world to secure world primitives.
+- Ivy is a specific kind of S-EL1 UP partition, where the S-EL1 exception level
+  consists of a thin shim layer. The applicative part of the partition is held
+  at S-EL0. The shim provides early bootstrap code, MMU configuration and a
+  vector table trapping S-EL0 requests. The application interacts with the shim
+  through FF-A protocol by the use of SVC instruction. The shim relays the
+  request to the SPMC by an SMC. The S-EL0 application doesn't require knowledge
+  of the shim, and can be self contained.
+
+This picture illustrates the test setup:
+
+.. image:: ../resources/tftf-cactus.png
+
+To build TFTF with SPM tests, Cactus and Ivy use:
 
 ::
 
@@ -259,31 +297,23 @@ and the following commands can be used to build the tests:
 
     make PLAT=fvp TESTS=spm tftf cactus ivy
 
-    # TF-A repository:
-
-    make sptool
-
-    tools/sptool/sptool -o sp_package.bin \
-        -i path/to/cactus.bin:path/to/cactus.dtb \
-        -i path/to/ivy.bin:path/to/ivy.dtb
-
-Please refer to the `TF-A documentation`_ for further details.
-
 --------------
 
 .. [#] Therefore, the Trusted Board Boot feature must be enabled in TF-A for
        the FWU test images to work. Please refer the `TF-A documentation`_ for
        further details.
 
-.. [#] Therefore, the Secure Partition Manager must be enabled in TF-A for
-       any of the test Secure Partitions to work. Please refer to the
-       `TF-A documentation`_ for further details.
-
 --------------
 
-*Copyright (c) 2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2019-2021, Arm Limited. All rights reserved.*
 
 .. _EL3 test payload README file: https://git.trustedfirmware.org/TF-A/tf-a-tests.git/tree/el3_payload/README
-.. _ARM Management Mode Interface: http://infocenter.arm.com/help/topic/com.arm.doc.den0060a/DEN0060A_ARM_MM_Interface_Specification.pdf
+.. _Arm Management Mode Interface: https://developer.arm.com/documentation/den0060/a/
+.. _Arm Firmware Framework for Armv8-A: https://developer.arm.com/docs/den0077/latest
 .. _TF-A documentation: https://trustedfirmware-a.readthedocs.org
-.. _TF-A SPM User Guide: https://trustedfirmware-a.readthedocs.io/en/latest/components/secure-partition-manager-design.html#building-tf-a-with-secure-partition-support
+.. _TF-A Secure Partition Manager (FF-A): https://trustedfirmware-a.readthedocs.io/en/latest/components/secure-partition-manager.html
+.. _TF-A Secure Partition Manager (MM): https://trustedfirmware-a.readthedocs.io/en/latest/components/secure-partition-manager-mm.html
+.. _Building TF-A Secure Partition Manager (MM): https://trustedfirmware-a.readthedocs.io/en/latest/components/secure-partition-manager-mm.html#building-tf-a-with-secure-partition-support
+.. _Cactus sample manifest: https://git.trustedfirmware.org/TF-A/tf-a-tests.git/tree/spm/cactus/plat/arm/fvp/fdts/cactus.dts?h=v2.5-rc1
+.. _Cactus secondary manifest: https://git.trustedfirmware.org/TF-A/tf-a-tests.git/tree/spm/cactus/plat/arm/fvp/fdts/cactus-secondary.dts?h=v2.5-rc1
+.. _Cactus tertiary manifest: https://git.trustedfirmware.org/TF-A/tf-a-tests.git/tree/spm/cactus/plat/arm/fvp/fdts/cactus-tertiary.dts?h=v2.5-rc1
