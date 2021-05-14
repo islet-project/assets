@@ -49,7 +49,6 @@ bool cactus_handle_cmd(smc_ret_values *cmd_args, smc_ret_values *ret,
 		}
 	}
 
-	ERROR("Unhandled test command!\n");
 	*ret = cactus_error_resp(ffa_dir_msg_dest(*cmd_args),
 				 ffa_dir_msg_source(*cmd_args),
 				 CACTUS_ERROR_UNHANDLED);
