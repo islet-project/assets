@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * This file is a Partition Manifest (PM) for a minimal Secure Partition (SP)
- * that has additional optional properties defined.
+ * intended to run at S-EL0 utilising a shim to run at S-EL1 on a
+ * non VHE enabled hafnium.
  */
 
 
@@ -14,7 +15,7 @@
 	compatible = "arm,ffa-manifest-1.0";
 
 	/* Properties */
-	description = "ivy-1";
+	description = "ivy-sel1-fvp";
 	ffa-version = <0x00010001>; /* 31:16 - Major, 15:0 - Minor */
 	uuid = <0xd883baea 0xaf4eafba 0xfdf74481 0xa744e5cb>;
 	execution-ctx-count = <1>;
@@ -22,10 +23,8 @@
 	execution-state = <0>; /* AARCH64 */
 	load-address = <0x7600000>;
 	entrypoint-offset = <0x00004000>;
-	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
 	messaging-method = <3>; /* Direct messaging only */
-	run-time-model = <1>; /* SP pre-emptible */
 
 	/* Boot protocol */
 	gp-register-num = <0x0>;

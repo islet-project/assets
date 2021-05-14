@@ -1,0 +1,30 @@
+/*
+ * Copyright (c) 2022, Arm Limited. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * This file is a Partition Manifest (PM) for a minimal Secure Partition (SP)
+ * running in S-EL0 on top of Hafnium with VHE enabled (no S-EL1 shim included).
+ */
+
+
+/dts-v1/;
+
+/ {
+	compatible = "arm,ffa-manifest-1.0";
+
+	/* Properties */
+	description = "ivy-sel0-fvp";
+	ffa-version = <0x00010001>; /* 31:16 - Major, 15:0 - Minor */
+	uuid = <0xd883baea 0xaf4eafba 0xfdf74481 0xa744e5cb>;
+	execution-ctx-count = <1>;
+	exception-level = <1>; /* S-EL0 */
+	execution-state = <0>; /* AARCH64 */
+	load-address = <0x7600000>;
+	entrypoint-offset = <0x00004000>;
+	boot-order = <0>;
+	messaging-method = <3>; /* Direct messaging only */
+
+	/* Boot protocol */
+	gp-register-num = <0x0>;
+};

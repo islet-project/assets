@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -91,7 +91,7 @@ $(CACTUS_DTB) : $(BUILD_PLAT)/cactus $(BUILD_PLAT)/cactus/cactus.elf
 $(CACTUS_DTB) : $(CACTUS_DTS)
 	@echo "  DTBGEN  $@"
 	${Q}tools/generate_dtb/generate_dtb.sh \
-		cactus ${CACTUS_DTS} $(BUILD_PLAT)
+		cactus ${CACTUS_DTS} $(BUILD_PLAT) $(CACTUS_DTB)
 	${Q}tools/generate_json/generate_json.sh \
 		cactus $(BUILD_PLAT)
 	@echo
