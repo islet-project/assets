@@ -7,6 +7,184 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+Version 2.5
+-----------
+
+New features
+^^^^^^^^^^^^
+-  More tests are made available in this release to help validate the
+   functionalities in the following areas:
+    -  True Random Number Generator (TRNG) test scenarios.
+    -  Multicore / Power State Controller Interface (PSCI) tests.
+    -  v8.6 Activity Monitors Unit (AMU) enhancements test scenarios.
+    -  Secure Partition Manager (SPM) / Firmware Framework (FF-A) v1.0 testing.
+        -  Interrupt Handling between Non-secure and Secure world.
+        -  Direct messages and memory sharing between Secure Partitions(SP).
+        -  Many tests to exercise FF-A v1.0 ABIs.
+        -  SPM saving/restoring the NS SIMD context enabling a normal world FF-A
+           endpoint (TFTF) and a secure partition to use SIMD vectors and
+           instructions independently.
+
+TFTF
+~~~~
+
+-  SPM / FF-A v1.0 testing.
+    -  Refactor FF-A memory sharing tests
+        -  Created helper functions to initialize ffa_memory_region and to send
+           the respective memory region to the SP, making it possible to reuse
+           the logic in SP-to-SP memory share tests.
+        -  Added comments to document relevant aspects about memory sharing.
+
+    -  Trigger direct messaging between SPs.
+        -  Use cactus command 'CACTUS_REQ_ECHO_SEND_CMD' to make cactus SPs
+           communicate with each other using direct message interfaces.
+
+    -  Added helpers for SPM tests.
+        -  Checking SPMC has expected FFA_VERSION.
+        -  Checking that expected FF-A endpoints are deployed in the system.
+        -  Getting global TFTF mailbox.
+
+-  Replace '.inst' AArch64 machine directives with CPU Memory Tagging Extension
+   instructions in 'test_mte_instructions' function.
+
+-  Add build option for Arm Feature Modifiers.
+    -  This patch adds a new ARM_ARCH_FEATURE build option to add support
+       for compiler's feature modifiers.
+
+-  Enable 8 cores support for Theodul DSU(DynamIQ Shared Unit) for the
+   Total Compute (TC0) platform.
+
+-  New tests:
+
+    -  Remove redundant code and add better tests for TRNG SMCs.
+         -  Tests that the Version, Features, and RND calls conform to the spec.
+
+    -  New tests for v8.6 AMU enhancements (FEAT_AMUv1p1)
+         -  Make sure AMU offsets are being saved and restored properly.
+
+    -  Tests to request SP-to-SP memory share.
+
+    -  SP-to-SP direct messaging deadlock test.
+         -  TFTF sends CACTUS_REQ_DEADLOCK_CMD to cactus SP.
+
+Cactus(Secure-EL1 test partition)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+-  Enable managed exit for primary cactus secure partition.
+
+-  Helper commands needed for interrupt testing.
+
+-  Add handler from managed exit FIQ interrupt.
+
+-  Make ffa_id global.
+
+-  Implement HF_INTERRUPT_ENABLE Hafnium hypervisor call wrapper. With this
+   service, a secure partition calls into the SPMC to enable/disable a
+   particular virtual interrupt.
+
+-  Invalidate the data cache for the cactus image.
+
+-  Helper commands needed for interrupt testing.
+     -  CACTUS_SLEEP_CMD & CACTUS_INTERRUPT_CMD added.
+
+-  Decouple exception handling from tftf framework.
+    -  With new interrupt related tests coming up in Cactus, added separate
+       exception handler code for irq/fiq in Cactus.
+
+-  Hypervisor calls moved to a separate module.
+
+-  Add secondary entry point register function.
+
+-  Declare third SP instance as UP SP.
+
+-  Provision a cold boot path for secondary cores (or secondary pinned
+   execution contexts).
+
+-  Tidy message loop, commands definitions, direct messaging API definitions.
+
+-  Helpers for error logging after FF-A calls.
+
+-  Properly placing Cactus test files.
+
+-  Tidying FF-A Memory Sharing tests.
+
+-  Use CACTUS_ECHO_CMD in direct message tests.
+
+-  Refactor handling of commands.
+    -  Added helper macros to define a command handler, build a command table
+       in which each element is a pair of the handler and respective command
+       ID. Available tests have been moved to their own command handler.
+
+-  Extend arguments in commands responses.
+    -  In the test commands framework, added template to extend number of
+       values to include in a command response.
+
+-  Check FF-A return is a valid direct response.
+    -  Added a helper function to check if return of FFA_MSG_SEND_DIRECT_REQ
+       is FFA_MSG_SEND_DIRECT_RESP.
+
+-  FFA_MSG_DIRECT_RESP call extended to use 5 registers.
+
+-  Added accessors for arguments from FF-A calls.
+    -  Some accessors for arguments from FF-A calls, namely for func id, error
+       code, and direct message destination/source.
+
+-  Use virtual counter for sp_sleep.
+    -  Changes sp_sleep() to use virtual counter instead of physical counter.
+
+-  Checks if SIMD vectors are preserved in the normal world while transitioning
+   from normal world to secure world and back to normal world.
+
+-  Tidying common code to tftf and cactus.
+
+-  Refactor cactus_test_cmds.h to incorporate static inline functions instead
+   of macros to enforce type checking.
+
+-  Removed reference to Hafnium in name from helper function and macro to
+   make them generic.
+
+-  For consistency added the cmd id 'CACTUS_MEM_SEND_CMD'.
+
+-  Add command to request memory sharing between SPs.
+
+-  Add & handle commands 'CACTUS_REQ_ECHO_CMD' and 'CACTUS_ECHO_CMD'.
+
+-  Update README with list of sample partitions.
+
+-  Remove reference to PSA from xml test file.
+
+-  Reduce tests verbosity in release mode.
+    -  Update few NOTICE messages to VERBOSE/INFO.
+
+-  Fix conversion issues on cactus responses.
+
+-  Create RXTX map/configure helper macros and use them.
+
+-  Update OP-TEE version used for testing to 3.10.
+    -  SPMC as S-EL1 tests using OP-TEE depend on a static binary stored as
+       a CI file. This binary corresponds to a build of OP-TEE v3.10.
+
+-  Add uart2 to device-regions node.
+    -  First SP no longer has an open access to the full system peripheral
+       range and devices must be explicitly declared in the SP manifest.
+
+-  New tests:
+
+    -  Test for exercising SMMUv3 driver to perform stage2 translation.
+
+    -  Test handling of non-secure interrupt while running SP.
+
+    -  Add secondary cores direct messaging test for SPM.
+
+    -  Testing deadlock by FF-A direct message.
+         -  Added command CACTUS_DEADLOCK_CMD to file cactus_test_cmds.h to create
+            a deadlock scenario using FF-A direct message interfaces.
+
+    -  Test SP-to-SP memory share operations
+         -  Handle 'CACTUS_REQ_MEM_SEND_CMD' by sending memory to the receiver SP.
+
+    -  Implemented test to validate FFA_RXTX_MAP ABI.
+
 Version 2.4
 -----------
 
