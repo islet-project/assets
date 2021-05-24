@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
-# System suspend is not supported as there are no wakeup sources in tc0 FVP
+# Disable SMMUv3 tests
+SMMUv3 tests
 
 # PSCI is enabled but not tested
 PSCI STAT/Stats test cases after system suspend
 PSCI System Suspend Validation
-PSCI NODE_HW_STATE
