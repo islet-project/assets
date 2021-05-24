@@ -72,7 +72,7 @@
 
 /* GIC-600 & interrupt handling related constants */
 #define TC0_GICD_BASE			0x30000000
-#define TC0_GICR_BASE			0x30140000
+#define TC0_GICR_BASE			0x30080000
 #define TC0_GICC_BASE			0x2C000000
 
 /* SoC's PL011 UART0 related constants */
