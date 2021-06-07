@@ -113,19 +113,5 @@
 			smmu-id = <0>;
 			stream-ids = <0x0 0x1>;
 		};
-
-		test-reg {
-			/* Dummy Values */
-			base-address = <0x00000000 0x22000000>;
-			pages-count = <64>;
-			attributes = <0x3>; /* read-write */
-			reg = <0x10000008 0x00000001 1>;
-			smmu-id = <1>;
-			stream-ids = <0x0 0x1>;
-			interrupts = <0x2 0x3>,
-					<0x4 0x5>;
-			exclusive-access;
-		};
 	};
-
 };
