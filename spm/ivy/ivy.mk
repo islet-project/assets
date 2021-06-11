@@ -5,7 +5,6 @@
 #
 
 include branch_protection.mk
-include lib/sprt/sprt_client.mk
 include lib/xlat_tables_v2/xlat_tables.mk
 
 IVY_DTB		:= $(BUILD_PLAT)/ivy.dtb
@@ -17,7 +16,6 @@ IVY_INCLUDES :=					\
 	-Iinclude/common/${ARCH}			\
 	-Iinclude/lib					\
 	-Iinclude/lib/${ARCH}				\
-	-Iinclude/lib/sprt				\
 	-Iinclude/lib/utils				\
 	-Iinclude/lib/xlat_tables			\
 	-Iinclude/runtime_services			\
@@ -52,7 +50,6 @@ IVY_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/smc/${ARCH}/hvc.c				\
 			lib/locks/${ARCH}/spinlock.S			\
 			lib/utils/mp_printf.c				\
-			${SPRT_LIB_SOURCES}				\
 			${XLAT_TABLES_LIB_SRCS}
 
 IVY_LINKERFILE	:=	spm/ivy/ivy.ld.S
