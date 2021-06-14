@@ -98,6 +98,19 @@ bool is_expected_cactus_response(smc_ret_values ret, uint32_t expected_resp,
 	return true;
 }
 
+void dump_smc_ret_values(smc_ret_values ret)
+{
+	NOTICE("FF-A value: %lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx\n",
+		ret.ret0,
+		ret.ret1,
+		ret.ret2,
+		ret.ret3,
+		ret.ret4,
+		ret.ret5,
+		ret.ret6,
+		ret.ret7);
+}
+
 void fill_simd_vector_regs(const simd_vector_t v[SIMD_NUM_VECTORS])
 {
 #ifdef __aarch64__
