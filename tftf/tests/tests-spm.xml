@@ -128,6 +128,8 @@
                function="test_ffa_notifications_sp_signals_vm" />
      <testcase name="Notifications unbind while pending"
                function="test_ffa_notifications_unbind_pending" />
+     <testcase name="Notifications info get no data"
+               function="test_ffa_notifications_info_get_none" />
   </testsuite>
 
 </testsuites>
