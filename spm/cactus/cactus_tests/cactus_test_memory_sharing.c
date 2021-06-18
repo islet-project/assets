@@ -24,8 +24,8 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 	int ret;
 	unsigned int mem_attrs;
 	uint32_t *ptr;
-	ffa_vm_id_t source = ffa_dir_msg_source(*args);
-	ffa_vm_id_t vm_id = ffa_dir_msg_dest(*args);
+	ffa_id_t source = ffa_dir_msg_source(*args);
+	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	uint32_t mem_func = cactus_req_mem_send_get_mem_func(*args);
 	uint64_t handle = cactus_mem_send_get_handle(*args);
 
@@ -107,10 +107,10 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 {
 	smc_ret_values ffa_ret;
 	uint32_t mem_func = cactus_req_mem_send_get_mem_func(*args);
-	ffa_vm_id_t receiver = cactus_req_mem_send_get_receiver(*args);
+	ffa_id_t receiver = cactus_req_mem_send_get_receiver(*args);
 	ffa_memory_handle_t handle;
-	ffa_vm_id_t vm_id = ffa_dir_msg_dest(*args);
-	ffa_vm_id_t source = ffa_dir_msg_source(*args);
+	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
+	ffa_id_t source = ffa_dir_msg_source(*args);
 
 	VERBOSE("%x requested to send memory to %x (func: %x)\n",
 		source, receiver, mem_func);

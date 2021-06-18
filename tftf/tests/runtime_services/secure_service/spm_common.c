@@ -6,6 +6,7 @@
 
 #include <debug.h>
 #include <ffa_endpoints.h>
+#include <ffa_svc.h>
 #include <spm_common.h>
 #include <xlat_tables_v2.h>
 
@@ -166,6 +167,8 @@ static const struct ffa_features_test ffa_feature_test_target[] = {
 	{"FFA_RXTX_UNMAP_32 check", FFA_RXTX_UNMAP, FFA_ERROR},
 	{"FFA_PARTITION_INFO_GET_32 check", FFA_PARTITION_INFO_GET, FFA_SUCCESS_SMC32},
 	{"FFA_ID_GET_32 check", FFA_ID_GET, FFA_SUCCESS_SMC32},
+	{"FFA_SPM_ID_GET_32 check", FFA_SPM_ID_GET, FFA_SUCCESS_SMC32,
+		MAKE_FFA_VERSION(1, 1)},
 	{"FFA_MSG_POLL_32 check", FFA_MSG_POLL, FFA_SUCCESS_SMC32},
 	{"FFA_MSG_WAIT_32 check", FFA_MSG_WAIT, FFA_SUCCESS_SMC32},
 	{"FFA_YIELD_32 check", FFA_MSG_YIELD, FFA_SUCCESS_SMC32},
@@ -199,7 +202,7 @@ unsigned int get_ffa_feature_test_target(
 
 bool memory_retrieve(struct mailbox_buffers *mb,
 		     struct ffa_memory_region **retrieved, uint64_t handle,
-		     ffa_vm_id_t sender, ffa_vm_id_t receiver,
+		     ffa_id_t sender, ffa_id_t receiver,
 		     uint32_t mem_func)
 {
 	smc_ret_values ret;
@@ -269,7 +272,7 @@ bool memory_retrieve(struct mailbox_buffers *mb,
 }
 
 bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
-		       ffa_vm_id_t id)
+		       ffa_id_t id)
 {
 	smc_ret_values ret;
 
@@ -297,7 +300,7 @@ ffa_memory_handle_t memory_send(
 	uint32_t fragment_length, uint32_t total_length)
 {
 	smc_ret_values ret;
-	ffa_vm_id_t receiver =
+	ffa_id_t receiver =
 		memory_region->receivers[0].receiver_permissions.receiver;
 
 	if (fragment_length != total_length) {
@@ -336,7 +339,7 @@ ffa_memory_handle_t memory_send(
  */
 ffa_memory_handle_t memory_init_and_send(
 	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
-	ffa_vm_id_t sender, ffa_vm_id_t receiver,
+	ffa_id_t sender, ffa_id_t receiver,
 	const struct ffa_memory_region_constituent *constituents,
 	uint32_t constituents_count, uint32_t mem_func)
 {

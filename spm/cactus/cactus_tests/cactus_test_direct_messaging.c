@@ -24,8 +24,8 @@ CACTUS_CMD_HANDLER(echo_cmd, CACTUS_ECHO_CMD)
 CACTUS_CMD_HANDLER(req_echo_cmd, CACTUS_REQ_ECHO_CMD)
 {
 	smc_ret_values ffa_ret;
-	ffa_vm_id_t vm_id = ffa_dir_msg_dest(*args);
-	ffa_vm_id_t echo_dest = cactus_req_echo_get_echo_dest(*args);
+	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
+	ffa_id_t echo_dest = cactus_req_echo_get_echo_dest(*args);
 	uint64_t echo_val = cactus_echo_get_val(*args);
 
 	VERBOSE("%x requested to send echo to %x, value %llx\n",
@@ -48,10 +48,10 @@ CACTUS_CMD_HANDLER(req_echo_cmd, CACTUS_REQ_ECHO_CMD)
 	return cactus_success_resp(vm_id, ffa_dir_msg_source(*args), 0);
 }
 
-static smc_ret_values base_deadlock_handler(ffa_vm_id_t vm_id,
-					    ffa_vm_id_t source,
-					    ffa_vm_id_t deadlock_dest,
-					    ffa_vm_id_t deadlock_next_dest)
+static smc_ret_values base_deadlock_handler(ffa_id_t vm_id,
+					    ffa_id_t source,
+					    ffa_id_t deadlock_dest,
+					    ffa_id_t deadlock_next_dest)
 {
 	smc_ret_values ffa_ret;
 
@@ -92,9 +92,9 @@ static smc_ret_values base_deadlock_handler(ffa_vm_id_t vm_id,
 
 CACTUS_CMD_HANDLER(deadlock_cmd, CACTUS_DEADLOCK_CMD)
 {
-	ffa_vm_id_t source = ffa_dir_msg_source(*args);
-	ffa_vm_id_t deadlock_dest = cactus_deadlock_get_next_dest(*args);
-	ffa_vm_id_t deadlock_next_dest = source;
+	ffa_id_t source = ffa_dir_msg_source(*args);
+	ffa_id_t deadlock_dest = cactus_deadlock_get_next_dest(*args);
+	ffa_id_t deadlock_next_dest = source;
 
 	VERBOSE("%x is creating deadlock. next: %x\n", source, deadlock_dest);
 
@@ -104,10 +104,10 @@ CACTUS_CMD_HANDLER(deadlock_cmd, CACTUS_DEADLOCK_CMD)
 
 CACTUS_CMD_HANDLER(req_deadlock_cmd, CACTUS_REQ_DEADLOCK_CMD)
 {
-	ffa_vm_id_t vm_id = ffa_dir_msg_dest(*args);
-	ffa_vm_id_t source = ffa_dir_msg_source(*args);
-	ffa_vm_id_t deadlock_dest = cactus_deadlock_get_next_dest(*args);
-	ffa_vm_id_t deadlock_next_dest = cactus_deadlock_get_next_dest2(*args);
+	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
+	ffa_id_t source = ffa_dir_msg_source(*args);
+	ffa_id_t deadlock_dest = cactus_deadlock_get_next_dest(*args);
+	ffa_id_t deadlock_next_dest = cactus_deadlock_get_next_dest2(*args);
 
 	VERBOSE("%x requested deadlock with %x and %x\n",
 		ffa_dir_msg_source(*args), deadlock_dest, deadlock_next_dest);
