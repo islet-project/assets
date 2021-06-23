@@ -504,8 +504,8 @@ ifeq ($(SMC_FUZZING), 1)
 	$(Q)mkdir -p  ${BUILD_PLAT}/smcf
 	dtc ${SMC_FUZZ_DTS} >> ${BUILD_PLAT}/smcf/dtb
 	$(OC) -I binary -O elf64-littleaarch64 -B aarch64 ${BUILD_PLAT}/smcf/dtb ${BUILD_PLAT}/smcf/dtb.o \
-	--redefine-sym _binary___build_fvp_debug_smcf_dtb_start=_binary___dtb_start \
-	--redefine-sym _binary___build_fvp_debug_smcf_dtb_end=_binary___dtb_end
+	--redefine-sym _binary___build_$(PLAT)_$(BUILD_TYPE)_smcf_dtb_start=_binary___dtb_start \
+	--redefine-sym _binary___build_$(PLAT)_$(BUILD_TYPE)_smcf_dtb_end=_binary___dtb_end
 endif
 
 $(eval $(call MAKE_IMG,tftf))
