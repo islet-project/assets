@@ -33,14 +33,14 @@ CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
 		aarch64/cactus_entrypoint.S		\
 		aarch64/cactus_exceptions.S		\
-		cactus_debug.c				\
 		cactus_interrupt.c			\
 		cactus_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
 		aarch64/sp_arch_helpers.S		\
+		sp_debug.c				\
 		sp_helpers.c				\
-		spm_helpers.c					\
+		spm_helpers.c				\
 	)						\
 	$(addprefix spm/cactus/cactus_tests/,		\
 		cactus_message_loop.c			\

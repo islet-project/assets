@@ -32,6 +32,7 @@ PLAT_SOURCES	:=	drivers/arm/gic/arm_gic_v2v3.c		\
 			plat/arm/tc0/tc0_topology.c
 
 CACTUS_SOURCES	+=	plat/arm/tc0/${ARCH}/plat_helpers.S
+IVY_SOURCES	+=	plat/arm/tc0/${ARCH}/plat_helpers.S
 
 PLAT_TESTS_SKIP_LIST	:=	plat/arm/tc0/tests_to_skip.txt
 
