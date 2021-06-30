@@ -72,7 +72,7 @@
 
 /* GIC-600 & interrupt handling related constants */
 #define TC0_GICD_BASE			0x30000000
-#define TC0_GICR_BASE			0x30140000
+#define TC0_GICR_BASE			0x30080000
 #define TC0_GICC_BASE			0x2C000000
 
 /* SoC's PL011 UART0 related constants */
@@ -109,7 +109,12 @@
 /* Platform specific page table and MMU setup constants */
 #define PLAT_PHY_ADDR_SPACE_SIZE	(1ull << 36)
 #define PLAT_VIRT_ADDR_SPACE_SIZE	(1ull << 36)
+
+#if IMAGE_CACTUS
+#define MAX_XLAT_TABLES			6
+#else
 #define MAX_XLAT_TABLES			5
+#endif
 #define MAX_MMAP_REGIONS		16
 
 /*******************************************************************************
