@@ -83,22 +83,29 @@ bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id);
 /*
  * Vector length:
  * SIMD: 128 bits = 16 bytes
+ * SVE:	 512 bits = 64 bytes
  */
 #define SIMD_VECTOR_LEN_BYTES		16
+#define SVE_VECTOR_LEN_BYTES		64
+
 #define SIMD_NUM_VECTORS		32
+#define SVE_NUM_VECTORS			32
 typedef uint8_t simd_vector_t[SIMD_VECTOR_LEN_BYTES];
+typedef uint8_t sve_vector_t[SVE_VECTOR_LEN_BYTES];
 
 /*
- * Fills SIMD registers with the content of the container v.
- * Number of vectors is assumed to be SIMD_NUM_VECTORS.
+ * Fills SIMD/SVE registers with the content of the container v.
+ * Number of vectors is assumed to be SIMD/SVE_NUM_VECTORS.
  */
 void fill_simd_vector_regs(const simd_vector_t v[SIMD_NUM_VECTORS]);
+void fill_sve_vector_regs(const sve_vector_t v[SVE_NUM_VECTORS]);
 
 /*
- * Reads contents of SIMD registers into the provided container v.
- * Number of vectors is assumed to be SIMD_NUM_VECTORS.
+ * Reads contents of SIMD/SVE registers into the provided container v.
+ * Number of vectors is assumed to be SIMD/SVE_NUM_VECTORS.
  */
 void read_simd_vector_regs(simd_vector_t v[SIMD_NUM_VECTORS]);
+void read_sve_vector_regs(sve_vector_t v[SVE_NUM_VECTORS]);
 
 bool check_spmc_execution_level(void);
 

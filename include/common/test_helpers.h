@@ -107,6 +107,14 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (0)
 
+#define SKIP_TEST_IF_SVE_NOT_SUPPORTED()					\
+	do {									\
+		if (!is_armv8_2_sve_present()) {				\
+			tftf_testcase_printf("SVE not supported\n");		\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (0)
+
 #define SKIP_TEST_IF_ECV_NOT_SELF_SYNC()					\
 	do {									\
 		if (get_armv8_6_ecv_support() !=				\
@@ -228,6 +236,7 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 
 #define CHECK_SPMC_TESTING_SETUP(ffa_major, ffa_minor, expected_uuids)		\
 	do {									\
+		SKIP_TEST_IF_AARCH32();						\
 		const size_t expected_uuids_size =				\
 			 sizeof(expected_uuids) / sizeof(struct ffa_uuid);	\
 		test_result_t ret = check_spmc_testing_set_up(			\
