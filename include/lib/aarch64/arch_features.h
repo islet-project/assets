@@ -92,4 +92,11 @@ static inline uint32_t arch_get_debug_version(void)
 		ID_AA64DFR0_DEBUG_SHIFT);
 }
 
+static inline bool get_armv9_0_trbe_support(void)
+{
+        return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEBUFFER_SHIFT) &
+		ID_AA64DFR0_TRACEBUFFER_MASK) ==
+		ID_AA64DFR0_TRACEBUFFER_SUPPORTED;
+}
+
 #endif /* ARCH_FEATURES_H */

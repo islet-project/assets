@@ -247,6 +247,14 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (false);
 
+#define SKIP_TEST_IF_TRBE_NOT_SUPPORTED()					\
+	do {									\
+		if (!get_armv9_0_trbe_support()) {				\
+			tftf_testcase_printf("ARMv9-TRBE not supported\n");	\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (false)
+
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp_supported()	\
 		(tftf_get_psci_feature_info(SMC_PSCI_SYSTEM_SUSPEND)		\

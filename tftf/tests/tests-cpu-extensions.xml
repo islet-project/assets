@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2021, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
@@ -20,6 +20,7 @@
     <testcase name="Check for MTE register leakage" function="test_mte_leakage" />
     <testcase name="Use FGT Registers" function="test_fgt_enabled" />
     <testcase name="Use ECV Registers" function="test_ecv_enabled" />
+    <testcase name="Use trace buffer control Registers" function="test_trbe_enabled" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">

@@ -162,6 +162,11 @@
 #define ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED	U(8)
 #define ID_AA64DFR0_V8_4_DEBUG_ARCH_SUPPORTED	U(9)
 
+/* ID_AA64DFR0_EL1.TraceBuffer definitions */
+#define ID_AA64DFR0_TRACEBUFFER_SHIFT		U(44)
+#define ID_AA64DFR0_TRACEBUFFER_MASK		ULL(0xf)
+#define ID_AA64DFR0_TRACEBUFFER_SUPPORTED	ULL(1)
+
 #define EL_IMPL_NONE		ULL(0)
 #define EL_IMPL_A64ONLY		ULL(1)
 #define EL_IMPL_A64_A32		ULL(2)
@@ -998,5 +1003,15 @@
  ******************************************************************************/
 #define CNTPOFF_EL2  S3_4_C14_C0_6
 
+/*******************************************************************************
+ * Armv9.0 - Trace Buffer Extension System Registers
+ ******************************************************************************/
+#define TRBLIMITR_EL1	S3_0_C9_C11_0
+#define TRBPTR_EL1	S3_0_C9_C11_1
+#define TRBBASER_EL1	S3_0_C9_C11_2
+#define TRBSR_EL1	S3_0_C9_C11_3
+#define TRBMAR_EL1	S3_0_C9_C11_4
+#define TRBTRG_EL1	S3_0_C9_C11_6
+#define TRBIDR_EL1	S3_0_C9_C11_7
 
 #endif /* ARCH_H */
