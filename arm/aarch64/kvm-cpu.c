@@ -92,11 +92,13 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 
 	reg.addr = (u64)&data;
 
-	/* pstate = all interrupts masked */
-	data	= PSR_D_BIT | PSR_A_BIT | PSR_I_BIT | PSR_F_BIT | PSR_MODE_EL1h;
-	reg.id	= ARM64_CORE_REG(regs.pstate);
-	if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
-		die_perror("KVM_SET_ONE_REG failed (spsr[EL1])");
+	if (!kvm->cfg.arch.is_realm) {
+		/* pstate = all interrupts masked */
+		data	= PSR_D_BIT | PSR_A_BIT | PSR_I_BIT | PSR_F_BIT | PSR_MODE_EL1h;
+		reg.id	= ARM64_CORE_REG(regs.pstate);
+		if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
+			die_perror("KVM_SET_ONE_REG failed (PSTATE)");
+	}
 
 	/* x1...x3 = 0 */
 	data	= 0;
