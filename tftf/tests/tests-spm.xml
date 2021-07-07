@@ -21,10 +21,21 @@
      <testcase name="Smaller FFA version than SPM"
                function="test_ffa_version_smaller" />
 
+       <!--
+	 The ordering of the RXTX Buffer tests must be maintained.
+         With test_ffa_rxtx_map_unmapped_success coming last as the
+         mailbox for the remaining tftf tests is set here.
+       -->
      <testcase name="FF-A RXTX Map API success"
                function="test_ffa_rxtx_map_success" />
      <testcase name="FF-A RXTX Map API consecutive"
                function="test_ffa_rxtx_map_fail" />
+     <testcase name="FF-A RXTX Unmap API success"
+	       function="test_ffa_rxtx_unmap_success" />
+     <testcase name="FF-A RXTX Unmap API consecutive"
+	       function="test_ffa_rxtx_unmap_fail" />
+     <testcase name="FF-A RXTX remap unmapped region success"
+	     function="test_ffa_rxtx_map_unmapped_success" />
 
      <testcase name="Test FFA_SPM_ID_GET"
                function="test_ffa_spm_id_get" />

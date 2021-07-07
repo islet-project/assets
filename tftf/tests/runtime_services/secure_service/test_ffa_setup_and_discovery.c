@@ -222,18 +222,10 @@ static test_result_t test_ffa_rxtx_map(uint32_t expected_return)
 
 /**
  * Test mapping RXTX buffers from NWd.
- * This test also sets the Mailbox for other SPM related tests that need to use
- * RXTX buffers.
  */
 test_result_t test_ffa_rxtx_map_success(void)
 {
-	test_result_t ret = test_ffa_rxtx_map(FFA_SUCCESS_SMC32);
-
-	if (ret == TEST_RESULT_SUCCESS) {
-		INFO("Set RXTX Mailbox for remaining spm tests!\n");
-		set_tftf_mailbox(&mb);
-	}
-	return ret;
+	return test_ffa_rxtx_map(FFA_SUCCESS_SMC32);
 }
 
 /**
@@ -245,6 +237,63 @@ test_result_t test_ffa_rxtx_map_fail(void)
 	return test_ffa_rxtx_map(FFA_ERROR);
 }
 
+static test_result_t test_ffa_rxtx_unmap(uint32_t expected_return)
+{
+	smc_ret_values ret;
+
+	/**********************************************************************
+	 * Verify that FFA is there and that it has the correct version.
+	 **********************************************************************/
+	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 0);
+
+	/**********************************************************************
+	 * If OP-TEE is SPMC skip this test.
+	 **********************************************************************/
+	if (check_spmc_execution_level()) {
+		VERBOSE("OP-TEE as SPMC at S-EL1. Skipping test!\n");
+		return TEST_RESULT_SKIPPED;
+	}
+
+	ret = ffa_rxtx_unmap();
+	if (!is_expected_ffa_return(ret, expected_return)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * Test unmapping RXTX buffers from NWd.
+ */
+test_result_t test_ffa_rxtx_unmap_success(void)
+{
+	return test_ffa_rxtx_unmap(FFA_SUCCESS_SMC32);
+}
+
+/**
+ * Test to verify that 2nd call to FFA_RXTX_UNMAP should fail.
+ */
+test_result_t test_ffa_rxtx_unmap_fail(void)
+{
+	INFO("This test expects error log.\n");
+	return test_ffa_rxtx_unmap(FFA_ERROR);
+}
+
+/**
+ * Test mapping RXTX buffers that have been previously unmapped from NWd.
+ * This test also sets the Mailbox for other SPM related tests that need to use
+ * RXTX buffers.
+ */
+test_result_t test_ffa_rxtx_map_unmapped_success(void)
+{
+	test_result_t ret =  test_ffa_rxtx_map(FFA_SUCCESS_SMC32);
+
+	if (ret == TEST_RESULT_SUCCESS) {
+		INFO("Set RXTX Mailbox for remaining spm tests.\n");
+		set_tftf_mailbox(&mb);
+	}
+	return ret;
+}
 /******************************************************************************
  * FF-A SPM_ID_GET ABI Tests
  ******************************************************************************/

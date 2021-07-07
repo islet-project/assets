@@ -393,6 +393,23 @@ smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages)
 	return tftf_smc(&args);
 }
 
+/* Unmap the RXTX buffer allocated by the given FF-A component */
+smc_ret_values ffa_rxtx_unmap(void)
+{
+	smc_args args = {
+		.fid = FFA_RXTX_UNMAP,
+		.arg1 = FFA_PARAM_MBZ,
+		.arg2 = FFA_PARAM_MBZ,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ,
+		.arg5 = FFA_PARAM_MBZ,
+		.arg6 = FFA_PARAM_MBZ,
+		.arg7 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}
+
 /* Donate memory to another partition */
 smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
 				uint32_t fragment_length)

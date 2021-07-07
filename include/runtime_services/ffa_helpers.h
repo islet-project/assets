@@ -414,6 +414,7 @@ smc_ret_values ffa_features(uint32_t feature);
 smc_ret_values ffa_partition_info_get(const struct ffa_uuid uuid);
 smc_ret_values ffa_rx_release(void);
 smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages);
+smc_ret_values ffa_rxtx_unmap(void);
 smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
 			      uint32_t fragment_length);
 smc_ret_values ffa_mem_lend(uint32_t descriptor_length,
