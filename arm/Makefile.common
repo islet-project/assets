@@ -25,6 +25,7 @@ CFLAGS += -std=gnu99
 CFLAGS += -ffreestanding
 CFLAGS += -O2
 CFLAGS += -I $(SRCDIR)/lib -I $(SRCDIR)/lib/libfdt -I lib
+CFLAGS += -mgeneral-regs-only
 
 # We want to keep intermediate files
 .PRECIOUS: %.elf %.o
