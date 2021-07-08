@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -33,6 +33,13 @@ static inline uint32_t arch_get_debug_version(void)
 {
 	return ((read_dbgdidr() & DBGDIDR_VERSION_BITS) >>
 		DBGDIDR_VERSION_SHIFT);
+}
+
+static inline bool get_armv8_4_trf_support(void)
+{
+	return ((read_id_dfr0() >> ID_DFR0_TRACEFILT_SHIFT) &
+		ID_DFR0_TRACEFILT_MASK) ==
+		ID_DFR0_TRACEFILT_SUPPORTED;
 }
 
 #endif /* ARCH_FEATURES_H */

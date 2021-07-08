@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -97,6 +97,13 @@ static inline bool get_armv9_0_trbe_support(void)
         return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEBUFFER_SHIFT) &
 		ID_AA64DFR0_TRACEBUFFER_MASK) ==
 		ID_AA64DFR0_TRACEBUFFER_SUPPORTED;
+}
+
+static inline bool get_armv8_4_trf_support(void)
+{
+        return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEFILT_SHIFT) &
+		ID_AA64DFR0_TRACEFILT_MASK) ==
+		ID_AA64DFR0_TRACEFILT_SUPPORTED;
 }
 
 #endif /* ARCH_FEATURES_H */

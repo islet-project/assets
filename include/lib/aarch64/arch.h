@@ -167,6 +167,11 @@
 #define ID_AA64DFR0_TRACEBUFFER_MASK		ULL(0xf)
 #define ID_AA64DFR0_TRACEBUFFER_SUPPORTED	ULL(1)
 
+/* ID_DFR0_EL1.Tracefilt definitions */
+#define ID_AA64DFR0_TRACEFILT_SHIFT		U(40)
+#define ID_AA64DFR0_TRACEFILT_MASK		U(0xf)
+#define ID_AA64DFR0_TRACEFILT_SUPPORTED		U(1)
+
 #define EL_IMPL_NONE		ULL(0)
 #define EL_IMPL_A64ONLY		ULL(1)
 #define EL_IMPL_A64_A32		ULL(2)
@@ -1013,5 +1018,11 @@
 #define TRBMAR_EL1	S3_0_C9_C11_4
 #define TRBTRG_EL1	S3_0_C9_C11_6
 #define TRBIDR_EL1	S3_0_C9_C11_7
+
+/*******************************************************************************
+ * Armv8.4 - Trace Filter System Registers
+ ******************************************************************************/
+#define TRFCR_EL1	S3_0_C1_C2_1
+#define TRFCR_EL2	S3_4_C1_C2_1
 
 #endif /* ARCH_H */

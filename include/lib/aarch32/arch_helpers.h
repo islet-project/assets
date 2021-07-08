@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2021, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -209,6 +209,7 @@ DEFINE_SYSREG_RW_FUNCS(elr_hyp)
 DEFINE_COPROCR_READ_FUNC(mpidr, MPIDR)
 DEFINE_COPROCR_READ_FUNC(midr, MIDR)
 DEFINE_COPROCR_READ_FUNC(id_mmfr4, ID_MMFR4)
+DEFINE_COPROCR_READ_FUNC(id_dfr0, ID_DFR0)
 DEFINE_COPROCR_READ_FUNC(id_pfr0, ID_PFR0)
 DEFINE_COPROCR_READ_FUNC(id_pfr1, ID_PFR1)
 DEFINE_COPROCR_READ_FUNC(isr, ISR)
@@ -293,6 +294,10 @@ DEFINE_COPROCR_WRITE_FUNC(ats1hr, ATS1HR)
 DEFINE_COPROCR_RW_FUNCS_64(par, PAR_64)
 
 DEFINE_COPROCR_RW_FUNCS(nsacr, NSACR)
+
+/* AArch32 coproc registers for trace filter */
+DEFINE_COPROCR_RW_FUNCS(htrfcr, HTRFCR)
+DEFINE_COPROCR_RW_FUNCS(trfcr, TRFCR)
 
 /* AArch32 coproc registers for 32bit MMU descriptor support */
 DEFINE_COPROCR_RW_FUNCS(prrr, PRRR)

@@ -99,6 +99,11 @@
 #define ID_MMFR4_CNP_LENGTH	U(4)
 #define ID_MMFR4_CNP_MASK	U(0xf)
 
+/* ID_DFR0_EL1 definitions */
+#define ID_DFR0_TRACEFILT_SHIFT		U(28)
+#define ID_DFR0_TRACEFILT_MASK		U(0xf)
+#define ID_DFR0_TRACEFILT_SUPPORTED	U(1)
+
 /* ID_PFR0 definitions */
 #define ID_PFR0_AMU_SHIFT	U(20)
 #define ID_PFR0_AMU_LENGTH	U(4)
@@ -522,6 +527,7 @@
 #define ID_MMFR4	p15, 0, c0, c2, 6
 #define ID_PFR0		p15, 0, c0, c1, 0
 #define ID_PFR1		p15, 0, c0, c1, 1
+#define ID_DFR0		p15, 0, c0, c1, 2
 #define MAIR0		p15, 0, c10, c2, 0
 #define MAIR1		p15, 0, c10, c2, 1
 #define TTBCR		p15, 0, c2, c0, 2
@@ -724,5 +730,11 @@
 #define AMEVTYPER1D	p15, 0, c13, c15, 5
 #define AMEVTYPER1E	p15, 0, c13, c15, 6
 #define AMEVTYPER1F	p15, 0, c13, c15, 7
+
+/*******************************************************************************
+ * Armv8.4 - Trace Filter System Registers
+ ******************************************************************************/
+#define TRFCR		p15, 0, c1, c2, 1
+#define HTRFCR		p15, 4, c1, c2, 1
 
 #endif /* ARCH_H */

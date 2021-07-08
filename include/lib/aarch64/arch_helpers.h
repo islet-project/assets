@@ -498,6 +498,10 @@ DEFINE_RENAME_SYSREG_RW_FUNCS(trbmar_el1, TRBMAR_EL1)
 DEFINE_RENAME_SYSREG_RW_FUNCS(trbtrg_el1, TRBTRG_EL1)
 DEFINE_RENAME_SYSREG_READ_FUNC(trbidr_el1, TRBIDR_EL1)
 
+/* Armv8.4 Trace filter control System Registers */
+DEFINE_RENAME_SYSREG_RW_FUNCS(trfcr_el1, TRFCR_EL1)
+DEFINE_RENAME_SYSREG_RW_FUNCS(trfcr_el2, TRFCR_EL2)
+
 #define IS_IN_EL(x) \
 	(GET_EL(read_CurrentEl()) == MODE_EL##x)
 
