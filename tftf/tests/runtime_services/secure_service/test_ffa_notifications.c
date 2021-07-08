@@ -976,3 +976,131 @@ test_result_t test_ffa_notifications_sp_signals_sp_per_vcpu(void)
 {
 	return base_test_per_vcpu_notifications(SP_ID(1), SP_ID(2));
 }
+
+static test_result_t notification_get_per_vcpu_on_handler(void)
+{
+	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
+	unsigned int core_pos = platform_get_core_pos(mpid);
+	smc_ret_values ret;
+	test_result_t result = TEST_RESULT_SUCCESS;
+
+	VERBOSE("Getting per-vCPU notifications from %x, core: %u.\n",
+		 per_vcpu_receiver, core_pos);
+
+	ret = ffa_run(per_vcpu_sender, core_pos);
+
+	if (ffa_func_id(ret) != FFA_MSG_WAIT) {
+		ERROR("Failed to run SP%x on core %u\n",
+		      per_vcpu_sender, core_pos);
+		result = TEST_RESULT_FAIL;
+		goto out;
+	}
+
+	if (!notification_get_and_validate(per_vcpu_receiver,
+					   FFA_NOTIFICATION(core_pos), 0,
+					   core_pos,
+					   FFA_NOTIFICATIONS_FLAG_BITMAP_SP)) {
+		result = TEST_RESULT_FAIL;
+		goto out;
+	}
+
+out:
+	/* Tell the lead CPU that the calling CPU has completed the test. */
+	tftf_send_event(&per_vcpu_finished[core_pos]);
+
+	return result;
+}
+
+/**
+ * Test whole flow from binding, to getting notifications' info, and getting
+ * pending notifications, namely signaling of notifications from SP to a VM.
+ * Each vCPU will receive a notification whose ID is the same as the core
+ * position.
+ */
+test_result_t test_ffa_notifications_sp_signals_vm_per_vcpu(void)
+{
+	/* Making a VM the receiver, and an SP the sender */
+	per_vcpu_receiver = 1;
+	per_vcpu_sender = SP_ID(2);
+
+	/**
+	 * Manually set variables to validate what should be the return of to
+	 * FFA_NOTIFICATION_INFO_GET.
+	 */
+	uint16_t exp_ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {
+		per_vcpu_receiver, 0, 1, 2,
+		per_vcpu_receiver, 3, 4, 5,
+		per_vcpu_receiver, 6, 7, 0,
+		0, 0, 0, 0,
+		0, 0, 0, 0,
+	};
+	uint32_t exp_lists_count = 3;
+	uint32_t exp_lists_sizes[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {
+		3, 3, 2, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	};
+
+	const bool exp_more_notif_pending = false;
+	test_result_t result = TEST_RESULT_SUCCESS;
+	uint64_t notifications_to_unbind = 0;
+	smc_ret_values ret;
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	/* Create bitmap for receiver. */
+	if (!notifications_bitmap_create(per_vcpu_receiver,
+					 PLATFORM_CORE_COUNT)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Bind notifications, and request Cactus SP to set them. */
+	for (uint32_t i = 0U; i < PLATFORM_CORE_COUNT; i++) {
+		notifications_to_unbind |= FFA_NOTIFICATION(i);
+
+		uint32_t flags = FFA_NOTIFICATIONS_FLAG_DELAY_SRI |
+				 FFA_NOTIFICATIONS_FLAG_PER_VCPU  |
+				 FFA_NOTIFICATIONS_FLAGS_VCPU_ID((uint16_t)i);
+
+		if (!notification_bind_and_set(per_vcpu_sender,
+					      per_vcpu_receiver,
+					      FFA_NOTIFICATION(i),
+					      flags)) {
+			return TEST_RESULT_FAIL;
+		};
+	}
+
+	/* Call FFA_NOTIFICATION_INFO_GET and validate return. */
+	if (!notifications_info_get(exp_ids, exp_lists_count, exp_lists_sizes,
+				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
+				    exp_more_notif_pending)) {
+		ERROR("Info Get Failed....\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Get notifications in core 0, as it is not iterated at the CPU ON
+	 * handler.
+	 */
+	if (!notification_get_and_validate(per_vcpu_receiver,
+					   FFA_NOTIFICATION(0), 0, 0,
+					   FFA_NOTIFICATIONS_FLAG_BITMAP_SP)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* Bring up all the cores, and get notifications in each one of them. */
+	if (spm_run_multi_core_test(
+		(uintptr_t)notification_get_per_vcpu_on_handler,
+		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
+		ERROR("Failed to get per-vCPU notifications\n");
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* As a clean-up, unbind notifications. */
+	ret = ffa_notification_unbind(per_vcpu_sender, per_vcpu_receiver,
+				      notifications_to_unbind);
+	if (is_ffa_call_error(ret)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	return result;
+}

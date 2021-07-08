@@ -70,6 +70,9 @@ typedef uint64_t ffa_notification_bitmap_t;
 
 #define FFA_NOTIFICATIONS_FLAG_PER_VCPU	UINT32_C(0x1 << 0)
 
+/** Flag to delay Schedule Receiver Interrupt. */
+#define FFA_NOTIFICATIONS_FLAG_DELAY_SRI	UINT32_C(0x1 << 1)
+
 #define FFA_NOTIFICATIONS_FLAGS_VCPU_ID(id) UINT32_C((id & 0xFFFF) << 16)
 
 #define FFA_NOTIFICATIONS_FLAG_BITMAP_SP	UINT32_C(0x1 << 0)

@@ -134,6 +134,8 @@
                function="test_ffa_notifications_vm_signals_sp_per_vcpu" />
      <testcase name="Notifications SP signals SP per-vCPU"
                function="test_ffa_notifications_sp_signals_sp_per_vcpu" />
+     <testcase name="Notifications SP signals VM per-vCPU"
+               function="test_ffa_notifications_sp_signals_vm_per_vcpu" />
   </testsuite>
 
 </testsuites>
