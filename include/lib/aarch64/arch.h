@@ -172,6 +172,11 @@
 #define ID_AA64DFR0_TRACEFILT_MASK		U(0xf)
 #define ID_AA64DFR0_TRACEFILT_SUPPORTED		U(1)
 
+/* ID_AA64DFR0_EL1.TraceVer definitions */
+#define ID_AA64DFR0_TRACEVER_SHIFT		U(4)
+#define ID_AA64DFR0_TRACEVER_MASK		ULL(0xf)
+#define ID_AA64DFR0_TRACEVER_SUPPORTED		ULL(1)
+
 #define EL_IMPL_NONE		ULL(0)
 #define EL_IMPL_A64ONLY		ULL(1)
 #define EL_IMPL_A64_A32		ULL(2)
@@ -1024,5 +1029,20 @@
  ******************************************************************************/
 #define TRFCR_EL1	S3_0_C1_C2_1
 #define TRFCR_EL2	S3_4_C1_C2_1
+
+/*******************************************************************************
+ * Trace System Registers
+ ******************************************************************************/
+#define TRCAUXCTLR	S2_1_C0_C6_0
+#define TRCRSR		S2_1_C0_C10_0
+#define TRCCCCTLR	S2_1_C0_C14_0
+#define TRCBBCTLR	S2_1_C0_C15_0
+#define TRCEXTINSELR0	S2_1_C0_C8_4
+#define TRCEXTINSELR1	S2_1_C0_C9_4
+#define TRCEXTINSELR2	S2_1_C0_C10_4
+#define TRCEXTINSELR3	S2_1_C0_C11_4
+#define TRCCLAIMSET	S2_1_c7_c8_6
+#define TRCCLAIMCLR	S2_1_c7_c9_6
+#define TRCDEVARCH	S2_1_c7_c15_6
 
 #endif /* ARCH_H */

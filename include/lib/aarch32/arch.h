@@ -104,6 +104,11 @@
 #define ID_DFR0_TRACEFILT_MASK		U(0xf)
 #define ID_DFR0_TRACEFILT_SUPPORTED	U(1)
 
+/* ID_DFR0_EL1 definitions */
+#define ID_DFR0_COPTRC_SHIFT		U(12)
+#define ID_DFR0_COPTRC_MASK		U(0xf)
+#define ID_DFR0_COPTRC_SUPPORTED	U(1)
+
 /* ID_PFR0 definitions */
 #define ID_PFR0_AMU_SHIFT	U(20)
 #define ID_PFR0_AMU_LENGTH	U(4)
@@ -736,5 +741,20 @@
  ******************************************************************************/
 #define TRFCR		p15, 0, c1, c2, 1
 #define HTRFCR		p15, 4, c1, c2, 1
+
+/*******************************************************************************
+ * Trace System Registers
+ ******************************************************************************/
+#define TRCAUXCTLR	p14, 1, c0, c6,  0
+#define TRCRSR		p14, 1, c0, c10, 0
+#define TRCCCCTLR	p14, 1, c0, c14, 0
+#define TRCBBCTLR	p14, 1, c0, c15, 0
+#define TRCEXTINSELR0	p14, 1, c0, c8,  4
+#define TRCEXTINSELR1	p14, 1, c0, c9,  4
+#define TRCEXTINSELR2	p14, 1, c0, c10, 4
+#define TRCEXTINSELR3	p14, 1, c0, c11, 4
+#define TRCCLAIMSET	p14, 1, c7, c8,  6
+#define TRCCLAIMCLR	p14, 1, c7, c9,  6
+#define TRCDEVARCH	p14, 1, c7, c15, 6
 
 #endif /* ARCH_H */

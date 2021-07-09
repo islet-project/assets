@@ -42,4 +42,10 @@ static inline bool get_armv8_4_trf_support(void)
 		ID_DFR0_TRACEFILT_SUPPORTED;
 }
 
+static inline bool get_armv8_0_sys_reg_trace_support(void)
+{
+	return ((read_id_dfr0() >> ID_DFR0_COPTRC_SHIFT) &
+		ID_DFR0_COPTRC_MASK) ==
+		ID_DFR0_COPTRC_SUPPORTED;
+}
 #endif /* ARCH_FEATURES_H */
