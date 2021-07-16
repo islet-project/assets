@@ -459,3 +459,53 @@ ffa_memory_handle_t memory_init_and_send(
 	return memory_send(memory_region, mem_func, fragment_length,
 			       total_length);
 }
+
+/**
+ * Sends a ffa_partition_info request and checks the response against the
+ * target.
+ */
+bool ffa_partition_info_helper(struct mailbox_buffers *mb,
+			       const struct ffa_uuid uuid,
+			       const struct ffa_partition_info *expected,
+			       const uint16_t expected_size)
+{
+	bool result = true;
+	smc_ret_values ret = ffa_partition_info_get(uuid);
+
+	if (ffa_func_id(ret) == FFA_SUCCESS_SMC32) {
+		if (ret.ret2 != expected_size) {
+			ERROR("Unexpected number of partitions %ld\n", ret.ret2);
+			return false;
+		}
+		const struct ffa_partition_info *info =
+			(const struct ffa_partition_info *)(mb->recv);
+
+		for (unsigned int i = 0U; i < expected_size; i++) {
+			if (info[i].id != expected[i].id) {
+				ERROR("Wrong ID. Expected %x, got %x\n",
+				      expected[i].id,
+				      info[i].id);
+				result = false;
+			}
+			if (info[i].exec_context != expected[i].exec_context) {
+				ERROR("Wrong context. Expected %d, got %d\n",
+				      expected[i].exec_context,
+				      info[i].exec_context);
+				result = false;
+			}
+			if (info[i].properties != expected[i].properties) {
+				ERROR("Wrong properties. Expected %d, got %d\n",
+				      expected[i].properties,
+				      info[i].properties);
+				result = false;
+			}
+		}
+	}
+
+	ret = ffa_rx_release();
+	if (is_ffa_call_error(ret)) {
+		ERROR("Failed to release RX buffer\n");
+		result = false;
+	}
+	return result;
+}

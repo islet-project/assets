@@ -56,9 +56,17 @@ ifneq ($(FVP_MAX_CPUS_PER_CLUSTER),$(filter $(FVP_MAX_CPUS_PER_CLUSTER),$(CPU)))
 endif
 
 # Pass FVP topology definitions to the build system
-$(eval $(call add_define,TFTF_DEFINES,FVP_CLUSTER_COUNT))
-$(eval $(call add_define,TFTF_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
-$(eval $(call add_define,TFTF_DEFINES,FVP_MAX_PE_PER_CPU))
+$(eval $(call add_define,CACTUS_DEFINES,FVP_CLUSTER_COUNT))
+$(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
+$(eval $(call add_define,CACTUS_DEFINES,FVP_MAX_PE_PER_CPU))
+
+$(eval $(call add_define,CACTUS_MM_DEFINES,FVP_CLUSTER_COUNT))
+$(eval $(call add_define,CACTUS_MM_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
+$(eval $(call add_define,CACTUS_MM_DEFINES,FVP_MAX_PE_PER_CPU))
+
+$(eval $(call add_define,IVY_DEFINES,FVP_CLUSTER_COUNT))
+$(eval $(call add_define,IVY_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
+$(eval $(call add_define,IVY_DEFINES,FVP_MAX_PE_PER_CPU))
 
 $(eval $(call add_define,NS_BL1U_DEFINES,FVP_CLUSTER_COUNT))
 $(eval $(call add_define,NS_BL1U_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
@@ -67,6 +75,10 @@ $(eval $(call add_define,NS_BL1U_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,NS_BL2U_DEFINES,FVP_CLUSTER_COUNT))
 $(eval $(call add_define,NS_BL2U_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,NS_BL2U_DEFINES,FVP_MAX_PE_PER_CPU))
+
+$(eval $(call add_define,TFTF_DEFINES,FVP_CLUSTER_COUNT))
+$(eval $(call add_define,TFTF_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
+$(eval $(call add_define,TFTF_DEFINES,FVP_MAX_PE_PER_CPU))
 
 PLAT_INCLUDES	+=	-Iplat/arm/fvp/include/
 

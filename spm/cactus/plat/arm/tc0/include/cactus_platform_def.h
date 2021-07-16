@@ -18,10 +18,6 @@
 #define PLAT_CACTUS_RX_BASE		ULL(0xfe300000)
 #define PLAT_CACTUS_CORE_COUNT		(8)
 
-#define CACTUS_PRIMARY_EC_COUNT		(8U)
-#define CACTUS_SECONDARY_EC_COUNT	(8U)
-#define CACTUS_TERTIARY_EC_COUNT	(1U)
-
 /* Scratch memory used for SMMUv3 driver testing purposes in Cactus SP */
 /* SMMUv3 tests are disabled for TC platform */
 #define PLAT_CACTUS_MEMCPY_BASE		ULL(0xfe400000)
