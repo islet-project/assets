@@ -130,6 +130,10 @@
                function="test_ffa_notifications_unbind_pending" />
      <testcase name="Notifications info get no data"
                function="test_ffa_notifications_info_get_none" />
+     <testcase name="Notifications VM signals SP per-vCPU"
+               function="test_ffa_notifications_vm_signals_sp_per_vcpu" />
+     <testcase name="Notifications SP signals SP per-vCPU"
+               function="test_ffa_notifications_sp_signals_sp_per_vcpu" />
   </testsuite>
 
 </testsuites>
