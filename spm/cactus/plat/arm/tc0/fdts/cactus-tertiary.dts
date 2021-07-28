@@ -40,6 +40,14 @@
 			pages-count = <4>;
 			attributes = <0x7>; /* read-write-execute */
 		};
+
+		/* Memory to be shared in memory sharing tests. */
+		share-memory {
+			description = "share-memory";
+			pages-count = <1>;
+			base-address =<0x00000000 0xfe502000>;
+			attributes = <0x3>; /* read-write */
+		};
 	};
 
 	device-regions {

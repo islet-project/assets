@@ -5,6 +5,7 @@
  */
 
 #include <cactus_def.h>
+#include <cactus_platform_def.h>
 #include "cactus_message_loop.h"
 #include "cactus_test_cmds.h"
 #include "cactus_tests.h"
@@ -14,8 +15,26 @@
 #include <xlat_tables_defs.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 
-/* Memory section to be used for memory share operations */
-static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
+/**
+ * Each Cactus SP has a memory region dedicated to memory sharing tests
+ * described in their partition manifest.
+ * This function returns the expected base address depending on the
+ * SP ID (should be the same as the manifest).
+ */
+static void *share_page(ffa_id_t cactus_sp_id)
+{
+	switch (cactus_sp_id) {
+	case SP_ID(1):
+		return (void *)CACTUS_SP1_MEM_SHARE_BASE;
+	case SP_ID(2):
+		return (void *)CACTUS_SP2_MEM_SHARE_BASE;
+	case SP_ID(3):
+		return (void *)CACTUS_SP3_MEM_SHARE_BASE;
+	default:
+		ERROR("Helper function expecting a valid Cactus SP ID!\n");
+		panic();
+	}
+}
 
 CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 {
@@ -58,7 +77,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 			mem_attrs);
 
 	if (ret != 0) {
-		ERROR("Failed first mmap_add_dynamic_region!\n");
+		ERROR("Failed to map received memory region(%d)!\n", ret);
 		return cactus_error_resp(vm_id, source, CACTUS_ERROR_TEST);
 	}
 
@@ -111,16 +130,34 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 	ffa_memory_handle_t handle;
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	ffa_id_t source = ffa_dir_msg_source(*args);
+	int ret;
+	static bool share_memory_mapped;
 
-	VERBOSE("%x requested to send memory to %x (func: %x)\n",
-		source, receiver, mem_func);
+	VERBOSE("%x requested to send memory to %x (func: %x), page: %llx\n",
+		source, receiver, mem_func, (uint64_t)share_page(vm_id));
 
 	const struct ffa_memory_region_constituent constituents[] = {
-		{(void *)share_page, 1, 0}
+		{share_page(vm_id), 1, 0}
 	};
 
 	const uint32_t constituents_count = (sizeof(constituents) /
 					     sizeof(constituents[0]));
+
+	if (!share_memory_mapped) {
+		ret = mmap_add_dynamic_region(
+			(uint64_t)constituents[0].address,
+			(uint64_t)constituents[0].address,
+			constituents[0].page_count * PAGE_SIZE,
+			MT_RW_DATA);
+
+		if (ret != 0) {
+			ERROR("Failed map share memory before sending (%d)!\n",
+			      ret);
+			return cactus_error_resp(vm_id, source,
+						 CACTUS_ERROR_TEST);
+		}
+		share_memory_mapped = true;
+	}
 
 	handle = memory_init_and_send(
 		(struct ffa_memory_region *)mb->send, PAGE_SIZE,
@@ -173,6 +210,16 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 				VERBOSE("      %u: %x\n", i, ptr[i]);
 			}
 		#endif
+	} else {
+		ret = mmap_remove_dynamic_region(
+			(uint64_t)constituents[0].address,
+			constituents[0].page_count * PAGE_SIZE);
+
+		if (ret != 0) {
+			ERROR("Failed to unmap donated region (%d)!\n", ret);
+			return cactus_error_resp(vm_id, source,
+						 CACTUS_ERROR_TEST);
+		}
 	}
 
 	return cactus_success_resp(vm_id, source, 0);

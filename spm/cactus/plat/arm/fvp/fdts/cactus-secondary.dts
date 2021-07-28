@@ -56,6 +56,14 @@
 			attributes = <0x3>; /* read-write */
 		};
 
+		/* Memory to be shared in memory sharing tests. */
+		share-memory {
+			description = "share-memory";
+			pages-count = <1>;
+			base-address = <0x00000000 0x7501000>;
+			attributes = <0x3>; /* read-write */
+		};
+
 		/* Without optional base-address */
 		test-memory {
 			description = "test-memory";

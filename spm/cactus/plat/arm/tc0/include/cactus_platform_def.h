@@ -28,4 +28,9 @@
 #define USR_BASE_FRAME			ULL(0x0)
 #define PRIV_BASE_FRAME			ULL(0x0)
 
+/* Base address for memory sharing tests. */
+#define CACTUS_SP1_MEM_SHARE_BASE 0xfe500000
+#define CACTUS_SP2_MEM_SHARE_BASE 0xfe501000
+#define CACTUS_SP3_MEM_SHARE_BASE 0xfe502000
+
 #endif /* CACTUS_PLATFORM_DEF_H */
