@@ -88,9 +88,10 @@ CACTUS_CMD_HANDLER(notifications_set, CACTUS_NOTIFICATIONS_SET_CMD)
 {
 	ffa_id_t source = ffa_dir_msg_source(*args);
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
-	ffa_id_t receiver = cactus_notification_get_receiver(*args);
-	ffa_id_t sender = cactus_notification_get_sender(*args);
 	ffa_notification_bitmap_t notifications = cactus_notification_get_notifications(*args);
+	ffa_id_t receiver = cactus_notifications_set_get_receiver(*args);
+	ffa_id_t sender = cactus_notifications_set_get_sender(*args);
+	ffa_id_t echo_dest = cactus_req_echo_get_echo_dest(*args);
 	uint32_t flags = cactus_notification_get_flags(*args);
 	smc_ret_values ret;
 
@@ -101,6 +102,26 @@ CACTUS_CMD_HANDLER(notifications_set, CACTUS_NOTIFICATIONS_SET_CMD)
 	if (is_ffa_call_error(ret)) {
 		return cactus_error_resp(vm_id, source, ffa_error_code(ret));
 	}
+
+	/*
+	 * If flag to delay notification pending interrupt, an echo test command
+	 * should be sent to another SP, to validate SWd is not preempted.
+	 */
+	if ((flags & FFA_NOTIFICATIONS_FLAG_DELAY_SRI) != 0 &&
+	    IS_SP_ID(echo_dest)) {
+		VERBOSE("Delay SRI. Test Echo to %x.\n", echo_dest);
+		ret = cactus_echo_send_cmd(vm_id, echo_dest,
+					   FFA_NOTIFICATION_SET);
+
+		if (!is_expected_cactus_response(ret, CACTUS_SUCCESS,
+						 FFA_NOTIFICATION_SET)) {
+			ERROR("Echo Failed!\n");
+			return cactus_error_resp(vm_id, source,
+						 CACTUS_ERROR_TEST);
+		}
+	}
+
+	VERBOSE("Set notifications handled!\n");
 
 	return cactus_response(vm_id, source, CACTUS_SUCCESS);
 }

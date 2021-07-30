@@ -427,7 +427,7 @@ static bool request_notification_set(
 		cmd_dest, sender, receiver);
 
 	ret = cactus_notifications_set_send_cmd(HYP_ID, cmd_dest, receiver,
-						sender, flags, notifications);
+						sender, flags, notifications, 0);
 
 	if (!is_expected_cactus_response(ret, exp_resp, exp_error)) {
 		ERROR("Failed notifications set. receiver: %x; sender: %x\n",
@@ -715,7 +715,8 @@ test_result_t test_ffa_notifications_sp_signals_sp(void)
 	schedule_receiver_interrupt_init();
 
 	/* Request receiver to bind a set of notifications to the sender. */
-	if (!notification_bind_and_set(sender, receiver, g_notifications, 0)) {
+	if (!notification_bind_and_set(sender, receiver, g_notifications,
+				       FFA_NOTIFICATIONS_FLAG_DELAY_SRI)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -774,7 +775,8 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 	schedule_receiver_interrupt_init();
 
 	/* Request receiver to bind a set of notifications to the sender. */
-	if (!notification_bind_and_set(sender, receiver, g_notifications, 0)) {
+	if (!notification_bind_and_set(sender, receiver, g_notifications,
+				       FFA_NOTIFICATIONS_FLAG_DELAY_SRI)) {
 		return TEST_RESULT_FAIL;
 	}
 

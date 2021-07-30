@@ -440,16 +440,31 @@ static inline uint64_t cactus_notifications_get_from_vm(smc_ret_values ret)
  * Request SP to set notifications. The arguments to use in ffa_notification_set
  * are propagated on the command to test erroneous uses of the interface.
  * In case of error while calling the interface, the response should include the
- * error code.
+ * error code. If in the flags a delay SRI is requested, cactus should
+ * send a CACTUS_ECHO_CMD to the SP specified as `echo_dest`. This should help
+ * validate that the SRI is only sent when returning execution to the NWd.
  */
 #define CACTUS_NOTIFICATIONS_SET_CMD U(0x6e6f74736574)
 
 static inline smc_ret_values cactus_notifications_set_send_cmd(
 	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
-	ffa_id_t sender, uint32_t flags, ffa_notification_bitmap_t notifications)
+	ffa_id_t sender, uint32_t flags, ffa_notification_bitmap_t notifications,
+	ffa_id_t echo_dest)
 {
 	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATIONS_SET_CMD,
-			       receiver, sender, notifications, flags);
+			       (uint32_t)receiver | ((uint32_t)sender << 16),
+			       echo_dest,
+			       notifications, flags);
+}
+
+static inline ffa_id_t cactus_notifications_set_get_receiver(smc_ret_values ret)
+{
+	return (ffa_id_t)(ret.ret4 & 0xFFFFU);
+}
+
+static inline ffa_id_t cactus_notifications_set_get_sender(smc_ret_values ret)
+{
+	return (ffa_id_t)((ret.ret4 >> 16U) & 0xFFFFU);
 }
 
 /**
