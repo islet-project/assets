@@ -471,4 +471,23 @@ static inline uint32_t cactus_get_wdog_duration(smc_ret_values ret)
 	return (uint32_t)ret.ret4;
 }
 
+/**
+ * Request SP to return the current count of handled requests.
+ *
+ * The command id is the hex representation of the string "getnot".
+ */
+#define CACTUS_GET_REQ_COUNT_CMD U(0x726571636f756e74)
+
+static inline smc_ret_values cactus_get_req_count_send_cmd(
+	ffa_id_t source, ffa_id_t dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_GET_REQ_COUNT_CMD, 0, 0, 0,
+			       0);
+}
+
+static inline uint32_t cactus_get_req_count(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret4;
+}
+
 #endif

@@ -9,8 +9,8 @@
 
 #include <arch_features.h>
 #include <ffa_svc.h>
-#include <plat_topology.h>
 #include <events.h>
+#include <plat_topology.h>
 #include <psci.h>
 #include <spm_common.h>
 #include <tftf_lib.h>
