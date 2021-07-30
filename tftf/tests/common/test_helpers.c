@@ -5,6 +5,7 @@
  */
 
 #include <arch_helpers.h>
+#include <cactus_test_cmds.h>
 #include <plat_topology.h>
 #include <platform.h>
 #include <power_management.h>
@@ -218,4 +219,20 @@ test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
 	VERBOSE("Done exiting.\n");
 
 	return TEST_RESULT_SUCCESS;
+}
+
+bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable)
+{
+	smc_ret_values ret;
+
+	ret = cactus_interrupt_cmd(HYP_ID, sp_id, MANAGED_EXIT_INTERRUPT_ID,
+				   enable, INTERRUPT_TYPE_FIQ);
+
+	if (!is_ffa_direct_response(ret) ||
+	    cactus_get_response(ret) != CACTUS_SUCCESS) {
+		ERROR("Failed to enable Managed exit interrupt\n");
+		return false;
+	}
+
+	return true;
 }

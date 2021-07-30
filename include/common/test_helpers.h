@@ -352,4 +352,9 @@ test_result_t check_spmc_testing_set_up(uint32_t ffa_version_major,
 test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
 				      event_t *cpu_booted);
 
+/**
+ * Enable/Disable managed exit interrupt for the provided SP.
+ */
+bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable);
+
 #endif /* __TEST_HELPERS_H__ */

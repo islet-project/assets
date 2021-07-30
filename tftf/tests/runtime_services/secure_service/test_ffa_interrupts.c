@@ -69,15 +69,7 @@ test_result_t test_ffa_ns_interrupt(void)
 	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	/* Enable managed exit interrupt as FIQ in the secure side. */
-	ret_values = cactus_interrupt_cmd(SENDER, RECEIVER, MANAGED_EXIT_INTERRUPT_ID,
-					  true, INTERRUPT_TYPE_FIQ);
-
-	if (!is_ffa_direct_response(ret_values)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	if (cactus_get_response(ret_values) != CACTUS_SUCCESS) {
-		ERROR("Failed to enable Managed exit interrupt\n");
+	if (!spm_set_managed_exit_int(RECEIVER, true)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -134,15 +126,7 @@ test_result_t test_ffa_ns_interrupt(void)
 	}
 
 	/* Disable Managed exit interrupt */
-	ret_values = cactus_interrupt_cmd(SENDER, RECEIVER, MANAGED_EXIT_INTERRUPT_ID,
-					  false, 0);
-
-	if (!is_ffa_direct_response(ret_values)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	if (cactus_get_response(ret_values) != CACTUS_SUCCESS) {
-		ERROR("Failed to disable Managed exit interrupt\n");
+	if (!spm_set_managed_exit_int(RECEIVER, false)) {
 		return TEST_RESULT_FAIL;
 	}
 
