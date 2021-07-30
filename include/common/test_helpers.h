@@ -214,8 +214,8 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 	do {									\
 		smc_ret_values smc_ret = ffa_partition_info_get(ffa_uuid);	\
 		ffa_rx_release();						\
-		if (smc_ret.ret0 == FFA_ERROR && 				\
-		    smc_ret.ret2 == FFA_ERROR_INVALID_PARAMETER) {		\
+		if (ffa_func_id(smc_ret) == FFA_ERROR && 			\
+		    ffa_error_code(smc_ret) == FFA_ERROR_INVALID_PARAMETER) {	\
 			tftf_testcase_printf("FFA endpoint not deployed!\n");	\
 			return TEST_RESULT_SKIPPED;				\
 		} else if (smc_ret.ret0 != FFA_SUCCESS_SMC32) {			\
