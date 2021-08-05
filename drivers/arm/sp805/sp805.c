@@ -166,3 +166,18 @@ void sp805_wdog_refresh(void)
 {
 	sp805_wdog_refresh_(SP805_WDOG_BASE);
 }
+
+void sp805_twdog_start(uint32_t wdog_cycles)
+{
+	sp805_wdog_start_(SP805_TWDOG_BASE, wdog_cycles);
+}
+
+void sp805_twdog_stop(void)
+{
+	sp805_wdog_stop_(SP805_TWDOG_BASE);
+}
+
+void sp805_twdog_refresh(void)
+{
+	sp805_wdog_refresh_(SP805_TWDOG_BASE);
+}

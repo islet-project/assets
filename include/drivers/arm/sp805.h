@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -47,9 +47,17 @@
 #define SP805_WDOG_PCELL_ID_SHIFT	0
 #define SP805_WDOG_PCELL_ID_MASK	0xff
 
+#define ARM_SP805_TWDG_CLK_HZ	32768
+
+/* Public APIs for non-trusted watchdog module. */
 void sp805_wdog_start(unsigned int wdog_cycles);
 void sp805_wdog_stop(void);
 void sp805_wdog_refresh(void);
+
+/* Public APIs for trusted watchdog module. */
+void sp805_twdog_start(unsigned int wdog_cycles);
+void sp805_twdog_stop(void);
+void sp805_twdog_refresh(void);
 
 #endif /* __SP805_H__ */
 
