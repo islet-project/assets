@@ -49,3 +49,20 @@ int64_t spm_interrupt_enable(uint32_t int_id, bool enable, enum interrupt_pin pi
 
 	return (int64_t)ret.ret0;
 }
+
+/**
+ * Hypervisor call to drop the priority and de-activate a secure interrupt.
+ * Returns 0 on success, or -1 if passing an invalid interrupt id.
+ */
+int64_t spm_interrupt_deactivate(uint32_t vint_id)
+{
+	hvc_args args = {
+		.fid = SPM_INTERRUPT_DEACTIVATE,
+		.arg1 = vint_id, /* pint_id */
+		.arg2 = vint_id
+	};
+
+	hvc_ret_values ret = tftf_hvc(&args);
+
+	return (int64_t)ret.ret0;
+}
