@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -109,45 +109,60 @@ static inline uint32_t sp805_read_wdog_pcell_id(unsigned long base, unsigned int
 	return mmio_read_32(base + SP805_WDOG_PCELL_ID_OFF + (id << 2));
 }
 
-void sp805_wdog_start(uint32_t wdog_cycles)
+static void sp805_wdog_start_(unsigned long base, uint32_t wdog_cycles)
 {
 	/* Unlock to access the watchdog registers */
-	sp805_write_wdog_lock(SP805_WDOG_BASE, SP805_WDOG_UNLOCK_ACCESS);
+	sp805_write_wdog_lock(base, SP805_WDOG_UNLOCK_ACCESS);
 
 	/* Write the number of cycles needed */
-	sp805_write_wdog_load(SP805_WDOG_BASE, wdog_cycles);
+	sp805_write_wdog_load(base, wdog_cycles);
 
 	/* Enable reset interrupt and watchdog interrupt on expiry */
-	sp805_write_wdog_ctrl(SP805_WDOG_BASE,
+	sp805_write_wdog_ctrl(base,
 			SP805_WDOG_CTRL_RESEN | SP805_WDOG_CTRL_INTEN);
 
 	/* Lock registers so that they can't be accidently overwritten */
-	sp805_write_wdog_lock(SP805_WDOG_BASE, 0x0);
+	sp805_write_wdog_lock(base, 0x0);
 }
 
-void sp805_wdog_stop(void)
+static void sp805_wdog_stop_(unsigned long base)
 {
 	/* Unlock to access the watchdog registers */
-	sp805_write_wdog_lock(SP805_WDOG_BASE, SP805_WDOG_UNLOCK_ACCESS);
+	sp805_write_wdog_lock(base, SP805_WDOG_UNLOCK_ACCESS);
 
 	/* Clearing INTEN bit stops the counter */
-	sp805_write_wdog_ctrl(SP805_WDOG_BASE, 0x00);
+	sp805_write_wdog_ctrl(base, 0x00);
 
 	/* Lock registers so that they can't be accidently overwritten */
-	sp805_write_wdog_lock(SP805_WDOG_BASE, 0x0);
+	sp805_write_wdog_lock(base, 0x0);
 }
 
-void sp805_wdog_refresh(void)
+static void sp805_wdog_refresh_(unsigned long base)
 {
 	/* Unlock to access the watchdog registers */
-	sp805_write_wdog_lock(SP805_WDOG_BASE, SP805_WDOG_UNLOCK_ACCESS);
+	sp805_write_wdog_lock(base, SP805_WDOG_UNLOCK_ACCESS);
 
 	/*
 	 * Write of any value to WdogIntClr clears interrupt and reloads
 	 * the counter from the value in WdogLoad Register.
 	 */
-	sp805_write_wdog_int_clr(SP805_WDOG_BASE, 1);
+	sp805_write_wdog_int_clr(base, 1);
 
 	/* Lock registers so that they can't be accidently overwritten */
-	sp805_write_wdog_lock(SP805_WDOG_BASE, 0x0);
+	sp805_write_wdog_lock(base, 0x0);
+}
+
+void sp805_wdog_start(uint32_t wdog_cycles)
+{
+	sp805_wdog_start_(SP805_WDOG_BASE, wdog_cycles);
+}
+
+void sp805_wdog_stop(void)
+{
+	sp805_wdog_stop_(SP805_WDOG_BASE);
+}
+
+void sp805_wdog_refresh(void)
+{
+	sp805_wdog_refresh_(SP805_WDOG_BASE);
 }
