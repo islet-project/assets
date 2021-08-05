@@ -6,46 +6,50 @@
 
 #include <debug.h>
 
+#include "cactus_message_loop.h"
+#include "cactus_test_cmds.h"
+#include <drivers/arm/sp805.h>
 #include <ffa_helpers.h>
 #include <sp_helpers.h>
+#include "spm_common.h"
 #include <spm_helpers.h>
 
-#include "cactus_test_cmds.h"
-#include "spm_common.h"
+#include <platform_def.h>
 
 extern ffa_id_t g_ffa_id;
 
-static void managed_exit_handler(void)
+void cactus_interrupt_handler(void)
 {
-	/*
-	 * Real SP will save its context here.
-	 * Send interrupt ID for acknowledgement
-	 */
-	cactus_response(g_ffa_id, HYP_ID, MANAGED_EXIT_INTERRUPT_ID);
-}
+	uint32_t intid = spm_interrupt_get();
 
-int cactus_irq_handler(void)
-{
-	uint32_t irq_num;
+	switch (intid) {
+	case MANAGED_EXIT_INTERRUPT_ID:
+		/*
+		 * A secure partition performs its housekeeping and sends a
+		 * direct response to signal interrupt completion.
+		 * This is a pure virtual interrupt, no need for deactivation.
+		 */
+		cactus_response(g_ffa_id, HYP_ID, MANAGED_EXIT_INTERRUPT_ID);
+		break;
+	case IRQ_TWDOG_INTID:
+		/*
+		 * Interrupt triggered due to Trusted watchdog timer expiry.
+		 * Clear the interrupt and stop the timer.
+		 */
+		NOTICE("Trusted WatchDog timer stopped\n");
+		sp805_twdog_stop();
 
-	irq_num = spm_interrupt_get();
+		/* Perform secure interrupt de-activation. */
+		spm_interrupt_deactivate(intid);
 
-	ERROR("%s: Interrupt ID %u not handled!\n", __func__, irq_num);
-
-	return 0;
-}
-
-int cactus_fiq_handler(void)
-{
-	uint32_t fiq_num;
-
-	fiq_num = spm_interrupt_get();
-
-	if (fiq_num == MANAGED_EXIT_INTERRUPT_ID) {
-		managed_exit_handler();
-	} else {
-		ERROR("%s: Interrupt ID %u not handled!\n", __func__, fiq_num);
+		break;
+	default:
+		/*
+		 * Currently the only source of secure interrupt is Trusted
+		 * Watchdog timer.
+		 */
+		ERROR("%s: Interrupt ID %x not handled!\n", __func__,
+			 intid);
+		panic();
 	}
-
-	return 0;
 }

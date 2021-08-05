@@ -32,7 +32,7 @@ bool cactus_handle_cmd(smc_ret_values *cmd_args, smc_ret_values *ret,
 	uint64_t in_cmd;
 
 	if (cmd_args == NULL || ret == NULL) {
-		ERROR("Invalid argumentos passed to %s!\n", __func__);
+		ERROR("Invalid arguments passed to %s!\n", __func__);
 		return false;
 	}
 
