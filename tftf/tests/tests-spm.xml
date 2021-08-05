@@ -92,6 +92,8 @@
              description="Test non-secure Interrupts" >
      <testcase name="Test NS interrupts"
                function="test_ffa_ns_interrupt" />
+     <testcase name="Test Secure interrupt handling while SP running"
+               function="test_ffa_sec_interrupt_sp_running" />
   </testsuite>
 
   <testsuite name="SMMUv3 tests"
