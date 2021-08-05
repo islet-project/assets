@@ -5,6 +5,7 @@
  */
 
 #include <common/debug.h>
+#include <drivers/arm/sp805.h>
 #include <sp_helpers.h>
 #include <spm_helpers.h>
 
@@ -46,4 +47,18 @@ CACTUS_CMD_HANDLER(interrupt_cmd, CACTUS_INTERRUPT_CMD)
 	return cactus_response(ffa_dir_msg_dest(*args),
 			       ffa_dir_msg_source(*args),
 			       CACTUS_SUCCESS);
+}
+
+CACTUS_CMD_HANDLER(twdog_cmd, CACTUS_TWDOG_START_CMD)
+{
+	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
+	ffa_id_t source = ffa_dir_msg_source(*args);
+
+	uint64_t time_ms = cactus_get_wdog_duration(*args);
+
+	VERBOSE("Starting TWDOG: %llums\n", time_ms);
+	sp805_twdog_refresh();
+	sp805_twdog_start((time_ms * ARM_SP805_TWDG_CLK_HZ) / 1000);
+
+	return cactus_success_resp(vm_id, source, time_ms);
 }

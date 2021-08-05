@@ -63,7 +63,7 @@ static inline smc_ret_values cactus_send_response(
 static inline smc_ret_values cactus_response(
 	ffa_id_t source, ffa_id_t dest, uint32_t response)
 {
-	return ffa_msg_send_direct_resp64(source, dest, response, 0, 0, 0, 0);
+	return cactus_send_response(source, dest, response, 0, 0, 0, 0);
 }
 
 static inline uint32_t cactus_get_response(smc_ret_values ret)
@@ -429,6 +429,25 @@ static inline smc_ret_values cactus_notifications_set_send_cmd(
 {
 	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATIONS_SET_CMD,
 			       receiver, sender, notifications, flags);
+}
+
+/**
+ * Request to start trusted watchdog timer.
+ *
+ * The command id is the hex representaton of the string "WDOG"
+ */
+#define CACTUS_TWDOG_START_CMD		U(0x57444f47)
+
+static inline smc_ret_values cactus_send_twdog_cmd(
+	ffa_id_t source, ffa_id_t dest, uint64_t time)
+{
+	return cactus_send_cmd(source, dest, CACTUS_TWDOG_START_CMD, time, 0, 0,
+			       0);
+}
+
+static inline uint32_t cactus_get_wdog_duration(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret4;
 }
 
 #endif
