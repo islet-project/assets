@@ -24,5 +24,5 @@ const mmap_region_t *tftf_platform_get_mmap(void)
 
 void plat_arm_gic_init(void)
 {
-	arm_gic_init(SGI_GICC_BASE, SGI_GICD_BASE, SGI_GICR_BASE);
+	arm_gic_init(PLAT_ARM_GICC_BASE, PLAT_ARM_GICD_BASE, PLAT_ARM_GICR_BASE);
 }
