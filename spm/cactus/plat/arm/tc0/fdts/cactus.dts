@@ -25,7 +25,8 @@
 	entrypoint-offset = <0x00001000>;
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
-	messaging-method = <11>; /* Direct messaging with managed exit */
+	messaging-method = <3>; /* Direct messaging only */
+	managed-exit; /* Managed exit supported */
 	run-time-model = <1>; /* Run to completion */
 
 	/* Boot protocol */
