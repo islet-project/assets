@@ -96,6 +96,8 @@
                function="test_ffa_sec_interrupt_sp_running" />
      <testcase name="Test Secure interrupt handling while SP waiting"
                function="test_ffa_sec_interrupt_sp_waiting" />
+     <testcase name="Test Secure interrupt handling while SP blocked"
+               function="test_ffa_sec_interrupt_sp_blocked" />
   </testsuite>
 
   <testsuite name="SMMUv3 tests"

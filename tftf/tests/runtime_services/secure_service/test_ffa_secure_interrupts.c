@@ -12,6 +12,7 @@
 
 #define SENDER		HYP_ID
 #define RECEIVER	SP_ID(1)
+#define RECEIVER_2	SP_ID(2)
 #define SP_SLEEP_TIME	1000U
 #define NS_TIME_SLEEP	1500U
 #define ECHO_VAL1	U(0xa0a0a0a0)
@@ -227,6 +228,102 @@ test_result_t test_ffa_sec_interrupt_sp_waiting(void)
 	if (time_lapsed < NS_TIME_SLEEP) {
 		ERROR("Time elapsed less than expected value: %llu vs %u\n",
 				time_lapsed, NS_TIME_SLEEP);
+		return TEST_RESULT_FAIL;
+	}
+
+	ret_values = cactus_echo_send_cmd(SENDER, RECEIVER, ECHO_VAL1);
+
+	if (!is_ffa_direct_response(ret_values)) {
+		ERROR("Expected direct response for echo command\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	if (cactus_get_response(ret_values) != CACTUS_SUCCESS ||
+	    cactus_echo_get_val(ret_values) != ECHO_VAL1) {
+		ERROR("Echo Failed!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Disable Trusted Watchdog interrupt. */
+	if (!disable_trusted_wdog_interrupt(SENDER, RECEIVER)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/*
+ * @Test_Aim@ Test secure interrupt handling while first Secure Partition is
+ * in BLOCKED state.
+ *
+ * 1. Send a direct message request command to first Cactus SP to start the
+ *    trusted watchdog timer.
+ *
+ * 2. Send a direct request to first SP to forward sleep command to second SP.
+ *
+ * 3. While second SP is running the busy loop, Secure interrupt should trigger
+ *    during this time.
+ *
+ * 4. The interrupt will be trapped to SPM as IRQ. SPM will inject the virtual
+ *    IRQ to the first SP through vIRQ conduit and perform eret to resume
+ *    execution in first SP.
+ *
+ * 5. Execution traps to irq handler of Cactus SP. It will handle the secure
+ *    interrupt triggered by the trusted watchdog timer.
+ *
+ * 6. First SP performs EOI by calling interrupt deactivate ABI and invokes
+ *    FFA_RUN to resume second SP in the busy loop.
+ *
+ * 7. Second SP will complete the busy sleep loop and send a direct response
+ *    message with the elapsed time back to the first SP.
+ *
+ * 8. First SP checks for the elapsed time and sends a direct response with
+ *    a SUCCESS value back to tftf.
+ *
+ * 9. For robustness of state transition checks, TFTF sends echo command using
+ *    a direct request message to first SP.
+ *
+ * 10. Further, TFTF expects SP to return with a success value through a direct
+ *    response message.
+ *
+ * 11. Test finishes successfully once the TFTF disables the trusted watchdog
+ *     interrupt through a direct message request command.
+ */
+test_result_t test_ffa_sec_interrupt_sp_blocked(void)
+{
+	smc_ret_values ret_values;
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	/* Enable trusted watchdog interrupt as IRQ in the secure side. */
+	if (!enable_trusted_wdog_interrupt(SENDER, RECEIVER)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	ret_values = cactus_send_twdog_cmd(SENDER, RECEIVER, 100);
+
+	if (!is_ffa_direct_response(ret_values)) {
+		ERROR("Expected a direct response for starting TWDOG timer\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Send request to first Cactus SP to send request to Second Cactus
+	 * SP to sleep
+	 */
+	ret_values = cactus_fwd_sleep_cmd(SENDER, RECEIVER, RECEIVER_2,
+					 SP_SLEEP_TIME);
+
+	/*
+	 * Secure interrupt should trigger during this time, Cactus
+	 * will handle the trusted watchdog timer.
+	 */
+	if (!is_ffa_direct_response(ret_values)) {
+		ERROR("Expected a direct response\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	if (cactus_get_response(ret_values) != CACTUS_SUCCESS) {
 		return TEST_RESULT_FAIL;
 	}
 
