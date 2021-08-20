@@ -30,6 +30,36 @@ CACTUS_CMD_HANDLER(sleep_cmd, CACTUS_SLEEP_CMD)
 			       time_lapsed);
 }
 
+CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
+{
+	smc_ret_values ffa_ret;
+	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
+	ffa_id_t fwd_dest = cactus_get_fwd_sleep_dest(*args);
+	uint32_t sleep_ms = cactus_get_sleep_time(*args);
+
+
+	VERBOSE("VM%x requested %x to sleep for value %u\n",
+		ffa_dir_msg_source(*args), fwd_dest, sleep_ms);
+
+	ffa_ret = cactus_sleep_cmd(vm_id, fwd_dest, sleep_ms);
+
+	if (!is_ffa_direct_response(ffa_ret)) {
+		ERROR("Encountered error in CACTUS_FWD_SLEEP_CMD response\n");
+		return cactus_error_resp(vm_id, ffa_dir_msg_source(*args),
+					 CACTUS_ERROR_FFA_CALL);
+	}
+
+	if (cactus_get_response(ffa_ret) != sleep_ms) {
+		ERROR("Request returned: %u ms!\n",
+		      cactus_get_response(ffa_ret));
+		return cactus_error_resp(vm_id, ffa_dir_msg_source(*args),
+					 CACTUS_ERROR_TEST);
+
+	}
+
+	return cactus_success_resp(vm_id, ffa_dir_msg_source(*args), 0);
+}
+
 CACTUS_CMD_HANDLER(interrupt_cmd, CACTUS_INTERRUPT_CMD)
 {
 	uint32_t int_id = cactus_get_interrupt_id(*args);

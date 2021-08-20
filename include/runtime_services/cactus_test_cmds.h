@@ -264,9 +264,30 @@ static inline smc_ret_values cactus_sleep_cmd(
 			       0);
 }
 
+/**
+ * Command to request cactus to forward sleep command for the given time in ms
+ *
+ * The sender of this command expects to receive CACTUS_SUCCESS if the requested
+ * echo interaction happened successfully, or CACTUS_ERROR otherwise.
+ */
+#define CACTUS_FWD_SLEEP_CMD (CACTUS_SLEEP_CMD + 1)
+
+static inline smc_ret_values cactus_fwd_sleep_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t fwd_dest,
+	uint32_t sleep_time)
+{
+	return cactus_send_cmd(source, dest, CACTUS_FWD_SLEEP_CMD, sleep_time,
+			       fwd_dest, 0, 0);
+}
+
 static inline uint32_t cactus_get_sleep_time(smc_ret_values ret)
 {
 	return (uint32_t)ret.ret4;
+}
+
+static inline ffa_id_t cactus_get_fwd_sleep_dest(smc_ret_values ret)
+{
+	return (ffa_id_t)ret.ret5;
 }
 
 /**
