@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2021, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="Realm payload tests" description="Tests for Realm management interface">
+	  <testcase name="Realm payload boot" function="realm_version_single_cpu" />
+	  <testcase name="Realm payload multi CPU request" function="realm_version_multi_cpu" />
+	  <testcase name="Realm payload Delegate and Undelegate" function="realm_delegate_undelegate" />
+  </testsuite>
+
+</testsuites>
