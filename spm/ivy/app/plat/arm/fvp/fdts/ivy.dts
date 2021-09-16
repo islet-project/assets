@@ -16,7 +16,7 @@
 	/* Properties */
 	description = "ivy-1";
 	ffa-version = <0x00010001>; /* 31:16 - Major, 15:0 - Minor */
-	uuid = <0xeaba83d8 0xbaaf4eaf 0x8144f7fd 0xcbe544a7>;
+	uuid = <0xd883baea 0xaf4eafba 0xfdf74481 0xa744e5cb>;
 	execution-ctx-count = <1>;
 	exception-level = <2>; /* S-EL1 */
 	execution-state = <0>; /* AARCH64 */

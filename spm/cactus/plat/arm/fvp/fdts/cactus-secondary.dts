@@ -16,7 +16,7 @@
 	/* Properties */
 	description = "Base-1";
 	ffa-version = <0x00010001>; /* 31:16 - Major, 15:0 - Minor */
-	uuid = <0xd1582309 0xf02347b9 0x827c4464 0xf5578fc8>;
+	uuid = <0x092358d1 0xb94723f0 0x64447c82 0xc88f57f5>;
 	id = <2>;
 	auxiliary-id = <0xae>;
 	stream-endpoint-ids = <0 1 2 3>;
