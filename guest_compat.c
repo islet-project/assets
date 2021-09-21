@@ -88,6 +88,7 @@ int compat__print_all_messages(void)
 
 		printf("\n  # KVM compatibility warning.\n\t%s\n\t%s\n",
 			msg->title, msg->desc);
+		printf("\tTo stop seeing this warning, use the --nocompat option.\n");
 
 		list_del(&msg->list);
 		compat__free(msg);

@@ -183,6 +183,8 @@ static int mem_parser(const struct option *opt, const char *arg, int unset)
 	OPT_BOOLEAN('\0', "nodefaults", &(cfg)->nodefaults, "Disable"   \
 			" implicit configuration that cannot be"	\
 			" disabled otherwise"),				\
+	OPT_BOOLEAN('\0', "nocompat", &(cfg)->nocompat, "Disable"	\
+			" compat warnings"),				\
 	OPT_CALLBACK('\0', "9p", NULL, "dir_to_share,tag_name",		\
 		     "Enable virtio 9p to share files between host and"	\
 		     " guest", virtio_9p_rootdir_parser, kvm),		\
@@ -797,7 +799,8 @@ static int kvm_cmd_run_work(struct kvm *kvm)
 
 static void kvm_cmd_run_exit(struct kvm *kvm, int guest_ret)
 {
-	compat__print_all_messages();
+	if (!kvm->cfg.nocompat)
+		compat__print_all_messages();
 
 	init_list__exit(kvm);
 

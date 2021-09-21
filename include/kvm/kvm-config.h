@@ -30,6 +30,7 @@ struct kvm_config {
 	u64 vsock_cid;
 	bool virtio_rng;
 	bool nodefaults;
+	bool nocompat;
 	int active_console;
 	int debug_iodelay;
 	int nrcpus;
