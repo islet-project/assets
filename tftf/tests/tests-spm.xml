@@ -136,6 +136,8 @@
                function="test_ffa_notifications_sp_signals_vm" />
      <testcase name="Notifications SP signals SP with immediate SRI"
                function="test_ffa_notifications_sp_signals_sp_immediate_sri" />
+     <testcase name="Notifications SP signals SP with delayed SRI"
+               function="test_ffa_notifications_sp_signals_sp_delayed_sri" />
      <testcase name="Notifications unbind while pending"
                function="test_ffa_notifications_unbind_pending" />
      <testcase name="Notifications info get no data"
