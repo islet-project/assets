@@ -26,7 +26,7 @@
 #define RMI_FNUM_VERSION_REQ		U(0)
 
 #define RMI_FNUM_GRAN_NS_REALM		U(1)
-#define RMI_FNUM_GRAN_REALM_NS		U(2)
+#define RMI_FNUM_GRAN_REALM_NS		U(0x10)
 
 /********************************************************************************/
 
@@ -40,9 +40,13 @@
 #define RMI_ABI_VERSION_GET_MAJOR(_version) ((_version) >> 16)
 #define RMI_ABI_VERSION_GET_MINOR(_version) ((_version) & 0xFFFF)
 
-#define GRANULE_SIZE 			4096
+#define NUM_GRANULES			5
+#define NUM_RANDOM_ITERATIONS		7
+#define GRANULE_SIZE			4096
+
+#define B_DELEGATED			0
+#define B_UNDELEGATED			1
 
 u_register_t realm_version(void);
 u_register_t realm_granule_delegate(uintptr_t);
 u_register_t realm_granule_undelegate(uintptr_t);
-test_result_t realm_multi_cpu_payload_test(void);

@@ -12,6 +12,8 @@
 	  <testcase name="Realm payload boot" function="realm_version_single_cpu" />
 	  <testcase name="Realm payload multi CPU request" function="realm_version_multi_cpu" />
 	  <testcase name="Realm payload Delegate and Undelegate" function="realm_delegate_undelegate" />
+	  <testcase name="Multi CPU Realm payload Delegate and Undelegate" function="realm_delundel_multi_cpu" />
+	  <testcase name="Testing delegation fails" function="realm_fail_del" />
   </testsuite>
 
 </testsuites>
