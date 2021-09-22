@@ -80,6 +80,12 @@ typedef uint64_t ffa_notification_bitmap_t;
 #define FFA_NOTIFICATIONS_FLAG_BITMAP_SPM	UINT32_C(0x1 << 2)
 #define FFA_NOTIFICATIONS_FLAG_BITMAP_HYP	UINT32_C(0x1 << 3)
 
+/**
+ * The following is an SGI ID, that the SPMC configures as non-secure, as
+ * suggested by the FF-A v1.1 specification, in section 9.4.1.
+ */
+#define FFA_SCHEDULE_RECEIVER_INTERRUPT_ID 8
+
 #define FFA_NOTIFICATIONS_BITMAP(lo, hi)	\
 	(ffa_notification_bitmap_t)(lo) | 	\
 	(((ffa_notification_bitmap_t)hi << 32) & 0xFFFFFFFF00000000ULL)

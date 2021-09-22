@@ -5,6 +5,7 @@
  */
 
 #include <debug.h>
+#include <irq.h>
 #include <smccc.h>
 
 #include <arch_helpers.h>
@@ -598,6 +599,49 @@ static bool notifications_info_get(
 						      expected_more_pending);
 }
 
+static volatile int schedule_receiver_interrupt_received;
+
+static int schedule_receiver_interrupt_handler(void *data)
+{
+	assert(schedule_receiver_interrupt_received == 0);
+	schedule_receiver_interrupt_received = 1;
+	return 0;
+}
+
+/**
+ * Enable the Schedule Receiver Interrupt and register the respective
+ * handler.
+ */
+static void schedule_receiver_interrupt_init(void)
+{
+	tftf_irq_register_handler(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID,
+				  schedule_receiver_interrupt_handler);
+
+	tftf_irq_enable(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID, 0xA);
+}
+
+/**
+ * Disable the Schedule Receiver Interrupt and unregister the respective
+ * handler.
+ */
+static void schedule_receiver_interrupt_deinit(void)
+{
+	tftf_irq_disable(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID);
+	tftf_irq_unregister_handler(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID);
+	schedule_receiver_interrupt_received = 0;
+}
+
+bool check_schedule_receiver_interrupt_handled(void)
+{
+	if (schedule_receiver_interrupt_received == 1) {
+		VERBOSE("Schedule Receiver Interrupt handled!\n");
+		schedule_receiver_interrupt_received = 0;
+		return true;
+	}
+	VERBOSE("Schedule Receiver Interrupt NOT handled!\n");
+	return false;
+}
+
 /**
  * Test to validate a VM can signal an SP.
  */
@@ -617,9 +661,13 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
+	schedule_receiver_interrupt_init();
+
 	if (!notification_bind_and_set(sender, receiver, notifications, 0)) {
 		return TEST_RESULT_FAIL;
 	}
+
+	check_schedule_receiver_interrupt_handled();
 
 	/**
 	 * Simple list of IDs expected on return from FFA_NOTIFICATION_INFO_GET.
@@ -643,6 +691,8 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
 		return TEST_RESULT_FAIL;
 	}
 
+	schedule_receiver_interrupt_deinit();
+
 	return TEST_RESULT_SUCCESS;
 }
 
@@ -662,11 +712,14 @@ test_result_t test_ffa_notifications_sp_signals_sp(void)
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
+	schedule_receiver_interrupt_init();
+
 	/* Request receiver to bind a set of notifications to the sender. */
-	if (!notification_bind_and_set(sender, receiver,
-					       g_notifications, 0)) {
+	if (!notification_bind_and_set(sender, receiver, g_notifications, 0)) {
 		return TEST_RESULT_FAIL;
 	}
+
+	check_schedule_receiver_interrupt_handled();
 
 	/*
 	 * FFA_NOTIFICATION_INFO_GET return list should be simple, containing
@@ -691,6 +744,8 @@ test_result_t test_ffa_notifications_sp_signals_sp(void)
 		return TEST_RESULT_FAIL;
 	}
 
+	schedule_receiver_interrupt_deinit();
+
 	return TEST_RESULT_SUCCESS;
 }
 
@@ -704,6 +759,7 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 	const ffa_id_t receiver = 1;
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
 	smc_ret_values ret;
+	test_result_t result = TEST_RESULT_SUCCESS;
 
 	/* Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
 	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
@@ -712,13 +768,17 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 
 	/* Ask SPMC to allocate notifications bitmap. */
 	if (!notifications_bitmap_create(receiver, 1)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
+
+	schedule_receiver_interrupt_init();
 
 	/* Request receiver to bind a set of notifications to the sender. */
 	if (!notification_bind_and_set(sender, receiver, g_notifications, 0)) {
 		return TEST_RESULT_FAIL;
 	}
+
+	check_schedule_receiver_interrupt_handled();
 
 	/*
 	 * FFA_NOTIFICATION_INFO_GET return list should be simple, containing
@@ -730,7 +790,7 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 	if (!notifications_info_get(ids, lists_count, lists_sizes,
 				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
 				    false)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
 
 	/* Get pending notifications, and retrieve response. */
@@ -742,14 +802,16 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 	ret = ffa_notification_unbind(sender, receiver, g_notifications);
 
 	if (!is_expected_ffa_return(ret, FFA_SUCCESS_SMC32)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
 
 	if (!notifications_bitmap_destroy(receiver)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
 
-	return TEST_RESULT_SUCCESS;
+	schedule_receiver_interrupt_deinit();
+
+	return result;
 }
 
 /**
@@ -764,6 +826,8 @@ test_result_t test_ffa_notifications_unbind_pending(void)
 				       FFA_NOTIFICATION(35);
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_VM;
 
+	schedule_receiver_interrupt_init();
+
 	/* Request receiver to bind a set of notifications to the sender. */
 	if (!notification_bind_and_set(sender, receiver, notifications, 0)) {
 		return TEST_RESULT_FAIL;
@@ -776,6 +840,10 @@ test_result_t test_ffa_notifications_unbind_pending(void)
 	if (!request_notification_unbind(receiver, receiver, sender,
 					 FFA_NOTIFICATION(30),
 					 CACTUS_ERROR, FFA_ERROR_DENIED)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (!check_schedule_receiver_interrupt_handled()) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -793,6 +861,8 @@ test_result_t test_ffa_notifications_unbind_pending(void)
 					notifications, CACTUS_SUCCESS, 0)) {
 		return TEST_RESULT_FAIL;
 	}
+
+	schedule_receiver_interrupt_deinit();
 
 	return TEST_RESULT_SUCCESS;
 }
@@ -920,7 +990,8 @@ static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; i++) {
 		notifications_to_unbind |= FFA_NOTIFICATION(i);
 
-		uint32_t flags = FFA_NOTIFICATIONS_FLAG_PER_VCPU |
+		uint32_t flags = FFA_NOTIFICATIONS_FLAG_DELAY_SRI |
+				 FFA_NOTIFICATIONS_FLAG_PER_VCPU  |
 				 FFA_NOTIFICATIONS_FLAGS_VCPU_ID((uint16_t)i);
 
 		if (!notification_bind_and_set(sender,
