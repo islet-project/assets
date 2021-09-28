@@ -23,7 +23,7 @@
 	execution-ctx-count = <1>;
 	exception-level = <2>; /* S-EL1 */
 	execution-state = <0>; /* AARCH64 */
-	load-address = <0xfe280000>;
+	load-address = <0xfe600000>;
 	entrypoint-offset = <0x00001000>;
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
