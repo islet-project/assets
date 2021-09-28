@@ -16,7 +16,7 @@
 	/* Properties */
 	description = "cactus-1";
 	ffa-version = <0x00010001>; /* 31:16 - Major, 15:0 - Minor */
-	uuid = <0xb4b5671e 0x4a904fe1 0xb81ffb13 0xdae1dacb>;
+	uuid = <0x1e67b5b4 0xe14f904a 0x13fb1fb8 0xcbdae1da>;
 	id = <1>;
 	execution-ctx-count = <8>;
 	exception-level = <2>; /* S-EL1 */

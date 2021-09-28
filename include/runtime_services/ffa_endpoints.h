@@ -10,9 +10,9 @@
 #include <platform_def.h>
 
 /* UUID of cactus SPs as defined in the respective manifests. */
-#define PRIMARY_UUID {0xb4b5671e, 0x4a904fe1, 0xb81ffb13, 0xdae1dacb}
-#define SECONDARY_UUID {0xd1582309, 0xf02347b9, 0x827c4464, 0xf5578fc8}
-#define TERTIARY_UUID {0x79b55c73, 0x1d8c44b9, 0x859361e1, 0x770ad8d2}
+#define PRIMARY_UUID {0x1e67b5b4, 0xe14f904a, 0x13fb1fb8, 0xcbdae1da}
+#define SECONDARY_UUID {0x092358d1, 0xb94723f0, 0x64447c82, 0xc88f57f5}
+#define TERTIARY_UUID {0x735cb579, 0xb9448c1d, 0xe1619385, 0xd2d80a77}
 
 /* vcpu_count of cactus SPs. */
 #define PRIMARY_EXEC_CTX_COUNT		PLATFORM_CORE_COUNT
