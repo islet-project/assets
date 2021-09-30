@@ -14,6 +14,7 @@
 	  <testcase name="Realm payload Delegate and Undelegate" function="realm_delegate_undelegate" />
 	  <testcase name="Multi CPU Realm payload Delegate and Undelegate" function="realm_delundel_multi_cpu" />
 	  <testcase name="Testing delegation fails" function="realm_fail_del" />
+	  <testcase name="Realm testing with SPM tests" function="test_ffa_secondary_core_direct_realm_msg" />
   </testsuite>
 
 </testsuites>

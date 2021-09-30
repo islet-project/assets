@@ -47,6 +47,8 @@
 #define B_DELEGATED			0
 #define B_UNDELEGATED			1
 
+#define NUM_CPU_DED_SPM			PLATFORM_CORE_COUNT / 2
+
 u_register_t realm_version(void);
 u_register_t realm_granule_delegate(uintptr_t);
 u_register_t realm_granule_undelegate(uintptr_t);
