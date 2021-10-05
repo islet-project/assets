@@ -54,6 +54,14 @@
 			base-address = <0x00000000 0xfe301000>;
 			attributes = <0x3>; /* read-write */
 		};
+
+		/* Memory to be shared in memory sharing tests. */
+		share-memory {
+			description = "share-memory";
+			pages-count = <1>;
+			base-address =<0x00000000 0xfe500000>;
+			attributes = <0x3>; /* read-write */
+		};
 	};
 
 	device-regions {
