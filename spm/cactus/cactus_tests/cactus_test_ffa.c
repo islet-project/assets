@@ -141,7 +141,7 @@ void ffa_version_test(void)
 		((spm_version >> FFA_VERSION_MAJOR_SHIFT) == FFA_MAJOR &&
 		 (spm_version & FFA_VERSION_MINOR_MASK) >= FFA_MINOR);
 
-	NOTICE("FFA_VERSION returned %u.%u; Compatible: %i\n",
+	VERBOSE("FFA_VERSION returned %u.%u; Compatible: %i\n",
 		spm_version >> FFA_VERSION_MAJOR_SHIFT,
 		spm_version & FFA_VERSION_MINOR_MASK,
 		(int)ffa_version_compatible);

@@ -181,6 +181,7 @@ void __dead2 cactus_main(bool primary_cold_boot)
 	assert(IS_IN_EL1() != 0);
 
 	struct mailbox_buffers mb;
+	smc_ret_values ret;
 
 	/* Get current FFA id */
 	smc_ret_values ffa_id_ret = ffa_id_get();
@@ -225,28 +226,25 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 		set_putc_impl(PL011_AS_STDOUT);
 
-		NOTICE("Booting Primary Cactus Secure Partition\n%s\n%s\n",
-			build_message, version_string);
 	} else {
-		smc_ret_values ret;
 		set_putc_impl(HVC_CALL_AS_STDOUT);
+	}
 
-		NOTICE("Booting Secondary Cactus Secure Partition (ID: %x)\n%s\n%s\n",
-			ffa_id, build_message, version_string);
+	/* Below string is monitored by CI expect script. */
+	NOTICE("Booting Secure Partition (ID: %x)\n%s\n%s\n",
+		ffa_id, build_message, version_string);
 
-		if (ffa_id == (SPM_VM_ID_FIRST + 2)) {
-			VERBOSE("Mapping RXTX Region\n");
-			CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);
-			if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
-				ERROR(
-				    "Failed to map RXTX buffers. Error: %x\n",
-				    ffa_error_code(ret));
-				panic();
-			}
+	if (ffa_id == (SPM_VM_ID_FIRST + 2)) {
+		VERBOSE("Mapping RXTX Region\n");
+		CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);
+		if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
+			ERROR(
+			    "Failed to map RXTX buffers. Error: %x\n",
+			    ffa_error_code(ret));
+			panic();
 		}
 	}
 
-	INFO("FF-A id: %x\n", ffa_id);
 	cactus_print_memory_layout(ffa_id);
 
 	register_secondary_entrypoint();
