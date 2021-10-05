@@ -50,7 +50,7 @@ static inline smc_ret_values cactus_send_cmd(
  * a need to propagate more than one value in the response of a command.
  */
 static inline smc_ret_values cactus_send_response(
-	ffa_id_t source, ffa_id_t dest, uint32_t resp, uint32_t val0,
+	ffa_id_t source, ffa_id_t dest, uint32_t resp, uint64_t val0,
 	uint64_t val1, uint64_t val2, uint64_t val3)
 {
 	return ffa_msg_send_direct_resp64(source, dest, resp, val0, val1,
