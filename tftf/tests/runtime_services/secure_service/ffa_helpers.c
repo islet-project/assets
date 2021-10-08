@@ -572,3 +572,38 @@ smc_ret_values ffa_notification_unbind(ffa_id_t sender,
 
 	return tftf_smc(&args);
 }
+
+smc_ret_values ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
+				    uint32_t flags,
+				    ffa_notification_bitmap_t bitmap)
+{
+	smc_args args = {
+		.fid = FFA_NOTIFICATION_SET,
+		.arg1 = (sender << 16) | (receiver),
+		.arg2 = flags,
+		.arg3 = (uint32_t)(bitmap & 0xFFFFFFFFU),
+		.arg4 = (uint32_t)(bitmap >> 32),
+		.arg5 = FFA_PARAM_MBZ,
+		.arg6 = FFA_PARAM_MBZ,
+		.arg7 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}
+
+smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
+				    uint32_t flags)
+{
+	smc_args args = {
+		.fid = FFA_NOTIFICATION_GET,
+		.arg1 = (receiver << 16) | (vcpu_id),
+		.arg2 = flags,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ,
+		.arg5 = FFA_PARAM_MBZ,
+		.arg6 = FFA_PARAM_MBZ,
+		.arg7 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}

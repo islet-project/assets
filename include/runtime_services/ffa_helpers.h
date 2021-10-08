@@ -48,11 +48,13 @@ struct ffa_partition_info {
 	uint32_t properties;
 };
 
-static inline uint32_t ffa_func_id(smc_ret_values val) {
+static inline uint32_t ffa_func_id(smc_ret_values val)
+{
 	return (uint32_t) val.ret0;
 }
 
-static inline int32_t ffa_error_code(smc_ret_values val) {
+static inline int32_t ffa_error_code(smc_ret_values val)
+{
 	return (int32_t) val.ret2;
 }
 
@@ -69,6 +71,27 @@ typedef uint64_t ffa_notification_bitmap_t;
 #define FFA_NOTIFICATIONS_FLAG_PER_VCPU	UINT32_C(0x1 << 0)
 
 #define FFA_NOTIFICATIONS_FLAGS_VCPU_ID(id) UINT32_C((id & 0xFFFF) << 16)
+
+#define FFA_NOTIFICATIONS_FLAG_BITMAP_SP	UINT32_C(0x1 << 0)
+#define FFA_NOTIFICATIONS_FLAG_BITMAP_VM	UINT32_C(0x1 << 1)
+#define FFA_NOTIFICATIONS_FLAG_BITMAP_SPM	UINT32_C(0x1 << 2)
+#define FFA_NOTIFICATIONS_FLAG_BITMAP_HYP	UINT32_C(0x1 << 3)
+
+#define FFA_NOTIFICATIONS_BITMAP(lo, hi)	\
+	(ffa_notification_bitmap_t)(lo) | 	\
+	(((ffa_notification_bitmap_t)hi << 32) & 0xFFFFFFFF00000000ULL)
+
+#define FFA_NOTIFICATIONS_FLAGS_VCPU_ID(id) UINT32_C((id & 0xFFFF) << 16)
+
+static inline ffa_notification_bitmap_t ffa_notifications_get_from_sp(smc_ret_values val)
+{
+	return FFA_NOTIFICATIONS_BITMAP(val.ret2, val.ret3);
+}
+
+static inline ffa_notification_bitmap_t ffa_notifications_get_from_vm(smc_ret_values val)
+{
+	return FFA_NOTIFICATIONS_BITMAP(val.ret4, val.ret5);
+}
 
 enum ffa_data_access {
 	FFA_DATA_ACCESS_NOT_SPECIFIED,
@@ -445,6 +468,11 @@ smc_ret_values ffa_notification_bind(ffa_id_t sender, ffa_id_t receiver,
 				     ffa_notification_bitmap_t notifications);
 smc_ret_values ffa_notification_unbind(ffa_id_t sender, ffa_id_t receiver,
 				       ffa_notification_bitmap_t notifications);
+smc_ret_values ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
+				    uint32_t flags,
+				    ffa_notification_bitmap_t bitmap);
+smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
+				    uint32_t flags);
 #endif /* __ASSEMBLY__ */
 
 #endif /* FFA_HELPERS_H */
