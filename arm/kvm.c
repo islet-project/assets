@@ -6,6 +6,9 @@
 #include "kvm/fdt.h"
 
 #include "arm-common/gic.h"
+#include "asm/realm.h"
+
+#include <sys/resource.h>
 
 #include <linux/kernel.h>
 #include <linux/kvm.h>
@@ -22,6 +25,25 @@ bool kvm__arch_cpu_supports_vm(void)
 {
 	/* The KVM capability check is enough. */
 	return true;
+}
+
+static void try_increase_mlock_limit(struct kvm *kvm)
+{
+	u64 size = kvm->arch.ram_alloc_size;
+	struct rlimit mlock_limit, new_limit;
+
+	if (getrlimit(RLIMIT_MEMLOCK, &mlock_limit)) {
+		perror("getrlimit(RLIMIT_MEMLOCK)");
+		return;
+	}
+
+	if (mlock_limit.rlim_cur > size)
+		return;
+
+	new_limit.rlim_cur = size;
+	new_limit.rlim_max = max((rlim_t)size, mlock_limit.rlim_max);
+	/* Requires CAP_SYS_RESOURCE capability. */
+	setrlimit(RLIMIT_MEMLOCK, &new_limit);
 }
 
 void kvm__init_ram(struct kvm *kvm)
@@ -51,8 +73,27 @@ void kvm__init_ram(struct kvm *kvm)
 	kvm->ram_start = (void *)ALIGN((unsigned long)kvm->arch.ram_alloc_start,
 					SZ_2M);
 
-	madvise(kvm->arch.ram_alloc_start, kvm->arch.ram_alloc_size,
-		MADV_MERGEABLE);
+	/*
+	 * Do not merge pages if this is a Realm.
+	 *  a) We cannot replace a page in realm stage2 without export/import
+	 *
+	 * Pin the realm memory until we have export/import, due to the same
+	 * reason as above.
+	 *
+	 * Use mlock2(,,MLOCK_ONFAULT) to allow faulting in pages and thus
+	 * allowing to lazily populate the PAR.
+	 */
+	if (kvm__is_realm(kvm)) {
+		int ret;
+
+		try_increase_mlock_limit(kvm);
+		ret = mlock2(kvm->arch.ram_alloc_start, kvm->arch.ram_alloc_size,
+			     MLOCK_ONFAULT);
+		if (ret)
+			die_perror("mlock2");
+	} else {
+		madvise(kvm->arch.ram_alloc_start, kvm->arch.ram_alloc_size, MADV_MERGEABLE);
+	}
 
 	madvise(kvm->arch.ram_alloc_start, kvm->arch.ram_alloc_size,
 		MADV_HUGEPAGE);
