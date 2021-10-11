@@ -25,25 +25,25 @@
 
 static void shim_print_memory_layout(void)
 {
-	NOTICE("Secure Partition memory layout:\n");
+	INFO("Secure Partition memory layout:\n");
 
-	NOTICE("  Image regions\n");
-	NOTICE("    Text region            : %p - %p\n",
+	INFO("  Image regions\n");
+	INFO("    Text region            : %p - %p\n",
 		(void *)IVY_TEXT_START, (void *)IVY_TEXT_END);
-	NOTICE("    Read-only data region  : %p - %p\n",
+	INFO("    Read-only data region  : %p - %p\n",
 		(void *)IVY_RODATA_START, (void *)IVY_RODATA_END);
-	NOTICE("    Data region            : %p - %p\n",
+	INFO("    Data region            : %p - %p\n",
 		(void *)IVY_DATA_START, (void *)IVY_DATA_END);
-	NOTICE("    BSS region             : %p - %p\n",
+	INFO("    BSS region             : %p - %p\n",
 		(void *)IVY_BSS_START, (void *)IVY_BSS_END);
-	NOTICE("    Total image memory     : %p - %p\n",
+	INFO("    Total image memory     : %p - %p\n",
 		(void *)IVY_IMAGE_BASE,
 		(void *)(IVY_IMAGE_BASE + IVY_IMAGE_SIZE));
-	NOTICE("  SPM regions\n");
-	NOTICE("    SPM <-> SP buffer      : %p - %p\n",
+	INFO("  SPM regions\n");
+	INFO("    SPM <-> SP buffer      : %p - %p\n",
 		(void *)IVY_SPM_BUF_BASE,
 		(void *)(IVY_SPM_BUF_BASE + IVY_SPM_BUF_SIZE));
-	NOTICE("    NS <-> SP buffer       : %p - %p\n",
+	INFO("    NS <-> SP buffer       : %p - %p\n",
 		(void *)IVY_NS_BUF_BASE,
 		(void *)(IVY_NS_BUF_BASE + IVY_NS_BUF_SIZE));
 }
@@ -93,7 +93,7 @@ int shim_main(void)
 	/* Initialise console */
 	set_putc_impl(HVC_CALL_AS_STDOUT);
 
-	NOTICE("Booting S-EL1 Shim\n");
+	INFO("Booting S-EL1 Shim\n");
 
 	/* Configure and enable Stage-1 MMU, enable D-Cache */
 	shim_plat_configure_mmu();
