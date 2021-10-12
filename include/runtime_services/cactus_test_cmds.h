@@ -312,4 +312,123 @@ static inline smc_ret_values cactus_send_dma_cmd(
 	return cactus_send_cmd(source, dest, CACTUS_DMA_SMMUv3_CMD, 0, 0, 0,
 			       0);
 }
+
+/*
+ * Request SP to bind a notification to a FF-A endpoint. In case of error
+ * when using the FFA_NOTIFICATION_BIND interface, include the error code
+ * in the response to the command's request. The receiver and sender arguments
+ * are propagated through the command's arguments, to allow the test of
+ * erroneous uses of the FFA_NOTIFICATION_BIND interface.
+ *
+ * The command id is the hex representation of the string "bind".
+ */
+#define CACTUS_NOTIFICATION_BIND_CMD U(0x62696e64)
+
+static inline smc_ret_values cactus_notification_bind_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	ffa_id_t sender, ffa_notification_bitmap_t notifications, uint32_t flags)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATION_BIND_CMD,
+			       receiver, sender, notifications, flags);
+}
+
+/**
+ * Request to SP unbind a notification. In case of error when using the
+ * FFA_NOTIFICATION_UNBIND interface, the test includes the error code in the
+ * response. The receiver and sender arguments are propagated throught the
+ * command's arguments, to allow the test of erroneous uses of the
+ * FFA_NOTIFICATION_BIND interface.
+ *
+ * The command id is the hex representation of the string "unbind".
+ */
+#define CACTUS_NOTIFICATION_UNBIND_CMD U(0x756e62696e64)
+
+static inline smc_ret_values cactus_notification_unbind_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	ffa_id_t sender, ffa_notification_bitmap_t notifications)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATION_UNBIND_CMD,
+			       receiver, sender, notifications, 0);
+}
+
+static inline ffa_id_t cactus_notification_get_receiver(
+	smc_ret_values ret)
+{
+	return (ffa_id_t)ret.ret4;
+}
+
+static inline ffa_id_t cactus_notification_get_sender(
+	smc_ret_values ret)
+{
+	return (ffa_id_t)ret.ret5;
+}
+
+static inline ffa_notification_bitmap_t cactus_notification_get_notifications(
+	smc_ret_values ret)
+{
+	return (uint64_t)ret.ret6;
+}
+
+/**
+ * Request SP to get notifications. The arguments to use in ffa_notification_get
+ * are propagated on the command to test erroneous uses of the interface.
+ * In a successful call to the interface, the SP's response payload should
+ * include all bitmaps returned by the SPMC.
+ *
+ * The command id is the hex representation of the string "getnot".
+ */
+#define CACTUS_NOTIFICATION_GET_CMD U(0x6765746e6f74)
+
+static inline smc_ret_values cactus_notification_get_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	uint32_t vcpu_id, uint32_t flags)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATION_GET_CMD,
+			       receiver, vcpu_id, 0, flags);
+}
+
+static inline uint32_t cactus_notification_get_vcpu(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret5;
+}
+
+static inline uint32_t cactus_notification_get_flags(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret7;
+}
+
+static inline smc_ret_values cactus_notifications_get_success_resp(
+	ffa_id_t source, ffa_id_t dest, uint64_t from_sp,
+	uint64_t from_vm)
+{
+	return cactus_send_response(source, dest, CACTUS_SUCCESS, from_sp,
+				    from_vm, 0, 0);
+}
+
+static inline uint64_t cactus_notifications_get_from_sp(smc_ret_values ret)
+{
+	return (uint64_t)ret.ret4;
+}
+
+static inline uint64_t cactus_notifications_get_from_vm(smc_ret_values ret)
+{
+	return (uint64_t)ret.ret5;
+}
+
+/**
+ * Request SP to set notifications. The arguments to use in ffa_notification_set
+ * are propagated on the command to test erroneous uses of the interface.
+ * In case of error while calling the interface, the response should include the
+ * error code.
+ */
+#define CACTUS_NOTIFICATIONS_SET_CMD U(0x6e6f74736574)
+
+static inline smc_ret_values cactus_notifications_set_send_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
+	ffa_id_t sender, uint32_t flags, ffa_notification_bitmap_t notifications)
+{
+	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATIONS_SET_CMD,
+			       receiver, sender, notifications, flags);
+}
+
 #endif
