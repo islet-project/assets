@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -28,6 +28,17 @@ func ns_bl1u_entrypoint
 	stcopr	r0, HSCTLR
 	isb
 
+	/* --------------------------------------------------------------------
+	 * Invalidate the cache in the RW memory range to safeguard
+	 * against possible stale data in the cache from previous
+	 * firmware stage.
+	 * --------------------------------------------------------------------
+	 */
+	ldr	r0, =__RW_START__
+	ldr	r1, =__RW_END__
+	sub	r1, r1, r0
+	bl	inv_dcache_range
+
 	/* ---------------------------------------------------------------------
 	 * Init C runtime environment.
 	 *   - Zero-initialise the .bss section;
@@ -48,8 +59,6 @@ func ns_bl1u_entrypoint
 	 * Allocate a stack whose memory will be marked as Normal
 	 * Inner-Shareable, Write-Back, Write-Allocate memory when the MMU is
 	 * enabled.
-	 * There is no risk of reading stale stack memory after enabling the MMU
-	 * as only the primary CPU is running at the moment.
 	 * ---------------------------------------------------------------------
 	 */
 	ldcopr	r0, MPIDR
