@@ -153,7 +153,6 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	limit = kvm->ram_start + min(kvm->ram_size, (u64)SZ_256M) - 1;
 
 	pos = kvm->ram_start + kvm__arch_get_kern_offset(kvm, fd_kernel);
-	kvm->arch.kern_guest_start = host_to_guest_flat(kvm, pos);
 	file_size = read_file(fd_kernel, pos, limit - pos);
 	if (file_size < 0) {
 		if (errno == ENOMEM)
@@ -161,9 +160,12 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 
 		die_perror("kernel read");
 	}
+
+	kvm->arch.kern_guest_start = host_to_guest_flat(kvm, pos);
+	kvm->arch.kern_size = file_size;
 	kernel_end = pos + file_size;
-	pr_debug("Loaded kernel to 0x%llx (%zd bytes)",
-		 kvm->arch.kern_guest_start, file_size);
+	pr_debug("Loaded kernel to 0x%llx (%llu bytes)",
+		 kvm->arch.kern_guest_start, kvm->arch.kern_size);
 
 	/*
 	 * Now load backwards from the end of memory so the kernel

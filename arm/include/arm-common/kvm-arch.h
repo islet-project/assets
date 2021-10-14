@@ -108,6 +108,7 @@ struct kvm_arch {
 	 */
 	u64	memory_guest_start;
 	u64	kern_guest_start;
+	u64	kern_size;
 	u64	initrd_guest_start;
 	u64	initrd_size;
 	u64	dtb_guest_start;
