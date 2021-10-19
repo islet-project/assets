@@ -402,10 +402,10 @@ static inline ffa_notification_bitmap_t cactus_notification_get_notifications(
 
 static inline smc_ret_values cactus_notification_get_send_cmd(
 	ffa_id_t source, ffa_id_t dest, ffa_id_t receiver,
-	uint32_t vcpu_id, uint32_t flags)
+	uint32_t vcpu_id, uint32_t flags, bool check_npi_handled)
 {
 	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATION_GET_CMD,
-			       receiver, vcpu_id, 0, flags);
+			       receiver, vcpu_id, check_npi_handled, flags);
 }
 
 static inline uint32_t cactus_notification_get_vcpu(smc_ret_values ret)
@@ -434,6 +434,11 @@ static inline uint64_t cactus_notifications_get_from_sp(smc_ret_values ret)
 static inline uint64_t cactus_notifications_get_from_vm(smc_ret_values ret)
 {
 	return (uint64_t)ret.ret5;
+}
+
+static inline bool cactus_notifications_check_npi_handled(smc_ret_values ret)
+{
+	return (bool)ret.ret6;
 }
 
 /**

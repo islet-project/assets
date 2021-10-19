@@ -7,8 +7,41 @@
 #include "cactus_message_loop.h"
 #include "cactus_test_cmds.h"
 #include "cactus_tests.h"
-#include <debug.h>
 #include <ffa_helpers.h>
+#include <debug.h>
+#include <platform.h>
+
+/* Booleans to keep track of which CPUs handled NPI. */
+static bool npi_handled[PLATFORM_CORE_COUNT];
+
+/**
+ * Helper to access the above array and set the boolean for the specific CPU.
+ */
+void set_npi_handled(uint32_t vcpu_id, bool val)
+{
+	npi_handled[vcpu_id] = val;
+}
+
+/**
+ * Helper to get state of the boolean from `npi_handled` from the respective
+ * CPU.
+ */
+bool get_npi_handled(uint32_t vcpu_id)
+{
+	return npi_handled[vcpu_id];
+}
+
+void notification_pending_interrupt_handler(void)
+{
+	/* Get which core it is running from. */
+	unsigned int core_pos = platform_get_core_pos(
+						read_mpidr_el1() & MPID_MASK);
+
+	VERBOSE("NPI handled in core %u\n", core_pos);
+
+	set_npi_handled(core_pos, true);
+}
+
 
 CACTUS_CMD_HANDLER(notifications_bind, CACTUS_NOTIFICATION_BIND_CMD)
 {
@@ -79,6 +112,19 @@ CACTUS_CMD_HANDLER(notifications_get, CACTUS_NOTIFICATION_GET_CMD)
 		ffa_notifications_get_from_sp(ret),
 		ffa_notifications_get_from_vm(ret));
 
+	/* If requested to check the status of NPI, for the respective CPU. */
+	if (cactus_notifications_check_npi_handled(*args)) {
+
+		/* If NPI hasn't been handled return error for this test. */
+		if (!get_npi_handled(vcpu_id)) {
+			return cactus_error_resp(vm_id, source,
+						 CACTUS_ERROR_TEST);
+		}
+
+		/* Reset NPI flag for the respective core. */
+		set_npi_handled(vcpu_id, false);
+	}
+
 	return cactus_notifications_get_success_resp(
 		vm_id, source, ffa_notifications_get_from_sp(ret),
 		ffa_notifications_get_from_vm(ret));
@@ -88,7 +134,8 @@ CACTUS_CMD_HANDLER(notifications_set, CACTUS_NOTIFICATIONS_SET_CMD)
 {
 	ffa_id_t source = ffa_dir_msg_source(*args);
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
-	ffa_notification_bitmap_t notifications = cactus_notification_get_notifications(*args);
+	ffa_notification_bitmap_t notifications =
+				 cactus_notification_get_notifications(*args);
 	ffa_id_t receiver = cactus_notifications_set_get_receiver(*args);
 	ffa_id_t sender = cactus_notifications_set_get_sender(*args);
 	ffa_id_t echo_dest = cactus_req_echo_get_echo_dest(*args);

@@ -411,7 +411,7 @@ static bool request_notification_get(
 
 	*response = cactus_notification_get_send_cmd(HYP_ID, cmd_dest,
 						     receiver, vcpu_id,
-						     flags);
+						     flags, false);
 
 	return is_ffa_direct_response(*response);
 }
