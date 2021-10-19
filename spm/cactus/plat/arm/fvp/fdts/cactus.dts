@@ -69,7 +69,7 @@
 		test-memory {
 			description = "test-memory";
 			pages-count = <4>;
-			attributes = <0x7>; /* read-write-execute */
+			attributes = <0x3>; /* read-write */
 		};
 
 		/*
