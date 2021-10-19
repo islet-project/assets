@@ -668,21 +668,23 @@ bool check_schedule_receiver_interrupt_handled(void)
 }
 
 /**
- * Test to validate a VM can signal an SP.
+ * Base function to test notifications signaling with an SP as a receiver.
  */
-test_result_t test_ffa_notifications_vm_signals_sp(void)
+static test_result_t base_test_global_notifications_signal_sp(
+	const ffa_id_t sender, const ffa_id_t receiver,
+	const ffa_notification_bitmap_t notifications, const uint32_t flags_get)
 {
-	const ffa_id_t sender = 1;
-	const ffa_id_t receiver = SP_ID(1);
-	ffa_notification_bitmap_t notifications = FFA_NOTIFICATION(1) |
-						  FFA_NOTIFICATION(60);
-	const uint32_t flags_get = FFA_NOTIFICATIONS_FLAG_BITMAP_VM;
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	if (!IS_SP_ID(receiver)) {
+		ERROR("Receiver is expected to be an SP ID!\n");
+		return TEST_RESULT_FAIL;
+	}
 
 	/* Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
 	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
 	uint32_t lists_count;
 	uint32_t lists_sizes[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
-	const bool more_notif_pending = false;
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
@@ -693,7 +695,8 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	if (!notification_bind_and_set(sender, receiver, notifications, 0)) {
+	if (!notification_bind_and_set(sender, receiver, notifications,
+				       FFA_NOTIFICATIONS_FLAG_DELAY_SRI)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -709,12 +712,13 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
 
 	if (!notifications_info_get(ids, lists_count, lists_sizes,
 				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
-				    more_notif_pending)) {
+				    false)) {
 		return TEST_RESULT_FAIL;
 	}
 
-	if (!notification_get_and_validate(receiver, 0, notifications, 0,
-					   flags_get, true)) {
+	if (!notification_get_and_validate(
+		receiver, IS_SP_ID(sender) ? notifications : 0,
+		!IS_SP_ID(sender) ? notifications : 0, 0, flags_get, true)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -734,69 +738,23 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
 }
 
 /**
+ * Test to validate a VM can signal an SP.
+ */
+test_result_t test_ffa_notifications_vm_signals_sp(void)
+{
+	return base_test_global_notifications_signal_sp(
+		1, SP_ID(1), FFA_NOTIFICATION(1) | FFA_NOTIFICATION(60),
+		FFA_NOTIFICATIONS_FLAG_BITMAP_VM);
+}
+
+/**
  * Test to validate an SP can signal an SP.
  */
 test_result_t test_ffa_notifications_sp_signals_sp(void)
 {
-	const ffa_id_t sender = SP_ID(1);
-	const ffa_id_t receiver = SP_ID(2);
-	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
-
-	/* Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
-	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
-	uint32_t lists_count;
-	uint32_t lists_sizes[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
-
-	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-
-	schedule_receiver_interrupt_init();
-
-	/* Enable NPI. */
-	if (!notification_pending_interrupt_sp_enable(receiver, true)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	/* Request receiver to bind a set of notifications to the sender. */
-	if (!notification_bind_and_set(sender, receiver, g_notifications,
-				       FFA_NOTIFICATIONS_FLAG_DELAY_SRI)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	if (!check_schedule_receiver_interrupt_handled()) {
-		return TEST_RESULT_FAIL;
-	}
-
-	/*
-	 * FFA_NOTIFICATION_INFO_GET return list should be simple, containing
-	 * only the receiver's ID.
-	 */
-	ids[0] = receiver;
-	lists_count = 1;
-
-	if (!notifications_info_get(ids, lists_count, lists_sizes,
-				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
-				    false)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	if (!notification_get_and_validate(receiver, g_notifications, 0, 0,
-					   get_flags, true)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	if (!request_notification_unbind(receiver, receiver, sender,
-					 g_notifications, CACTUS_SUCCESS, 0)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	/* Disable NPI. */
-	if (!notification_pending_interrupt_sp_enable(receiver, false)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	schedule_receiver_interrupt_deinit();
-
-	return TEST_RESULT_SUCCESS;
+	return base_test_global_notifications_signal_sp(
+		SP_ID(1), SP_ID(2), g_notifications,
+		FFA_NOTIFICATIONS_FLAG_BITMAP_SP);
 }
 
 /**
