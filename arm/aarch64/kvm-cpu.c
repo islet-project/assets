@@ -129,6 +129,13 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 		if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
 			die_perror("KVM_SET_ONE_REG failed (pc)");
 	}
+
+	if (kvm__is_realm(kvm)) {
+		int feature = KVM_ARM_VCPU_REC;
+
+		if (ioctl(vcpu->vcpu_fd, KVM_ARM_VCPU_FINALIZE, &feature) < 0)
+			die_perror("KVM_ARM_VCPU_FINALIZE(KVM_ARM_VCPU_REC)");
+	}
 }
 
 void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
