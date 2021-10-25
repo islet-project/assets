@@ -15,6 +15,7 @@
 #include <plat_topology.h>
 #include <runtime_services/realm_payload/realm_payload_test.h>
 
+#ifdef __aarch64__
 static test_result_t realm_multi_cpu_payload_del_undel(void);
 
 #define ECHO_VAL1 U(0xa0a0a0a0)
@@ -212,6 +213,7 @@ out:
 
 	return ret;
 }
+#endif
 
 /*
  * Test function to dispatch a number of SPM and RMI tests to the platform
@@ -220,6 +222,12 @@ out:
  */
 test_result_t test_ffa_secondary_core_direct_realm_msg(void)
 {
+	SKIP_TEST_IF_AARCH32();
+#ifdef __aarch64__
+	if (get_armv9_2_feat_rme_support() == 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
 	unsigned int lead_mpid = read_mpidr_el1() & MPID_MASK;
 	unsigned int cpu_node, mpidr;
 	int32_t ret;
@@ -340,8 +348,10 @@ test_result_t test_ffa_secondary_core_direct_realm_msg(void)
 	 **********************************************************************/
 
 	return TEST_RESULT_SUCCESS;
+#endif
 }
 
+#ifdef __aarch64__
 /*
  * Multi CPU testing of delegate and undelegate of granules
  * The granules are first randomly initialized to either realm or non secure
@@ -373,3 +383,4 @@ static test_result_t realm_multi_cpu_payload_del_undel(void)
 	}
 	return TEST_RESULT_SUCCESS;
 }
+#endif
