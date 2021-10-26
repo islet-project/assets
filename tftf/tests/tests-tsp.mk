@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -11,4 +11,5 @@ TESTS_SOURCES	+=								\
 		test_smc_tsp_std_fn_call.c					\
 		test_tsp_fast_smc.c						\
 		test_normal_int_switch.c					\
+		test_pstate_after_exception.c					\
 	)

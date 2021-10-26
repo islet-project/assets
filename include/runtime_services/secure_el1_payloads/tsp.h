@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -32,6 +32,7 @@ static const uuid_t tsp_uuid = {
 #define TSP_MUL		0x2002
 #define TSP_DIV		0x2003
 #define TSP_HANDLE_SEL1_INTR_AND_RETURN	0x2004
+#define TSP_CHECK_DIT	0x2005
 
 /*
  * Identify a TSP service from function ID filtering the last 16 bits from the

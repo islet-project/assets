@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  Copyright (c) 2018, Arm Limited. All rights reserved.
+  Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 
   SPDX-License-Identifier: BSD-3-Clause
 -->
 
 <testsuites>
-
   <testsuite name="IRQ support in TSP" description="Test the normal IRQ preemption support in TSP.">
     <testcase name="TSP preempt by IRQ and resume" function="tsp_int_and_resume" />
     <testcase name="Fast SMC while TSP preempted" function="test_fast_smc_when_tsp_preempted" />
@@ -30,6 +29,10 @@
 
   <testsuite name="Stress test TSP functionality" description="Validate TSP functionality">
      <testcase name="Stress test TSP functionality" function="test_tsp_fast_smc_operations" />
+  </testsuite>
+
+  <testsuite name="TSP PSTATE test" description="Test PSTATE bits are maintained during exception">
+     <testcase name="Test PSTATE bits maintained on exception" function="tsp_check_pstate_maintained_on_exception" />
   </testsuite>
 
 </testsuites>

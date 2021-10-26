@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2021, Arm Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2022, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -421,6 +421,9 @@ static inline unsigned int get_current_el(void)
 
 #define read_daif()		read_cpsr()
 #define write_daif(flags)	write_cpsr(flags)
+
+#define read_dit()		read_cpsr()
+#define write_dit(flags)	write_cpsr(flags)
 
 #define read_cnthp_cval_el2()	read64_cnthp_cval_el2()
 #define write_cnthp_cval_el2(v)	write64_cnthp_cval_el2(v)
