@@ -13,18 +13,16 @@
 
 CACTUS_CMD_HANDLER(sleep_cmd, CACTUS_SLEEP_CMD)
 {
-	uint64_t timer_freq = read_cntfrq_el0();
-	uint64_t time1, time2, time_lapsed;
+	uint64_t time_lapsed;
 	uint32_t sleep_time = cactus_get_sleep_time(*args);
 
-	VERBOSE("Request to sleep %x for %ums.\n", ffa_dir_msg_dest(*args), sleep_time);
+	VERBOSE("Request to sleep %x for %ums.\n", ffa_dir_msg_dest(*args),
+		sleep_time);
 
-	time1 = read_cntvct_el0();
-	sp_sleep(sleep_time);
-	time2 = read_cntvct_el0();
+	time_lapsed = sp_sleep_elapsed_time(sleep_time);
 
-	/* Lapsed time should be at least equal to sleep time */
-	time_lapsed = ((time2 - time1) * 1000) / timer_freq;
+	/* Lapsed time should be at least equal to sleep time. */
+	VERBOSE("Sleep complete: %llu\n", time_lapsed);
 
 	return cactus_response(ffa_dir_msg_dest(*args),
 			       ffa_dir_msg_source(*args),
