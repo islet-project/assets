@@ -443,6 +443,35 @@ static bool request_notification_set(
 }
 
 /**
+ * Helper to set notification. If sender is VM, the function will call directly
+ * FFA_NOTIFICATION_SET, if it is an SP it will request the SP to set
+ * notifications. In both cases it is expected a successful outcome.
+ */
+static bool notification_set(ffa_id_t receiver, ffa_id_t sender,
+			     uint32_t flags,
+			     ffa_notification_bitmap_t notifications)
+{
+	smc_ret_values ret;
+
+	/* Sender sets notifications to receiver. */
+	if (!IS_SP_ID(sender)) {
+		VERBOSE("VM %x Setting notifications %llx to receiver %x\n",
+			sender, notifications, receiver);
+		ret = ffa_notification_set(sender, receiver, flags, notifications);
+
+		if (!is_expected_ffa_return(ret, FFA_SUCCESS_SMC32)) {
+			ERROR("Failed notifications set. receiver: %x; sender: %x\n",
+			      receiver, sender);
+			return false;
+		}
+		return true;
+	}
+
+	return request_notification_set(sender, receiver, sender, flags,
+					notifications, 0, CACTUS_SUCCESS, 0);
+}
+
+/**
  * Check that SP's response to CACTUS_NOTIFICATION_GET_CMD is as expected.
  */
 static bool is_notifications_get_as_expected(
@@ -549,17 +578,7 @@ static bool notification_bind_and_set(ffa_id_t sender,
 		}
 	}
 
-	/* Sender sets notifications to receiver. */
-	if (!IS_SP_ID(sender)) {
-		VERBOSE("VM %x Setting notifications %llx to receiver %x\n",
-			sender, notifications, receiver);
-		ret = ffa_notification_set(sender, receiver, flags, notifications);
-
-		return is_expected_ffa_return(ret, FFA_SUCCESS_SMC32);
-	}
-
-	return request_notification_set(sender, receiver, sender, flags,
-					notifications, 0, CACTUS_SUCCESS, 0);
+	return notification_set(receiver, sender, flags, notifications);
 }
 
 /**
@@ -638,7 +657,8 @@ static bool notification_pending_interrupt_sp_enable(ffa_id_t receiver,
 
 	if (!is_ffa_direct_response(ret) ||
 	     cactus_get_response(ret) != CACTUS_SUCCESS) {
-		ERROR("Failed to configure NPI in SP %x\n", receiver);
+		ERROR("Failed to configure NPI in SP %x core: %x\n",
+		      receiver, get_current_core_id());
 		return false;
 	}
 
@@ -933,10 +953,14 @@ static test_result_t request_notification_get_per_vcpu_on_handler(void)
 		goto out;
 	}
 
-	/* Request to get notifications sent to the respective vCPU. */
+	/*
+	 * Request to get notifications sent to the respective vCPU.
+	 * Check also if NPI was handled by the receiver. It should have been
+	 * pended at notifications set, in the respective vCPU.
+	 */
 	if (!notification_get_and_validate(
 		per_vcpu_receiver, exp_from_sp, exp_from_vm, core_pos,
-		per_vcpu_flags_get, false)) {
+		per_vcpu_flags_get, true)) {
 		goto out;
 	}
 
@@ -949,6 +973,45 @@ out:
 	return result;
 }
 
+static test_result_t base_npi_enable_per_cpu(bool enable)
+{
+	test_result_t result = TEST_RESULT_FAIL;
+	uint32_t core_pos = get_current_core_id();
+
+	VERBOSE("Request SP %x to enable NPI in core %u\n",
+		 per_vcpu_receiver, core_pos);
+
+	/*
+	 * Secure Partitions secondary ECs need one round of ffa_run to reach
+	 * the message loop.
+	 */
+	if (!spm_core_sp_init(per_vcpu_receiver)) {
+		goto out;
+	}
+
+	if (!notification_pending_interrupt_sp_enable(per_vcpu_receiver,
+						      enable)) {
+		goto out;
+	}
+
+	result = TEST_RESULT_SUCCESS;
+
+out:
+	/* Tell the lead CPU that the calling CPU has completed the test. */
+	tftf_send_event(&per_vcpu_finished[core_pos]);
+
+	return result;
+}
+
+static test_result_t npi_enable_per_vcpu_on_handler(void)
+{
+	return base_npi_enable_per_cpu(true);
+}
+
+static test_result_t npi_disable_per_vcpu_on_handler(void)
+{
+	return base_npi_enable_per_cpu(false);
+}
 /**
  * Base function to test signaling of per-vCPU notifications.
  * Test whole flow between two FF-A endpoints: binding, getting notification
@@ -959,8 +1022,6 @@ out:
 static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 						      ffa_id_t receiver)
 {
-	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-
 	/*
 	 * Manually set variables to validate what should be the return of to
 	 * FFA_NOTIFICATION_INFO_GET.
@@ -982,9 +1043,27 @@ static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 	test_result_t result = TEST_RESULT_SUCCESS;
 	uint64_t notifications_to_unbind = 0;
 
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
 	per_vcpu_flags_get = IS_SP_ID(sender)
 				? FFA_NOTIFICATIONS_FLAG_BITMAP_SP
 				: FFA_NOTIFICATIONS_FLAG_BITMAP_VM;
+
+	/* Setting global variables to be accessed by the cpu_on handler. */
+	per_vcpu_receiver = receiver;
+	per_vcpu_sender = sender;
+
+	/* Boot all cores and enable the NPI in all of them. */
+	if (spm_run_multi_core_test(
+		(uintptr_t)npi_enable_per_vcpu_on_handler,
+		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Enable NPI in lead core. */
+	if (!notification_pending_interrupt_sp_enable(receiver, true)) {
+		return TEST_RESULT_FAIL;
+	}
 
 	/*
 	 * Prepare notifications bitmap to request Cactus to bind them as
@@ -1017,17 +1096,15 @@ static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 	/*
 	 * Request SP to get notifications in core 0, as this is not iterated
 	 * at the CPU ON handler.
+	 * Set `check_npi_handled` to true, as the receiver is supposed to be
+	 * preempted by the NPI.
 	 */
 	if (!notification_get_and_validate(
 		receiver, IS_SP_ID(sender) ? FFA_NOTIFICATION(0) : 0,
 		!IS_SP_ID(sender) ? FFA_NOTIFICATION(0) : 0, 0,
-		per_vcpu_flags_get, false)) {
+		per_vcpu_flags_get, true)) {
 		result = TEST_RESULT_FAIL;
 	}
-
-	/* Setting global variables to be accessed by the cpu_on handler. */
-	per_vcpu_receiver = receiver;
-	per_vcpu_sender = sender;
 
 	/*
 	 * Bring up all the cores, and request the receiver to get notifications
@@ -1046,6 +1123,18 @@ out:
 					 notifications_to_unbind,
 					 CACTUS_SUCCESS, 0)) {
 		result = TEST_RESULT_FAIL;
+	}
+
+	/* Boot all cores and DISABLE the NPI in all of them. */
+	if (spm_run_multi_core_test(
+		(uintptr_t)npi_disable_per_vcpu_on_handler,
+		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Disable the NPI in the receiver. */
+	if (!notification_pending_interrupt_sp_enable(receiver, false)) {
+		return TEST_RESULT_FAIL;
 	}
 
 	return result;
