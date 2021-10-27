@@ -7,9 +7,12 @@
 #ifndef SPM_COMMON_H
 #define SPM_COMMON_H
 
-#include <ffa_helpers.h>
+#include <plat/common/platform.h>
+
 #include <stdint.h>
 #include <string.h>
+
+#include <ffa_helpers.h>
 
 /* Hypervisor ID at physical FFA instance */
 #define HYP_ID          (0)

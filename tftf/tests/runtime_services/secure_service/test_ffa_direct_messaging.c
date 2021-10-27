@@ -167,8 +167,7 @@ test_result_t test_ffa_sp_to_sp_deadlock(void)
  */
 static test_result_t cpu_on_handler(void)
 {
-	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos = platform_get_core_pos(mpid);
+	unsigned int core_pos = get_current_core_id();
 	test_result_t ret = TEST_RESULT_SUCCESS;
 	smc_ret_values ffa_ret;
 

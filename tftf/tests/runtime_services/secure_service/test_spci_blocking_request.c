@@ -29,8 +29,7 @@ static test_result_t test_spci_blocking_multicore_fn(void)
 	u_register_t rx1, rx2, rx3;
 	test_result_t result = TEST_RESULT_SUCCESS;
 
-	u_register_t cpu_mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos = platform_get_core_pos(cpu_mpid);
+	unsigned int core_pos = get_current_core_id();
 
 	tftf_send_event(&cpu_has_entered_test[core_pos]);
 

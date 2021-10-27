@@ -221,6 +221,26 @@ test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
 	return TEST_RESULT_SUCCESS;
 }
 
+bool spm_core_sp_init(ffa_id_t sp_id)
+{
+	/*
+	 * Secure Partitions secondary ECs need one round of ffa_run to reach
+	 * the message loop.
+	 */
+	if (sp_id != SP_ID(1)) {
+		uint32_t core_pos = get_current_core_id();
+		smc_ret_values ret = ffa_run(sp_id, core_pos);
+
+		if (ffa_func_id(ret) != FFA_MSG_WAIT) {
+			ERROR("Failed to run SP%x on core %u\n",
+			      sp_id, core_pos);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable)
 {
 	smc_ret_values ret;

@@ -353,6 +353,12 @@ test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
 				      event_t *cpu_booted);
 
 /**
+ * Call FFA_RUN in the designated SP to make it reach the message loop.
+ * Used within CPU_ON handlers, to bring up the SP in the current core.
+ */
+bool spm_core_sp_init(ffa_id_t sp_id);
+
+/**
  * Enable/Disable managed exit interrupt for the provided SP.
  */
 bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable);

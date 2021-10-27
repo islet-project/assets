@@ -910,9 +910,7 @@ test_result_t test_ffa_notifications_info_get_none(void)
  */
 static test_result_t request_notification_get_per_vcpu_on_handler(void)
 {
-	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos = platform_get_core_pos(mpid);
-	smc_ret_values ret;
+	unsigned int core_pos = get_current_core_id();
 	test_result_t result = TEST_RESULT_FAIL;
 
 	uint64_t exp_from_vm = 0;
@@ -931,14 +929,8 @@ static test_result_t request_notification_get_per_vcpu_on_handler(void)
 	 * Secure Partitions secondary ECs need one round of ffa_run to reach
 	 * the message loop.
 	 */
-	if (per_vcpu_receiver != SP_ID(1)) {
-		ret = ffa_run(per_vcpu_receiver, core_pos);
-
-		if (ffa_func_id(ret) != FFA_MSG_WAIT) {
-			ERROR("Failed to run SP%x on core %u\n",
-			      per_vcpu_receiver, core_pos);
-			goto out;
-		}
+	if (!spm_core_sp_init(per_vcpu_receiver)) {
+		goto out;
 	}
 
 	/* Request to get notifications sent to the respective vCPU. */
@@ -1077,20 +1069,13 @@ test_result_t test_ffa_notifications_sp_signals_sp_per_vcpu(void)
 
 static test_result_t notification_get_per_vcpu_on_handler(void)
 {
-	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos = platform_get_core_pos(mpid);
-	smc_ret_values ret;
+	unsigned int core_pos = get_current_core_id();
 	test_result_t result = TEST_RESULT_SUCCESS;
 
 	VERBOSE("Getting per-vCPU notifications from %x, core: %u.\n",
 		 per_vcpu_receiver, core_pos);
 
-	ret = ffa_run(per_vcpu_sender, core_pos);
-
-	if (ffa_func_id(ret) != FFA_MSG_WAIT) {
-		ERROR("Failed to run SP%x on core %u\n",
-		      per_vcpu_sender, core_pos);
-		result = TEST_RESULT_FAIL;
+	if (!spm_core_sp_init(per_vcpu_sender)) {
 		goto out;
 	}
 

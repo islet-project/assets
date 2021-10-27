@@ -9,7 +9,6 @@
 #include "cactus_tests.h"
 #include <ffa_helpers.h>
 #include <debug.h>
-#include <platform.h>
 
 /* Booleans to keep track of which CPUs handled NPI. */
 static bool npi_handled[PLATFORM_CORE_COUNT];
