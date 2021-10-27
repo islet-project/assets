@@ -26,7 +26,7 @@
 #define RMI_FNUM_VERSION_REQ		U(0)
 
 #define RMI_FNUM_GRAN_NS_REALM		U(1)
-#define RMI_FNUM_GRAN_REALM_NS		U(0x10)
+#define RMI_FNUM_GRAN_REALM_NS		U(2)
 
 /********************************************************************************/
 

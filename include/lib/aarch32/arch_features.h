@@ -48,4 +48,9 @@ static inline bool get_armv8_0_sys_reg_trace_support(void)
 		ID_DFR0_COPTRC_MASK) ==
 		ID_DFR0_COPTRC_SUPPORTED;
 }
+
+static inline unsigned int get_armv9_2_feat_rme_support(void)
+{
+	return 0;
+}
 #endif /* ARCH_FEATURES_H */
