@@ -250,6 +250,9 @@ void kvm_cpu__show_code(struct kvm_cpu *vcpu)
 
 	reg.addr = (u64)&data;
 
+	if (vcpu->kvm->cfg.arch.is_realm)
+		return;
+
 	dprintf(debug_fd, "\n*pc:\n");
 	reg.id = ARM64_CORE_REG(regs.pc);
 	if (ioctl(vcpu->vcpu_fd, KVM_GET_ONE_REG, &reg) < 0)
@@ -273,6 +276,11 @@ void kvm_cpu__show_registers(struct kvm_cpu *vcpu)
 
 	reg.addr = (u64)&data;
 	dprintf(debug_fd, "\n Registers:\n");
+
+	if (vcpu->kvm->cfg.arch.is_realm) {
+		dprintf(debug_fd, " UNACCESSIBLE\n");
+		return;
+	}
 
 	reg.id		= ARM64_CORE_REG(regs.pc);
 	if (ioctl(vcpu->vcpu_fd, KVM_GET_ONE_REG, &reg) < 0)
