@@ -127,13 +127,13 @@ test_result_t test_ffa_sp_to_sp_direct_messaging(void)
 	 * The following the tests are intended to test the handling of a
 	 * direct message request with a VM's ID as a the sender.
 	 */
-	result = send_cactus_req_echo_cmd(HYP_ID + 1, SP_ID(2), SP_ID(3),
+	result = send_cactus_req_echo_cmd(VM_ID(1), SP_ID(2), SP_ID(3),
 					  ECHO_VAL2);
 	if (result != TEST_RESULT_SUCCESS) {
 		return result;
 	}
 
-	result = send_cactus_req_echo_cmd(HYP_ID + 2, SP_ID(3), SP_ID(1),
+	result = send_cactus_req_echo_cmd(VM_ID(2), SP_ID(3), SP_ID(1),
 					  ECHO_VAL3);
 
 	return result;

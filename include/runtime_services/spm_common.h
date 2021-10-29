@@ -41,6 +41,7 @@ enum interrupt_pin {
  */
 #define SP_ID_MASK	U(1 << 15)
 #define SP_ID(x)	((x) | SP_ID_MASK)
+#define VM_ID(x)	(x & ~SP_ID_MASK)
 #define IS_SP_ID(x)	((x & SP_ID_MASK) != 0U)
 
 struct ffa_features_test {

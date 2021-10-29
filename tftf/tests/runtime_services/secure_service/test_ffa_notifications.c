@@ -75,7 +75,7 @@ static bool notifications_bitmap_destroy(ffa_id_t vm_id)
  */
 test_result_t test_ffa_notifications_bitmap_create_destroy(void)
 {
-	const ffa_id_t vm_id = HYP_ID + 1;
+	const ffa_id_t vm_id = VM_ID(1);
 
 	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
 
@@ -107,7 +107,7 @@ test_result_t test_ffa_notifications_destroy_not_created(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	smc_ret_values ret = ffa_notification_bitmap_destroy(HYP_ID + 1);
+	smc_ret_values ret = ffa_notification_bitmap_destroy(VM_ID(1));
 
 	if (!is_expected_ffa_error(ret, FFA_ERROR_DENIED)) {
 		return TEST_RESULT_FAIL;
@@ -123,7 +123,7 @@ test_result_t test_ffa_notifications_destroy_not_created(void)
 test_result_t test_ffa_notifications_create_after_create(void)
 {
 	smc_ret_values ret;
-	const ffa_id_t vm_id = HYP_ID + 2;
+	const ffa_id_t vm_id = VM_ID(2);
 
 	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
 
@@ -256,7 +256,7 @@ test_result_t test_ffa_notifications_sp_bind_unbind(void)
 test_result_t test_ffa_notifications_vm_bind_unbind(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-	const ffa_id_t vm_id = 1;
+	const ffa_id_t vm_id = VM_ID(1);
 	smc_ret_values ret;
 
 	if (!notifications_bitmap_create(vm_id, 1)) {
@@ -288,8 +288,8 @@ test_result_t test_ffa_notifications_vm_bind_unbind(void)
 test_result_t test_ffa_notifications_vm_bind_vm(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-	const ffa_id_t vm_id = 1;
-	const ffa_id_t sender_id = 2;
+	const ffa_id_t vm_id = VM_ID(1);
+	const ffa_id_t sender_id = VM_ID(2);
 	smc_ret_values ret;
 
 	if (!notifications_bitmap_create(vm_id, 1)) {
@@ -784,7 +784,7 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 	const ffa_id_t sender = SP_ID(1);
-	const ffa_id_t receiver = 1;
+	const ffa_id_t receiver = VM_ID(1);
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
 	smc_ret_values ret;
 	test_result_t result = TEST_RESULT_SUCCESS;
@@ -852,7 +852,7 @@ test_result_t test_ffa_notifications_unbind_pending(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 	const ffa_id_t receiver = SP_ID(1);
-	const ffa_id_t sender = 1;
+	const ffa_id_t sender = VM_ID(1);
 	const ffa_notification_bitmap_t notifications = FFA_NOTIFICATION(30) |
 				       FFA_NOTIFICATION(35);
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_VM;
@@ -1192,7 +1192,7 @@ out:
 test_result_t test_ffa_notifications_sp_signals_vm_per_vcpu(void)
 {
 	/* Making a VM the receiver, and an SP the sender */
-	per_vcpu_receiver = 1;
+	per_vcpu_receiver = VM_ID(1);
 	per_vcpu_sender = SP_ID(2);
 
 	/**
