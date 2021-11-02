@@ -29,6 +29,7 @@
 	boot-order = <0>;
 	messaging-method = <3>; /* Direct messaging only */
 	managed-exit; /* Managed exit is supported */
+	notification-support; /* Support receipt of notifications. */
 	run-time-model = <0>; /* Run to completion */
 
 	/* Boot protocol */
