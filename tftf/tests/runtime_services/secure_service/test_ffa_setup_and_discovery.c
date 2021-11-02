@@ -28,13 +28,15 @@ static const struct ffa_partition_info ffa_expected_partition_info[] = {
 	{
 		.id = SP_ID(1),
 		.exec_context = PRIMARY_EXEC_CTX_COUNT,
-		.properties = FFA_PARTITION_DIRECT_REQ_RECV
+		.properties = FFA_PARTITION_DIRECT_REQ_RECV |
+			      FFA_PARTITION_NOTIFICATION
 	},
 	/* Secondary partition info */
 	{
 		.id = SP_ID(2),
 		.exec_context = SECONDARY_EXEC_CTX_COUNT,
-		.properties = FFA_PARTITION_DIRECT_REQ_RECV
+		.properties = FFA_PARTITION_DIRECT_REQ_RECV |
+			      FFA_PARTITION_NOTIFICATION
 	},
 	/* Tertiary partition info */
 	{

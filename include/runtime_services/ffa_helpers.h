@@ -54,6 +54,9 @@ struct ffa_uuid {
 /** Partition property: partition can send and receive indirect messages. */
 #define FFA_PARTITION_INDIRECT_MSG 0x4
 
+/** Partition property: partition can receive notifications. */
+#define FFA_PARTITION_NOTIFICATION 0x8
+
 struct ffa_partition_info {
 	/** The ID of the VM the information is about */
 	ffa_id_t id;
