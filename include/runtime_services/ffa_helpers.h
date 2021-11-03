@@ -70,6 +70,9 @@ typedef uint64_t ffa_notification_bitmap_t;
 
 #define FFA_NOTIFICATIONS_FLAG_PER_VCPU	UINT32_C(0x1 << 0)
 
+/** Flag to delay Schedule Receiver Interrupt. */
+#define FFA_NOTIFICATIONS_FLAG_DELAY_SRI	UINT32_C(0x1 << 1)
+
 #define FFA_NOTIFICATIONS_FLAGS_VCPU_ID(id) UINT32_C((id & 0xFFFF) << 16)
 
 #define FFA_NOTIFICATIONS_FLAG_BITMAP_SP	UINT32_C(0x1 << 0)
@@ -91,6 +94,38 @@ static inline ffa_notification_bitmap_t ffa_notifications_get_from_sp(smc_ret_va
 static inline ffa_notification_bitmap_t ffa_notifications_get_from_vm(smc_ret_values val)
 {
 	return FFA_NOTIFICATIONS_BITMAP(val.ret4, val.ret5);
+}
+
+/*
+ * FFA_NOTIFICATION_INFO_GET is a SMC64 interface.
+ * The following macros are defined for SMC64 implementation.
+ */
+#define FFA_NOTIFICATIONS_INFO_GET_MAX_IDS		20U
+
+#define FFA_NOTIFICATIONS_INFO_GET_FLAG_MORE_PENDING	UINT64_C(0x1)
+
+#define FFA_NOTIFICATIONS_LISTS_COUNT_SHIFT		0x7U
+#define FFA_NOTIFICATIONS_LISTS_COUNT_MASK		0x1FU
+#define FFA_NOTIFICATIONS_LIST_SHIFT(l) 		(2 * (l - 1) + 12)
+#define FFA_NOTIFICATIONS_LIST_SIZE_MASK 		0x3U
+
+static inline uint32_t ffa_notifications_info_get_lists_count(
+	smc_ret_values ret)
+{
+	return (uint32_t)(ret.ret2 >> FFA_NOTIFICATIONS_LISTS_COUNT_SHIFT)
+	       & FFA_NOTIFICATIONS_LISTS_COUNT_MASK;
+}
+
+static inline uint32_t ffa_notifications_info_get_list_size(
+	smc_ret_values ret, uint32_t list)
+{
+	return (uint32_t)(ret.ret2 >> FFA_NOTIFICATIONS_LIST_SHIFT(list)) &
+	       FFA_NOTIFICATIONS_LIST_SIZE_MASK;
+}
+
+static inline bool ffa_notifications_info_get_more_pending(smc_ret_values ret)
+{
+	return (ret.ret2 & FFA_NOTIFICATIONS_INFO_GET_FLAG_MORE_PENDING) != 0U;
 }
 
 enum ffa_data_access {
@@ -473,6 +508,7 @@ smc_ret_values ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
 				    ffa_notification_bitmap_t bitmap);
 smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
 				    uint32_t flags);
+smc_ret_values ffa_notification_info_get(void);
 #endif /* __ASSEMBLY__ */
 
 #endif /* FFA_HELPERS_H */

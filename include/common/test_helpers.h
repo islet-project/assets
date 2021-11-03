@@ -10,6 +10,7 @@
 #include <arch_features.h>
 #include <ffa_svc.h>
 #include <plat_topology.h>
+#include <events.h>
 #include <psci.h>
 #include <spm_common.h>
 #include <tftf_lib.h>
@@ -340,5 +341,15 @@ bool get_tftf_mailbox(struct mailbox_buffers *mb);
 test_result_t check_spmc_testing_set_up(uint32_t ffa_version_major,
 	uint32_t ffa_version_minor, const struct ffa_uuid *ffa_uuids,
 	size_t ffa_uuids_size);
+
+/**
+ * Turn on all cpus to execute a test in all.
+ * - 'cpu_on_handler' should have the code containing the test.
+ * - 'cpu_booted' is used for notifying which cores the test has been executed.
+ * This should be used in the test executed by cpu_on_handler at the end of
+ * processing to make sure it complies with this function's implementation.
+ */
+test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
+				      event_t *cpu_booted);
 
 #endif /* __TEST_HELPERS_H__ */

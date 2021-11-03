@@ -24,7 +24,6 @@ static const struct ffa_uuid expected_sp_uuids[] = {
 		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
 	};
 
-
 static event_t cpu_booted[PLATFORM_CORE_COUNT];
 
 static test_result_t send_cactus_echo_cmd(ffa_id_t sender,
@@ -165,7 +164,6 @@ test_result_t test_ffa_sp_to_sp_deadlock(void)
 /**
  * Handler that is passed during tftf_cpu_on to individual CPU cores.
  * Runs a specific core and send a direct message request.
- * Expects core_pos | SP_ID as a response.
  */
 static test_result_t cpu_on_handler(void)
 {
@@ -255,48 +253,9 @@ out:
  */
 test_result_t test_ffa_secondary_core_direct_msg(void)
 {
-	unsigned int lead_mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos, cpu_node, mpidr;
-	int32_t ret;
-
 	/**********************************************************************
 	 * Check SPMC has ffa_version and expected FFA endpoints are deployed.
 	 **********************************************************************/
 	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
-
-	for (unsigned int i = 0U; i < PLATFORM_CORE_COUNT; i++) {
-		tftf_init_event(&cpu_booted[i]);
-	}
-
-	for_each_cpu(cpu_node) {
-		mpidr = tftf_get_mpidr_from_node(cpu_node);
-		if (mpidr == lead_mpid) {
-			continue;
-		}
-
-		ret = tftf_cpu_on(mpidr, (uintptr_t)cpu_on_handler, 0U);
-		if (ret != 0) {
-			ERROR("tftf_cpu_on mpidr 0x%x returns %d\n", mpidr, ret);
-		}
-	}
-
-	VERBOSE("Waiting secondary CPUs to turn off ...\n");
-
-	for_each_cpu(cpu_node) {
-		mpidr = tftf_get_mpidr_from_node(cpu_node);
-		if (mpidr == lead_mpid) {
-			continue;
-		}
-
-		core_pos = platform_get_core_pos(mpidr);
-		tftf_wait_for_event(&cpu_booted[core_pos]);
-	}
-
-	VERBOSE("Done exiting.\n");
-
-	/**********************************************************************
-	 * All tests passed.
-	 **********************************************************************/
-
-	return TEST_RESULT_SUCCESS;
+	return spm_run_multi_core_test((uintptr_t)cpu_on_handler, cpu_booted);
 }

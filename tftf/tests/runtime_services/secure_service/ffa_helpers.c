@@ -607,3 +607,19 @@ smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
 
 	return tftf_smc(&args);
 }
+
+smc_ret_values ffa_notification_info_get(void)
+{
+	smc_args args = {
+		.fid = FFA_NOTIFICATION_INFO_GET_SMC64,
+		.arg1 = FFA_PARAM_MBZ,
+		.arg2 = FFA_PARAM_MBZ,
+		.arg3 = FFA_PARAM_MBZ,
+		.arg4 = FFA_PARAM_MBZ,
+		.arg5 = FFA_PARAM_MBZ,
+		.arg6 = FFA_PARAM_MBZ,
+		.arg7 = FFA_PARAM_MBZ
+	};
+
+	return tftf_smc(&args);
+}
