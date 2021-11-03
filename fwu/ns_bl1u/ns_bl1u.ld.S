@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -43,6 +43,7 @@ SECTIONS
      * Its VMA must be page-aligned as it marks the first read/write page.
      */
     . = NS_BL1U_RW_BASE;
+    __RW_START__ = .;
     ASSERT(. == ALIGN(PAGE_SIZE),
            "NS_BL1U_RW_BASE address is not aligned on a page boundary.")
     .data . : ALIGN(16) {
@@ -79,6 +80,7 @@ SECTIONS
 
     __NS_BL1U_RAM_START__ = ADDR(.data);
     __NS_BL1U_RAM_END__ = .;
+    __RW_END__ = .;
 
     __DATA_ROM_START__ = LOADADDR(.data);
     __DATA_SIZE__ = SIZEOF(.data);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -42,6 +42,8 @@ SECTIONS
         __RODATA_END__ = .;
     } >RAM
 
+    __RW_START__ = .;
+
     .data . : {
         __DATA_START__ = .;
         *(.data*)
@@ -75,6 +77,7 @@ SECTIONS
     } >RAM
 
     __NS_BL2U_END__ = .;
+    __RW_END__ = .;
 
     __BSS_SIZE__ = SIZEOF(.bss);
 
