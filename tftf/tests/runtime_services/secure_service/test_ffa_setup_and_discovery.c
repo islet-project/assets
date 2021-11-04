@@ -42,7 +42,8 @@ static const struct ffa_partition_info ffa_expected_partition_info[] = {
 	{
 		.id = SP_ID(3),
 		.exec_context = TERTIARY_EXEC_CTX_COUNT,
-		.properties = FFA_PARTITION_DIRECT_REQ_RECV
+		.properties = FFA_PARTITION_DIRECT_REQ_RECV |
+			      FFA_PARTITION_NOTIFICATION
 	},
 	/* Ivy partition info */
 	{
