@@ -170,7 +170,13 @@ static bool request_notification_bind(
 	ret = cactus_notification_bind_send_cmd(HYP_ID, cmd_dest, receiver,
 						sender, notifications, flags);
 
-	return is_expected_cactus_response(ret, expected_resp, error_code);
+	if (!is_expected_cactus_response(ret, expected_resp, error_code)) {
+		ERROR("Failed notifications bind. receiver: %x; sender: %x\n",
+		      receiver, sender);
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -195,7 +201,13 @@ static bool request_notification_unbind(
 	ret = cactus_notification_unbind_send_cmd(HYP_ID, cmd_dest, receiver,
 						  sender, notifications);
 
-	return is_expected_cactus_response(ret, expected_resp, error_code);
+	if (!is_expected_cactus_response(ret, expected_resp, error_code)) {
+		ERROR("Failed notifications unbind. receiver: %x; sender: %x\n",
+		      receiver, sender);
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -416,7 +428,13 @@ static bool request_notification_set(
 	ret = cactus_notifications_set_send_cmd(HYP_ID, cmd_dest, receiver,
 						sender, flags, notifications);
 
-	return is_expected_cactus_response(ret, exp_resp, exp_error);
+	if (!is_expected_cactus_response(ret, exp_resp, exp_error)) {
+		ERROR("Failed notifications set. receiver: %x; sender: %x\n",
+		      receiver, sender);
+		return false;
+	}
+
+	return true;
 }
 
 /**
