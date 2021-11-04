@@ -142,6 +142,8 @@
                function="test_ffa_notifications_sp_signals_sp_delayed_sri" />
      <testcase name="Notifications unbind while pending"
                function="test_ffa_notifications_unbind_pending" />
+     <testcase name="Notifications MP SP signals UP SP per-vCPU"
+               function="test_ffa_notifications_mp_sp_signals_up_sp" />
      <testcase name="Notifications info get no data"
                function="test_ffa_notifications_info_get_none" />
      <testcase name="Notifications VM signals SP per-vCPU"

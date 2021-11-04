@@ -1535,3 +1535,99 @@ test_result_t test_ffa_notifications_sp_signals_sp_delayed_sri(void)
 
 	return result;
 }
+
+test_result_t notifications_set_per_vcpu_on_handler(void)
+{
+	unsigned int core_pos = get_current_core_id();
+	test_result_t result = TEST_RESULT_FAIL;
+
+	if (!spm_core_sp_init(per_vcpu_sender)) {
+		goto out;
+	}
+
+	if (!notification_set(per_vcpu_receiver, per_vcpu_sender,
+			      FFA_NOTIFICATIONS_FLAG_DELAY_SRI |
+			      FFA_NOTIFICATIONS_FLAG_PER_VCPU  |
+			      FFA_NOTIFICATIONS_FLAGS_VCPU_ID(0),
+			      FFA_NOTIFICATION(core_pos))) {
+		goto out;
+	}
+
+	result = TEST_RESULT_SUCCESS;
+
+out:
+	/* Tell the lead CPU that the calling CPU has completed the test. */
+	tftf_send_event(&per_vcpu_finished[core_pos]);
+
+	return result;
+}
+
+test_result_t test_ffa_notifications_mp_sp_signals_up_sp(void)
+{
+	ffa_notification_bitmap_t to_bind = 0;
+
+	/* prepare info get variables. */
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	/* Setting per-vCPU sender and receiver IDs. */
+	per_vcpu_sender = SP_ID(2); /* MP SP */
+	per_vcpu_receiver = SP_ID(3); /* UP SP */
+
+	schedule_receiver_interrupt_init();
+
+	notification_pending_interrupt_sp_enable(per_vcpu_receiver, true);
+
+	/* Prepare notifications bitmap to have one bit platform core. */
+	for (uint32_t i = 0; i < PLATFORM_CORE_COUNT; i++) {
+		to_bind |= FFA_NOTIFICATION(i);
+	}
+
+	/* Request receiver to bind a set of notifications to the sender. */
+	if (!request_notification_bind(per_vcpu_receiver, per_vcpu_receiver,
+				       per_vcpu_sender, to_bind,
+				       FFA_NOTIFICATIONS_FLAG_PER_VCPU,
+				       CACTUS_SUCCESS, 0)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Boot up system, and then request sender to signal notification from
+	 * every core into into receiver's only vCPU. Delayed SRI.
+	 */
+	if (!notification_set(per_vcpu_receiver, per_vcpu_sender,
+			     FFA_NOTIFICATIONS_FLAG_DELAY_SRI |
+			     FFA_NOTIFICATIONS_FLAG_PER_VCPU |
+			     FFA_NOTIFICATIONS_FLAGS_VCPU_ID(0),
+			     FFA_NOTIFICATION(0))) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (spm_run_multi_core_test(
+		(uintptr_t)notifications_set_per_vcpu_on_handler,
+		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (!check_schedule_receiver_interrupt_handled()) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (!notification_get_and_validate(per_vcpu_receiver, to_bind, 0, 0,
+		FFA_NOTIFICATIONS_FLAG_BITMAP_SP, true)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Request unbind. */
+	if (!request_notification_unbind(per_vcpu_receiver, per_vcpu_receiver,
+					per_vcpu_sender, to_bind,
+					CACTUS_SUCCESS, 0)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	schedule_receiver_interrupt_deinit();
+
+	notification_pending_interrupt_sp_enable(per_vcpu_receiver, false);
+
+	return TEST_RESULT_SUCCESS;
+}

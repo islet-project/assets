@@ -167,7 +167,7 @@ CACTUS_CMD_HANDLER(notifications_set, CACTUS_NOTIFICATIONS_SET_CMD)
 		}
 	}
 
-	VERBOSE("Set notifications handled!\n");
+	VERBOSE("Set notifications handled (core %u)!\n", get_current_core_id());
 
 	return cactus_response(vm_id, source, CACTUS_SUCCESS);
 }
