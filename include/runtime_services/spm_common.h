@@ -25,6 +25,9 @@
 /* INTID for the managed exit virtual interrupt. */
 #define MANAGED_EXIT_INTERRUPT_ID	U(4)
 
+/* INTID for the notification pending interrupt. */
+#define NOTIFICATION_PENDING_INTERRUPT_INTID 5
+
 /** IRQ/FIQ pin used for signaling a virtual interrupt. */
 enum interrupt_pin {
 	INTERRUPT_TYPE_IRQ,

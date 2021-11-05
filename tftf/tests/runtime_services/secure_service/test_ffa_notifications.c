@@ -33,9 +33,6 @@ static ffa_id_t per_vcpu_sender;
 uint32_t per_vcpu_flags_get;
 static event_t per_vcpu_finished[PLATFORM_CORE_COUNT];
 
-/* TODO: replace use for this ID with respective call to ffa_features. */
-#define NOTIFICATION_PENDING_INTERRUPT_INTID 5
-
 static const struct ffa_uuid expected_sp_uuids[] = {
 		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
 };
@@ -45,6 +42,59 @@ static ffa_notification_bitmap_t g_notifications = FFA_NOTIFICATION(0)  |
 						   FFA_NOTIFICATION(30) |
 						   FFA_NOTIFICATION(50) |
 						   FFA_NOTIFICATION(63);
+
+/**
+ * Use FFA_FEATURES to retrieve the ID of:
+ * - Schedule Receiver Interrupt
+ * - Notification Pending Interrupt
+ * - Managed Exit Interrupt
+ * Validate the call works as expected, and they match the used int ID in the
+ * remainder of the tests.
+ */
+test_result_t test_notifications_retrieve_int_ids(void)
+{
+	smc_ret_values ret;
+
+	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
+
+	/* Check if SPMC is OP-TEE at S-EL1 */
+	if (check_spmc_execution_level()) {
+		/* FFA_FEATURES is not yet supported in OP-TEE */
+		return TEST_RESULT_SUCCESS;
+	}
+
+	ret = ffa_features(FFA_FEATURE_NPI);
+	if (is_ffa_call_error(ret) ||
+	    ffa_feature_intid(ret) != NOTIFICATION_PENDING_INTERRUPT_INTID) {
+		ERROR("Failed to retrieved NPI (exp: %u, got: %u)\n",
+		      NOTIFICATION_PENDING_INTERRUPT_INTID,
+		      ffa_feature_intid(ret));
+
+		return TEST_RESULT_FAIL;
+	}
+
+	ret = ffa_features(FFA_FEATURE_SRI);
+	if (is_ffa_call_error(ret) ||
+	    ffa_feature_intid(ret) != FFA_SCHEDULE_RECEIVER_INTERRUPT_ID) {
+		ERROR("Failed to retrieved SRI (exp: %u, got: %u)\n",
+		      FFA_SCHEDULE_RECEIVER_INTERRUPT_ID,
+		      ffa_feature_intid(ret));
+
+		return TEST_RESULT_FAIL;
+	}
+
+	ret = ffa_features(FFA_FEATURE_MEI);
+	if (is_ffa_call_error(ret) ||
+	    ffa_feature_intid(ret) != MANAGED_EXIT_INTERRUPT_ID) {
+		ERROR("Failed to retrieved MEI (exp: %u, got: %u)\n",
+		      MANAGED_EXIT_INTERRUPT_ID,
+		      ffa_feature_intid(ret));
+
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
 
 /**
  * Helper to create bitmap for NWd VMs.

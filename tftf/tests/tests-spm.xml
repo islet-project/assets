@@ -110,6 +110,8 @@
 
   <testsuite name="FF-A Notifications"
              description="Test Notifications functionality" >
+     <testcase name="Notifications interrupts ID retrieval with FFA_FEATURES"
+                function= "test_notifications_retrieve_int_ids" />
      <testcase name="Notifications bitmap create and destroy"
                function="test_ffa_notifications_bitmap_create_destroy" />
      <testcase name="Notifications bitmap destroy not created"
