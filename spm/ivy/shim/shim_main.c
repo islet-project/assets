@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021, NVIDIA Corporation. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -93,11 +94,11 @@ int shim_main(void)
 	/* Initialise console */
 	set_putc_impl(HVC_CALL_AS_STDOUT);
 
-	INFO("Booting S-EL1 Shim\n");
-
 	/* Configure and enable Stage-1 MMU, enable D-Cache */
 	shim_plat_configure_mmu();
 	enable_mmu_el1(0);
+
+	INFO("Booting S-EL1 Shim\n");
 
 	shim_print_memory_layout();
 
