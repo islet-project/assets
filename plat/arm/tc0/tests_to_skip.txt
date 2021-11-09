@@ -10,3 +10,6 @@ SMMUv3 tests
 # PSCI is enabled but not tested
 PSCI STAT/Stats test cases after system suspend
 PSCI System Suspend Validation
+
+# Disable FF-A Interrupt tests
+FF-A Interrupt
