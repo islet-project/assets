@@ -121,7 +121,8 @@ static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 		&ffa_expected_partition_info[0], 1), true);
 
 	expect(ffa_partition_info_helper(mb, null_uuid,
-		ffa_expected_partition_info, 4), true);
+		ffa_expected_partition_info,
+		ARRAY_SIZE(ffa_expected_partition_info)), true);
 
 	ffa_partition_info_wrong_test();
 

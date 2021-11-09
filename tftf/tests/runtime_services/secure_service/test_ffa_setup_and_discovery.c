@@ -352,7 +352,8 @@ test_result_t test_ffa_partition_info(void)
 		return TEST_RESULT_FAIL;
 	}
 	if (!ffa_partition_info_helper(&mb, null_uuid,
-		ffa_expected_partition_info, 4)) {
+		ffa_expected_partition_info,
+		ARRAY_SIZE(ffa_expected_partition_info))) {
 		return TEST_RESULT_FAIL;
 	}
 
