@@ -562,4 +562,16 @@ static inline uint64_t syscounter_read(void)
 	return read_cntpct_el0();
 }
 
+/* Read the value of the Counter-timer virtual count. */
+static inline uint64_t virtualcounter_read(void)
+{
+	/*
+	 * The instruction barrier is needed to guarantee that we read an
+	 * accurate value. Otherwise, the CPU might speculatively read it and
+	 * return a stale value.
+	 */
+	isb();
+	return read_cntvct_el0();
+}
+
 #endif /* ARCH_HELPERS_H */

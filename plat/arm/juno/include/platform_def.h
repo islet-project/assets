@@ -42,6 +42,10 @@
 /* Base address of non-trusted watchdog (SP805) */
 #define SP805_WDOG_BASE			0x1C0F0000
 
+/* Base address of trusted watchdog (SP805) */
+#define SP805_TWDOG_BASE		0x2A4A0000
+#define IRQ_TWDOG_INTID			86
+
 /* Memory mapped Generic timer interfaces  */
 #define SYS_CNT_BASE1		0x2a830000
 

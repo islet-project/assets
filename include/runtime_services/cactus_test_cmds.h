@@ -63,7 +63,7 @@ static inline smc_ret_values cactus_send_response(
 static inline smc_ret_values cactus_response(
 	ffa_id_t source, ffa_id_t dest, uint32_t response)
 {
-	return ffa_msg_send_direct_resp64(source, dest, response, 0, 0, 0, 0);
+	return cactus_send_response(source, dest, response, 0, 0, 0, 0);
 }
 
 static inline uint32_t cactus_get_response(smc_ret_values ret)
@@ -264,9 +264,30 @@ static inline smc_ret_values cactus_sleep_cmd(
 			       0);
 }
 
+/**
+ * Command to request cactus to forward sleep command for the given time in ms
+ *
+ * The sender of this command expects to receive CACTUS_SUCCESS if the requested
+ * echo interaction happened successfully, or CACTUS_ERROR otherwise.
+ */
+#define CACTUS_FWD_SLEEP_CMD (CACTUS_SLEEP_CMD + 1)
+
+static inline smc_ret_values cactus_fwd_sleep_cmd(
+	ffa_id_t source, ffa_id_t dest, ffa_id_t fwd_dest,
+	uint32_t sleep_time)
+{
+	return cactus_send_cmd(source, dest, CACTUS_FWD_SLEEP_CMD, sleep_time,
+			       fwd_dest, 0, 0);
+}
+
 static inline uint32_t cactus_get_sleep_time(smc_ret_values ret)
 {
 	return (uint32_t)ret.ret4;
+}
+
+static inline ffa_id_t cactus_get_fwd_sleep_dest(smc_ret_values ret)
+{
+	return (ffa_id_t)ret.ret5;
 }
 
 /**
@@ -429,6 +450,25 @@ static inline smc_ret_values cactus_notifications_set_send_cmd(
 {
 	return cactus_send_cmd(source, dest, CACTUS_NOTIFICATIONS_SET_CMD,
 			       receiver, sender, notifications, flags);
+}
+
+/**
+ * Request to start trusted watchdog timer.
+ *
+ * The command id is the hex representaton of the string "WDOG"
+ */
+#define CACTUS_TWDOG_START_CMD		U(0x57444f47)
+
+static inline smc_ret_values cactus_send_twdog_cmd(
+	ffa_id_t source, ffa_id_t dest, uint64_t time)
+{
+	return cactus_send_cmd(source, dest, CACTUS_TWDOG_START_CMD, time, 0, 0,
+			       0);
+}
+
+static inline uint32_t cactus_get_wdog_duration(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret4;
 }
 
 #endif

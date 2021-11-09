@@ -92,6 +92,14 @@
              description="Test non-secure Interrupts" >
      <testcase name="Test NS interrupts"
                function="test_ffa_ns_interrupt" />
+     <testcase name="Test Secure interrupt handling while SP running"
+               function="test_ffa_sec_interrupt_sp_running" />
+     <testcase name="Test Secure interrupt handling while SP waiting"
+               function="test_ffa_sec_interrupt_sp_waiting" />
+     <testcase name="Test Secure interrupt handling while SP blocked"
+               function="test_ffa_sec_interrupt_sp_blocked" />
+     <testcase name="Test Secure interrupt handling while SP1 waiting SP2 running"
+               function="test_ffa_sec_interrupt_sp1_waiting_sp2_running" />
   </testsuite>
 
   <testsuite name="SMMUv3 tests"

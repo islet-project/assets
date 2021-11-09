@@ -101,7 +101,7 @@ unhandled_exception serr_a32
 func irq_vector_entry
 	sub	sp, sp, #0x100
 	save_gp_regs
-	bl	cactus_irq_handler
+	bl	cactus_interrupt_handler
 	restore_gp_regs
 	add	sp, sp, #0x100
 	eret
@@ -110,7 +110,7 @@ endfunc irq_vector_entry
 func fiq_vector_entry
 	sub	sp, sp, #0x100
 	save_gp_regs
-	bl	cactus_fiq_handler
+	bl	cactus_interrupt_handler
 	restore_gp_regs
 	add	sp, sp, #0x100
 	eret

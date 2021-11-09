@@ -56,6 +56,9 @@ void announce_test_section_end(const char *test_sect_desc);
 void announce_test_start(const char *test_desc);
 void announce_test_end(const char *test_desc);
 
+/* Sleep for at least 'ms' milliseconds and return the elapsed time(ms). */
+uint64_t sp_sleep_elapsed_time(uint32_t ms);
+
 /* Sleep for at least 'ms' milliseconds. */
 void sp_sleep(uint32_t ms);
 
