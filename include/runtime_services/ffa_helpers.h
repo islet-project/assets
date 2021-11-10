@@ -30,6 +30,21 @@ struct ffa_uuid {
 #include <cassert.h>
 #include <stdint.h>
 
+/**
+ * FF-A Feature ID, to be used with interface FFA_FEATURES.
+ * As defined in the FF-A v1.1 Beta specification, table 13.10, in section
+ * 13.2.
+ */
+
+/** Query interrupt ID of Notification Pending Interrupt. */
+#define FFA_FEATURE_NPI 0x1U
+
+/** Query interrupt ID of Schedule Receiver Interrupt. */
+#define FFA_FEATURE_SRI 0x2U
+
+/** Query interrupt ID of the Managed Exit Interrupt. */
+#define FFA_FEATURE_MEI 0x3U
+
 /** Partition property: partition supports receipt of direct requests. */
 #define FFA_PARTITION_DIRECT_REQ_RECV 0x1
 
@@ -38,6 +53,9 @@ struct ffa_uuid {
 
 /** Partition property: partition can send and receive indirect messages. */
 #define FFA_PARTITION_INDIRECT_MSG 0x4
+
+/** Partition property: partition can receive notifications. */
+#define FFA_PARTITION_NOTIFICATION 0x8
 
 struct ffa_partition_info {
 	/** The ID of the VM the information is about */
@@ -62,6 +80,11 @@ static inline ffa_id_t ffa_endpoint_id(smc_ret_values val) {
 	return (ffa_id_t) val.ret2 & 0xffff;
 }
 
+static inline uint32_t ffa_feature_intid(smc_ret_values val)
+{
+	return (uint32_t)val.ret2;
+}
+
 typedef uint64_t ffa_notification_bitmap_t;
 
 #define FFA_NOTIFICATION(ID)		(UINT64_C(1) << ID)
@@ -79,6 +102,12 @@ typedef uint64_t ffa_notification_bitmap_t;
 #define FFA_NOTIFICATIONS_FLAG_BITMAP_VM	UINT32_C(0x1 << 1)
 #define FFA_NOTIFICATIONS_FLAG_BITMAP_SPM	UINT32_C(0x1 << 2)
 #define FFA_NOTIFICATIONS_FLAG_BITMAP_HYP	UINT32_C(0x1 << 3)
+
+/**
+ * The following is an SGI ID, that the SPMC configures as non-secure, as
+ * suggested by the FF-A v1.1 specification, in section 9.4.1.
+ */
+#define FFA_SCHEDULE_RECEIVER_INTERRUPT_ID 8
 
 #define FFA_NOTIFICATIONS_BITMAP(lo, hi)	\
 	(ffa_notification_bitmap_t)(lo) | 	\

@@ -28,6 +28,7 @@
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
 	messaging-method = <3>; /* Direct messaging only */
+	notification-support; /* Support receipt of notifications. */
 	run-time-model = <0>; /* Run to completion */
 
 	/* Boot protocol */

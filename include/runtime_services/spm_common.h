@@ -7,9 +7,12 @@
 #ifndef SPM_COMMON_H
 #define SPM_COMMON_H
 
-#include <ffa_helpers.h>
+#include <plat/common/platform.h>
+
 #include <stdint.h>
 #include <string.h>
+
+#include <ffa_helpers.h>
 
 /* Hypervisor ID at physical FFA instance */
 #define HYP_ID          (0)
@@ -21,6 +24,9 @@
 
 /* INTID for the managed exit virtual interrupt. */
 #define MANAGED_EXIT_INTERRUPT_ID	U(4)
+
+/* INTID for the notification pending interrupt. */
+#define NOTIFICATION_PENDING_INTERRUPT_INTID 5
 
 /** IRQ/FIQ pin used for signaling a virtual interrupt. */
 enum interrupt_pin {
@@ -38,6 +44,7 @@ enum interrupt_pin {
  */
 #define SP_ID_MASK	U(1 << 15)
 #define SP_ID(x)	((x) | SP_ID_MASK)
+#define VM_ID(x)	(x & ~SP_ID_MASK)
 #define IS_SP_ID(x)	((x & SP_ID_MASK) != 0U)
 
 struct ffa_features_test {

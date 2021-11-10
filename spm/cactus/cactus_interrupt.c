@@ -16,6 +16,10 @@
 
 #include <platform_def.h>
 
+#define NOTIFICATION_PENDING_INTERRUPT_INTID 5
+
+extern void notification_pending_interrupt_handler(void);
+
 extern ffa_id_t g_ffa_id;
 
 void cactus_interrupt_handler(void)
@@ -42,6 +46,9 @@ void cactus_interrupt_handler(void)
 		/* Perform secure interrupt de-activation. */
 		spm_interrupt_deactivate(intid);
 
+		break;
+	case NOTIFICATION_PENDING_INTERRUPT_INTID:
+		notification_pending_interrupt_handler();
 		break;
 	default:
 		/*

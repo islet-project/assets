@@ -127,13 +127,13 @@ test_result_t test_ffa_sp_to_sp_direct_messaging(void)
 	 * The following the tests are intended to test the handling of a
 	 * direct message request with a VM's ID as a the sender.
 	 */
-	result = send_cactus_req_echo_cmd(HYP_ID + 1, SP_ID(2), SP_ID(3),
+	result = send_cactus_req_echo_cmd(VM_ID(1), SP_ID(2), SP_ID(3),
 					  ECHO_VAL2);
 	if (result != TEST_RESULT_SUCCESS) {
 		return result;
 	}
 
-	result = send_cactus_req_echo_cmd(HYP_ID + 2, SP_ID(3), SP_ID(1),
+	result = send_cactus_req_echo_cmd(VM_ID(2), SP_ID(3), SP_ID(1),
 					  ECHO_VAL3);
 
 	return result;
@@ -167,8 +167,7 @@ test_result_t test_ffa_sp_to_sp_deadlock(void)
  */
 static test_result_t cpu_on_handler(void)
 {
-	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos = platform_get_core_pos(mpid);
+	unsigned int core_pos = get_current_core_id();
 	test_result_t ret = TEST_RESULT_SUCCESS;
 	smc_ret_values ffa_ret;
 

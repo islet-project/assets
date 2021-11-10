@@ -5,6 +5,7 @@
  */
 
 #include <debug.h>
+#include <irq.h>
 #include <smccc.h>
 
 #include <arch_helpers.h>
@@ -43,6 +44,59 @@ static ffa_notification_bitmap_t g_notifications = FFA_NOTIFICATION(0)  |
 						   FFA_NOTIFICATION(63);
 
 /**
+ * Use FFA_FEATURES to retrieve the ID of:
+ * - Schedule Receiver Interrupt
+ * - Notification Pending Interrupt
+ * - Managed Exit Interrupt
+ * Validate the call works as expected, and they match the used int ID in the
+ * remainder of the tests.
+ */
+test_result_t test_notifications_retrieve_int_ids(void)
+{
+	smc_ret_values ret;
+
+	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
+
+	/* Check if SPMC is OP-TEE at S-EL1 */
+	if (check_spmc_execution_level()) {
+		/* FFA_FEATURES is not yet supported in OP-TEE */
+		return TEST_RESULT_SUCCESS;
+	}
+
+	ret = ffa_features(FFA_FEATURE_NPI);
+	if (is_ffa_call_error(ret) ||
+	    ffa_feature_intid(ret) != NOTIFICATION_PENDING_INTERRUPT_INTID) {
+		ERROR("Failed to retrieved NPI (exp: %u, got: %u)\n",
+		      NOTIFICATION_PENDING_INTERRUPT_INTID,
+		      ffa_feature_intid(ret));
+
+		return TEST_RESULT_FAIL;
+	}
+
+	ret = ffa_features(FFA_FEATURE_SRI);
+	if (is_ffa_call_error(ret) ||
+	    ffa_feature_intid(ret) != FFA_SCHEDULE_RECEIVER_INTERRUPT_ID) {
+		ERROR("Failed to retrieved SRI (exp: %u, got: %u)\n",
+		      FFA_SCHEDULE_RECEIVER_INTERRUPT_ID,
+		      ffa_feature_intid(ret));
+
+		return TEST_RESULT_FAIL;
+	}
+
+	ret = ffa_features(FFA_FEATURE_MEI);
+	if (is_ffa_call_error(ret) ||
+	    ffa_feature_intid(ret) != MANAGED_EXIT_INTERRUPT_ID) {
+		ERROR("Failed to retrieved MEI (exp: %u, got: %u)\n",
+		      MANAGED_EXIT_INTERRUPT_ID,
+		      ffa_feature_intid(ret));
+
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/**
  * Helper to create bitmap for NWd VMs.
  */
 static bool notifications_bitmap_create(ffa_id_t vm_id,
@@ -71,7 +125,7 @@ static bool notifications_bitmap_destroy(ffa_id_t vm_id)
  */
 test_result_t test_ffa_notifications_bitmap_create_destroy(void)
 {
-	const ffa_id_t vm_id = HYP_ID + 1;
+	const ffa_id_t vm_id = VM_ID(1);
 
 	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
 
@@ -103,7 +157,7 @@ test_result_t test_ffa_notifications_destroy_not_created(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	smc_ret_values ret = ffa_notification_bitmap_destroy(HYP_ID + 1);
+	smc_ret_values ret = ffa_notification_bitmap_destroy(VM_ID(1));
 
 	if (!is_expected_ffa_error(ret, FFA_ERROR_DENIED)) {
 		return TEST_RESULT_FAIL;
@@ -119,7 +173,7 @@ test_result_t test_ffa_notifications_destroy_not_created(void)
 test_result_t test_ffa_notifications_create_after_create(void)
 {
 	smc_ret_values ret;
-	const ffa_id_t vm_id = HYP_ID + 2;
+	const ffa_id_t vm_id = VM_ID(2);
 
 	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
 
@@ -170,7 +224,13 @@ static bool request_notification_bind(
 	ret = cactus_notification_bind_send_cmd(HYP_ID, cmd_dest, receiver,
 						sender, notifications, flags);
 
-	return is_expected_cactus_response(ret, expected_resp, error_code);
+	if (!is_expected_cactus_response(ret, expected_resp, error_code)) {
+		ERROR("Failed notifications bind. receiver: %x; sender: %x\n",
+		      receiver, sender);
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -195,7 +255,13 @@ static bool request_notification_unbind(
 	ret = cactus_notification_unbind_send_cmd(HYP_ID, cmd_dest, receiver,
 						  sender, notifications);
 
-	return is_expected_cactus_response(ret, expected_resp, error_code);
+	if (!is_expected_cactus_response(ret, expected_resp, error_code)) {
+		ERROR("Failed notifications unbind. receiver: %x; sender: %x\n",
+		      receiver, sender);
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -240,7 +306,7 @@ test_result_t test_ffa_notifications_sp_bind_unbind(void)
 test_result_t test_ffa_notifications_vm_bind_unbind(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-	const ffa_id_t vm_id = 1;
+	const ffa_id_t vm_id = VM_ID(1);
 	smc_ret_values ret;
 
 	if (!notifications_bitmap_create(vm_id, 1)) {
@@ -272,8 +338,8 @@ test_result_t test_ffa_notifications_vm_bind_unbind(void)
 test_result_t test_ffa_notifications_vm_bind_vm(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-	const ffa_id_t vm_id = 1;
-	const ffa_id_t sender_id = 2;
+	const ffa_id_t vm_id = VM_ID(1);
+	const ffa_id_t sender_id = VM_ID(2);
 	smc_ret_values ret;
 
 	if (!notifications_bitmap_create(vm_id, 1)) {
@@ -391,22 +457,22 @@ test_result_t test_ffa_notifications_bind_unbind_zeroed(void)
  * - 'false' if there was an error sending the request.
  */
 static bool request_notification_get(
-	ffa_id_t cmd_dest, ffa_id_t receiver, uint32_t vcpu_id,
-	uint32_t flags, smc_ret_values *response)
+	ffa_id_t cmd_dest, ffa_id_t receiver, uint32_t vcpu_id, uint32_t flags,
+	bool check_npi_handled, smc_ret_values *response)
 {
 	VERBOSE("TFTF requesting SP to get notifications!\n");
 
 	*response = cactus_notification_get_send_cmd(HYP_ID, cmd_dest,
 						     receiver, vcpu_id,
-						     flags);
+						     flags, check_npi_handled);
 
 	return is_ffa_direct_response(*response);
 }
 
 static bool request_notification_set(
 	ffa_id_t cmd_dest, ffa_id_t receiver, ffa_id_t sender, uint32_t flags,
-	ffa_notification_bitmap_t notifications, uint32_t exp_resp,
-	int32_t exp_error)
+	ffa_notification_bitmap_t notifications, ffa_id_t echo_dest,
+	uint32_t exp_resp, int32_t exp_error)
 {
 	smc_ret_values ret;
 
@@ -414,9 +480,45 @@ static bool request_notification_set(
 		cmd_dest, sender, receiver);
 
 	ret = cactus_notifications_set_send_cmd(HYP_ID, cmd_dest, receiver,
-						sender, flags, notifications);
+						sender, flags, notifications,
+						echo_dest);
 
-	return is_expected_cactus_response(ret, exp_resp, exp_error);
+	if (!is_expected_cactus_response(ret, exp_resp, exp_error)) {
+		ERROR("Failed notifications set. receiver: %x; sender: %x\n",
+		      receiver, sender);
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Helper to set notification. If sender is VM, the function will call directly
+ * FFA_NOTIFICATION_SET, if it is an SP it will request the SP to set
+ * notifications. In both cases it is expected a successful outcome.
+ */
+static bool notification_set(ffa_id_t receiver, ffa_id_t sender,
+			     uint32_t flags,
+			     ffa_notification_bitmap_t notifications)
+{
+	smc_ret_values ret;
+
+	/* Sender sets notifications to receiver. */
+	if (!IS_SP_ID(sender)) {
+		VERBOSE("VM %x Setting notifications %llx to receiver %x\n",
+			sender, notifications, receiver);
+		ret = ffa_notification_set(sender, receiver, flags, notifications);
+
+		if (!is_expected_ffa_return(ret, FFA_SUCCESS_SMC32)) {
+			ERROR("Failed notifications set. receiver: %x; sender: %x\n",
+			      receiver, sender);
+			return false;
+		}
+		return true;
+	}
+
+	return request_notification_set(sender, receiver, sender, flags,
+					notifications, 0, CACTUS_SUCCESS, 0);
 }
 
 /**
@@ -526,17 +628,7 @@ static bool notification_bind_and_set(ffa_id_t sender,
 		}
 	}
 
-	/* Sender sets notifications to receiver. */
-	if (!IS_SP_ID(sender)) {
-		VERBOSE("VM %x Setting notifications %llx to receiver %x\n",
-			sender, notifications, receiver);
-		ret = ffa_notification_set(sender, receiver, flags, notifications);
-
-		return is_expected_ffa_return(ret, FFA_SUCCESS_SMC32);
-	}
-
-	return request_notification_set(sender, receiver, sender, flags,
-					notifications, CACTUS_SUCCESS, 0);
+	return notification_set(receiver, sender, flags, notifications);
 }
 
 /**
@@ -545,14 +637,14 @@ static bool notification_bind_and_set(ffa_id_t sender,
 static bool notification_get_and_validate(
 	ffa_id_t receiver, ffa_notification_bitmap_t exp_from_sp,
 	ffa_notification_bitmap_t exp_from_vm, uint32_t vcpu_id,
-	uint32_t flags)
+	uint32_t flags, bool check_npi_handled)
 {
 	smc_ret_values ret;
 
 	/* Receiver gets pending notifications. */
 	if (IS_SP_ID(receiver)) {
 		request_notification_get(receiver, receiver, vcpu_id, flags,
-					 &ret);
+					 check_npi_handled, &ret);
 	} else {
 		ret = ffa_notification_get(receiver, vcpu_id, flags);
 	}
@@ -580,26 +672,105 @@ static bool notifications_info_get(
 						      expected_more_pending);
 }
 
-/**
- * Test to validate a VM can signal an SP.
- */
-test_result_t test_ffa_notifications_vm_signals_sp(void)
+static volatile int schedule_receiver_interrupt_received;
+
+static int schedule_receiver_interrupt_handler(void *data)
 {
-	const ffa_id_t sender = 1;
-	const ffa_id_t receiver = SP_ID(1);
-	ffa_notification_bitmap_t notifications = FFA_NOTIFICATION(1) |
-						  FFA_NOTIFICATION(60);
-	const uint32_t flags_get = FFA_NOTIFICATIONS_FLAG_BITMAP_VM;
+	assert(schedule_receiver_interrupt_received == 0);
+	schedule_receiver_interrupt_received = 1;
+	return 0;
+}
+
+/**
+ * Enable the Schedule Receiver Interrupt and register the respective
+ * handler.
+ */
+static void schedule_receiver_interrupt_init(void)
+{
+	tftf_irq_register_handler(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID,
+				  schedule_receiver_interrupt_handler);
+
+	tftf_irq_enable(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID, 0xA);
+}
+
+/**
+ * Enable the Notification Pending Interrupt for the target SP.
+ */
+static bool notification_pending_interrupt_sp_enable(ffa_id_t receiver,
+						     bool enable)
+{
+	VERBOSE("Configuring NPI to receiver: %x\n", receiver);
+	smc_ret_values ret = cactus_interrupt_cmd(
+		HYP_ID, receiver, NOTIFICATION_PENDING_INTERRUPT_INTID,
+		enable, INTERRUPT_TYPE_IRQ);
+
+
+	if (!is_ffa_direct_response(ret) ||
+	     cactus_get_response(ret) != CACTUS_SUCCESS) {
+		ERROR("Failed to configure NPI in SP %x core: %x\n",
+		      receiver, get_current_core_id());
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Disable the Schedule Receiver Interrupt and unregister the respective
+ * handler.
+ */
+static void schedule_receiver_interrupt_deinit(void)
+{
+	tftf_irq_disable(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID);
+	tftf_irq_unregister_handler(FFA_SCHEDULE_RECEIVER_INTERRUPT_ID);
+	schedule_receiver_interrupt_received = 0;
+}
+
+bool check_schedule_receiver_interrupt_handled(void)
+{
+	if (schedule_receiver_interrupt_received == 1) {
+		VERBOSE("Schedule Receiver Interrupt handled!\n");
+		schedule_receiver_interrupt_received = 0;
+		return true;
+	}
+	VERBOSE("Schedule Receiver Interrupt NOT handled!\n");
+	return false;
+}
+
+/**
+ * Base function to test notifications signaling with an SP as a receiver.
+ */
+static test_result_t base_test_global_notifications_signal_sp(
+	const ffa_id_t sender, const ffa_id_t receiver,
+	const ffa_notification_bitmap_t notifications, const uint32_t flags_get)
+{
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	if (!IS_SP_ID(receiver)) {
+		ERROR("Receiver is expected to be an SP ID!\n");
+		return TEST_RESULT_FAIL;
+	}
 
 	/* Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
 	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
 	uint32_t lists_count;
 	uint32_t lists_sizes[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
-	const bool more_notif_pending = false;
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
-	if (!notification_bind_and_set(sender, receiver, notifications, 0)) {
+	schedule_receiver_interrupt_init();
+
+	/* Enable NPI. */
+	if (!notification_pending_interrupt_sp_enable(receiver, true)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (!notification_bind_and_set(sender, receiver, notifications,
+				       FFA_NOTIFICATIONS_FLAG_DELAY_SRI)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (!check_schedule_receiver_interrupt_handled()) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -611,12 +782,13 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
 
 	if (!notifications_info_get(ids, lists_count, lists_sizes,
 				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
-				    more_notif_pending)) {
+				    false)) {
 		return TEST_RESULT_FAIL;
 	}
 
-	if (!notification_get_and_validate(receiver, 0, notifications, 0,
-					   flags_get)) {
+	if (!notification_get_and_validate(
+		receiver, IS_SP_ID(sender) ? notifications : 0,
+		!IS_SP_ID(sender) ? notifications : 0, 0, flags_get, true)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -625,7 +797,24 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
 		return TEST_RESULT_FAIL;
 	}
 
+	/* Disable NPI. */
+	if (!notification_pending_interrupt_sp_enable(receiver, false)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	schedule_receiver_interrupt_deinit();
+
 	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * Test to validate a VM can signal an SP.
+ */
+test_result_t test_ffa_notifications_vm_signals_sp(void)
+{
+	return base_test_global_notifications_signal_sp(
+		1, SP_ID(1), FFA_NOTIFICATION(1) | FFA_NOTIFICATION(60),
+		FFA_NOTIFICATIONS_FLAG_BITMAP_VM);
 }
 
 /**
@@ -633,47 +822,9 @@ test_result_t test_ffa_notifications_vm_signals_sp(void)
  */
 test_result_t test_ffa_notifications_sp_signals_sp(void)
 {
-	const ffa_id_t sender = SP_ID(1);
-	const ffa_id_t receiver = SP_ID(2);
-	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
-
-	/* Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
-	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
-	uint32_t lists_count;
-	uint32_t lists_sizes[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
-
-	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-
-	/* Request receiver to bind a set of notifications to the sender. */
-	if (!notification_bind_and_set(sender, receiver,
-					       g_notifications, 0)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	/*
-	 * FFA_NOTIFICATION_INFO_GET return list should be simple, containing
-	 * only the receiver's ID.
-	 */
-	ids[0] = receiver;
-	lists_count = 1;
-
-	if (!notifications_info_get(ids, lists_count, lists_sizes,
-				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
-				    false)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	if (!notification_get_and_validate(receiver, g_notifications, 0, 0,
-					   get_flags)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	if (!request_notification_unbind(receiver, receiver, sender,
-					 g_notifications, CACTUS_SUCCESS, 0)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	return TEST_RESULT_SUCCESS;
+	return base_test_global_notifications_signal_sp(
+		SP_ID(1), SP_ID(2), g_notifications,
+		FFA_NOTIFICATIONS_FLAG_BITMAP_SP);
 }
 
 /**
@@ -683,9 +834,10 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 	const ffa_id_t sender = SP_ID(1);
-	const ffa_id_t receiver = 1;
+	const ffa_id_t receiver = VM_ID(1);
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
 	smc_ret_values ret;
+	test_result_t result = TEST_RESULT_SUCCESS;
 
 	/* Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
 	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
@@ -694,12 +846,19 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 
 	/* Ask SPMC to allocate notifications bitmap. */
 	if (!notifications_bitmap_create(receiver, 1)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
 
+	schedule_receiver_interrupt_init();
+
 	/* Request receiver to bind a set of notifications to the sender. */
-	if (!notification_bind_and_set(sender, receiver, g_notifications, 0)) {
-		return TEST_RESULT_FAIL;
+	if (!notification_bind_and_set(sender, receiver, g_notifications,
+				       FFA_NOTIFICATIONS_FLAG_DELAY_SRI)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	if (!check_schedule_receiver_interrupt_handled()) {
+		result = TEST_RESULT_FAIL;
 	}
 
 	/*
@@ -712,26 +871,28 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 	if (!notifications_info_get(ids, lists_count, lists_sizes,
 				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
 				    false)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
 
 	/* Get pending notifications, and retrieve response. */
 	if (!notification_get_and_validate(receiver, g_notifications, 0, 0,
-					   get_flags)) {
-		return TEST_RESULT_FAIL;
+					   get_flags, false)) {
+		result = TEST_RESULT_FAIL;
 	}
 
 	ret = ffa_notification_unbind(sender, receiver, g_notifications);
 
 	if (!is_expected_ffa_return(ret, FFA_SUCCESS_SMC32)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
 
 	if (!notifications_bitmap_destroy(receiver)) {
-		return TEST_RESULT_FAIL;
+		result = TEST_RESULT_FAIL;
 	}
 
-	return TEST_RESULT_SUCCESS;
+	schedule_receiver_interrupt_deinit();
+
+	return result;
 }
 
 /**
@@ -741,10 +902,12 @@ test_result_t test_ffa_notifications_unbind_pending(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 	const ffa_id_t receiver = SP_ID(1);
-	const ffa_id_t sender = 1;
+	const ffa_id_t sender = VM_ID(1);
 	const ffa_notification_bitmap_t notifications = FFA_NOTIFICATION(30) |
 				       FFA_NOTIFICATION(35);
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_VM;
+
+	schedule_receiver_interrupt_init();
 
 	/* Request receiver to bind a set of notifications to the sender. */
 	if (!notification_bind_and_set(sender, receiver, notifications, 0)) {
@@ -761,12 +924,16 @@ test_result_t test_ffa_notifications_unbind_pending(void)
 		return TEST_RESULT_FAIL;
 	}
 
+	if (!check_schedule_receiver_interrupt_handled()) {
+		return TEST_RESULT_FAIL;
+	}
+
 	/*
 	 * Request receiver partition to get pending notifications from VMs.
 	 * Only notification 30 is expected.
 	 */
 	if (!notification_get_and_validate(receiver, 0, notifications, 0,
-					   get_flags)) {
+					   get_flags, false)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -775,6 +942,8 @@ test_result_t test_ffa_notifications_unbind_pending(void)
 					notifications, CACTUS_SUCCESS, 0)) {
 		return TEST_RESULT_FAIL;
 	}
+
+	schedule_receiver_interrupt_deinit();
 
 	return TEST_RESULT_SUCCESS;
 }
@@ -811,9 +980,7 @@ test_result_t test_ffa_notifications_info_get_none(void)
  */
 static test_result_t request_notification_get_per_vcpu_on_handler(void)
 {
-	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos = platform_get_core_pos(mpid);
-	smc_ret_values ret;
+	unsigned int core_pos = get_current_core_id();
 	test_result_t result = TEST_RESULT_FAIL;
 
 	uint64_t exp_from_vm = 0;
@@ -832,20 +999,18 @@ static test_result_t request_notification_get_per_vcpu_on_handler(void)
 	 * Secure Partitions secondary ECs need one round of ffa_run to reach
 	 * the message loop.
 	 */
-	if (per_vcpu_receiver != SP_ID(1)) {
-		ret = ffa_run(per_vcpu_receiver, core_pos);
-
-		if (ffa_func_id(ret) != FFA_MSG_WAIT) {
-			ERROR("Failed to run SP%x on core %u\n",
-			      per_vcpu_receiver, core_pos);
-			goto out;
-		}
+	if (!spm_core_sp_init(per_vcpu_receiver)) {
+		goto out;
 	}
 
-	/* Request to get notifications sent to the respective vCPU. */
+	/*
+	 * Request to get notifications sent to the respective vCPU.
+	 * Check also if NPI was handled by the receiver. It should have been
+	 * pended at notifications set, in the respective vCPU.
+	 */
 	if (!notification_get_and_validate(
 		per_vcpu_receiver, exp_from_sp, exp_from_vm, core_pos,
-		per_vcpu_flags_get)) {
+		per_vcpu_flags_get, true)) {
 		goto out;
 	}
 
@@ -858,6 +1023,45 @@ out:
 	return result;
 }
 
+static test_result_t base_npi_enable_per_cpu(bool enable)
+{
+	test_result_t result = TEST_RESULT_FAIL;
+	uint32_t core_pos = get_current_core_id();
+
+	VERBOSE("Request SP %x to enable NPI in core %u\n",
+		 per_vcpu_receiver, core_pos);
+
+	/*
+	 * Secure Partitions secondary ECs need one round of ffa_run to reach
+	 * the message loop.
+	 */
+	if (!spm_core_sp_init(per_vcpu_receiver)) {
+		goto out;
+	}
+
+	if (!notification_pending_interrupt_sp_enable(per_vcpu_receiver,
+						      enable)) {
+		goto out;
+	}
+
+	result = TEST_RESULT_SUCCESS;
+
+out:
+	/* Tell the lead CPU that the calling CPU has completed the test. */
+	tftf_send_event(&per_vcpu_finished[core_pos]);
+
+	return result;
+}
+
+static test_result_t npi_enable_per_vcpu_on_handler(void)
+{
+	return base_npi_enable_per_cpu(true);
+}
+
+static test_result_t npi_disable_per_vcpu_on_handler(void)
+{
+	return base_npi_enable_per_cpu(false);
+}
 /**
  * Base function to test signaling of per-vCPU notifications.
  * Test whole flow between two FF-A endpoints: binding, getting notification
@@ -868,8 +1072,6 @@ out:
 static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 						      ffa_id_t receiver)
 {
-	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
-
 	/*
 	 * Manually set variables to validate what should be the return of to
 	 * FFA_NOTIFICATION_INFO_GET.
@@ -891,9 +1093,27 @@ static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 	test_result_t result = TEST_RESULT_SUCCESS;
 	uint64_t notifications_to_unbind = 0;
 
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
 	per_vcpu_flags_get = IS_SP_ID(sender)
 				? FFA_NOTIFICATIONS_FLAG_BITMAP_SP
 				: FFA_NOTIFICATIONS_FLAG_BITMAP_VM;
+
+	/* Setting global variables to be accessed by the cpu_on handler. */
+	per_vcpu_receiver = receiver;
+	per_vcpu_sender = sender;
+
+	/* Boot all cores and enable the NPI in all of them. */
+	if (spm_run_multi_core_test(
+		(uintptr_t)npi_enable_per_vcpu_on_handler,
+		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Enable NPI in lead core. */
+	if (!notification_pending_interrupt_sp_enable(receiver, true)) {
+		return TEST_RESULT_FAIL;
+	}
 
 	/*
 	 * Prepare notifications bitmap to request Cactus to bind them as
@@ -902,7 +1122,8 @@ static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 	for (unsigned int i = 0; i < PLATFORM_CORE_COUNT; i++) {
 		notifications_to_unbind |= FFA_NOTIFICATION(i);
 
-		uint32_t flags = FFA_NOTIFICATIONS_FLAG_PER_VCPU |
+		uint32_t flags = FFA_NOTIFICATIONS_FLAG_DELAY_SRI |
+				 FFA_NOTIFICATIONS_FLAG_PER_VCPU  |
 				 FFA_NOTIFICATIONS_FLAGS_VCPU_ID((uint16_t)i);
 
 		if (!notification_bind_and_set(sender,
@@ -925,19 +1146,15 @@ static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 	/*
 	 * Request SP to get notifications in core 0, as this is not iterated
 	 * at the CPU ON handler.
+	 * Set `check_npi_handled` to true, as the receiver is supposed to be
+	 * preempted by the NPI.
 	 */
 	if (!notification_get_and_validate(
-		receiver,
-		IS_SP_ID(sender) ? FFA_NOTIFICATION(0) : 0,
-		!IS_SP_ID(sender) ? FFA_NOTIFICATION(0) : 0,
-		0,
-		per_vcpu_flags_get)) {
+		receiver, IS_SP_ID(sender) ? FFA_NOTIFICATION(0) : 0,
+		!IS_SP_ID(sender) ? FFA_NOTIFICATION(0) : 0, 0,
+		per_vcpu_flags_get, true)) {
 		result = TEST_RESULT_FAIL;
 	}
-
-	/* Setting global variables to be accessed by the cpu_on handler. */
-	per_vcpu_receiver = receiver;
-	per_vcpu_sender = sender;
 
 	/*
 	 * Bring up all the cores, and request the receiver to get notifications
@@ -956,6 +1173,18 @@ out:
 					 notifications_to_unbind,
 					 CACTUS_SUCCESS, 0)) {
 		result = TEST_RESULT_FAIL;
+	}
+
+	/* Boot all cores and DISABLE the NPI in all of them. */
+	if (spm_run_multi_core_test(
+		(uintptr_t)npi_disable_per_vcpu_on_handler,
+		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Disable the NPI in the receiver. */
+	if (!notification_pending_interrupt_sp_enable(receiver, false)) {
+		return TEST_RESULT_FAIL;
 	}
 
 	return result;
@@ -979,29 +1208,22 @@ test_result_t test_ffa_notifications_sp_signals_sp_per_vcpu(void)
 
 static test_result_t notification_get_per_vcpu_on_handler(void)
 {
-	unsigned int mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int core_pos = platform_get_core_pos(mpid);
-	smc_ret_values ret;
+	unsigned int core_pos = get_current_core_id();
 	test_result_t result = TEST_RESULT_SUCCESS;
 
 	VERBOSE("Getting per-vCPU notifications from %x, core: %u.\n",
 		 per_vcpu_receiver, core_pos);
 
-	ret = ffa_run(per_vcpu_sender, core_pos);
-
-	if (ffa_func_id(ret) != FFA_MSG_WAIT) {
-		ERROR("Failed to run SP%x on core %u\n",
-		      per_vcpu_sender, core_pos);
-		result = TEST_RESULT_FAIL;
+	if (!spm_core_sp_init(per_vcpu_sender)) {
 		goto out;
 	}
 
 	if (!notification_get_and_validate(per_vcpu_receiver,
 					   FFA_NOTIFICATION(core_pos), 0,
 					   core_pos,
-					   FFA_NOTIFICATIONS_FLAG_BITMAP_SP)) {
+					   FFA_NOTIFICATIONS_FLAG_BITMAP_SP,
+					   false)) {
 		result = TEST_RESULT_FAIL;
-		goto out;
 	}
 
 out:
@@ -1020,7 +1242,7 @@ out:
 test_result_t test_ffa_notifications_sp_signals_vm_per_vcpu(void)
 {
 	/* Making a VM the receiver, and an SP the sender */
-	per_vcpu_receiver = 1;
+	per_vcpu_receiver = VM_ID(1);
 	per_vcpu_sender = SP_ID(2);
 
 	/**
@@ -1083,7 +1305,8 @@ test_result_t test_ffa_notifications_sp_signals_vm_per_vcpu(void)
 	 */
 	if (!notification_get_and_validate(per_vcpu_receiver,
 					   FFA_NOTIFICATION(0), 0, 0,
-					   FFA_NOTIFICATIONS_FLAG_BITMAP_SP)) {
+					   FFA_NOTIFICATIONS_FLAG_BITMAP_SP,
+					   false)) {
 		result = TEST_RESULT_FAIL;
 	}
 
@@ -1103,4 +1326,308 @@ test_result_t test_ffa_notifications_sp_signals_vm_per_vcpu(void)
 	}
 
 	return result;
+}
+
+/**
+ * Test to validate behavior in SWd if the SRI is not delayed. If the
+ * notification setter handled a managed exit it is indicative the SRI was
+ * sent immediately.
+ */
+test_result_t test_ffa_notifications_sp_signals_sp_immediate_sri(void)
+{
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+	const ffa_id_t sender = SP_ID(1);
+	const ffa_id_t receiver = SP_ID(2);
+	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
+	smc_ret_values ret;
+	test_result_t result = TEST_RESULT_SUCCESS;
+
+	/** Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
+	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
+	uint32_t lists_count;
+	uint32_t lists_sizes[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
+
+	ids[0] = receiver;
+	lists_count = 1;
+
+	/* Enable managed exit interrupt as FIQ in the secure side. */
+	if (!spm_set_managed_exit_int(sender, true)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	schedule_receiver_interrupt_init();
+
+	/* Request receiver to bind a set of notifications to the sender. */
+	if (!request_notification_bind(receiver, receiver, sender,
+				       g_notifications, 0, CACTUS_SUCCESS, 0)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Request sender to set notification, and expect the response is
+	 * MANAGED_EXIT_INTERRUPT_ID.
+	 */
+	if (!request_notification_set(sender, receiver, sender, 0,
+				      g_notifications, 0,
+				      MANAGED_EXIT_INTERRUPT_ID, 0)) {
+		ERROR("SRI not handled immediately!\n");
+		result = TEST_RESULT_FAIL;
+	} else {
+		VERBOSE("SP %x did a managed exit.\n", sender);
+	}
+
+	if (!check_schedule_receiver_interrupt_handled()) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* Call FFA_NOTIFICATION_INFO_GET and validate return. */
+	if (!notifications_info_get(ids, lists_count, lists_sizes,
+				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
+				    false)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* Validate notification get. */
+	if (!request_notification_get(receiver, receiver, 0, get_flags, false, &ret) ||
+	    !is_notifications_get_as_expected(&ret, g_notifications, 0,
+					      receiver)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Resume setter Cactus in the handling of CACTUS_NOTIFICATIONS_SET_CMD.
+	 */
+	ret = ffa_msg_send_direct_req64(HYP_ID, sender, 0, 0, 0, 0, 0);
+
+	/* Expected result to CACTUS_NOTIFICATIONS_SET_CMD. */
+	if (!is_expected_cactus_response(ret, CACTUS_SUCCESS, 0)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* Unbind for clean-up. */
+	if (!request_notification_unbind(receiver, receiver, sender,
+					 g_notifications, CACTUS_SUCCESS, 0)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	schedule_receiver_interrupt_deinit();
+
+	/* Disable managed exit interrupt as FIQ in the secure side. */
+	if (!spm_set_managed_exit_int(sender, false)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	return result;
+}
+
+/**
+ * Test to validate behavior in SWd if the SRI is delayed.
+ */
+test_result_t test_ffa_notifications_sp_signals_sp_delayed_sri(void)
+{
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+	const ffa_id_t sender = SP_ID(3);
+	const ffa_id_t receiver = SP_ID(2);
+	const ffa_id_t echo_dest = SP_ID(1);
+	uint32_t echo_dest_cmd_count = 0;
+	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
+	smc_ret_values ret;
+	test_result_t result = TEST_RESULT_SUCCESS;
+
+	/** Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
+	uint16_t ids[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
+	uint32_t lists_count;
+	uint32_t lists_sizes[FFA_NOTIFICATIONS_INFO_GET_MAX_IDS] = {0};
+
+	ids[0] = receiver;
+	lists_count = 1;
+
+	/* Enable managed exit interrupt as FIQ in the secure side. */
+	if (!spm_set_managed_exit_int(sender, true)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	schedule_receiver_interrupt_init();
+
+	/* Request receiver to bind a set of notifications to the sender. */
+	if (!request_notification_bind(receiver, receiver, sender,
+				       g_notifications, 0, CACTUS_SUCCESS, 0)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	ret = cactus_get_req_count_send_cmd(HYP_ID, echo_dest);
+
+	if (cactus_get_response(ret) == CACTUS_SUCCESS) {
+		/*
+		 * Save the command count from the echo_dest, to validate it
+		 * has been incremented after the request to set notifications.
+		 */
+		echo_dest_cmd_count = cactus_get_req_count(ret);
+		VERBOSE("Partition %x command count %u.\n", echo_dest,
+			echo_dest_cmd_count);
+	} else {
+		VERBOSE("Failed to get cmds count from %u\n", echo_dest);
+		result = TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Request sender to set notification with Delay SRI flag, and specify
+	 * echo destination.
+	 */
+	if (!request_notification_set(sender, receiver, sender,
+				      FFA_NOTIFICATIONS_FLAG_DELAY_SRI,
+				      g_notifications, echo_dest,
+				      CACTUS_SUCCESS, 0)) {
+		VERBOSE("Failed to set notifications!\n");
+		result = TEST_RESULT_FAIL;
+	}
+
+	if (!check_schedule_receiver_interrupt_handled()) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Get command count again from echo_dest, to validate that it has been
+	 * incremented by one. This should indicate the notification setter has
+	 * issued a request to echo_dest right after the notification set, thus
+	 * proving the SRI hasn't been sent right after FFA_NOTIFICATION_SET.
+	 */
+	ret = cactus_get_req_count_send_cmd(HYP_ID, echo_dest);
+	if (cactus_get_response(ret) == CACTUS_SUCCESS) {
+		if (cactus_get_req_count(ret) == echo_dest_cmd_count + 1) {
+			VERBOSE("SRI successfully delayed.\n");
+		} else {
+			VERBOSE("Failed to get cmds count from %u.\n",
+				echo_dest);
+			result = TEST_RESULT_FAIL;
+		}
+	} else {
+		VERBOSE("Failed to get cmds count from %x\n", echo_dest);
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* Call FFA_NOTIFICATION_INFO_GET and validate return. */
+	if (!notifications_info_get(ids, lists_count, lists_sizes,
+				    FFA_NOTIFICATIONS_INFO_GET_MAX_IDS,
+				    false)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* Validate notification get. */
+	if (!request_notification_get(receiver, receiver, 0, get_flags, false, &ret) ||
+	    !is_notifications_get_as_expected(&ret, g_notifications, 0,
+					      receiver)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	/* Unbind for clean-up. */
+	if (!request_notification_unbind(receiver, receiver, sender,
+					 g_notifications, CACTUS_SUCCESS, 0)) {
+		result = TEST_RESULT_FAIL;
+	}
+
+	schedule_receiver_interrupt_deinit();
+
+	/* Disable managed exit interrupt as FIQ in the secure side. */
+	if (!spm_set_managed_exit_int(sender, false)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	return result;
+}
+
+test_result_t notifications_set_per_vcpu_on_handler(void)
+{
+	unsigned int core_pos = get_current_core_id();
+	test_result_t result = TEST_RESULT_FAIL;
+
+	if (!spm_core_sp_init(per_vcpu_sender)) {
+		goto out;
+	}
+
+	if (!notification_set(per_vcpu_receiver, per_vcpu_sender,
+			      FFA_NOTIFICATIONS_FLAG_DELAY_SRI |
+			      FFA_NOTIFICATIONS_FLAG_PER_VCPU  |
+			      FFA_NOTIFICATIONS_FLAGS_VCPU_ID(0),
+			      FFA_NOTIFICATION(core_pos))) {
+		goto out;
+	}
+
+	result = TEST_RESULT_SUCCESS;
+
+out:
+	/* Tell the lead CPU that the calling CPU has completed the test. */
+	tftf_send_event(&per_vcpu_finished[core_pos]);
+
+	return result;
+}
+
+test_result_t test_ffa_notifications_mp_sp_signals_up_sp(void)
+{
+	ffa_notification_bitmap_t to_bind = 0;
+
+	/* prepare info get variables. */
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	/* Setting per-vCPU sender and receiver IDs. */
+	per_vcpu_sender = SP_ID(2); /* MP SP */
+	per_vcpu_receiver = SP_ID(3); /* UP SP */
+
+	schedule_receiver_interrupt_init();
+
+	notification_pending_interrupt_sp_enable(per_vcpu_receiver, true);
+
+	/* Prepare notifications bitmap to have one bit platform core. */
+	for (uint32_t i = 0; i < PLATFORM_CORE_COUNT; i++) {
+		to_bind |= FFA_NOTIFICATION(i);
+	}
+
+	/* Request receiver to bind a set of notifications to the sender. */
+	if (!request_notification_bind(per_vcpu_receiver, per_vcpu_receiver,
+				       per_vcpu_sender, to_bind,
+				       FFA_NOTIFICATIONS_FLAG_PER_VCPU,
+				       CACTUS_SUCCESS, 0)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Boot up system, and then request sender to signal notification from
+	 * every core into into receiver's only vCPU. Delayed SRI.
+	 */
+	if (!notification_set(per_vcpu_receiver, per_vcpu_sender,
+			     FFA_NOTIFICATIONS_FLAG_DELAY_SRI |
+			     FFA_NOTIFICATIONS_FLAG_PER_VCPU |
+			     FFA_NOTIFICATIONS_FLAGS_VCPU_ID(0),
+			     FFA_NOTIFICATION(0))) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (spm_run_multi_core_test(
+		(uintptr_t)notifications_set_per_vcpu_on_handler,
+		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (!check_schedule_receiver_interrupt_handled()) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (!notification_get_and_validate(per_vcpu_receiver, to_bind, 0, 0,
+		FFA_NOTIFICATIONS_FLAG_BITMAP_SP, true)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Request unbind. */
+	if (!request_notification_unbind(per_vcpu_receiver, per_vcpu_receiver,
+					per_vcpu_sender, to_bind,
+					CACTUS_SUCCESS, 0)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	schedule_receiver_interrupt_deinit();
+
+	notification_pending_interrupt_sp_enable(per_vcpu_receiver, false);
+
+	return TEST_RESULT_SUCCESS;
 }

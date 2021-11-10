@@ -26,6 +26,7 @@
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
 	messaging-method = <3>; /* Direct messaging only */
+	notification-support; /* Support receipt of notifications. */
 	managed-exit; /* Managed exit supported */
 	run-time-model = <1>; /* Run to completion */
 
