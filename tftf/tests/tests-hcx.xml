@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2021, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="FEAT_HCX" description="Tests that HCRX_EL2 access has been granted by EL3.">
+    <testcase name="Test access to HCRX_EL2" function="test_feat_hcx_enabled" />
+  </testsuite>
+
+</testsuites>

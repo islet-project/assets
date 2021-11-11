@@ -136,4 +136,10 @@ static inline unsigned int get_armv9_2_feat_rme_support(void)
 		ID_AA64PFR0_FEAT_RME_SHIFT) & ID_AA64PFR0_FEAT_RME_MASK;
 }
 
+static inline bool get_feat_hcx_support(void)
+{
+	return (((read_id_aa64mmfr1_el1() >> ID_AA64MMFR1_EL1_HCX_SHIFT) &
+		ID_AA64MMFR1_EL1_HCX_MASK) == ID_AA64MMFR1_EL1_HCX_SUPPORTED);
+}
+
 #endif /* ARCH_FEATURES_H */

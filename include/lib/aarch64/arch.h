@@ -250,6 +250,10 @@
 #define ID_AA64MMFR1_EL1_PAN_SUPPORTED		ULL(0x1)
 #define ID_AA64MMFR1_EL1_PAN2_SUPPORTED		ULL(0x2)
 #define ID_AA64MMFR1_EL1_PAN3_SUPPORTED		ULL(0x3)
+#define ID_AA64MMFR1_EL1_HCX_SHIFT		U(40)
+#define ID_AA64MMFR1_EL1_HCX_MASK		ULL(0xf)
+#define ID_AA64MMFR1_EL1_HCX_SUPPORTED		ULL(0x1)
+#define ID_AA64MMFR1_EL1_HCX_NOT_SUPPORTED	ULL(0x0)
 
 /* ID_AA64MMFR2_EL1 definitions */
 #define ID_AA64MMFR2_EL1		S3_0_C0_C7_2
@@ -1065,5 +1069,15 @@
 #define TRCCLAIMSET	S2_1_c7_c8_6
 #define TRCCLAIMCLR	S2_1_c7_c9_6
 #define TRCDEVARCH	S2_1_c7_c15_6
+
+/*******************************************************************************
+ * FEAT_HCX - Extended Hypervisor Configuration Register
+ ******************************************************************************/
+#define HCRX_EL2		S3_4_C1_C2_2
+#define HCRX_EL2_FGTnXS_BIT	(UL(1) << 4)
+#define HCRX_EL2_FnXS_BIT	(UL(1) << 3)
+#define HCRX_EL2_EnASR_BIT	(UL(1) << 2)
+#define HCRX_EL2_EnALS_BIT	(UL(1) << 1)
+#define HCRX_EL2_EnAS0_BIT	(UL(1) << 0)
 
 #endif /* ARCH_H */
