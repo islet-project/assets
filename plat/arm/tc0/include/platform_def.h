@@ -48,6 +48,10 @@
 /* Base address of non-trusted watchdog (SP805) */
 #define SP805_WDOG_BASE			0x1C0F0000
 
+/* Base address of trusted watchdog (SP805) */
+#define SP805_TWDOG_BASE		0x2A480000
+#define IRQ_TWDOG_INTID			86
+
 /* Base address and size of external NVM flash */
 #define FLASH_BASE			0x08000000
 
