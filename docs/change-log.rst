@@ -7,6 +7,106 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+Version 2.6
+-----------
+
+New features
+^^^^^^^^^^^^
+-  More tests are made available in this release to help validate the
+   functionalities in the following areas:
+
+    - Firmware Framework for Arm A-profile(FF-A)
+    - Realm Management Extensions(RME)
+    - Embedded Trace Extension and Trace Buffer Extension (ETE and TRBE)
+
+TFTF
+~~~~
+
+-  FF-A testing:
+
+    - Update FF-A version to v1.1
+    - Added helpers for SPM tests to check partition info of SPs from normal
+      world.
+    - Added tests to check for ffa_features supported.
+    - Added test for FFA_RXTX_UNMAP ABI.
+    - Added test for FFA_SPM_ID_GET.
+    - FF-A v1.1 Notifications
+
+        - Added test for notifications bitmap create and destroy ABIs.
+        - Added test for notifications set and get ABIs.
+        - Added test for notification INFO_GET ABI.
+        - Added test to check notifications pending interrupt is injected into
+          and handled by the expected vCPU in a MP setup.
+        - Added test for signaling from MP SP to UP SP.
+        - Added test to check notifications interrupt IDs retrieved with
+          FFA_FEATURES ABI.
+        - Added test to check functionality of notifications scheduled receiver
+          interrupt.
+
+    - FF-A v1.1 Secure interrupts
+
+        - Added support for handling secure interrupts in Cactus SP.
+        - Added several tests to exercise secure interrupt handling while SP
+          is in WAITING/RUNNING/BLOCKED state.
+
+-  New tests:
+
+    - Enabled SVE tests
+    - Added test for trace system registers access.
+    - Added test for trace filter control registers access.
+    - Added test for trace buffer control registers access.
+    - Added test to check PSTATE in SDEI handler.
+    - Added test to check if HCRX_EL2 is accessible.
+
+-  Platforms:
+
+    - TC0:
+
+        - Support for direct messaging with managed exit.
+        - Support for building S-EL0 Ivy partition.
+
+    - FVP:
+
+         - Update Cactus secure partitions to indicate Managed exit support.
+
+-  Miscellaneous
+
+    - Added random seed generation capability and ability to specify build
+      parameters for SMC Fuzzer tool.
+
+Cactus (Secure-EL1 test partition)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Added helper for Cactus SP sleep.
+    - Added test commands to request use of notifications interfaces.
+    - Added several commands that generate direct message requests to assist in
+      testing secure interrupt handling and notifications features in FF-A v1.1
+    - Added support for SP805 Trusted Watchdog module.
+
+Ivy (Secure-EL1 test partition)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Add shim layer to Ivy partition and enable PIE.
+    - Define Ivy partition manifest and use FF-A for message handling.
+    - Prepare S-EL1/0 enviroment for enabling S-EL0 application.
+
+Realm Management Extension(RME)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Added tests to run RMI and SPM on multiple CPUs concurrently.
+    - Added tests for multi CPU delegation and fail conditions.
+    - Added tests to query RMI version on multiple CPUs.
+
+Issues resolved since last release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    - Fixed Ivy partition start address for TC0.
+    - Fixed SP manifests to use little endian format UUID.
+    - Fixed a bug in memory sharing test for Cactus SP.
+    - Invalidate data cache for NS_BL1U and NS_BL2U images.
+    - Fixed attributes to Read-Write only for memory regions described in partition
+      manifests.
+
 Version 2.5
 -----------
 
