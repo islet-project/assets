@@ -596,7 +596,7 @@ smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
 {
 	smc_args args = {
 		.fid = FFA_NOTIFICATION_GET,
-		.arg1 = (receiver << 16) | (vcpu_id),
+		.arg1 = (vcpu_id << 16) | (receiver),
 		.arg2 = flags,
 		.arg3 = FFA_PARAM_MBZ,
 		.arg4 = FFA_PARAM_MBZ,
