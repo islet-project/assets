@@ -80,7 +80,9 @@ ifeq (${ARCH},aarch64)
 # ARMv8.3 Pointer Authentication support files
 FRAMEWORK_SOURCES	+=						\
 	lib/extensions/pauth/aarch64/pauth.c				\
-	lib/extensions/pauth/aarch64/pauth_helpers.S
+	lib/extensions/pauth/aarch64/pauth_helpers.S			\
+	lib/extensions/sme/aarch64/sme.c				\
+	lib/extensions/sme/aarch64/sme_helpers.S
 endif
 
 TFTF_LINKERFILE		:=	tftf/framework/tftf.ld.S
