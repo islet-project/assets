@@ -162,7 +162,7 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 	handle = memory_init_and_send(
 		(struct ffa_memory_region *)mb->send, PAGE_SIZE,
 		vm_id, receiver, constituents,
-		constituents_count, mem_func);
+		constituents_count, mem_func, &ffa_ret);
 
 	/*
 	 * If returned an invalid handle, we should break the test.

@@ -439,15 +439,15 @@ bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
 /**
  * Helper to call memory send function whose func id is passed as a parameter.
  * Returns a valid handle in case of successful operation or
- * FFA_MEMORY_HANDLE_INVALID if something goes wrong.
+ * FFA_MEMORY_HANDLE_INVALID if something goes wrong. Populates *ret with a
+ * resulting smc value to handle the error higher in the test chain.
  *
  * TODO: Do memory send with 'ffa_memory_region' taking multiple segments
  */
 ffa_memory_handle_t memory_send(
 	struct ffa_memory_region *memory_region, uint32_t mem_func,
-	uint32_t fragment_length, uint32_t total_length)
+	uint32_t fragment_length, uint32_t total_length, smc_ret_values *ret)
 {
-	smc_ret_values ret;
 	ffa_id_t receiver =
 		memory_region->receivers[0].receiver_permissions.receiver;
 
@@ -459,25 +459,26 @@ ffa_memory_handle_t memory_send(
 
 	switch (mem_func) {
 	case FFA_MEM_SHARE_SMC32:
-		ret = ffa_mem_share(total_length, fragment_length);
+		*ret = ffa_mem_share(total_length, fragment_length);
 		break;
 	case FFA_MEM_LEND_SMC32:
-		ret = ffa_mem_lend(total_length, fragment_length);
+		*ret = ffa_mem_lend(total_length, fragment_length);
 		break;
 	case FFA_MEM_DONATE_SMC32:
-		ret = ffa_mem_donate(total_length, fragment_length);
+		*ret = ffa_mem_donate(total_length, fragment_length);
 		break;
 	default:
+		*ret = (smc_ret_values){0};
 		ERROR("TFTF - Invalid func id %x!\n", mem_func);
 		return FFA_MEMORY_HANDLE_INVALID;
 	}
 
-	if (is_ffa_call_error(ret)) {
+	if (is_ffa_call_error(*ret)) {
 		ERROR("Failed to send message to: %x\n", receiver);
 		return FFA_MEMORY_HANDLE_INVALID;
 	}
 
-	return ffa_mem_success_handle(ret);
+	return ffa_mem_success_handle(*ret);
 }
 
 /**
@@ -489,7 +490,7 @@ ffa_memory_handle_t memory_init_and_send(
 	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
 	ffa_id_t sender, ffa_id_t receiver,
 	const struct ffa_memory_region_constituent *constituents,
-	uint32_t constituents_count, uint32_t mem_func)
+	uint32_t constituents_count, uint32_t mem_func, smc_ret_values *ret)
 {
 	uint32_t remaining_constituent_count;
 	uint32_t total_length;
@@ -517,7 +518,7 @@ ffa_memory_handle_t memory_init_and_send(
 	}
 
 	return memory_send(memory_region, mem_func, fragment_length,
-			       total_length);
+			       total_length, ret);
 }
 
 /**

@@ -67,7 +67,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	handle = memory_init_and_send((struct ffa_memory_region *)mb.send,
 					MAILBOX_SIZE, SENDER, RECEIVER,
 					constituents, constituents_count,
-					mem_func);
+					mem_func, &ret);
 
 	if (handle == FFA_MEMORY_HANDLE_INVALID) {
 		return TEST_RESULT_FAIL;
