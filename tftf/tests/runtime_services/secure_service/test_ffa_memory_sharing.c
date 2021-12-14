@@ -148,10 +148,46 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 	}
 
 	if (cactus_get_response(ret) == CACTUS_ERROR) {
+		ERROR("Failed sharing memory between SPs. Error code: %d\n",
+			cactus_error_code(ret));
 		return TEST_RESULT_FAIL;
 	}
 
 	return TEST_RESULT_SUCCESS;
+}
+
+/*
+ * Test requests a memory send operation from SP to VM.
+ * The tests expects cactus to reply CACTUS_ERROR, providing FF-A error code of
+ * the last memory send FF-A call that cactus performed.
+ */
+static test_result_t test_req_mem_send_sp_to_vm(uint32_t mem_func,
+						ffa_id_t sender_sp,
+						ffa_id_t receiver_vm)
+{
+	smc_ret_values ret;
+
+	/**********************************************************************
+	 * Check if SPMC's ffa_version and presence of expected FF-A endpoints.
+	 *********************************************************************/
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+
+	ret = cactus_req_mem_send_send_cmd(HYP_ID, sender_sp, mem_func,
+					   receiver_vm);
+
+	if (!is_ffa_direct_response(ret)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (cactus_get_response(ret) == CACTUS_ERROR &&
+	    cactus_error_code(ret) == FFA_ERROR_DENIED) {
+		return TEST_RESULT_SUCCESS;
+	}
+
+	tftf_testcase_printf("Did not get the expected error, "
+			     "mem send returned with %d\n",
+			     cactus_get_response(ret));
+	return TEST_RESULT_FAIL;
 }
 
 test_result_t test_req_mem_share_sp_to_sp(void)
@@ -170,4 +206,16 @@ test_result_t test_req_mem_donate_sp_to_sp(void)
 {
 	return test_req_mem_send_sp_to_sp(FFA_MEM_DONATE_SMC32, SP_ID(1),
 					  SP_ID(3));
+}
+
+test_result_t test_req_mem_share_sp_to_vm(void)
+{
+	return test_req_mem_send_sp_to_vm(FFA_MEM_SHARE_SMC32, SP_ID(1),
+					  HYP_ID);
+}
+
+test_result_t test_req_mem_lend_sp_to_vm(void)
+{
+	return test_req_mem_send_sp_to_vm(FFA_MEM_LEND_SMC32, SP_ID(2),
+					  HYP_ID);
 }
