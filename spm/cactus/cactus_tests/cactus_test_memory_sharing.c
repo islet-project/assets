@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -47,8 +47,12 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	uint32_t mem_func = cactus_req_mem_send_get_mem_func(*args);
 	uint64_t handle = cactus_mem_send_get_handle(*args);
+	ffa_memory_region_flags_t retrv_flags =
+					 cactus_mem_send_get_retrv_flags(*args);
+	uint32_t words_to_write = cactus_mem_send_words_to_write(*args);
 
-	expect(memory_retrieve(mb, &m, handle, source, vm_id, mem_func), true);
+	expect(memory_retrieve(mb, &m, handle, source, vm_id, mem_func,
+			       retrv_flags), true);
 
 	composite = ffa_memory_region_get_composite(m, 0);
 
@@ -85,10 +89,26 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 
 	ptr = (uint32_t *) composite->constituents[0].address;
 
+	/* Check that memory has been cleared by the SPMC before using it. */
+	if ((retrv_flags & FFA_MEMORY_REGION_FLAG_CLEAR) != 0U) {
+		VERBOSE("Check if memory has been cleared!\n");
+		for (uint32_t i = 0; i < words_to_write; i++) {
+			if (ptr[i] != 0) {
+				/*
+				 * If it hasn't been cleared, shouldn't be used.
+				 */
+				ERROR("Memory should have been cleared!\n");
+				return cactus_error_resp(
+					vm_id, source, CACTUS_ERROR_TEST);
+			}
+		}
+	}
+
 	/* Write mem_func to retrieved memory region for validation purposes. */
 	VERBOSE("Writing: %x\n", mem_func);
-	for (unsigned int i = 0U; i < 5U; i++)
+	for (unsigned int i = 0U; i < words_to_write; i++) {
 		ptr[i] = mem_func;
+	}
 
 	/*
 	 * A FFA_MEM_DONATE changes the ownership of the page, as such no
@@ -173,7 +193,7 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 					 ffa_error_code(ffa_ret));
 	}
 
-	ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func, handle);
+	ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func, handle, 0, 10);
 
 	if (!is_ffa_direct_response(ffa_ret)) {
 		return cactus_error_resp(vm_id, source, CACTUS_ERROR_FFA_CALL);

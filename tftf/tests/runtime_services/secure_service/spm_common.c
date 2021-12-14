@@ -351,7 +351,7 @@ unsigned int get_ffa_feature_test_target(
 bool memory_retrieve(struct mailbox_buffers *mb,
 		     struct ffa_memory_region **retrieved, uint64_t handle,
 		     ffa_id_t sender, ffa_id_t receiver,
-		     uint32_t mem_func)
+		     uint32_t mem_func, ffa_memory_region_flags_t flags)
 {
 	smc_ret_values ret;
 	uint32_t fragment_size;
@@ -364,7 +364,7 @@ bool memory_retrieve(struct mailbox_buffers *mb,
 	}
 
 	descriptor_size = ffa_memory_retrieve_request_init(
-	    mb->send, handle, sender, receiver, 0, 0,
+	    mb->send, handle, sender, receiver, 0, flags,
 	    FFA_DATA_ACCESS_RW,
 	    FFA_INSTRUCTION_ACCESS_NX,
 	    FFA_MEMORY_NORMAL_MEM,

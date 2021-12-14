@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -129,7 +129,7 @@ unsigned int get_ffa_feature_test_target(const struct ffa_features_test **test_t
 bool memory_retrieve(struct mailbox_buffers *mb,
 		     struct ffa_memory_region **retrieved, uint64_t handle,
 		     ffa_id_t sender, ffa_id_t receiver,
-		     uint32_t mem_func);
+		     uint32_t mem_func, ffa_memory_region_flags_t flags);
 
 /**
  * Helper to conduct a memory relinquish. The caller is usually the receiver,

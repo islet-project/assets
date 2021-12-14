@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -50,6 +50,9 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	uint32_t *ptr;
 	struct mailbox_buffers mb;
 
+	/* Arbitrarily write 5 words after using memory. */
+	const uint32_t nr_words_to_write = 5;
+
 	/***********************************************************************
 	 * Check if SPMC has ffa_version and expected FFA endpoints are deployed.
 	 **********************************************************************/
@@ -78,7 +81,8 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 
 	ptr = (uint32_t *)constituents[0].address;
 
-	ret = cactus_mem_send_cmd(SENDER, RECEIVER, mem_func, handle);
+	ret = cactus_mem_send_cmd(SENDER, RECEIVER, mem_func, handle, 0,
+				  nr_words_to_write);
 
 	if (!is_ffa_direct_response(ret)) {
 		return TEST_RESULT_FAIL;
