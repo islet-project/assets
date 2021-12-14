@@ -25,6 +25,20 @@ static const struct ffa_uuid expected_sp_uuids[] = {
 /* Memory section to be used for memory share operations */
 static __aligned(PAGE_SIZE) uint8_t share_page[PAGE_SIZE];
 
+static bool check_written_words(uint32_t *ptr, uint32_t word, uint32_t wcount)
+{
+	VERBOSE("TFTF - Memory contents after SP use:\n");
+	for (unsigned int i = 0U; i < wcount; i++) {
+		VERBOSE("      %u: %x\n", i, ptr[i]);
+
+		/* Verify content of memory is as expected. */
+		if (ptr[i] != word) {
+			return false;
+		}
+	}
+	return true;
+}
+
 /**
  * Tests that it is possible to share memory with SWd from NWd.
  * After calling the respective memory send API, it will expect a reply from
@@ -93,17 +107,11 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 		return TEST_RESULT_FAIL;
 	}
 
-	/*
-	 * Print 5 words from the memory region to validate SP wrote to the
-	 * memory region.
-	 */
-	VERBOSE("TFTF - Memory contents after SP use:\n");
-	for (unsigned int i = 0U; i < 5U; i++)
-		VERBOSE("      %u: %x\n", i, ptr[i]);
-
-	/* To make the compiler happy in case it is not a verbose build */
-	if (LOG_LEVEL < LOG_LEVEL_VERBOSE)
-		(void)ptr;
+	/* Check that borrower used the memory as expected for this test. */
+	if (!check_written_words(ptr, mem_func, nr_words_to_write)) {
+		ERROR("Words written to shared memory, not as expected.\n");
+		return TEST_RESULT_FAIL;
+	}
 
 	if (mem_func != FFA_MEM_DONATE_SMC32 &&
 	    is_ffa_call_error(ffa_mem_reclaim(handle, 0))) {
@@ -222,4 +230,78 @@ test_result_t test_req_mem_lend_sp_to_vm(void)
 {
 	return test_req_mem_send_sp_to_vm(FFA_MEM_LEND_SMC32, SP_ID(2),
 					  HYP_ID);
+}
+
+test_result_t test_mem_share_to_sp_clear_memory(void)
+{
+	struct ffa_memory_region_constituent constituents[] = {
+						{(void *)share_page, 1, 0}};
+	const uint32_t constituents_count = sizeof(constituents) /
+			sizeof(struct ffa_memory_region_constituent);
+	struct mailbox_buffers mb;
+	uint32_t remaining_constituent_count;
+	uint32_t total_length;
+	uint32_t fragment_length;
+	ffa_memory_handle_t handle;
+	smc_ret_values ret;
+	uint32_t *ptr;
+	/* Arbitrarily write 10 words after using shared memory. */
+	const uint32_t nr_words_to_write = 10U;
+
+	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
+
+	GET_TFTF_MAILBOX(mb);
+
+	remaining_constituent_count = ffa_memory_region_init(
+		(struct ffa_memory_region *)mb.send, MAILBOX_SIZE, SENDER,
+		RECEIVER, constituents, constituents_count, 0,
+		FFA_MEMORY_REGION_FLAG_CLEAR, FFA_DATA_ACCESS_RW,
+		FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED, FFA_MEMORY_NORMAL_MEM,
+		FFA_MEMORY_CACHE_WRITE_BACK, FFA_MEMORY_INNER_SHAREABLE,
+		&total_length, &fragment_length);
+
+	if (remaining_constituent_count != 0) {
+		ERROR("Transaction descriptor initialization failed!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	handle = memory_send(mb.send, FFA_MEM_LEND_SMC32, fragment_length,
+			     total_length, &ret);
+
+	if (handle == FFA_MEMORY_HANDLE_INVALID) {
+		ERROR("Memory Share failed!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	VERBOSE("Memory has been shared!\n");
+
+	ret = cactus_mem_send_cmd(SENDER, RECEIVER, FFA_MEM_LEND_SMC32, handle,
+				  FFA_MEMORY_REGION_FLAG_CLEAR,
+				  nr_words_to_write);
+
+	if (!is_ffa_direct_response(ret)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (cactus_get_response(ret) != CACTUS_SUCCESS) {
+		ERROR("Failed memory send operation!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	ret = ffa_mem_reclaim(handle, 0);
+
+	if (is_ffa_call_error(ret)) {
+		ERROR("Memory reclaim failed!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	ptr = (uint32_t *)constituents[0].address;
+
+	/* Check that borrower used the memory as expected for this test. */
+	if (!check_written_words(ptr, FFA_MEM_LEND_SMC32, nr_words_to_write)) {
+		ERROR("Words written to shared memory, not as expected.\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
 }
