@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -100,4 +100,35 @@ CACTUS_CMD_HANDLER(twdog_cmd, CACTUS_TWDOG_START_CMD)
 	sp805_twdog_start((time_ms * ARM_SP805_TWDG_CLK_HZ) / 1000);
 
 	return cactus_success_resp(vm_id, source, time_ms);
+}
+
+CACTUS_CMD_HANDLER(sleep_twdog_cmd, CACTUS_SLEEP_TRIGGER_TWDOG_CMD)
+{
+	uint64_t time_lapsed;
+	uint32_t sleep_time = cactus_get_sleep_time(*args) / 2;
+	uint64_t time_ms = cactus_get_wdog_trigger_duration(*args);
+
+	VERBOSE("Request to sleep %x for %ums.\n", ffa_dir_msg_dest(*args),
+		sleep_time);
+
+	time_lapsed = sp_sleep_elapsed_time(sleep_time);
+
+	/* Lapsed time should be at least equal to sleep time. */
+	VERBOSE("Sleep complete: %llu\n", time_lapsed);
+
+	VERBOSE("Starting TWDOG: %llums\n", time_ms);
+	sp805_twdog_refresh();
+	sp805_twdog_start((time_ms * ARM_SP805_TWDG_CLK_HZ) / 1000);
+
+	VERBOSE("2nd Request to sleep %x for %ums.\n", ffa_dir_msg_dest(*args),
+		sleep_time);
+
+	time_lapsed += sp_sleep_elapsed_time(sleep_time);
+
+	/* Lapsed time should be at least equal to sleep time. */
+	VERBOSE("2nd Sleep complete: %llu\n", time_lapsed);
+
+	return cactus_response(ffa_dir_msg_dest(*args),
+			       ffa_dir_msg_source(*args),
+			       time_lapsed);
 }
