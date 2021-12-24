@@ -285,7 +285,7 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 #define SKIP_TEST_IF_AFP_NOT_SUPPORTED()					\
 	do {									\
 		if (!get_feat_afp_present()) {					\
-			tftf_testcase_printf("ARMv8.7-afp not supported");	\
+			tftf_testcase_printf("ARMv8.7-afp not supported\n");	\
 			return TEST_RESULT_SKIPPED;				\
 		}								\
 	} while (false)
@@ -313,6 +313,14 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 	do {									\
 		if (!get_feat_brbe_support()) {				\
 			tftf_testcase_printf("FEAT_BRBE not supported\n");	\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (false)
+
+#define SKIP_TEST_IF_WFXT_NOT_SUPPORTED()					\
+	do {									\
+		if (!get_feat_wfxt_present()) {					\
+			tftf_testcase_printf("ARMv8.7-WFxT not supported\n");	\
 			return TEST_RESULT_SKIPPED;				\
 		}								\
 	} while (false)

@@ -75,6 +75,13 @@ static inline void _op ## _type(void)			\
 	__asm__ (#_op " " #_type);			\
 }
 
+/* Define function for system instruction with register with variable parameter */
+#define DEFINE_SYSOP_PARAM_FUNC(_op)                   \
+static inline void _op(uint64_t v)                     \
+{                                                      \
+	__asm__ (#_op " " "%0" : : "r" (v));           \
+}
+
 /* Define function for system instruction with register parameter */
 #define DEFINE_SYSOP_TYPE_PARAM_FUNC(_op, _type)	\
 static inline void _op ## _type(uint64_t v)		\
@@ -199,6 +206,7 @@ DEFINE_SYSREG_RW_FUNCS(elr_el3)
 DEFINE_SYSOP_FUNC(wfi)
 DEFINE_SYSOP_FUNC(wfe)
 DEFINE_SYSOP_FUNC(sev)
+DEFINE_SYSOP_FUNC(sevl)
 DEFINE_SYSOP_TYPE_FUNC(dsb, sy)
 DEFINE_SYSOP_TYPE_FUNC(dmb, sy)
 DEFINE_SYSOP_TYPE_FUNC(dmb, st)
@@ -216,6 +224,9 @@ DEFINE_SYSOP_TYPE_FUNC(dmb, ishld)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ishst)
 DEFINE_SYSOP_TYPE_FUNC(dmb, ish)
 DEFINE_SYSOP_FUNC(isb)
+
+DEFINE_SYSOP_PARAM_FUNC(wfit)
+DEFINE_SYSOP_PARAM_FUNC(wfet)
 
 static inline void enable_irq(void)
 {
@@ -556,6 +567,9 @@ DEFINE_RENAME_SYSREG_RW_FUNCS(hcrx_el2, HCRX_EL2)
 
 /* Control floating point behaviour */
 DEFINE_RENAME_SYSREG_RW_FUNCS(fpcr, FPCR)
+
+/* ID_AA64ISAR2_EL1 */
+DEFINE_RENAME_SYSREG_READ_FUNC(id_aa64isar2_el1, ID_AA64ISAR2_EL1)
 
 #define IS_IN_EL(x) \
 	(GET_EL(read_CurrentEl()) == MODE_EL##x)
