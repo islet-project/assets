@@ -544,6 +544,9 @@ DEFINE_RENAME_SYSREG_READ_FUNC(trcdevarch, TRCDEVARCH)
 /* FEAT_HCX HCRX_EL2 */
 DEFINE_RENAME_SYSREG_RW_FUNCS(hcrx_el2, HCRX_EL2)
 
+/* Control floating point behaviour */
+DEFINE_RENAME_SYSREG_RW_FUNCS(fpcr, FPCR)
+
 #define IS_IN_EL(x) \
 	(GET_EL(read_CurrentEl()) == MODE_EL##x)
 

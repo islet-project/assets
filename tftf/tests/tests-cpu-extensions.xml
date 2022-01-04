@@ -25,6 +25,7 @@
     <testcase name="Use trace system Registers" function="test_sys_reg_trace_enabled" />
     <testcase name="SME support" function="test_sme_support" />
     <testcase name="SPE support" function="test_spe_support" />
+    <testcase name="AFP support" function="test_afp_support" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">

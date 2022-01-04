@@ -254,6 +254,9 @@
 #define ID_AA64MMFR1_EL1_HCX_MASK		ULL(0xf)
 #define ID_AA64MMFR1_EL1_HCX_SUPPORTED		ULL(0x1)
 #define ID_AA64MMFR1_EL1_HCX_NOT_SUPPORTED	ULL(0x0)
+#define ID_AA64MMFR1_EL1_AFP_SHIFT		U(44)
+#define ID_AA64MMFR1_EL1_AFP_MASK		ULL(0xf)
+#define ID_AA64MMFR1_EL1_AFP_SUPPORTED		ULL(0x1)
 
 /* ID_AA64MMFR2_EL1 definitions */
 #define ID_AA64MMFR2_EL1		S3_0_C0_C7_2
@@ -640,6 +643,13 @@
 #define CTR_IMINLINE_MASK	U(0xf)
 
 #define MAX_CACHE_LINE_SIZE	U(0x800) /* 2KB */
+
+/*
+ * FPCR definitions
+ */
+#define FPCR_FIZ_BIT		(ULL(1) << 0)
+#define FPCR_AH_BIT		(ULL(1) << 1)
+#define FPCR_NEP_BIT		(ULL(1) << 2)
 
 /* Physical timer control register bit fields shifts and masks */
 #define CNTP_CTL_ENABLE_SHIFT   U(0)

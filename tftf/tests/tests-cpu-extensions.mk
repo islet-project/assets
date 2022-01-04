@@ -5,6 +5,7 @@
 #
 
 TESTS_SOURCES	+=	$(addprefix tftf/tests/,			\
+	extensions/afp/test_afp.c					\
 	extensions/amu/test_amu.c					\
 	extensions/ecv/test_ecv.c					\
 	extensions/fgt/test_fgt.c					\
