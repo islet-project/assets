@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -19,7 +19,7 @@ static bool should_skip_version_test;
 static struct mailbox_buffers mb;
 
 static const struct ffa_uuid sp_uuids[] = {
-		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
+		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}, {IVY_UUID}
 	};
 static const struct ffa_uuid null_uuid = { .uuid = {0} };
 
@@ -29,27 +29,31 @@ static const struct ffa_partition_info ffa_expected_partition_info[] = {
 		.id = SP_ID(1),
 		.exec_context = PRIMARY_EXEC_CTX_COUNT,
 		.properties = FFA_PARTITION_DIRECT_REQ_RECV |
-			      FFA_PARTITION_NOTIFICATION
+			      FFA_PARTITION_NOTIFICATION,
+		.uuid = sp_uuids[0]
 	},
 	/* Secondary partition info */
 	{
 		.id = SP_ID(2),
 		.exec_context = SECONDARY_EXEC_CTX_COUNT,
 		.properties = FFA_PARTITION_DIRECT_REQ_RECV |
-			      FFA_PARTITION_NOTIFICATION
+			      FFA_PARTITION_NOTIFICATION,
+		.uuid = sp_uuids[1]
 	},
 	/* Tertiary partition info */
 	{
 		.id = SP_ID(3),
 		.exec_context = TERTIARY_EXEC_CTX_COUNT,
 		.properties = FFA_PARTITION_DIRECT_REQ_RECV |
-			      FFA_PARTITION_NOTIFICATION
+			      FFA_PARTITION_NOTIFICATION,
+		.uuid = sp_uuids[2]
 	},
 	/* Ivy partition info */
 	{
 		.id = SP_ID(4),
 		.exec_context = IVY_EXEC_CTX_COUNT,
-		.properties = FFA_PARTITION_DIRECT_REQ_RECV
+		.properties = FFA_PARTITION_DIRECT_REQ_RECV,
+		.uuid = sp_uuids[3]
 	}
 };
 

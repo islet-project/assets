@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -557,6 +557,22 @@ bool ffa_partition_info_helper(struct mailbox_buffers *mb,
 				ERROR("Wrong properties. Expected %d, got %d\n",
 				      expected[i].properties,
 				      info[i].properties);
+				result = false;
+			}
+			if (info[i].uuid.uuid[0] != expected[i].uuid.uuid[0] ||
+			    info[i].uuid.uuid[1] != expected[i].uuid.uuid[1] ||
+			    info[i].uuid.uuid[2] != expected[i].uuid.uuid[2] ||
+			    info[i].uuid.uuid[3] != expected[i].uuid.uuid[3]) {
+				ERROR("Wrong UUID. Expected %x %x %x %x, "
+				      "got %x %x %x %x\n",
+				      expected[i].uuid.uuid[0],
+				      expected[i].uuid.uuid[1],
+				      expected[i].uuid.uuid[2],
+				      expected[i].uuid.uuid[3],
+				      info[i].uuid.uuid[0],
+				      info[i].uuid.uuid[1],
+				      info[i].uuid.uuid[2],
+				      info[i].uuid.uuid[3]);
 				result = false;
 			}
 		}
