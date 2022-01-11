@@ -10,5 +10,7 @@
   <testsuite name="Invalid memory access" description="Invalid memory access">
       <testcase name="Access EL3 memory from NS world"
                 function="access_el3_memory_from_ns" />
+      <testcase name="Access Realm memory from NS world"
+                function="rl_memory_cannot_be_accessed_in_ns" />
   </testsuite>
 </testsuites>

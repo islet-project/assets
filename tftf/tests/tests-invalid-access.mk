@@ -5,3 +5,8 @@
 #
 
 TESTS_SOURCES	+=	tftf/tests/misc_tests/test_invalid_access.c
+
+TESTS_SOURCES	+=							\
+	$(addprefix tftf/tests/runtime_services/realm_payload/,		\
+		realm_payload_test_helpers.c				\
+	)
