@@ -98,6 +98,12 @@ static inline unsigned long int get_armv8_6_ecv_support(void)
 		ID_AA64MMFR0_EL1_ECV_MASK);
 }
 
+static inline unsigned long int get_pa_range(void)
+{
+	return ((read_id_aa64mmfr0_el1() >> ID_AA64MMFR0_EL1_PARANGE_SHIFT) &
+		ID_AA64MMFR0_EL1_PARANGE_MASK);
+}
+
 static inline uint32_t arch_get_debug_version(void)
 {
 	return ((read_id_aa64dfr0_el1() & ID_AA64DFR0_DEBUG_BITS) >>

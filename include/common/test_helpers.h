@@ -290,6 +290,18 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (false)
 
+#define SKIP_TEST_IF_PA_SIZE_LESS_THAN(n)					\
+	do {									\
+		static const unsigned int pa_range_bits_arr[] = {		\
+			PARANGE_0000, PARANGE_0001, PARANGE_0010, PARANGE_0011,\
+			PARANGE_0100, PARANGE_0101, PARANGE_0110		\
+		};								\
+		if (pa_range_bits_arr[get_pa_range()] < n) {			\
+			tftf_testcase_printf("PA size less than %d bit\n", n);	\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (false)
+
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp_supported()	\
 		(tftf_get_psci_feature_info(SMC_PSCI_SYSTEM_SUSPEND)		\
