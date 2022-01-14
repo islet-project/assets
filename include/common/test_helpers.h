@@ -290,6 +290,7 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (false)
 
+#ifdef __aarch64__
 #define SKIP_TEST_IF_PA_SIZE_LESS_THAN(n)					\
 	do {									\
 		static const unsigned int pa_range_bits_arr[] = {		\
@@ -301,6 +302,12 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 			return TEST_RESULT_SKIPPED;				\
 		}								\
 	} while (false)
+#else
+#define SKIP_TEST_IF_PA_SIZE_LESS_THAN(n)					\
+	do {									\
+		return TEST_RESULT_SKIPPED;					\
+	} while (false)
+#endif
 
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp_supported()	\

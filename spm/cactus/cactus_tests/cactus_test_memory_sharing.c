@@ -57,6 +57,16 @@ static void *share_page(ffa_id_t cactus_sp_id)
 	}
 }
 
+static void *share_page_non_secure(ffa_id_t cactus_sp_id)
+{
+	if (cactus_sp_id != SP_ID(3)) {
+		ERROR("Helper function expecting a valid Cactus SP ID!\n");
+		panic();
+	}
+
+	return (void *)CACTUS_SP3_NS_MEM_SHARE_BASE;
+}
+
 CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 {
 	struct ffa_memory_region *m;
@@ -71,6 +81,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 	ffa_memory_region_flags_t retrv_flags =
 					 cactus_mem_send_get_retrv_flags(*args);
 	uint32_t words_to_write = cactus_mem_send_words_to_write(*args);
+	bool non_secure = cactus_mem_send_get_non_secure(*args);
 
 	expect(memory_retrieve(mb, &m, handle, source, vm_id,
 			       retrv_flags), true);
@@ -91,7 +102,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 
 	mem_attrs = MT_RW_DATA | MT_EXECUTE_NEVER;
 
-	if (!IS_SP_ID(source)) {
+	if (non_secure) {
 		mem_attrs |= MT_NS;
 	}
 
@@ -176,33 +187,37 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 	ffa_memory_handle_t handle;
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	ffa_id_t source = ffa_dir_msg_source(*args);
+	bool non_secure = cactus_req_mem_send_get_non_secure(*args);
+	void *share_page_addr =
+		non_secure ? share_page_non_secure(vm_id) : share_page(vm_id);
+	unsigned int mem_attrs;
 	int ret;
-	static bool share_memory_mapped;
 
 	VERBOSE("%x requested to send memory to %x (func: %x), page: %llx\n",
-		source, receiver, mem_func, (uint64_t)share_page(vm_id));
+		source, receiver, mem_func, (uint64_t)share_page_addr);
 
 	const struct ffa_memory_region_constituent constituents[] = {
-		{share_page(vm_id), 1, 0}
+		{share_page_addr, 1, 0}
 	};
 
 	const uint32_t constituents_count = (sizeof(constituents) /
 					     sizeof(constituents[0]));
 
-	if (!share_memory_mapped) {
-		ret = mmap_add_dynamic_region(
-			(uint64_t)constituents[0].address,
-			(uint64_t)constituents[0].address,
-			constituents[0].page_count * PAGE_SIZE,
-			MT_RW_DATA);
+	VERBOSE("Sharing at 0x%llx\n", (uint64_t)constituents[0].address);
+	mem_attrs = MT_RW_DATA;
+	if (non_secure)
+		mem_attrs |= MT_NS;
+	ret = mmap_add_dynamic_region(
+		(uint64_t)constituents[0].address,
+		(uint64_t)constituents[0].address,
+		constituents[0].page_count * PAGE_SIZE,
+		mem_attrs);
 
-		if (ret != 0) {
-			ERROR("Failed map share memory before sending (%d)!\n",
-			      ret);
-			return cactus_error_resp(vm_id, source,
-						 CACTUS_ERROR_TEST);
-		}
-		share_memory_mapped = true;
+	if (ret != 0) {
+		ERROR("Failed map share memory before sending (%d)!\n",
+		      ret);
+		return cactus_error_resp(vm_id, source,
+					 CACTUS_ERROR_TEST);
 	}
 
 	handle = memory_init_and_send(
@@ -219,7 +234,8 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 					 ffa_error_code(ffa_ret));
 	}
 
-	ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func, handle, 0, 10);
+	ffa_ret = cactus_mem_send_cmd(vm_id, receiver, mem_func, handle,
+				      0, non_secure, 10);
 
 	if (!is_ffa_direct_response(ffa_ret)) {
 		return cactus_error_resp(vm_id, source, CACTUS_ERROR_FFA_CALL);
@@ -256,16 +272,18 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 				VERBOSE("      %u: %x\n", i, ptr[i]);
 			}
 		#endif
-	} else {
-		ret = mmap_remove_dynamic_region(
-			(uint64_t)constituents[0].address,
-			constituents[0].page_count * PAGE_SIZE);
+	}
 
-		if (ret != 0) {
-			ERROR("Failed to unmap donated region (%d)!\n", ret);
-			return cactus_error_resp(vm_id, source,
-						 CACTUS_ERROR_TEST);
-		}
+	/* Always unmap the sent memory region, will be remapped by another
+	 * test if needed. */
+	ret = mmap_remove_dynamic_region(
+		(uint64_t)constituents[0].address,
+		constituents[0].page_count * PAGE_SIZE);
+
+	if (ret != 0) {
+		ERROR("Failed to unmap share memory region (%d)!\n", ret);
+		return cactus_error_resp(vm_id, source,
+					 CACTUS_ERROR_TEST);
 	}
 
 	return cactus_success_resp(vm_id, source, 0);

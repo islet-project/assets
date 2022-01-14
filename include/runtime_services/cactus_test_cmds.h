@@ -197,10 +197,15 @@ static inline ffa_id_t cactus_deadlock_get_next_dest2(smc_ret_values ret)
 static inline smc_ret_values cactus_mem_send_cmd(
 	ffa_id_t source, ffa_id_t dest, uint32_t mem_func,
 	ffa_memory_handle_t handle, ffa_memory_region_flags_t retrieve_flags,
-	uint32_t word_to_write)
+	bool non_secure, uint16_t word_to_write)
 {
+	/*
+	 * `non_secure` and `word_to_write` are packed in the same register.
+	 * Packed in a 32-bit value to support AArch32 platforms (eg Juno).
+	 */
+	uint32_t val3 = ((uint32_t)non_secure << 16) | word_to_write;
 	return cactus_send_cmd(source, dest, CACTUS_MEM_SEND_CMD, mem_func,
-			       handle, retrieve_flags, word_to_write);
+			       handle, retrieve_flags, val3);
 }
 
 static inline ffa_memory_handle_t cactus_mem_send_get_handle(smc_ret_values ret)
@@ -214,9 +219,14 @@ static inline ffa_memory_region_flags_t cactus_mem_send_get_retrv_flags(
 	return (ffa_memory_region_flags_t)ret.ret6;
 }
 
-static inline uint32_t cactus_mem_send_words_to_write(smc_ret_values ret)
+static inline uint16_t cactus_mem_send_words_to_write(smc_ret_values ret)
 {
-	return (uint32_t)ret.ret7;
+	return (uint16_t)ret.ret7;
+}
+
+static inline bool cactus_mem_send_get_non_secure(smc_ret_values ret)
+{
+	return (bool)(ret.ret7 >> 16);
 }
 
 /**
@@ -230,10 +240,10 @@ static inline uint32_t cactus_mem_send_words_to_write(smc_ret_values ret)
 
 static inline smc_ret_values cactus_req_mem_send_send_cmd(
 	ffa_id_t source, ffa_id_t dest, uint32_t mem_func,
-	ffa_id_t receiver)
+	ffa_id_t receiver, bool non_secure)
 {
 	return cactus_send_cmd(source, dest, CACTUS_REQ_MEM_SEND_CMD, mem_func,
-			       receiver, 0, 0);
+			       receiver, non_secure, 0);
 }
 
 static inline uint32_t cactus_req_mem_send_get_mem_func(smc_ret_values ret)
@@ -244,6 +254,11 @@ static inline uint32_t cactus_req_mem_send_get_mem_func(smc_ret_values ret)
 static inline ffa_id_t cactus_req_mem_send_get_receiver(smc_ret_values ret)
 {
 	return (ffa_id_t)ret.ret5;
+}
+
+static inline bool cactus_req_mem_send_get_non_secure(smc_ret_values ret)
+{
+	return (bool)ret.ret6;
 }
 
 /**

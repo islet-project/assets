@@ -96,7 +96,7 @@ static test_result_t test_memory_send_sp(uint32_t mem_func)
 	ptr = (uint32_t *)constituents[0].address;
 
 	ret = cactus_mem_send_cmd(SENDER, RECEIVER, mem_func, handle, 0,
-				  nr_words_to_write);
+				  true, nr_words_to_write);
 
 	if (!is_ffa_direct_response(ret)) {
 		return TEST_RESULT_FAIL;
@@ -143,7 +143,8 @@ test_result_t test_mem_donate_sp(void)
  */
 static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 						ffa_id_t sender_sp,
-						ffa_id_t receiver_sp)
+						ffa_id_t receiver_sp,
+						bool non_secure)
 {
 	smc_ret_values ret;
 
@@ -153,7 +154,7 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	ret = cactus_req_mem_send_send_cmd(HYP_ID, sender_sp, mem_func,
-					   receiver_sp);
+					   receiver_sp, non_secure);
 
 	if (!is_ffa_direct_response(ret)) {
 		return TEST_RESULT_FAIL;
@@ -185,7 +186,7 @@ static test_result_t test_req_mem_send_sp_to_vm(uint32_t mem_func,
 	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 
 	ret = cactus_req_mem_send_send_cmd(HYP_ID, sender_sp, mem_func,
-					   receiver_vm);
+					   receiver_vm, false);
 
 	if (!is_ffa_direct_response(ret)) {
 		return TEST_RESULT_FAIL;
@@ -205,19 +206,34 @@ static test_result_t test_req_mem_send_sp_to_vm(uint32_t mem_func,
 test_result_t test_req_mem_share_sp_to_sp(void)
 {
 	return test_req_mem_send_sp_to_sp(FFA_MEM_SHARE_SMC32, SP_ID(3),
-					  SP_ID(2));
+					  SP_ID(2), false);
+}
+
+test_result_t test_req_ns_mem_share_sp_to_sp(void)
+{
+	/* Added this peprocessor condition because the test fails when RME is
+	 * enabled, because the model has PA_SIZE=48, but still doesn't have
+	 * allocated RAM allocatable there nor the itnerconnect support 48bit
+	 * addresses. */
+#if PA_SIZE == 48
+	SKIP_TEST_IF_PA_SIZE_LESS_THAN(48);
+	return test_req_mem_send_sp_to_sp(FFA_MEM_SHARE_SMC32, SP_ID(3),
+					  SP_ID(2), true);
+#else
+	return TEST_RESULT_SKIPPED;
+#endif
 }
 
 test_result_t test_req_mem_lend_sp_to_sp(void)
 {
 	return test_req_mem_send_sp_to_sp(FFA_MEM_LEND_SMC32, SP_ID(3),
-					  SP_ID(2));
+					  SP_ID(2), false);
 }
 
 test_result_t test_req_mem_donate_sp_to_sp(void)
 {
 	return test_req_mem_send_sp_to_sp(FFA_MEM_DONATE_SMC32, SP_ID(1),
-					  SP_ID(3));
+					  SP_ID(3), false);
 }
 
 test_result_t test_req_mem_share_sp_to_vm(void)
@@ -276,7 +292,7 @@ test_result_t test_mem_share_to_sp_clear_memory(void)
 	VERBOSE("Memory has been shared!\n");
 
 	ret = cactus_mem_send_cmd(SENDER, RECEIVER, FFA_MEM_LEND_SMC32, handle,
-				  FFA_MEMORY_REGION_FLAG_CLEAR,
+				  FFA_MEMORY_REGION_FLAG_CLEAR, true,
 				  nr_words_to_write);
 
 	if (!is_ffa_direct_response(ret)) {

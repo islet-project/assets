@@ -79,7 +79,7 @@ test_result_t rl_memory_cannot_be_accessed_in_s(void)
 
 	/* Retrieve the shared page and attempt accessing it. */
 	ret = cactus_mem_send_cmd(SENDER, RECEIVER, FFA_MEM_SHARE_SMC32,
-				  handle, 0, 1);
+				  handle, 0, true, 1);
 
 	/* Undelegate the shared page. */
 	retmm = realm_granule_undelegate((u_register_t)&share_page);
