@@ -654,6 +654,8 @@
 #define ESR_EC_SHIFT			U(26)
 #define ESR_EC_MASK			U(0x3f)
 #define ESR_EC_LENGTH			U(6)
+#define ESR_ISS_SHIFT			U(0x0)
+#define ESR_ISS_MASK			U(0x1ffffff)
 #define EC_UNKNOWN			U(0x0)
 #define EC_WFE_WFI			U(0x1)
 #define EC_AARCH32_CP15_MRC_MCR		U(0x3)
@@ -680,6 +682,10 @@
 #define EC_AARCH32_FP			U(0x28)
 #define EC_AARCH64_FP			U(0x2c)
 #define EC_SERROR			U(0x2f)
+/* Data Fault Status code, not all error codes listed */
+#define ISS_DFSC_MASK			U(0x3f)
+#define DFSC_EXT_DABORT			U(0x10)
+#define DFSC_GPF_DABORT			U(0x28)
 
 /*
  * External Abort bit in Instruction and Data Aborts synchronous exception
@@ -688,6 +694,7 @@
 #define ESR_ISS_EABORT_EA_BIT		U(9)
 
 #define EC_BITS(x)			(((x) >> ESR_EC_SHIFT) & ESR_EC_MASK)
+#define ISS_BITS(x)			(((x) >> ESR_ISS_SHIFT) & ESR_ISS_MASK)
 
 /* Reset bit inside the Reset management register for EL3 (RMR_EL3) */
 #define RMR_RESET_REQUEST_SHIFT 	U(0x1)
