@@ -363,18 +363,13 @@ bool memory_retrieve(struct mailbox_buffers *mb,
 		return false;
 	}
 
-	/*
-	 * TODO: Revise shareability attribute in function call
-	 * below.
-	 * https://lists.trustedfirmware.org/pipermail/hafnium/2020-June/000023.html
-	 */
 	descriptor_size = ffa_memory_retrieve_request_init(
 	    mb->send, handle, sender, receiver, 0, 0,
 	    FFA_DATA_ACCESS_RW,
 	    FFA_INSTRUCTION_ACCESS_NX,
 	    FFA_MEMORY_NORMAL_MEM,
 	    FFA_MEMORY_CACHE_WRITE_BACK,
-	    FFA_MEMORY_OUTER_SHAREABLE);
+	    FFA_MEMORY_INNER_SHAREABLE);
 
 	ret = ffa_mem_retrieve_req(descriptor_size, descriptor_size);
 
