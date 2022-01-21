@@ -342,7 +342,7 @@ test_result_t test_ffa_partition_info(void)
 	/***********************************************************************
 	 * Check if SPMC has ffa_version and expected FFA endpoints are deployed.
 	 **********************************************************************/
-	CHECK_SPMC_TESTING_SETUP(1, 0, sp_uuids);
+	CHECK_SPMC_TESTING_SETUP(1, 1, sp_uuids);
 
 	GET_TFTF_MAILBOX(mb);
 
@@ -365,4 +365,62 @@ test_result_t test_ffa_partition_info(void)
 	}
 
 	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * Attempt to get v1.0 partition info descriptors.
+ */
+test_result_t test_ffa_partition_info_v1_0(void)
+{
+	/**************************************************************
+	 * Check if SPMC has ffa_version and expected FFA endpoints
+	 * are deployed.
+	 *************************************************************/
+	CHECK_SPMC_TESTING_SETUP(1, 0, sp_uuids);
+
+	GET_TFTF_MAILBOX(mb);
+
+	test_result_t result = TEST_RESULT_SUCCESS;
+	smc_ret_values ret = ffa_partition_info_get(null_uuid);
+	uint64_t expected_size = ARRAY_SIZE(ffa_expected_partition_info);
+
+	if (ffa_func_id(ret) == FFA_SUCCESS_SMC32) {
+		if (ffa_partition_info_count(ret) != expected_size) {
+			ERROR("Unexpected number of partitions %d\n",
+			      ffa_partition_info_count(ret));
+			return TEST_RESULT_FAIL;
+		}
+		const struct ffa_partition_info_v1_0 *info =
+			(const struct ffa_partition_info_v1_0 *)(mb.recv);
+
+		for (unsigned int i = 0U; i < expected_size; i++) {
+			if (info[i].id != ffa_expected_partition_info[i].id) {
+				ERROR("Wrong ID. Expected %x, got %x\n",
+				      ffa_expected_partition_info[i].id,
+				      info[i].id);
+				result = TEST_RESULT_FAIL;
+			}
+			if (info[i].exec_context !=
+			    ffa_expected_partition_info[i].exec_context) {
+				ERROR("Wrong context. Expected %d, got %d\n",
+				      ffa_expected_partition_info[i].exec_context,
+				      info[i].exec_context);
+				result = TEST_RESULT_FAIL;
+			}
+			if (info[i].properties !=
+			    ffa_expected_partition_info[i].properties) {
+				ERROR("Wrong properties. Expected %d, got %d\n",
+				      ffa_expected_partition_info[i].properties,
+				      info[i].properties);
+				result = TEST_RESULT_FAIL;
+			}
+		}
+	}
+
+	ret = ffa_rx_release();
+	if (is_ffa_call_error(ret)) {
+		ERROR("Failed to release RX buffer\n");
+		result = TEST_RESULT_FAIL;
+	}
+	return result;
 }

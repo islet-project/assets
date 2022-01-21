@@ -72,6 +72,19 @@ struct ffa_partition_info {
 	struct ffa_uuid uuid;
 };
 
+/**
+ * Partition info descriptor as defined in Table 8.25 of the v1.0
+ * FF-A Specification
+ */
+struct ffa_partition_info_v1_0 {
+	/** The ID of the VM the information is about */
+	ffa_id_t id;
+	/** The number of execution contexts implemented by the partition */
+	uint16_t exec_context;
+	/** The Partition's properties, e.g. supported messaging methods */
+	uint32_t properties;
+};
+
 static inline uint32_t ffa_func_id(smc_ret_values val)
 {
 	return (uint32_t) val.ret0;
@@ -84,6 +97,11 @@ static inline int32_t ffa_error_code(smc_ret_values val)
 
 static inline ffa_id_t ffa_endpoint_id(smc_ret_values val) {
 	return (ffa_id_t) val.ret2 & 0xffff;
+}
+
+static inline uint32_t ffa_partition_info_count(smc_ret_values val)
+{
+	return (uint32_t) val.ret2;
 }
 
 static inline uint32_t ffa_feature_intid(smc_ret_values val)
