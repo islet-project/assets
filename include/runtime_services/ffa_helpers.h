@@ -25,6 +25,93 @@ struct ffa_uuid {
 	const uint32_t uuid[4];
 };
 
+/** Length in bytes of the name in boot information descriptor. */
+#define FFA_BOOT_INFO_NAME_LEN 16
+
+/**
+ * The FF-A boot info descriptor, as defined in table 5.8 of section 5.4.1, of
+ * the FF-A v1.1 EAC0 specification.
+ */
+struct ffa_boot_info_desc {
+	char name[FFA_BOOT_INFO_NAME_LEN];
+	uint8_t type;
+	uint8_t reserved;
+	uint16_t flags;
+	uint32_t size;
+	uint64_t content;
+};
+
+/** FF-A boot information type mask. */
+#define FFA_BOOT_INFO_TYPE_SHIFT 7
+#define FFA_BOOT_INFO_TYPE_MASK (0x1U << FFA_BOOT_INFO_TYPE_SHIFT)
+#define FFA_BOOT_INFO_TYPE_STD 0U
+#define FFA_BOOT_INFO_TYPE_IMPDEF 1U
+
+/** Standard boot info type IDs. */
+#define FFA_BOOT_INFO_TYPE_ID_MASK 0x7FU
+#define FFA_BOOT_INFO_TYPE_ID_FDT 0U
+#define FFA_BOOT_INFO_TYPE_ID_HOB 1U
+
+/** FF-A Boot Info descriptors flags. */
+#define FFA_BOOT_INFO_FLAG_MBZ_MASK 0xFFF0U
+
+/** Bits [1:0] encode the format of the name field in ffa_boot_info_desc. */
+#define FFA_BOOT_INFO_FLAG_NAME_FORMAT_SHIFT 0U
+#define FFA_BOOT_INFO_FLAG_NAME_FORMAT_MASK \
+	(0x3U << FFA_BOOT_INFO_FLAG_NAME_FORMAT_SHIFT)
+#define FFA_BOOT_INFO_FLAG_NAME_FORMAT_STRING 0x0U
+#define FFA_BOOT_INFO_FLAG_NAME_FORMAT_UUID 0x1U
+
+/** Bits [3:2] encode the format of the content field in ffa_boot_info_desc. */
+#define FFA_BOOT_INFO_FLAG_CONTENT_FORMAT_SHIFT 2
+#define FFA_BOOT_INFO_FLAG_CONTENT_FORMAT_MASK \
+	(0x3U << FFA_BOOT_INFO_FLAG_CONTENT_FORMAT_SHIFT)
+#define FFA_BOOT_INFO_FLAG_CONTENT_FORMAT_VALUE 0x1U
+#define FFA_BOOT_INFO_FLAG_CONTENT_FORMAT_ADDR 0x0U
+
+static inline uint16_t ffa_boot_info_content_format(
+	struct ffa_boot_info_desc *desc)
+{
+	return (desc->flags & FFA_BOOT_INFO_FLAG_CONTENT_FORMAT_MASK) >>
+	       FFA_BOOT_INFO_FLAG_CONTENT_FORMAT_SHIFT;
+}
+
+static inline uint16_t ffa_boot_info_name_format(
+	struct ffa_boot_info_desc *desc)
+{
+	return (desc->flags & FFA_BOOT_INFO_FLAG_NAME_FORMAT_MASK) >>
+	       FFA_BOOT_INFO_FLAG_NAME_FORMAT_SHIFT;
+}
+
+static inline uint8_t ffa_boot_info_type_id(struct ffa_boot_info_desc *desc)
+{
+	return desc->type & FFA_BOOT_INFO_TYPE_ID_MASK;
+}
+
+static inline uint8_t ffa_boot_info_type(struct ffa_boot_info_desc *desc)
+{
+	return (desc->type & FFA_BOOT_INFO_TYPE_MASK) >>
+	       FFA_BOOT_INFO_TYPE_SHIFT;
+}
+
+/** Length in bytes of the signature in the boot descriptor. */
+#define FFA_BOOT_INFO_HEADER_SIGNATURE_LEN 4
+
+/**
+ * The FF-A boot information header, as defined in table 5.9 of section 5.4.2,
+ * of the FF-A v1.1 EAC0 specification.
+ */
+struct ffa_boot_info_header {
+	uint32_t signature;
+	uint32_t version;
+	uint32_t info_blob_size;
+	uint32_t desc_size;
+	uint32_t desc_count;
+	uint32_t desc_offset;
+	uint64_t reserved;
+	struct ffa_boot_info_desc boot_info[];
+};
+
 #ifndef __ASSEMBLY__
 
 #include <cassert.h>
