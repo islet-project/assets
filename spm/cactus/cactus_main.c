@@ -206,6 +206,9 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 		/* Configure and enable Stage-1 MMU, enable D-Cache */
 		cactus_plat_configure_mmu(ffa_id);
+
+		/* Initialize locks for tail end interrupt handler */
+		sp_handler_spin_lock_init();
 	}
 
 	/*
