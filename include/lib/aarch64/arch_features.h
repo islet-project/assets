@@ -154,4 +154,11 @@ static inline bool get_feat_afp_present(void)
 		  ID_AA64MMFR1_EL1_AFP_MASK) == ID_AA64MMFR1_EL1_AFP_SUPPORTED);
 }
 
+static inline bool get_feat_brbe_support(void)
+{
+	return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_BRBE_SHIFT) &
+		ID_AA64DFR0_BRBE_MASK) ==
+		ID_AA64DFR0_BRBE_SUPPORTED;
+}
+
 #endif /* ARCH_FEATURES_H */

@@ -21,6 +21,7 @@
     <testcase name="Use FGT Registers" function="test_fgt_enabled" />
     <testcase name="Use ECV Registers" function="test_ecv_enabled" />
     <testcase name="Use trace buffer control Registers" function="test_trbe_enabled" />
+    <testcase name="Use branch record buffer control registers" function="test_brbe_enabled" />
     <testcase name="Use trace filter control Registers" function="test_trf_enabled" />
     <testcase name="Use trace system Registers" function="test_sys_reg_trace_enabled" />
     <testcase name="SME support" function="test_sme_support" />
