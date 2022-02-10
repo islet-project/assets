@@ -53,7 +53,7 @@ FRAMEWORK_SOURCES	+=						\
 	lib/events/events.c						\
 	lib/extensions/amu/${ARCH}/amu.c				\
 	lib/extensions/amu/${ARCH}/amu_helpers.S			\
-	lib/irq/irq.c							\
+	lib/exceptions/irq.c						\
 	lib/locks/${ARCH}/spinlock.S					\
 	lib/power_management/hotplug/hotplug.c				\
 	lib/power_management/suspend/${ARCH}/asm_tftf_suspend.S		\
@@ -79,6 +79,7 @@ FRAMEWORK_SOURCES	+=	${COMPILER_RT_SRCS}
 ifeq (${ARCH},aarch64)
 # ARMv8.3 Pointer Authentication support files
 FRAMEWORK_SOURCES	+=						\
+	lib/exceptions/aarch64/sync.c					\
 	lib/extensions/pauth/aarch64/pauth.c				\
 	lib/extensions/pauth/aarch64/pauth_helpers.S			\
 	lib/extensions/sme/aarch64/sme.c				\

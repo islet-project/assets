@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -31,7 +31,9 @@ unhandled_exception serror_sp_el0
 	/*
 	 * Current EL with SPx : 0x200 - 0x400.
 	 */
-unhandled_exception sync_exception_sp_elx
+vector_entry sync_spx
+	b	sync_exception_vector_entry
+end_vector_entry sync_spx
 
 vector_entry irq_sp_elx
 	b	irq_vector_entry
@@ -94,6 +96,22 @@ unhandled_exception serror_aarch32
 	ldp	x2, x3, [sp, #0x10]
 	ldp	x0, x1, [sp, #0x0]
 .endm
+
+func sync_exception_vector_entry
+	sub	sp, sp, #0x100
+	save_gp_regs
+	mov	x19, sp
+	bl	tftf_sync_exception_handler
+	cbnz	x0, 0f
+	mov	x0, x19
+	/* Save original stack pointer value on the stack */
+	add	x1, x0, #0x100
+	str	x1, [x0, #0xf8]
+	b	print_exception
+0:	restore_gp_regs
+	add	sp, sp, #0x100
+	eret
+endfunc sync_exception_vector_entry
 
 func irq_vector_entry
 	sub	sp, sp, #0x100
