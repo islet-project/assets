@@ -26,6 +26,8 @@
 #define RMI_FNUM_VERSION_REQ		U(0x150)
 #define RMI_FNUM_GRANULE_DELEGATE	U(0x151)
 #define RMI_FNUM_GRANULE_UNDELEGATE	U(0x152)
+#define RMI_FNUM_REALM_CREATE		U(0x158)
+#define RMI_FNUM_REALM_DESTROY		U(0x159)
 
 /********************************************************************************/
 
@@ -37,6 +39,10 @@
 						RMI_FNUM_GRANULE_DELEGATE)
 #define SMC_RMM_GRANULE_UNDELEGATE	RMI_FID(SMC_64, \
 						RMI_FNUM_GRANULE_UNDELEGATE)
+#define SMC_RMM_REALM_CREATE		RMI_FID(SMC_64, \
+						RMI_FNUM_REALM_CREATE)
+#define SMC_RMM_REALM_DESTROY		RMI_FID(SMC_64, \
+						RMI_FNUM_REALM_DESTROY)
 
 #define RMI_ABI_VERSION_GET_MAJOR(_version) ((_version) >> 16)
 #define RMI_ABI_VERSION_GET_MINOR(_version) ((_version) & 0xFFFF)
@@ -49,7 +55,14 @@
 #define B_UNDELEGATED			1
 
 #define NUM_CPU_DED_SPM			PLATFORM_CORE_COUNT / 2
-
+/* 
+ * The error code 513 is the packed version of the
+ * rmm error {RMM_STATUS_ERROR_INPUT,2} 
+ * happened when Granule(params_ptr).pas != NS
+ */
+#define RMM_STATUS_ERROR_INPUT		513UL
 u_register_t realm_version(void);
 u_register_t realm_granule_delegate(uintptr_t);
 u_register_t realm_granule_undelegate(uintptr_t);
+u_register_t realm_create(uintptr_t, uintptr_t);
+u_register_t realm_destroy(uintptr_t);

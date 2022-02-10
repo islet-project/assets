@@ -14,5 +14,7 @@
                 function="rl_memory_cannot_be_accessed_in_ns" />
       <testcase name="Access Secure memory from NS world"
                 function="s_memory_cannot_be_accessed_in_ns" />
+      <testcase name="Access Secure memory from Realm world"
+                function="s_memory_cannot_be_accessed_in_rl" />
   </testsuite>
 </testsuites>
