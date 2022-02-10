@@ -68,6 +68,8 @@
              description="Test FF-A Memory Sharing ABIs" >
      <testcase name="Lend Memory to Secure World"
                function="test_mem_lend_sp" />
+     <testcase name="Lend memory, clear flag set"
+               function="test_mem_share_to_sp_clear_memory"/>
      <testcase name="Share Memory with Secure World"
                function="test_mem_share_sp" />
      <testcase name="Donate Memory to Secure World"

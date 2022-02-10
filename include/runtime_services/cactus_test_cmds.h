@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -196,15 +196,27 @@ static inline ffa_id_t cactus_deadlock_get_next_dest2(smc_ret_values ret)
 
 static inline smc_ret_values cactus_mem_send_cmd(
 	ffa_id_t source, ffa_id_t dest, uint32_t mem_func,
-	ffa_memory_handle_t handle)
+	ffa_memory_handle_t handle, ffa_memory_region_flags_t retrieve_flags,
+	uint32_t word_to_write)
 {
 	return cactus_send_cmd(source, dest, CACTUS_MEM_SEND_CMD, mem_func,
-			       handle, 0, 0);
+			       handle, retrieve_flags, word_to_write);
 }
 
 static inline ffa_memory_handle_t cactus_mem_send_get_handle(smc_ret_values ret)
 {
 	return (ffa_memory_handle_t)ret.ret5;
+}
+
+static inline ffa_memory_region_flags_t cactus_mem_send_get_retrv_flags(
+	smc_ret_values ret)
+{
+	return (ffa_memory_region_flags_t)ret.ret6;
+}
+
+static inline uint32_t cactus_mem_send_words_to_write(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret7;
 }
 
 /**
