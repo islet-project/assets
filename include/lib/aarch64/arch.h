@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2013-2022, Arm Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -254,6 +254,9 @@
 #define ID_AA64MMFR1_EL1_HCX_MASK		ULL(0xf)
 #define ID_AA64MMFR1_EL1_HCX_SUPPORTED		ULL(0x1)
 #define ID_AA64MMFR1_EL1_HCX_NOT_SUPPORTED	ULL(0x0)
+#define ID_AA64MMFR1_EL1_AFP_SHIFT		U(44)
+#define ID_AA64MMFR1_EL1_AFP_MASK		ULL(0xf)
+#define ID_AA64MMFR1_EL1_AFP_SUPPORTED		ULL(0x1)
 
 /* ID_AA64MMFR2_EL1 definitions */
 #define ID_AA64MMFR2_EL1		S3_0_C0_C7_2
@@ -641,6 +644,13 @@
 
 #define MAX_CACHE_LINE_SIZE	U(0x800) /* 2KB */
 
+/*
+ * FPCR definitions
+ */
+#define FPCR_FIZ_BIT		(ULL(1) << 0)
+#define FPCR_AH_BIT		(ULL(1) << 1)
+#define FPCR_NEP_BIT		(ULL(1) << 2)
+
 /* Physical timer control register bit fields shifts and masks */
 #define CNTP_CTL_ENABLE_SHIFT   U(0)
 #define CNTP_CTL_IMASK_SHIFT    U(1)
@@ -866,7 +876,18 @@
 /*******************************************************************************
  * Definitions for system register interface to SPE
  ******************************************************************************/
+#define PMSCR_EL1		S3_0_C9_C9_0
+#define PMSNEVFR_EL1		S3_0_C9_C9_1
+#define PMSICR_EL1		S3_0_C9_C9_2
+#define PMSIRR_EL1		S3_0_C9_C9_3
+#define PMSFCR_EL1		S3_0_C9_C9_4
+#define PMSEVFR_EL1		S3_0_C9_C9_5
+#define PMSLATFR_EL1		S3_0_C9_C9_6
+#define PMSIDR_EL1		S3_0_C9_C9_7
 #define PMBLIMITR_EL1		S3_0_C9_C10_0
+#define PMBPTR_EL1		S3_0_C9_C10_1
+#define PMBSR_EL1		S3_0_C9_C10_3
+#define PMSCR_EL2		S3_4_C9_C9_0
 
 /*******************************************************************************
  * Definitions for system register interface to MPAM

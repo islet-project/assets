@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -269,6 +269,14 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		if (!get_armv8_0_sys_reg_trace_support()) {			\
 			tftf_testcase_printf("ARMv8-system register"		\
 					     "trace not supported\n");		\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (false)
+
+#define SKIP_TEST_IF_AFP_NOT_SUPPORTED()					\
+	do {									\
+		if (!get_feat_afp_present()) {					\
+			tftf_testcase_printf("ARMv8.7-afp not supported");	\
 			return TEST_RESULT_SKIPPED;				\
 		}								\
 	} while (false)
