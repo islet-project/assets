@@ -18,5 +18,7 @@
                 function="s_memory_cannot_be_accessed_in_rl" />
       <testcase name="Access from a SP to a Root region"
                 function="rt_memory_cannot_be_accessed_in_s" />
+      <testcase name="Access Root memory from Realm world"
+                function="rt_memory_cannot_be_accessed_in_rl" />
   </testsuite>
 </testsuites>
