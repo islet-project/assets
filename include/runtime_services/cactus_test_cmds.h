@@ -545,4 +545,17 @@ static inline uint32_t cactus_get_req_count(smc_ret_values ret)
 	return (uint32_t)ret.ret4;
 }
 
+/**
+ * Request SP to return the last serviced secure virtual interrupt.
+ *
+ * The command id is the hex representaton of the string "vINT"
+ */
+#define CACTUS_LAST_INTERRUPT_SERVICED_CMD U(0x76494e54)
+
+static inline smc_ret_values cactus_get_last_interrupt_cmd(
+	ffa_id_t source, ffa_id_t dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_LAST_INTERRUPT_SERVICED_CMD,
+				 0, 0, 0, 0);
+}
 #endif

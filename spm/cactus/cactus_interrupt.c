@@ -22,11 +22,15 @@ extern void notification_pending_interrupt_handler(void);
 
 extern ffa_id_t g_ffa_id;
 
+/* Secure virtual interrupt that was last handled by Cactus SP. */
+uint32_t last_serviced_interrupt[PLATFORM_CORE_COUNT];
+
 extern spinlock_t sp_handler_lock[NUM_VINT_ID];
 
 void cactus_interrupt_handler(void)
 {
 	uint32_t intid = spm_interrupt_get();
+	unsigned int core_pos = get_current_core_id();
 
 	switch (intid) {
 	case MANAGED_EXIT_INTERRUPT_ID:
@@ -61,6 +65,8 @@ void cactus_interrupt_handler(void)
 			 intid);
 		panic();
 	}
+
+	last_serviced_interrupt[core_pos] = intid;
 
 	/* Invoke the tail end handler registered by the SP. */
 	spin_lock(&sp_handler_lock[intid]);

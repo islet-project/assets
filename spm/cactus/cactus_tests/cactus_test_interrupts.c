@@ -14,6 +14,8 @@
 
 #include <platform.h>
 
+/* Secure virtual interrupt that was last handled by Cactus SP. */
+extern uint32_t last_serviced_interrupt[PLATFORM_CORE_COUNT];
 static int flag_set;
 
 static void sec_wdog_interrupt_handled(void)
@@ -166,4 +168,13 @@ fail:
 	return cactus_error_resp(ffa_dir_msg_dest(*args),
 				 ffa_dir_msg_source(*args),
 				 CACTUS_ERROR_TEST);
+}
+
+CACTUS_CMD_HANDLER(interrupt_serviced_cmd, CACTUS_LAST_INTERRUPT_SERVICED_CMD)
+{
+	unsigned int core_pos = get_current_core_id();
+
+	return cactus_response(ffa_dir_msg_dest(*args),
+			       ffa_dir_msg_source(*args),
+			       last_serviced_interrupt[core_pos]);
 }
