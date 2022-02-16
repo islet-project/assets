@@ -20,6 +20,9 @@
 #include <xlat_tables_v2.h>
 
 #include <platform_def.h>
+#include <cactus_test_cmds.h>
+#include <ffa_endpoints.h>
+
 
 /*
  * Using "__aarch64__" here looks weird but its unavoidable because of following reason
@@ -30,8 +33,14 @@
  */
 #ifdef __aarch64__
 
+#define SENDER HYP_ID
+#define RECEIVER SP_ID(1)
+
 static volatile bool sync_exception_triggered;
 static volatile bool data_abort_triggered;
+static const struct ffa_uuid expected_sp_uuids[] = {
+		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
+};
 
 static __aligned(PAGE_SIZE) uint64_t share_page[PAGE_SIZE / sizeof(uint64_t)];
 
@@ -263,6 +272,75 @@ static test_result_t memory_cannot_be_accessed_in_rl(u_register_t params)
 	retrmm = realm_granule_undelegate((u_register_t)&rd[0]);
 	if (retrmm != 0UL) {
 		INFO("Undelegate operation returns fail, %lx\n", retrmm);
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * @Test_Aim@ Check a root region cannot be accessed from a secure partition.
+ *
+ * This change adds TFTF and cactus test to permit checking a root region
+ * cannot be accessed from secure world.
+ * A hardcoded address marked Root in the GPT is shared to a secure
+ * partition. The SP retrieves the region from the SPM, maps it and
+ * attempts a read access to the region. It is expected to trigger a GPF
+ * data abort on the PE caught by a custom exception handler.
+ *
+ */
+test_result_t rt_memory_cannot_be_accessed_in_s(void)
+{
+	const uintptr_t test_address = EL3_MEMORY_ACCESS_ADDR;
+	struct ffa_memory_region_constituent constituents[] = {
+		{
+			(void *)test_address, 1, 0
+		}
+	};
+	const uint32_t constituents_count = sizeof(constituents) /
+		sizeof(struct ffa_memory_region_constituent);
+	ffa_memory_handle_t handle;
+	struct mailbox_buffers mb;
+	smc_ret_values ret;
+
+	if (get_armv9_2_feat_rme_support() == 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
+	INIT_TFTF_MAILBOX(mb);
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	GET_TFTF_MAILBOX(mb);
+
+	handle = memory_init_and_send((struct ffa_memory_region *)mb.send,
+					PAGE_SIZE, SENDER, RECEIVER,
+					constituents, constituents_count,
+					FFA_MEM_SHARE_SMC32, &ret);
+
+	if (handle == FFA_MEMORY_HANDLE_INVALID) {
+		return TEST_RESULT_FAIL;
+	}
+
+	VERBOSE("TFTF - Handle: %llx Address: %p\n",
+		handle, constituents[0].address);
+
+	/* Retrieve the shared page and attempt accessing it. */
+	ret = cactus_mem_send_cmd(SENDER, RECEIVER, FFA_MEM_SHARE_SMC32,
+				  handle, 0, true, 1);
+
+	if (is_ffa_call_error(ffa_mem_reclaim(handle, 0))) {
+		ERROR("Memory reclaim failed!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Expect success response with value 1 hinting an exception
+	 * triggered while the SP accessed the region.
+	 */
+	if (!(cactus_get_response(ret) == CACTUS_SUCCESS &&
+	      cactus_error_code(ret) == 1)) {
+		ERROR("Exceptions test failed!\n");
 		return TEST_RESULT_FAIL;
 	}
 

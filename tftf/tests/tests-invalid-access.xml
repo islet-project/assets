@@ -16,5 +16,7 @@
                 function="s_memory_cannot_be_accessed_in_ns" />
       <testcase name="Access Secure memory from Realm world"
                 function="s_memory_cannot_be_accessed_in_rl" />
+      <testcase name="Access from a SP to a Root region"
+                function="rt_memory_cannot_be_accessed_in_s" />
   </testsuite>
 </testsuites>
