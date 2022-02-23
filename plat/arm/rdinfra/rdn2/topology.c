@@ -28,6 +28,7 @@ static const struct {
 	{ 6, 0 },
 	/* Cluster7: 1 core */
 	{ 7, 0 },
+#if (CSS_SGI_PLATFORM_VARIANT == 0)
 	/* Cluster8: 1 core */
 	{ 8, 0 },
 	/* Cluster9: 1 core */
@@ -44,6 +45,7 @@ static const struct {
 	{ 14, 0 },
 	/* Cluster15: 1 core */
 	{ 15, 0 },
+#endif
 };
 
 /*
@@ -71,6 +73,7 @@ const unsigned char plat_pd_tree_desc[] = {
 	CSS_SGI_MAX_CPUS_PER_CLUSTER,
 	/* Number of children for the 8th node */
 	CSS_SGI_MAX_CPUS_PER_CLUSTER,
+#if (CSS_SGI_PLATFORM_VARIANT == 0)
 	/* Number of children for the 9th node */
 	CSS_SGI_MAX_CPUS_PER_CLUSTER,
 	/* Number of children for the 10th node */
@@ -87,6 +90,7 @@ const unsigned char plat_pd_tree_desc[] = {
 	CSS_SGI_MAX_CPUS_PER_CLUSTER,
 	/* Number of children for the 16th node */
 	CSS_SGI_MAX_CPUS_PER_CLUSTER
+#endif
 };
 
 const unsigned char *tftf_plat_get_pwr_domain_tree_desc(void)
