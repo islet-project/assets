@@ -90,6 +90,15 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (0)
 
+#define SKIP_TEST_IF_DIT_NOT_SUPPORTED()					\
+	do {									\
+		if (!is_armv8_4_dit_present()) {				\
+			tftf_testcase_printf(					\
+				"DIT not supported\n");				\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (0)
+
 #define SKIP_TEST_IF_PAUTH_NOT_SUPPORTED()					\
 	do {									\
 		if (!is_armv8_3_pauth_present()) {				\

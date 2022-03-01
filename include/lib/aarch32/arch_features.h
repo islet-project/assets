@@ -42,6 +42,12 @@ static inline bool get_armv8_4_trf_support(void)
 		ID_DFR0_TRACEFILT_SUPPORTED;
 }
 
+static inline bool is_armv8_4_dit_present(void)
+{
+	return ((read_id_pfr0() >> ID_PFR0_DIT_SHIFT) &
+		ID_PFR0_DIT_MASK) != 0;
+}
+
 static inline bool get_armv8_0_sys_reg_trace_support(void)
 {
 	return ((read_id_dfr0() >> ID_DFR0_COPTRC_SHIFT) &
