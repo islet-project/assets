@@ -25,6 +25,7 @@
   <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
   <!ENTITY tests-debugfs SYSTEM "tests-debugfs.xml">
   <!ENTITY tests-realm-payload SYSTEM "tests-realm-payload.xml">
+  <!ENTITY tests-invalid-access SYSTEM "tests-invalid-access.xml">
 ]>
 
 <testsuites>
@@ -45,5 +46,6 @@
   &tests-pmu-leakage;
   &tests-debugfs;
   &tests-realm-payload;
+  &tests-invalid-access;
 
 </testsuites>

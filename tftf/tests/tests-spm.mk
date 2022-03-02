@@ -16,4 +16,10 @@ TESTS_SOURCES	+=							\
 		test_ffa_notifications.c				\
 		test_spm_cpu_features.c					\
 		test_spm_smmu.c						\
+		test_ffa_exceptions.c					\
+	)
+
+TESTS_SOURCES	+=							\
+	$(addprefix tftf/tests/runtime_services/realm_payload/,		\
+		realm_payload_test_helpers.c				\
 	)

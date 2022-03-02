@@ -31,14 +31,16 @@ unhandled_exception serr_sp0
 	/*
 	 * Current EL with SPx : 0x200 - 0x400.
 	 */
-unhandled_exception sync_spx
+vector_entry sync_spx
+	b	sync_exception_vector_entry
+end_vector_entry sync_spx
 
 vector_entry irq_spx
-	b	irq_vector_entry
+	b	interrupt_vector_entry
 end_vector_entry irq_spx
 
 vector_entry fiq_spx
-	b	fiq_vector_entry
+	b	interrupt_vector_entry
 end_vector_entry fiq_spx
 
 unhandled_exception serr_spx
@@ -98,23 +100,30 @@ unhandled_exception serr_a32
 	ldp	x0, x1, [sp, #0x0]
 .endm
 
-func irq_vector_entry
+func sync_exception_vector_entry
 	sub	sp, sp, #0x100
 	save_gp_regs
-	bl	cactus_interrupt_handler
-	restore_gp_regs
+	mov	x19, sp
+	bl	tftf_sync_exception_handler
+	cbnz	x0, 0f
+	mov x0, x19
+	/* Save original stack pointer value on the stack */
+	add	x1, x0, #0x100
+	str	x1, [x0, #0xf8]
+	b print_exception
+0:	restore_gp_regs
 	add	sp, sp, #0x100
 	eret
-endfunc irq_vector_entry
+endfunc sync_exception_vector_entry
 
-func fiq_vector_entry
+func interrupt_vector_entry
 	sub	sp, sp, #0x100
 	save_gp_regs
 	bl	cactus_interrupt_handler
 	restore_gp_regs
 	add	sp, sp, #0x100
 	eret
-endfunc fiq_vector_entry
+endfunc interrupt_vector_entry
 
 func crash_dump
 	/* Save general-purpose registers on the stack. */

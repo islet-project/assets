@@ -68,6 +68,7 @@ CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
 			lib/smc/${ARCH}/asm_smc.S			\
 			lib/smc/${ARCH}/smc.c				\
 			lib/smc/${ARCH}/hvc.c				\
+			lib/exceptions/${ARCH}/sync.c			\
 			lib/locks/${ARCH}/spinlock.S			\
 			lib/utils/mp_printf.c				\
 			${XLAT_TABLES_LIB_SRCS}
