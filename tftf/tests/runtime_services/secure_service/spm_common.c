@@ -529,7 +529,7 @@ bool ffa_partition_info_helper(struct mailbox_buffers *mb,
 	smc_ret_values ret = ffa_partition_info_get(uuid);
 
 	if (ffa_func_id(ret) == FFA_SUCCESS_SMC32) {
-		if (ret.ret2 != expected_size) {
+		if (ffa_partition_info_count(ret) != expected_size) {
 			ERROR("Unexpected number of partitions %ld\n", ret.ret2);
 			return false;
 		}
