@@ -22,7 +22,7 @@ static bool data_abort_gpf_handler(void)
 {
 	uint64_t esr_el1 = read_esr_el1();
 
-	VERBOSE("%s count %u esr_el1 %llx elr_el1 %llx\n",
+	VERBOSE("%s count %u esr_el1 %llx elr_el1 %lx\n",
 		__func__, data_abort_gpf_triggered, esr_el1,
 		read_elr_el1());
 

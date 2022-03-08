@@ -28,10 +28,6 @@
  */
 #ifdef __aarch64__
 
-#ifndef EL3_MEMORY_ACCESS_ADDR
-#define EL3_MEMORY_ACCESS_ADDR		U(0xFFFFFFFF)
-#endif
-
 static volatile bool sync_exception_triggered;
 static volatile bool data_abort_triggered;
 
@@ -70,8 +66,6 @@ static bool data_abort_handler(void)
 test_result_t access_el3_memory_from_ns(void)
 {
 	const uintptr_t test_address = EL3_MEMORY_ACCESS_ADDR;
-
-	SKIP_TEST_IF_INVALID_ADDRESS(test_address);
 
 	VERBOSE("Attempt to access el3 memory (0x%lx)\n", test_address);
 
