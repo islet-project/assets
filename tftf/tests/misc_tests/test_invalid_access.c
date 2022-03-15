@@ -17,6 +17,8 @@
 #include <lib/aarch64/arch_features.h>
 #include <runtime_services/realm_payload/realm_payload_test.h>
 #include <tftf_lib.h>
+#include <xlat_tables_v2.h>
+
 #include <platform_def.h>
 
 /*
@@ -69,14 +71,25 @@ test_result_t access_el3_memory_from_ns(void)
 
 	VERBOSE("Attempt to access el3 memory (0x%lx)\n", test_address);
 
+	sync_exception_triggered = false;
 	data_abort_triggered = false;
+
+	int rc = mmap_add_dynamic_region(test_address, test_address, PAGE_SIZE,
+					MT_MEMORY | MT_RW | MT_NS);
+	if (rc != 0) {
+		tftf_testcase_printf("%d: mmap_add_dynamic_region() = %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
 	register_custom_sync_exception_handler(data_abort_handler);
-	dsbsy();
-
 	*((volatile uint64_t *)test_address);
-
-	dsbsy();
 	unregister_custom_sync_exception_handler();
+
+	rc = mmap_remove_dynamic_region(test_address, PAGE_SIZE);
+	if (rc != 0) {
+		tftf_testcase_printf("%d: mmap_remove_dynamic_region() = %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
 
 	if (sync_exception_triggered == false) {
 		tftf_testcase_printf("No sync exception while accessing (0x%lx)\n", test_address);
