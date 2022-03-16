@@ -240,7 +240,7 @@ test_result_t test_ffa_rxtx_map_success(void)
  */
 test_result_t test_ffa_rxtx_map_fail(void)
 {
-	INFO("This test expects error log.\n");
+	VERBOSE("This test expects error log.\n");
 	return test_ffa_rxtx_map(FFA_ERROR);
 }
 
@@ -282,7 +282,7 @@ test_result_t test_ffa_rxtx_unmap_success(void)
  */
 test_result_t test_ffa_rxtx_unmap_fail(void)
 {
-	INFO("This test expects error log.\n");
+	VERBOSE("This test expects error log.\n");
 	return test_ffa_rxtx_unmap(FFA_ERROR);
 }
 
@@ -296,7 +296,7 @@ test_result_t test_ffa_rxtx_map_unmapped_success(void)
 	test_result_t ret =  test_ffa_rxtx_map(FFA_SUCCESS_SMC32);
 
 	if (ret == TEST_RESULT_SUCCESS) {
-		INFO("Set RXTX Mailbox for remaining spm tests.\n");
+		VERBOSE("Set RXTX Mailbox for remaining spm tests.\n");
 		set_tftf_mailbox(&mb);
 	}
 	return ret;
