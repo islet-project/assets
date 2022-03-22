@@ -65,7 +65,7 @@ static bool data_abort_handler(void)
 	return false;
 }
 
-test_result_t access_el3_memory_from_ns(void)
+test_result_t el3_memory_cannot_be_accessed_in_ns(void)
 {
 	const uintptr_t test_address = EL3_MEMORY_ACCESS_ADDR;
 
@@ -163,9 +163,61 @@ out_unregister:
 	return result;
 }
 
+/**
+ * @Test_Aim@ Check a secure region cannot be accessed from normal world.
+ *
+ * Following test intends to run on RME enabled platforms when EL3
+ * is Root world. In a non RME platform, EL3 is secure.
+ * Access to secure memory from NS world is already covered
+ * by el3_memory_cannot_be_accessed_in_ns.
+ */
+test_result_t s_memory_cannot_be_accessed_in_ns(void)
+{
+	const uintptr_t test_address = SECURE_MEMORY_ACCESS_ADDR;
+
+	/* skipp non RME platforms */
+	if (get_armv9_2_feat_rme_support() == 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
+	VERBOSE("Attempt to access secure memory (0x%lx)\n", test_address);
+
+	data_abort_triggered = false;
+	sync_exception_triggered = false;
+	register_custom_sync_exception_handler(data_abort_handler);
+	dsbsy();
+
+	int rc = mmap_add_dynamic_region(test_address, test_address, PAGE_SIZE,
+					MT_MEMORY | MT_RW | MT_NS);
+
+	if (rc != 0) {
+		tftf_testcase_printf("%d: mmap_add_dynamic_region() = %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
+	*((volatile uint64_t *)test_address);
+
+	mmap_remove_dynamic_region(test_address, PAGE_SIZE);
+
+	dsbsy();
+	unregister_custom_sync_exception_handler();
+
+	if (sync_exception_triggered == false) {
+		tftf_testcase_printf("No sync exception while accessing (0x%lx)\n", test_address);
+		return TEST_RESULT_SKIPPED;
+	}
+
+	if (data_abort_triggered == false) {
+		tftf_testcase_printf("Sync exception is not data abort\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
 #else
 
-test_result_t access_el3_memory_from_ns(void)
+test_result_t el3_memory_cannot_be_accessed_in_ns(void)
 {
 	tftf_testcase_printf("Test not ported to AArch32\n");
 	return TEST_RESULT_SKIPPED;
@@ -177,4 +229,9 @@ test_result_t rl_memory_cannot_be_accessed_in_ns(void)
 	return TEST_RESULT_SKIPPED;
 }
 
+test_result_t s_memory_cannot_be_accessed_in_ns(void)
+{
+	tftf_testcase_printf("Test not ported to AArch32\n");
+	return TEST_RESULT_SKIPPED;
+}
 #endif /* __aarch64__ */
