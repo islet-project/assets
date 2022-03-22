@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -59,7 +59,7 @@
 #define SGI_GICC_BASE			0x2C000000
 
 /* SoC's PL011 UART0 related constants */
-#define SGI_PL011_UART0_BASE		0x7FF80000
+#define SGI_PL011_UART0_BASE		UL(0x2A410000)
 #define SGI_PL011_UART0_CLK_IN_HZ	7372800
 
 #define PLAT_ARM_UART_BASE		SGI_PL011_UART0_BASE
