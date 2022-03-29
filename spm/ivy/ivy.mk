@@ -42,7 +42,6 @@ IVY_SOURCES	:=					\
 		ivy_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
-		aarch64/sp_arch_helpers.S		\
 		sp_debug.c				\
 		sp_helpers.c				\
 		spm_helpers.c				\
@@ -61,6 +60,7 @@ endif
 IVY_SOURCES	+=					\
 	tftf/framework/debug.c				\
 	tftf/framework/${ARCH}/asm_debug.S		\
+	tftf/tests/runtime_services/secure_service/${ARCH}/ffa_arch_helpers.S \
 	tftf/tests/runtime_services/secure_service/ffa_helpers.c
 
 IVY_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\

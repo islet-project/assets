@@ -47,7 +47,7 @@ test_result_t rl_memory_cannot_be_accessed_in_s(void)
 		sizeof(struct ffa_memory_region_constituent);
 	ffa_memory_handle_t handle;
 	struct mailbox_buffers mb;
-	smc_ret_values ret;
+	struct ffa_value ret;
 	u_register_t retmm;
 
 	if (get_armv9_2_feat_rme_support() == 0U) {

@@ -24,7 +24,7 @@ static const struct ffa_uuid expected_sp_uuids[] = {
 static bool configure_trusted_wdog_interrupt(ffa_id_t source, ffa_id_t dest,
 				bool enable)
 {
-	smc_ret_values ret_values;
+	struct ffa_value ret_values;
 
 	ret_values = cactus_interrupt_cmd(source, dest, IRQ_TWDOG_INTID,
 					  enable, INTERRUPT_TYPE_IRQ);
@@ -96,7 +96,7 @@ static bool disable_trusted_wdog_interrupt(ffa_id_t source, ffa_id_t dest)
 
 test_result_t test_ffa_sec_interrupt_sp_running(void)
 {
-	smc_ret_values ret_values;
+	struct ffa_value ret_values;
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
@@ -200,7 +200,7 @@ test_result_t test_ffa_sec_interrupt_sp_waiting(void)
 	uint64_t time1;
 	volatile uint64_t time2, time_lapsed;
 	uint64_t timer_freq = read_cntfrq_el0();
-	smc_ret_values ret_values;
+	struct ffa_value ret_values;
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
@@ -299,7 +299,7 @@ test_result_t test_ffa_sec_interrupt_sp_waiting(void)
  */
 test_result_t test_ffa_sec_interrupt_sp_blocked(void)
 {
-	smc_ret_values ret_values;
+	struct ffa_value ret_values;
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
@@ -399,7 +399,7 @@ test_result_t test_ffa_sec_interrupt_sp_blocked(void)
  */
 test_result_t test_ffa_sec_interrupt_sp1_waiting_sp2_running(void)
 {
-	smc_ret_values ret_values;
+	struct ffa_value ret_values;
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 

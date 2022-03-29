@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -53,7 +53,7 @@ static ffa_notification_bitmap_t g_notifications = FFA_NOTIFICATION(0)  |
  */
 test_result_t test_notifications_retrieve_int_ids(void)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
 
@@ -104,7 +104,8 @@ static bool notifications_bitmap_create(ffa_id_t vm_id,
 {
 	VERBOSE("Creating bitmap for VM %x; cpu count: %u.\n",
 		vm_id, vcpu_count);
-	smc_ret_values ret = ffa_notification_bitmap_create(vm_id, vcpu_count);
+	struct ffa_value ret = ffa_notification_bitmap_create(vm_id,
+							      vcpu_count);
 
 	return !is_ffa_call_error(ret);
 }
@@ -115,7 +116,7 @@ static bool notifications_bitmap_create(ffa_id_t vm_id,
 static bool notifications_bitmap_destroy(ffa_id_t vm_id)
 {
 	VERBOSE("Destroying bitmap of VM %x.\n", vm_id);
-	smc_ret_values ret = ffa_notification_bitmap_destroy(vm_id);
+	struct ffa_value ret = ffa_notification_bitmap_destroy(vm_id);
 
 	return !is_ffa_call_error(ret);
 }
@@ -157,7 +158,7 @@ test_result_t test_ffa_notifications_destroy_not_created(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	smc_ret_values ret = ffa_notification_bitmap_destroy(VM_ID(1));
+	struct ffa_value ret = ffa_notification_bitmap_destroy(VM_ID(1));
 
 	if (!is_expected_ffa_error(ret, FFA_ERROR_DENIED)) {
 		return TEST_RESULT_FAIL;
@@ -172,7 +173,7 @@ test_result_t test_ffa_notifications_destroy_not_created(void)
  */
 test_result_t test_ffa_notifications_create_after_create(void)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 	const ffa_id_t vm_id = VM_ID(2);
 
 	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
@@ -217,7 +218,7 @@ static bool request_notification_bind(
 	ffa_notification_bitmap_t notifications, uint32_t flags,
 	uint32_t expected_resp, uint32_t error_code)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("TFTF requesting SP to bind notifications!\n");
 
@@ -248,7 +249,7 @@ static bool request_notification_unbind(
 	ffa_notification_bitmap_t notifications, uint32_t expected_resp,
 	uint32_t error_code)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("TFTF requesting SP to unbind notifications!\n");
 
@@ -307,7 +308,7 @@ test_result_t test_ffa_notifications_vm_bind_unbind(void)
 {
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 	const ffa_id_t vm_id = VM_ID(1);
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	if (!notifications_bitmap_create(vm_id, 1)) {
 		return TEST_RESULT_FAIL;
@@ -340,7 +341,7 @@ test_result_t test_ffa_notifications_vm_bind_vm(void)
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 	const ffa_id_t vm_id = VM_ID(1);
 	const ffa_id_t sender_id = VM_ID(2);
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	if (!notifications_bitmap_create(vm_id, 1)) {
 		return TEST_RESULT_FAIL;
@@ -458,7 +459,7 @@ test_result_t test_ffa_notifications_bind_unbind_zeroed(void)
  */
 static bool request_notification_get(
 	ffa_id_t cmd_dest, ffa_id_t receiver, uint32_t vcpu_id, uint32_t flags,
-	bool check_npi_handled, smc_ret_values *response)
+	bool check_npi_handled, struct ffa_value *response)
 {
 	VERBOSE("TFTF requesting SP to get notifications!\n");
 
@@ -474,7 +475,7 @@ static bool request_notification_set(
 	ffa_notification_bitmap_t notifications, ffa_id_t echo_dest,
 	uint32_t exp_resp, int32_t exp_error)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("TFTF requesting SP %x (as %x) to set notifications to %x\n",
 		cmd_dest, sender, receiver);
@@ -501,7 +502,7 @@ static bool notification_set(ffa_id_t receiver, ffa_id_t sender,
 			     uint32_t flags,
 			     ffa_notification_bitmap_t notifications)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/* Sender sets notifications to receiver. */
 	if (!IS_SP_ID(sender)) {
@@ -525,7 +526,7 @@ static bool notification_set(ffa_id_t receiver, ffa_id_t sender,
  * Check that SP's response to CACTUS_NOTIFICATION_GET_CMD is as expected.
  */
 static bool is_notifications_get_as_expected(
-	smc_ret_values *ret, uint64_t exp_from_sp, uint64_t exp_from_vm,
+	struct ffa_value *ret, uint64_t exp_from_sp, uint64_t exp_from_vm,
 	ffa_id_t receiver)
 {
 	uint64_t from_sp;
@@ -564,7 +565,7 @@ static bool is_notifications_get_as_expected(
 }
 
 static bool is_notifications_info_get_as_expected(
-	smc_ret_values *ret, uint16_t *ids, uint32_t *lists_sizes,
+	struct ffa_value *ret, uint16_t *ids, uint32_t *lists_sizes,
 	const uint32_t max_ids_count, uint32_t lists_count, bool more_pending)
 {
 	if (lists_count != ffa_notifications_info_get_lists_count(*ret) ||
@@ -573,7 +574,7 @@ static bool is_notifications_info_get_as_expected(
 		      "    Lists counts: %u; more pending %u\n",
 		      ffa_notifications_info_get_lists_count(*ret),
 		      ffa_notifications_info_get_more_pending(*ret));
-		dump_smc_ret_values(*ret);
+		dump_ffa_value(*ret);
 		return false;
 	}
 
@@ -590,7 +591,7 @@ static bool is_notifications_info_get_as_expected(
 	}
 
 	/* Compare the IDs list */
-	if (memcmp(&ret->ret3, ids, sizeof(ids[0]) * max_ids_count) != 0) {
+	if (memcmp(&ret->arg3, ids, sizeof(ids[0]) * max_ids_count) != 0) {
 		ERROR("List of IDs not as expected\n");
 		return false;
 	}
@@ -608,7 +609,7 @@ static bool is_notifications_info_get_as_expected(
 static bool notification_bind_and_set(ffa_id_t sender,
 	ffa_id_t receiver, ffa_notification_bitmap_t notifications, uint32_t flags)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 	uint32_t flags_bind = flags & FFA_NOTIFICATIONS_FLAG_PER_VCPU;
 
 	/* Receiver binds notifications to sender. */
@@ -639,7 +640,7 @@ static bool notification_get_and_validate(
 	ffa_notification_bitmap_t exp_from_vm, uint32_t vcpu_id,
 	uint32_t flags, bool check_npi_handled)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/* Receiver gets pending notifications. */
 	if (IS_SP_ID(receiver)) {
@@ -658,7 +659,7 @@ static bool notifications_info_get(
 	uint32_t *expected_lists_sizes, const uint32_t max_ids_count,
 	bool expected_more_pending)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("Getting pending notification's info.\n");
 
@@ -700,7 +701,7 @@ static bool notification_pending_interrupt_sp_enable(ffa_id_t receiver,
 						     bool enable)
 {
 	VERBOSE("Configuring NPI to receiver: %x\n", receiver);
-	smc_ret_values ret = cactus_interrupt_cmd(
+	struct ffa_value ret = cactus_interrupt_cmd(
 		HYP_ID, receiver, NOTIFICATION_PENDING_INTERRUPT_INTID,
 		enable, INTERRUPT_TYPE_IRQ);
 
@@ -836,7 +837,7 @@ test_result_t test_ffa_notifications_sp_signals_vm(void)
 	const ffa_id_t sender = SP_ID(1);
 	const ffa_id_t receiver = VM_ID(1);
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
-	smc_ret_values ret;
+	struct ffa_value ret;
 	test_result_t result = TEST_RESULT_SUCCESS;
 
 	/* Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
@@ -961,7 +962,7 @@ test_result_t test_ffa_notifications_info_get_none(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	ret = ffa_notification_info_get();
 
@@ -1265,7 +1266,7 @@ test_result_t test_ffa_notifications_sp_signals_vm_per_vcpu(void)
 	const bool exp_more_notif_pending = false;
 	test_result_t result = TEST_RESULT_SUCCESS;
 	uint64_t notifications_to_unbind = 0;
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
 
@@ -1339,7 +1340,7 @@ test_result_t test_ffa_notifications_sp_signals_sp_immediate_sri(void)
 	const ffa_id_t sender = SP_ID(1);
 	const ffa_id_t receiver = SP_ID(2);
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
-	smc_ret_values ret;
+	struct ffa_value ret;
 	test_result_t result = TEST_RESULT_SUCCESS;
 
 	/** Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */
@@ -1431,7 +1432,7 @@ test_result_t test_ffa_notifications_sp_signals_sp_delayed_sri(void)
 	const ffa_id_t echo_dest = SP_ID(1);
 	uint32_t echo_dest_cmd_count = 0;
 	uint32_t get_flags = FFA_NOTIFICATIONS_FLAG_BITMAP_SP;
-	smc_ret_values ret;
+	struct ffa_value ret;
 	test_result_t result = TEST_RESULT_SUCCESS;
 
 	/** Variables to validate calls to FFA_NOTIFICATION_INFO_GET. */

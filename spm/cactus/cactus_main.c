@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -17,6 +17,7 @@
 #include <lib/xlat_tables/xlat_mmu_helpers.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 
+#include <ffa_helpers.h>
 #include <plat_arm.h>
 #include <plat/common/platform.h>
 #include <platform_def.h>
@@ -49,7 +50,7 @@ ffa_id_t g_ffa_id;
 
 static void __dead2 message_loop(ffa_id_t vm_id, struct mailbox_buffers *mb)
 {
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	ffa_id_t destination;
 
 	/*
@@ -226,10 +227,10 @@ void __dead2 cactus_main(bool primary_cold_boot,
 	assert(IS_IN_EL1() != 0);
 
 	struct mailbox_buffers mb;
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/* Get current FFA id */
-	smc_ret_values ffa_id_ret = ffa_id_get();
+	struct ffa_value ffa_id_ret = ffa_id_get();
 	ffa_id_t ffa_id = ffa_endpoint_id(ffa_id_ret);
 	if (ffa_func_id(ffa_id_ret) != FFA_SUCCESS_SMC32) {
 		ERROR("FFA_ID_GET failed.\n");

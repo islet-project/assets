@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -8,6 +8,16 @@
 #include <ffa_endpoints.h>
 #include <ffa_helpers.h>
 #include <ffa_svc.h>
+
+struct ffa_value ffa_service_call(struct ffa_value *args)
+{
+#if IMAGE_IVY
+	ffa_svc(args);
+#else
+	ffa_smc(args);
+#endif
+	return *args;
+}
 
 /*-----------------------------------------------------------------------------
  * FFA_RUN
@@ -26,15 +36,15 @@
  *     -BUSY: vCPU is busy and caller must retry later
  *     -ABORTED: vCPU or VM ran into an unexpected error and has aborted
  */
-smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id)
+struct ffa_value ffa_run(uint32_t dest_id, uint32_t vcpu_id)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		FFA_MSG_RUN,
 		(dest_id << 16) | vcpu_id,
 		0, 0, 0, 0, 0, 0
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /*-----------------------------------------------------------------------------
@@ -55,12 +65,12 @@ smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id)
  *     -BUSY: Message target is busy
  *     -ABORTED: Message target ran into an unexpected error and has aborted
  */
-smc_ret_values ffa_msg_send_direct_req64(ffa_id_t source_id,
-					 ffa_id_t dest_id, uint64_t arg0,
-					 uint64_t arg1, uint64_t arg2,
-					 uint64_t arg3, uint64_t arg4)
+struct ffa_value ffa_msg_send_direct_req64(ffa_id_t source_id,
+					   ffa_id_t dest_id, uint64_t arg0,
+					   uint64_t arg1, uint64_t arg2,
+					   uint64_t arg3, uint64_t arg4)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MSG_SEND_DIRECT_REQ_SMC64,
 		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
 		.arg2 = 0,
@@ -71,15 +81,15 @@ smc_ret_values ffa_msg_send_direct_req64(ffa_id_t source_id,
 		.arg7 = arg4,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_msg_send_direct_req32(ffa_id_t source_id,
-					 ffa_id_t dest_id, uint32_t arg0,
-					 uint32_t arg1, uint32_t arg2,
-					 uint32_t arg3, uint32_t arg4)
+struct ffa_value ffa_msg_send_direct_req32(ffa_id_t source_id,
+					   ffa_id_t dest_id, uint32_t arg0,
+					   uint32_t arg1, uint32_t arg2,
+					   uint32_t arg3, uint32_t arg4)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MSG_SEND_DIRECT_REQ_SMC32,
 		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
 		.arg2 = 0,
@@ -90,15 +100,15 @@ smc_ret_values ffa_msg_send_direct_req32(ffa_id_t source_id,
 		.arg7 = arg4,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_msg_send_direct_resp64(ffa_id_t source_id,
-					  ffa_id_t dest_id, uint64_t arg0,
-					  uint64_t arg1, uint64_t arg2,
-					  uint64_t arg3, uint64_t arg4)
+struct ffa_value ffa_msg_send_direct_resp64(ffa_id_t source_id,
+					    ffa_id_t dest_id, uint64_t arg0,
+					    uint64_t arg1, uint64_t arg2,
+					    uint64_t arg3, uint64_t arg4)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC64,
 		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
 		.arg2 = 0,
@@ -109,15 +119,15 @@ smc_ret_values ffa_msg_send_direct_resp64(ffa_id_t source_id,
 		.arg7 = arg4,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_msg_send_direct_resp32(ffa_id_t source_id,
-					  ffa_id_t dest_id, uint32_t arg0,
-					  uint32_t arg1, uint32_t arg2,
-					  uint32_t arg3, uint32_t arg4)
+struct ffa_value ffa_msg_send_direct_resp32(ffa_id_t source_id,
+					    ffa_id_t dest_id, uint32_t arg0,
+					    uint32_t arg1, uint32_t arg2,
+					    uint32_t arg3, uint32_t arg4)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32,
 		.arg1 = ((uint32_t)(source_id << 16)) | (dest_id),
 		.arg2 = 0,
@@ -128,7 +138,7 @@ smc_ret_values ffa_msg_send_direct_resp32(ffa_id_t source_id,
 		.arg7 = arg4,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 
@@ -297,69 +307,69 @@ uint32_t ffa_memory_retrieve_request_init(
  *	-Bits[30:16]: Major version.
  *	-Bits[15:0]: Minor version.
  */
-smc_ret_values ffa_version(uint32_t input_version)
+struct ffa_value ffa_version(uint32_t input_version)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_VERSION,
 		.arg1 = input_version
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_id_get(void)
+struct ffa_value ffa_id_get(void)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_ID_GET
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_spm_id_get(void)
+struct ffa_value ffa_spm_id_get(void)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_SPM_ID_GET
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_msg_wait(void)
+struct ffa_value ffa_msg_wait(void)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MSG_WAIT
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_error(int32_t error_code)
+struct ffa_value ffa_error(int32_t error_code)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_ERROR,
 		.arg1 = 0,
 		.arg2 = error_code
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Query the higher EL if the requested FF-A feature is implemented. */
-smc_ret_values ffa_features(uint32_t feature)
+struct ffa_value ffa_features(uint32_t feature)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_FEATURES,
 		.arg1 = feature
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Get information about VMs or SPs based on UUID */
-smc_ret_values ffa_partition_info_get(const struct ffa_uuid uuid)
+struct ffa_value ffa_partition_info_get(const struct ffa_uuid uuid)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_PARTITION_INFO_GET,
 		.arg1 = uuid.uuid[0],
 		.arg2 = uuid.uuid[1],
@@ -367,23 +377,23 @@ smc_ret_values ffa_partition_info_get(const struct ffa_uuid uuid)
 		.arg4 = uuid.uuid[3]
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Query SPMD that the rx buffer of the partition can be released */
-smc_ret_values ffa_rx_release(void)
+struct ffa_value ffa_rx_release(void)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_RX_RELEASE
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Map the RXTX buffer */
-smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages)
+struct ffa_value ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_RXTX_MAP_SMC64,
 		.arg1 = send,
 		.arg2 = recv,
@@ -394,13 +404,13 @@ smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages)
 		.arg7 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Unmap the RXTX buffer allocated by the given FF-A component */
-smc_ret_values ffa_rxtx_unmap(void)
+struct ffa_value ffa_rxtx_unmap(void)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_RXTX_UNMAP,
 		.arg1 = FFA_PARAM_MBZ,
 		.arg2 = FFA_PARAM_MBZ,
@@ -411,14 +421,14 @@ smc_ret_values ffa_rxtx_unmap(void)
 		.arg7 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Donate memory to another partition */
-smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
+struct ffa_value ffa_mem_donate(uint32_t descriptor_length,
 				uint32_t fragment_length)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MEM_DONATE_SMC32,
 		.arg1 = descriptor_length,
 		.arg2 = fragment_length,
@@ -426,14 +436,14 @@ smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
 		.arg4 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Lend memory to another partition */
-smc_ret_values ffa_mem_lend(uint32_t descriptor_length,
-				uint32_t fragment_length)
+struct ffa_value ffa_mem_lend(uint32_t descriptor_length,
+			      uint32_t fragment_length)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MEM_LEND_SMC32,
 		.arg1 = descriptor_length,
 		.arg2 = fragment_length,
@@ -441,14 +451,14 @@ smc_ret_values ffa_mem_lend(uint32_t descriptor_length,
 		.arg4 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Share memory with another partition */
-smc_ret_values ffa_mem_share(uint32_t descriptor_length,
-				uint32_t fragment_length)
+struct ffa_value ffa_mem_share(uint32_t descriptor_length,
+			       uint32_t fragment_length)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MEM_SHARE_SMC32,
 		.arg1 = descriptor_length,
 		.arg2 = fragment_length,
@@ -456,14 +466,14 @@ smc_ret_values ffa_mem_share(uint32_t descriptor_length,
 		.arg4 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Retrieve memory shared by another partition */
-smc_ret_values ffa_mem_retrieve_req(uint32_t descriptor_length,
-					uint32_t fragment_length)
+struct ffa_value ffa_mem_retrieve_req(uint32_t descriptor_length,
+				      uint32_t fragment_length)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MEM_RETRIEVE_REQ_SMC32,
 		.arg1 = descriptor_length,
 		.arg2 = fragment_length,
@@ -474,37 +484,37 @@ smc_ret_values ffa_mem_retrieve_req(uint32_t descriptor_length,
 		.arg7 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Relinquish access to memory region */
-smc_ret_values ffa_mem_relinquish(void)
+struct ffa_value ffa_mem_relinquish(void)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MEM_RELINQUISH,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /* Reclaim exclusive access to owned memory region */
-smc_ret_values ffa_mem_reclaim(uint64_t handle, uint32_t flags)
+struct ffa_value ffa_mem_reclaim(uint64_t handle, uint32_t flags)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_MEM_RECLAIM,
 		.arg1 = (uint32_t) handle,
 		.arg2 = (uint32_t) (handle >> 32),
 		.arg3 = flags
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /** Create Notifications Bitmap for the given VM */
-smc_ret_values ffa_notification_bitmap_create(ffa_id_t vm_id,
-					      ffa_vcpu_count_t vcpu_count)
+struct ffa_value ffa_notification_bitmap_create(ffa_id_t vm_id,
+						ffa_vcpu_count_t vcpu_count)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_NOTIFICATION_BITMAP_CREATE,
 		.arg1 = vm_id,
 		.arg2 = vcpu_count,
@@ -515,13 +525,13 @@ smc_ret_values ffa_notification_bitmap_create(ffa_id_t vm_id,
 		.arg7 = FFA_PARAM_MBZ,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /** Destroy Notifications Bitmap for the given VM */
-smc_ret_values ffa_notification_bitmap_destroy(ffa_id_t vm_id)
+struct ffa_value ffa_notification_bitmap_destroy(ffa_id_t vm_id)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_NOTIFICATION_BITMAP_DESTROY,
 		.arg1 = vm_id,
 		.arg2 = FFA_PARAM_MBZ,
@@ -532,15 +542,15 @@ smc_ret_values ffa_notification_bitmap_destroy(ffa_id_t vm_id)
 		.arg7 = FFA_PARAM_MBZ,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /** Bind VM to all the notifications in the bitmap */
-smc_ret_values ffa_notification_bind(ffa_id_t sender, ffa_id_t receiver,
-				     uint32_t flags,
-				     ffa_notification_bitmap_t bitmap)
+struct ffa_value ffa_notification_bind(ffa_id_t sender, ffa_id_t receiver,
+				       uint32_t flags,
+				       ffa_notification_bitmap_t bitmap)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_NOTIFICATION_BIND,
 		.arg1 = (sender << 16) | (receiver),
 		.arg2 = flags,
@@ -551,15 +561,15 @@ smc_ret_values ffa_notification_bind(ffa_id_t sender, ffa_id_t receiver,
 		.arg7 = FFA_PARAM_MBZ,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
 /** Unbind previously bound VM from notifications in bitmap */
-smc_ret_values ffa_notification_unbind(ffa_id_t sender,
-				       ffa_id_t receiver,
-				       ffa_notification_bitmap_t bitmap)
+struct ffa_value ffa_notification_unbind(ffa_id_t sender,
+					 ffa_id_t receiver,
+					 ffa_notification_bitmap_t bitmap)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_NOTIFICATION_UNBIND,
 		.arg1 = (sender << 16) | (receiver),
 		.arg2 = FFA_PARAM_MBZ,
@@ -570,14 +580,14 @@ smc_ret_values ffa_notification_unbind(ffa_id_t sender,
 		.arg7 = FFA_PARAM_MBZ,
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
-				    uint32_t flags,
-				    ffa_notification_bitmap_t bitmap)
+struct ffa_value ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
+				      uint32_t flags,
+				      ffa_notification_bitmap_t bitmap)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_NOTIFICATION_SET,
 		.arg1 = (sender << 16) | (receiver),
 		.arg2 = flags,
@@ -588,13 +598,13 @@ smc_ret_values ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
 		.arg7 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
-				    uint32_t flags)
+struct ffa_value ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
+				      uint32_t flags)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_NOTIFICATION_GET,
 		.arg1 = (vcpu_id << 16) | (receiver),
 		.arg2 = flags,
@@ -605,12 +615,12 @@ smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
 		.arg7 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }
 
-smc_ret_values ffa_notification_info_get(void)
+struct ffa_value ffa_notification_info_get(void)
 {
-	smc_args args = {
+	struct ffa_value args = {
 		.fid = FFA_NOTIFICATION_INFO_GET_SMC64,
 		.arg1 = FFA_PARAM_MBZ,
 		.arg2 = FFA_PARAM_MBZ,
@@ -621,5 +631,5 @@ smc_ret_values ffa_notification_info_get(void)
 		.arg7 = FFA_PARAM_MBZ
 	};
 
-	return tftf_smc(&args);
+	return ffa_service_call(&args);
 }

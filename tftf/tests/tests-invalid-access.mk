@@ -13,6 +13,7 @@ TESTS_SOURCES	+=							\
 
 TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/secure_service/,	\
+		${ARCH}/ffa_arch_helpers.S				\
 		ffa_helpers.c						\
 		spm_common.c						\
 		test_ffa_setup_and_discovery.c				\

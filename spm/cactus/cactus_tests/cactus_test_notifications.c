@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -51,7 +51,7 @@ CACTUS_CMD_HANDLER(notifications_bind, CACTUS_NOTIFICATION_BIND_CMD)
 	ffa_notification_bitmap_t notifications =
 		cactus_notification_get_notifications(*args);
 	uint32_t flags = cactus_notification_get_flags(*args);
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("Partition %x requested to bind notifications '%llx' to %x\n",
 		source, notifications, receiver);
@@ -73,7 +73,7 @@ CACTUS_CMD_HANDLER(notifications_unbind, CACTUS_NOTIFICATION_UNBIND_CMD)
 	ffa_id_t sender = cactus_notification_get_sender(*args);
 	ffa_notification_bitmap_t notifications =
 		cactus_notification_get_notifications(*args);
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("Partition %x requested to unbind notifications '%llx' to %x\n",
 	     source, notifications, receiver);
@@ -95,7 +95,7 @@ CACTUS_CMD_HANDLER(notifications_get, CACTUS_NOTIFICATION_GET_CMD)
 				cactus_notification_get_receiver(*args);
 	uint32_t flags = cactus_notification_get_flags(*args);
 	uint32_t vcpu_id = cactus_notification_get_vcpu(*args);
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("Partition %x requested to get notifications.\n", source);
 
@@ -139,7 +139,7 @@ CACTUS_CMD_HANDLER(notifications_set, CACTUS_NOTIFICATIONS_SET_CMD)
 	ffa_id_t sender = cactus_notifications_set_get_sender(*args);
 	ffa_id_t echo_dest = cactus_req_echo_get_echo_dest(*args);
 	uint32_t flags = cactus_notification_get_flags(*args);
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	VERBOSE("Partition %x requested to set notifications.\n", source);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -18,7 +18,7 @@ static const struct ffa_uuid expected_sp_uuids[] = { {PRIMARY_UUID} };
  **************************************************************************/
 test_result_t test_smmu_spm(void)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/**********************************************************************
 	 * Check SPMC has ffa_version and expected FFA endpoints are deployed.

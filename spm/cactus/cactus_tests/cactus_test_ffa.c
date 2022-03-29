@@ -71,7 +71,7 @@ static const struct ffa_partition_info ffa_expected_partition_info[] = {
 static void ffa_features_test(void)
 {
 	const char *test_features = "FFA Features interface";
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	unsigned int expected_ret;
 	const struct ffa_features_test *ffa_feature_test_target;
 	unsigned int i, test_target_size =
@@ -109,7 +109,7 @@ static void ffa_partition_info_wrong_test(void)
 
 	announce_test_start(test_wrong_uuid);
 
-	smc_ret_values ret = ffa_partition_info_get(uuid);
+	struct ffa_value ret = ffa_partition_info_get(uuid);
 	expect(ffa_func_id(ret), FFA_ERROR);
 	expect(ffa_error_code(ret), FFA_ERROR_INVALID_PARAMETER);
 
@@ -146,8 +146,10 @@ void ffa_version_test(void)
 
 	announce_test_start(test_ffa_version);
 
-	smc_ret_values ret = ffa_version(MAKE_FFA_VERSION(FFA_MAJOR, FFA_MINOR));
-	spm_version = (uint32_t)ret.ret0;
+	struct ffa_value ret = ffa_version(MAKE_FFA_VERSION(FFA_MAJOR,
+							    FFA_MINOR));
+
+	spm_version = (uint32_t)ret.fid;
 
 	bool ffa_version_compatible =
 		((spm_version >> FFA_VERSION_MAJOR_SHIFT) == FFA_MAJOR &&
@@ -170,7 +172,7 @@ void ffa_spm_id_get_test(void)
 	announce_test_start(test_spm_id_get);
 
 	if (spm_version >= MAKE_FFA_VERSION(1, 1)) {
-		smc_ret_values ret = ffa_spm_id_get();
+		struct ffa_value ret = ffa_spm_id_get();
 
 		expect(ffa_func_id(ret), FFA_SUCCESS_SMC32);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -35,7 +35,7 @@ extern struct cactus_cmd_handler cactus_cmd_handler_end[];
  * Traverses command table from section ".cactus_handler", searches for a
  * registered command and invokes the respective handler.
  */
-bool cactus_handle_cmd(smc_ret_values *cmd_args, smc_ret_values *ret,
+bool cactus_handle_cmd(struct ffa_value *cmd_args, struct ffa_value *ret,
 		       struct mailbox_buffers *mb)
 {
 	uint64_t in_cmd;

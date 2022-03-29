@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -23,7 +23,7 @@ CACTUS_CMD_HANDLER(echo_cmd, CACTUS_ECHO_CMD)
 
 CACTUS_CMD_HANDLER(req_echo_cmd, CACTUS_REQ_ECHO_CMD)
 {
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	ffa_id_t echo_dest = cactus_req_echo_get_echo_dest(*args);
 	uint64_t echo_val = cactus_echo_get_val(*args);
@@ -48,12 +48,12 @@ CACTUS_CMD_HANDLER(req_echo_cmd, CACTUS_REQ_ECHO_CMD)
 	return cactus_success_resp(vm_id, ffa_dir_msg_source(*args), 0);
 }
 
-static smc_ret_values base_deadlock_handler(ffa_id_t vm_id,
-					    ffa_id_t source,
-					    ffa_id_t deadlock_dest,
-					    ffa_id_t deadlock_next_dest)
+static struct ffa_value base_deadlock_handler(ffa_id_t vm_id,
+					      ffa_id_t source,
+					      ffa_id_t deadlock_dest,
+					      ffa_id_t deadlock_next_dest)
 {
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 
 	ffa_ret = cactus_deadlock_send_cmd(vm_id, deadlock_dest,
 					   deadlock_next_dest);

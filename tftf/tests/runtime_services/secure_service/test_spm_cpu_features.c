@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -46,7 +46,7 @@ test_result_t test_simd_vectors_preserved(void)
 	}
 	fill_simd_vector_regs(simd_vectors_send);
 
-	smc_ret_values ret = cactus_req_simd_fill_send_cmd(SENDER, RECEIVER);
+	struct ffa_value ret = cactus_req_simd_fill_send_cmd(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret)) {
 		return TEST_RESULT_FAIL;
@@ -89,7 +89,7 @@ test_result_t test_sve_vectors_preserved(void)
 
 	fill_sve_vector_regs(sve_vectors_send);
 
-	smc_ret_values ret = cactus_req_simd_fill_send_cmd(SENDER, RECEIVER);
+	struct ffa_value ret = cactus_req_simd_fill_send_cmd(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret)) {
 		return TEST_RESULT_FAIL;

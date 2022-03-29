@@ -59,7 +59,7 @@ static bool check_written_words(uint32_t *ptr, uint32_t word, uint32_t wcount)
  */
 static test_result_t test_memory_send_sp(uint32_t mem_func)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 	ffa_memory_handle_t handle;
 	uint32_t *ptr;
 	struct mailbox_buffers mb;
@@ -146,7 +146,7 @@ static test_result_t test_req_mem_send_sp_to_sp(uint32_t mem_func,
 						ffa_id_t receiver_sp,
 						bool non_secure)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/***********************************************************************
 	 * Check if SPMC's ffa_version and presence of expected FF-A endpoints.
@@ -178,7 +178,7 @@ static test_result_t test_req_mem_send_sp_to_vm(uint32_t mem_func,
 						ffa_id_t sender_sp,
 						ffa_id_t receiver_vm)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/**********************************************************************
 	 * Check if SPMC's ffa_version and presence of expected FF-A endpoints.
@@ -259,7 +259,7 @@ test_result_t test_mem_share_to_sp_clear_memory(void)
 	uint32_t total_length;
 	uint32_t fragment_length;
 	ffa_memory_handle_t handle;
-	smc_ret_values ret;
+	struct ffa_value ret;
 	uint32_t *ptr;
 	/* Arbitrarily write 10 words after using shared memory. */
 	const uint32_t nr_words_to_write = 10U;

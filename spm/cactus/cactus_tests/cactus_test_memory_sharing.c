@@ -181,7 +181,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 
 CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 {
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	uint32_t mem_func = cactus_req_mem_send_get_mem_func(*args);
 	ffa_id_t receiver = cactus_req_mem_send_get_receiver(*args);
 	ffa_memory_handle_t handle;

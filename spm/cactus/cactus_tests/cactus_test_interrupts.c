@@ -44,7 +44,7 @@ CACTUS_CMD_HANDLER(sleep_cmd, CACTUS_SLEEP_CMD)
 
 CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 {
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	ffa_id_t fwd_dest = cactus_get_fwd_sleep_dest(*args);
 	uint32_t sleep_ms = cactus_get_sleep_time(*args);
@@ -54,7 +54,7 @@ CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 
 	ffa_ret = cactus_sleep_cmd(vm_id, fwd_dest, sleep_ms);
 
-	while (ffa_ret.ret0 == FFA_INTERRUPT) {
+	while (ffa_func_id(ffa_ret) == FFA_INTERRUPT) {
 		/* Received FFA_INTERRUPT in blocked state. */
 		VERBOSE("Processing FFA_INTERRUPT while blocked on direct response\n");
 		unsigned int my_core_pos = platform_get_core_pos(read_mpidr_el1());

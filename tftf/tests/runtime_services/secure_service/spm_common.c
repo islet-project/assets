@@ -23,7 +23,7 @@
 /**
  * Helper to log errors after FF-A calls.
  */
-bool is_ffa_call_error(smc_ret_values ret)
+bool is_ffa_call_error(struct ffa_value ret)
 {
 	if (ffa_func_id(ret) == FFA_ERROR) {
 		VERBOSE("FF-A call returned error (%x): %d\n",
@@ -33,7 +33,7 @@ bool is_ffa_call_error(smc_ret_values ret)
 	return false;
 }
 
-bool is_expected_ffa_error(smc_ret_values ret, int32_t error_code)
+bool is_expected_ffa_error(struct ffa_value ret, int32_t error_code)
 {
 	if (ffa_func_id(ret) == FFA_ERROR &&
 	    ffa_error_code(ret) == error_code) {
@@ -51,7 +51,7 @@ bool is_expected_ffa_error(smc_ret_values ret, int32_t error_code)
  * Should be used after FFA_MSG_SEND_DIRECT_REQ, or after sending a test command
  * to an SP.
  */
-bool is_ffa_direct_response(smc_ret_values ret)
+bool is_ffa_direct_response(struct ffa_value ret)
 {
 	if ((ffa_func_id(ret) == FFA_MSG_SEND_DIRECT_RESP_SMC32) ||
 	    (ffa_func_id(ret) == FFA_MSG_SEND_DIRECT_RESP_SMC64)) {
@@ -68,7 +68,7 @@ bool is_ffa_direct_response(smc_ret_values ret)
 /**
  * Helper to check the return value of FF-A call is as expected.
  */
-bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id)
+bool is_expected_ffa_return(struct ffa_value ret, uint32_t func_id)
 {
 	if (ffa_func_id(ret) == func_id) {
 		return true;
@@ -79,7 +79,7 @@ bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id)
 	return false;
 }
 
-bool is_expected_cactus_response(smc_ret_values ret, uint32_t expected_resp,
+bool is_expected_cactus_response(struct ffa_value ret, uint32_t expected_resp,
 				 uint32_t arg)
 {
 	if (!is_ffa_direct_response(ret)) {
@@ -87,28 +87,28 @@ bool is_expected_cactus_response(smc_ret_values ret, uint32_t expected_resp,
 	}
 
 	if (cactus_get_response(ret) != expected_resp ||
-	    (uint32_t)ret.ret4 != arg) {
+	    (uint32_t)ret.arg4 != arg) {
 		ERROR("Expected response %x and %x; "
 		      "Obtained %x and %x\n",
 		      expected_resp, arg, cactus_get_response(ret),
-		      (int32_t)ret.ret4);
+		      (int32_t)ret.arg4);
 		return false;
 	}
 
 	return true;
 }
 
-void dump_smc_ret_values(smc_ret_values ret)
+void dump_ffa_value(struct ffa_value ret)
 {
 	NOTICE("FF-A value: %lx, %lx, %lx, %lx, %lx, %lx, %lx, %lx\n",
-		ret.ret0,
-		ret.ret1,
-		ret.ret2,
-		ret.ret3,
-		ret.ret4,
-		ret.ret5,
-		ret.ret6,
-		ret.ret7);
+		ret.fid,
+		ret.arg1,
+		ret.arg2,
+		ret.arg3,
+		ret.arg4,
+		ret.arg5,
+		ret.arg6,
+		ret.arg7);
 }
 
 void fill_simd_vector_regs(const simd_vector_t v[SIMD_NUM_VECTORS])
@@ -261,7 +261,7 @@ void read_sve_vector_regs(sve_vector_t v[SVE_NUM_VECTORS])
 bool check_spmc_execution_level(void)
 {
 	unsigned int is_optee_spmc_criteria = 0U;
-	smc_ret_values ret_values;
+	struct ffa_value ret_values;
 
 	/*
 	 * Send a first OP-TEE-defined protocol message through
@@ -270,8 +270,8 @@ bool check_spmc_execution_level(void)
 	ret_values = ffa_msg_send_direct_req32(HYP_ID, SP_ID(1),
 					       OPTEE_FFA_GET_API_VERSION, 0,
 					       0, 0, 0);
-	if (ret_values.ret3 == 1 &&
-	    (ret_values.ret4 == 0 || ret_values.ret4 == 1)) {
+	if (ret_values.arg3 == 1 &&
+	    (ret_values.arg4 == 0 || ret_values.arg4 == 1)) {
 		is_optee_spmc_criteria++;
 	}
 
@@ -282,8 +282,8 @@ bool check_spmc_execution_level(void)
 	ret_values = ffa_msg_send_direct_req32(HYP_ID, SP_ID(1),
 					       OPTEE_FFA_GET_OS_VERSION,
 					       0, 0, 0, 0);
-	if ((ret_values.ret3 == OPTEE_FFA_GET_OS_VERSION_MAJOR) &&
-	    (ret_values.ret4 == OPTEE_FFA_GET_OS_VERSION_MINOR)) {
+	if ((ret_values.arg3 == OPTEE_FFA_GET_OS_VERSION_MAJOR) &&
+	    (ret_values.arg4 == OPTEE_FFA_GET_OS_VERSION_MINOR)) {
 		is_optee_spmc_criteria++;
 	}
 
@@ -353,7 +353,7 @@ bool memory_retrieve(struct mailbox_buffers *mb,
 		     ffa_id_t sender, ffa_id_t receiver,
 		     ffa_memory_region_flags_t flags)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 	uint32_t fragment_size;
 	uint32_t total_size;
 	uint32_t descriptor_size;
@@ -388,8 +388,8 @@ bool memory_retrieve(struct mailbox_buffers *mb,
 	 * successful ffa_mem_retrieve_req, total_size must be equal to
 	 * fragment_size.
 	 */
-	total_size = ret.ret1;
-	fragment_size = ret.ret2;
+	total_size = ret.arg1;
+	fragment_size = ret.arg2;
 
 	if (total_size != fragment_size) {
 		ERROR("Only expect one memory segment to be sent!\n");
@@ -417,7 +417,7 @@ bool memory_retrieve(struct mailbox_buffers *mb,
 bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
 		       ffa_id_t id)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	ffa_mem_relinquish_init(m, handle, 0, id);
 	ret = ffa_mem_relinquish();
@@ -441,7 +441,7 @@ bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
  */
 ffa_memory_handle_t memory_send(
 	struct ffa_memory_region *memory_region, uint32_t mem_func,
-	uint32_t fragment_length, uint32_t total_length, smc_ret_values *ret)
+	uint32_t fragment_length, uint32_t total_length, struct ffa_value *ret)
 {
 	if (fragment_length != total_length) {
 		ERROR("For now, fragment_length and total_length need to be"
@@ -460,7 +460,7 @@ ffa_memory_handle_t memory_send(
 		*ret = ffa_mem_donate(total_length, fragment_length);
 		break;
 	default:
-		*ret = (smc_ret_values){0};
+		*ret = (struct ffa_value){0};
 		ERROR("TFTF - Invalid func id %x!\n", mem_func);
 		return FFA_MEMORY_HANDLE_INVALID;
 	}
@@ -485,7 +485,7 @@ ffa_memory_handle_t memory_init_and_send(
 	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
 	ffa_id_t sender, ffa_id_t receiver,
 	const struct ffa_memory_region_constituent *constituents,
-	uint32_t constituents_count, uint32_t mem_func, smc_ret_values *ret)
+	uint32_t constituents_count, uint32_t mem_func, struct ffa_value *ret)
 {
 	uint32_t remaining_constituent_count;
 	uint32_t total_length;
@@ -526,11 +526,12 @@ bool ffa_partition_info_helper(struct mailbox_buffers *mb,
 			       const uint16_t expected_size)
 {
 	bool result = true;
-	smc_ret_values ret = ffa_partition_info_get(uuid);
+	struct ffa_value ret = ffa_partition_info_get(uuid);
 
 	if (ffa_func_id(ret) == FFA_SUCCESS_SMC32) {
 		if (ffa_partition_info_count(ret) != expected_size) {
-			ERROR("Unexpected number of partitions %ld\n", ret.ret2);
+			ERROR("Unexpected number of partitions %ld\n",
+			      ret.arg2);
 			return false;
 		}
 		const struct ffa_partition_info *info =

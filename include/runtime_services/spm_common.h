@@ -83,13 +83,13 @@ struct mailbox_buffers {
 /**
  * Helpers to evaluate returns of FF-A calls.
  */
-bool is_ffa_call_error(smc_ret_values val);
-bool is_expected_ffa_error(smc_ret_values ret, int32_t error_code);
-bool is_ffa_direct_response(smc_ret_values ret);
-bool is_expected_ffa_return(smc_ret_values ret, uint32_t func_id);
-bool is_expected_cactus_response(smc_ret_values ret, uint32_t expected_resp,
+bool is_ffa_call_error(struct ffa_value val);
+bool is_expected_ffa_error(struct ffa_value ret, int32_t error_code);
+bool is_ffa_direct_response(struct ffa_value ret);
+bool is_expected_ffa_return(struct ffa_value ret, uint32_t func_id);
+bool is_expected_cactus_response(struct ffa_value ret, uint32_t expected_resp,
 				 uint32_t arg);
-void dump_smc_ret_values(smc_ret_values ret);
+void dump_ffa_value(struct ffa_value ret);
 
 /*
  * Vector length:
@@ -140,13 +140,13 @@ bool memory_relinquish(struct ffa_mem_relinquish *m, uint64_t handle,
 
 ffa_memory_handle_t memory_send(
 	struct ffa_memory_region *memory_region, uint32_t mem_func,
-	uint32_t fragment_length, uint32_t total_length, smc_ret_values *ret);
+	uint32_t fragment_length, uint32_t total_length, struct ffa_value *ret);
 
 ffa_memory_handle_t memory_init_and_send(
 	struct ffa_memory_region *memory_region, size_t memory_region_max_size,
 	ffa_id_t sender, ffa_id_t receiver,
 	const struct ffa_memory_region_constituent* constituents,
-	uint32_t constituents_count, uint32_t mem_func, smc_ret_values *ret);
+	uint32_t constituents_count, uint32_t mem_func, struct ffa_value *ret);
 
 bool ffa_partition_info_helper(struct mailbox_buffers *mb,
 			const struct ffa_uuid uuid,
