@@ -42,8 +42,8 @@ TF_A_BUILD		?= debug
 else
 TF_A_BUILD		?= release
 endif
-EDK2_PATH		?= $(ROOT)/edk2
-EDK2_PLATFORMS_PATH	?= $(ROOT)/edk2-platforms
+EDK2_PATH		?= $(ROOT)/third-party/edk2
+EDK2_PLATFORMS_PATH	?= $(ROOT)/third-party/edk2-platforms
 EDK2_TOOLCHAIN		?= GCC49
 EDK2_ARCH		?= AARCH64
 ifeq ($(DEBUG),1)
@@ -56,7 +56,7 @@ EDK2_BIN		?= $(EDK2_PLATFORMS_PATH)/Build/ArmVExpress-FVP-AArch64/$(EDK2_BUILD)_
 #ifeq ($(wildcard $(FOUNDATION_PATH)),)
 #$(error $(FOUNDATION_PATH) does not exist)
 #endif
-GRUB_PATH		?= $(ROOT)/grub
+GRUB_PATH		?= $(ROOT)/third-party/grub
 GRUB_CONFIG_PATH	?= $(BUILD_PATH)/fvp/grub
 OUT_PATH		?= $(ROOT)/out
 GRUB_BIN		?= $(OUT_PATH)/bootaa64.efi
