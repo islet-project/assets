@@ -244,7 +244,7 @@ boot-img: grub
 	rm -rf $(OUT_PATH)/rootfs*
 	mkdir $(OUT_PATH)/rootfs
 	fakeroot bash -c " \
-		tar xfj $(ROOT)/assets/rootfs.tar.bz2 -C $(OUT_PATH)/rootfs; \
+		tar xfj $(ROOT)/assets/prebuilt/rootfs.tar.bz2 -C $(OUT_PATH)/rootfs; \
 		cd $(OUT_PATH)/rootfs; \
 		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
 	gzip $(OUT_PATH)/rootfs.cpio
