@@ -420,6 +420,7 @@ linux-cleaner-common: linux-defconfig-clean
 ################################################################################
 .PHONY: edk2-common
 edk2-common:
+	sed -i 's/gArmTokenSpaceGuid.PcdSystemMemorySize|0x7F000000/gArmTokenSpaceGuid.PcdSystemMemorySize|0x7C000000/' $(EDK2_PLATFORMS_PATH)/Platform/ARM/VExpressPkg/ArmVExpress-FVP-AArch64.dsc
 	$(call edk2-env) && \
 	export PACKAGES_PATH=$(EDK2_PATH):$(EDK2_PLATFORMS_PATH) && \
 	source $(EDK2_PATH)/edksetup.sh && \
