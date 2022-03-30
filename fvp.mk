@@ -234,7 +234,7 @@ grub-clean:
 ################################################################################
 
 .PHONY: boot-img
-boot-img: grub
+boot-img: linux $(GRUB_BIN)
 	rm -f $(BOOT_IMG)
 	mformat -i $(BOOT_IMG) -n 64 -h 255 -T 131072 -v "BOOT IMG" -C ::
 	mcopy -i $(BOOT_IMG) $(LINUX_PATH)/arch/arm64/boot/Image ::
