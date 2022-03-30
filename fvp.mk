@@ -52,10 +52,10 @@ else
 EDK2_BUILD		?= RELEASE
 endif
 EDK2_BIN		?= $(EDK2_PLATFORMS_PATH)/Build/ArmVExpress-FVP-AArch64/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/FVP_$(EDK2_ARCH)_EFI.fd
-FOUNDATION_PATH		?= $(ROOT)/Foundation_Platformpkg
-ifeq ($(wildcard $(FOUNDATION_PATH)),)
-$(error $(FOUNDATION_PATH) does not exist)
-endif
+#FOUNDATION_PATH		?= $(ROOT)/Foundation_Platformpkg
+#ifeq ($(wildcard $(FOUNDATION_PATH)),)
+#$(error $(FOUNDATION_PATH) does not exist)
+#endif
 GRUB_PATH		?= $(ROOT)/grub
 GRUB_CONFIG_PATH	?= $(BUILD_PATH)/fvp/grub
 OUT_PATH		?= $(ROOT)/out
