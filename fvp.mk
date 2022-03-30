@@ -234,14 +234,21 @@ grub-clean:
 ################################################################################
 
 .PHONY: boot-img
-boot-img: grub buildroot
+boot-img: grub
 	rm -f $(BOOT_IMG)
 	mformat -i $(BOOT_IMG) -n 64 -h 255 -T 131072 -v "BOOT IMG" -C ::
 	mcopy -i $(BOOT_IMG) $(LINUX_PATH)/arch/arm64/boot/Image ::
 	mcopy -i $(BOOT_IMG) $(LINUX_PATH)/arch/arm64/boot/dts/arm/foundation-v8-gicv3-psci.dtb ::
 	mmd -i $(BOOT_IMG) ::/EFI
 	mmd -i $(BOOT_IMG) ::/EFI/BOOT
-	mcopy -i $(BOOT_IMG) $(ROOT)/out-br/images/rootfs.cpio.gz ::/initrd.img
+	rm -rf $(OUT_PATH)/rootfs*
+	mkdir $(OUT_PATH)/rootfs
+	fakeroot bash -c " \
+		tar xfj $(ROOT)/assets/rootfs.tar.bz2 -C $(OUT_PATH)/rootfs; \
+		cd $(OUT_PATH)/rootfs; \
+		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
+	gzip $(OUT_PATH)/rootfs.cpio
+	mcopy -i $(BOOT_IMG) $(OUT_PATH)/rootfs.cpio.gz ::/initrd.img
 	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
 	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
 
