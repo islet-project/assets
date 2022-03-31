@@ -9,6 +9,8 @@ ldarch = elf64-littleaarch64
 arch_LDFLAGS = -pie -n
 arch_LDFLAGS += -z notext
 CFLAGS += -mstrict-align
+CFLAGS += -I $(SRCDIR)/lib/qcbor/inc
+CFLAGS += -DQCBOR_DISABLE_FLOAT_HW_USE -DQCBOR_DISABLE_PREFERRED_FLOAT -DUSEFULBUF_DISABLE_ALL_FLOAT
 
 mno_outline_atomics := $(call cc-option, -mno-outline-atomics, "")
 CFLAGS += $(mno_outline_atomics)
@@ -25,6 +27,7 @@ cflatobjs += lib/arm64/processor.o
 cflatobjs += lib/arm64/spinlock.o
 cflatobjs += lib/arm64/gic-v3-its.o lib/arm64/gic-v3-its-cmd.o
 cflatobjs += lib/arm64/rsi.o
+cflatobjs += lib/qcbor/src/qcbor_decode.o lib/qcbor/src/UsefulBuf.o
 
 OBJDIRS += lib/arm64
 
@@ -40,4 +43,5 @@ tests += $(TEST_DIR)/realm-sea.flat
 include $(SRCDIR)/$(TEST_DIR)/Makefile.common
 
 arch_clean: arm_clean
-	$(RM) lib/arm64/.*.d
+	$(RM) lib/arm64/.*.d		\
+	      lib/qcbor/src/.*.d
