@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <cactus_def.h>
-#include <cactus_platform_def.h>
+#include <sp_def.h>
 #include "cactus_message_loop.h"
 #include "cactus_test_cmds.h"
-#include "cactus_tests.h"
 #include <debug.h>
 #include <ffa_helpers.h>
 #include <sp_helpers.h>
+#include "sp_tests.h"
 #include <xlat_tables_defs.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <sync.h>

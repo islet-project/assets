@@ -9,7 +9,6 @@
 #include <debug.h>
 
 #include <cactus_message_loop.h>
-#include <cactus_platform_def.h>
 #include <drivers/arm/pl011.h>
 #include <drivers/console.h>
 #include <lib/aarch64/arch_helpers.h>
@@ -26,8 +25,8 @@
 #include <spm_helpers.h>
 #include <std_svc.h>
 
-#include "cactus_def.h"
-#include "cactus_tests.h"
+#include "sp_def.h"
+#include "sp_tests.h"
 #include "cactus.h"
 
 /* Host machine information injected by the build system in the ELF file. */
@@ -199,12 +198,12 @@ static void cactus_plat_configure_mmu(unsigned int vm_id)
 
 	mmap_add_region(get_sp_rx_start(vm_id),
 			get_sp_rx_start(vm_id),
-			(CACTUS_RX_TX_SIZE / 2),
+			(SP_RX_TX_SIZE / 2),
 			MT_RO_DATA);
 
 	mmap_add_region(get_sp_tx_start(vm_id),
 			get_sp_tx_start(vm_id),
-			(CACTUS_RX_TX_SIZE / 2),
+			(SP_RX_TX_SIZE / 2),
 			MT_RW_DATA);
 
 	mmap_add(cactus_mmap);

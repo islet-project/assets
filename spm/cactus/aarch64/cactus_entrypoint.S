@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2017-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <arch.h>
 #include <asm_macros.S>
-#include <cactus_def.h>
-#include <cactus_platform_def.h>
+#include <sp_def.h>
 
 	.globl	cactus_entrypoint
 	.globl	secondary_cold_entry
@@ -15,7 +14,7 @@
 /* Provision one stack per Execution Context (or vCPU) */
 .section .bss.stacks
 	.balign CACHE_WRITEBACK_GRANULE
-	.fill	CACTUS_STACKS_SIZE * PLAT_CACTUS_CORE_COUNT
+	.fill	SP_STACKS_SIZE * PLAT_SP_CORE_COUNT
 stacks_end:
 
 func cactus_entrypoint
@@ -38,7 +37,7 @@ secondary_cold_entry:
 
 	/* Setup the stack pointer. */
 	adr	x1, stacks_end
-	mov	x2, #CACTUS_STACKS_SIZE
+	mov	x2, #SP_STACKS_SIZE
 	mul	x2, x0, x2
 	sub	sp, x1, x2
 
@@ -81,7 +80,7 @@ secondary_cold_entry:
 pie_fixup:
 	ldr	x0, =pie_fixup
 	and	x0, x0, #~(0x1000 - 1)
-	mov	x1, #CACTUS_IMAGE_SIZE
+	mov	x1, #SP_IMAGE_SIZE
 	add	x1, x1, x0
 	bl	fixup_gdt_reloc
 

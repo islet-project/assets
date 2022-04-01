@@ -27,7 +27,8 @@ CACTUS_INCLUDES :=					\
 	-Iinclude/plat/common				\
 	-Iinclude/runtime_services			\
 	-Ispm/cactus					\
-	-Ispm/common
+	-Ispm/common					\
+	-Ispm/common/sp_tests
 
 CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
@@ -41,11 +42,13 @@ CACTUS_SOURCES	:=					\
 		sp_helpers.c				\
 		spm_helpers.c				\
 	)						\
+	$(addprefix spm/common/sp_tests/,		\
+		sp_test_ffa.c				\
+	)						\
 	$(addprefix spm/cactus/cactus_tests/,		\
 		cactus_message_loop.c			\
 		cactus_test_cpu_features.c		\
 		cactus_test_direct_messaging.c		\
-		cactus_test_ffa.c 			\
 		cactus_test_interrupts.c		\
 		cactus_test_memory_sharing.c		\
 		cactus_tests_smmuv3.c			\

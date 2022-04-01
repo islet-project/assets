@@ -9,8 +9,10 @@
 #include <errno.h>
 #include <ffa_helpers.h>
 #include <sp_debug.h>
+#include <sp_helpers.h>
 
 #include "ivy.h"
+#include "sp_tests.h"
 
 /* Host machine information injected by the build system in the ELF file. */
 extern const char build_message[];
@@ -20,6 +22,7 @@ void __dead2 ivy_main(void)
 {
 	struct ffa_value ret;
 	ffa_id_t my_id;
+	struct mailbox_buffers mb;
 
 	set_putc_impl(SVC_CALL_AS_STDOUT);
 
@@ -36,6 +39,16 @@ void __dead2 ivy_main(void)
 	NOTICE("%s\n", version_string);
 
 init:
+	VERBOSE("Mapping RXTX Regions\n");
+	CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);
+	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
+		ERROR("Failed to map RXTX buffers. Error %x\n",
+		      ffa_error_code(ret));
+		panic();
+	}
+
+	ffa_tests(&mb);
+
 	ret = ffa_msg_wait();
 
 	while (1) {

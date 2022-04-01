@@ -6,7 +6,8 @@
 
 #include "cactus_message_loop.h"
 #include "cactus_test_cmds.h"
-#include "cactus_tests.h"
+#include "sp_tests.h"
+
 #include <ffa_helpers.h>
 #include <debug.h>
 

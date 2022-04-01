@@ -7,8 +7,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <cactus_def.h>
-#include <cactus_platform_def.h>
+#include <sp_def.h>
 #include <ffa_endpoints.h>
 #include <sp_helpers.h>
 #include <spm_helpers.h>
