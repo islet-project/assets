@@ -258,6 +258,7 @@ boot-img: linux $(GRUB_BIN)
 	sudo umount $(OUT_PATH)/rootfs
 	sudo mount $(dev_name)p2 $(OUT_PATH)/rootfs
 	sudo cp -R $(ROOT)/assets/prebuilt/qemu/* $(OUT_PATH)/rootfs/.
+	sudo cp $(LINUX_PATH)/arch/arm64/boot/Image $(OUT_PATH)/rootfs/guest/.
 	sudo umount $(OUT_PATH)/rootfs
 	sudo losetup -d $(dev_name)
 
