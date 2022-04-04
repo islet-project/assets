@@ -318,6 +318,29 @@ static inline ffa_id_t cactus_get_fwd_sleep_dest(smc_ret_values ret)
 }
 
 /**
+ * Command to request cactus to sleep for half the given time in ms, trigger
+ * trusted watchdog timer and then sleep again for another half the given time.
+ *
+ * The sender of this command expects to receive CACTUS_SUCCESS if the requested
+ * echo interaction happened successfully, or CACTUS_ERROR otherwise.
+ */
+#define CACTUS_SLEEP_TRIGGER_TWDOG_CMD (CACTUS_SLEEP_CMD + 2)
+
+static inline smc_ret_values cactus_sleep_trigger_wdog_cmd(
+	ffa_id_t source, ffa_id_t dest, uint32_t sleep_time,
+	uint64_t wdog_time)
+{
+	return cactus_send_cmd(source, dest, CACTUS_SLEEP_TRIGGER_TWDOG_CMD, sleep_time,
+			       wdog_time, 0, 0);
+}
+
+
+static inline uint32_t cactus_get_wdog_trigger_duration(smc_ret_values ret)
+{
+	return (uint32_t)ret.ret5;
+}
+
+/**
  * Command to request cactus to enable/disable an interrupt
  *
  * The command id is the hex representation of string "intr"
@@ -537,4 +560,17 @@ static inline uint32_t cactus_get_req_count(smc_ret_values ret)
 	return (uint32_t)ret.ret4;
 }
 
+/**
+ * Request SP to return the last serviced secure virtual interrupt.
+ *
+ * The command id is the hex representaton of the string "vINT"
+ */
+#define CACTUS_LAST_INTERRUPT_SERVICED_CMD U(0x76494e54)
+
+static inline smc_ret_values cactus_get_last_interrupt_cmd(
+	ffa_id_t source, ffa_id_t dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_LAST_INTERRUPT_SERVICED_CMD,
+				 0, 0, 0, 0);
+}
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -22,9 +22,15 @@ extern void notification_pending_interrupt_handler(void);
 
 extern ffa_id_t g_ffa_id;
 
+/* Secure virtual interrupt that was last handled by Cactus SP. */
+uint32_t last_serviced_interrupt[PLATFORM_CORE_COUNT];
+
+extern spinlock_t sp_handler_lock[NUM_VINT_ID];
+
 void cactus_interrupt_handler(void)
 {
 	uint32_t intid = spm_interrupt_get();
+	unsigned int core_pos = get_current_core_id();
 
 	switch (intid) {
 	case MANAGED_EXIT_INTERRUPT_ID:
@@ -59,4 +65,13 @@ void cactus_interrupt_handler(void)
 			 intid);
 		panic();
 	}
+
+	last_serviced_interrupt[core_pos] = intid;
+
+	/* Invoke the tail end handler registered by the SP. */
+	spin_lock(&sp_handler_lock[intid]);
+	if (sp_interrupt_tail_end_handler[intid]) {
+		sp_interrupt_tail_end_handler[intid]();
+	}
+	spin_unlock(&sp_handler_lock[intid]);
 }

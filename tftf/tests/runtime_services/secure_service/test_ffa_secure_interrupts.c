@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -59,10 +59,11 @@ static bool disable_trusted_wdog_interrupt(ffa_id_t source, ffa_id_t dest)
  * 1. Send a direct message request command to first Cactus SP to start the
  *    trusted watchdog timer.
  *
- * 2. Send a command to SP to sleep by executing a busy loop.
+ * 2. Send a command to SP to first sleep( by executing a busy loop), then
+ *    restart trusted watchdog timer and then sleep again.
  *
- * 3. While SP is running the busy loop, Secure interrupt should trigger during
- *    this time.
+ * 3. While SP is running the first busy loop, Secure interrupt should trigger
+ *    during this time.
  *
  * 4. The interrupt will be trapped to SPM as IRQ. SPM will inject the virtual
  *    IRQ to the first SP through vIRQ conduit and perform eret to resume
@@ -74,22 +75,25 @@ static bool disable_trusted_wdog_interrupt(ffa_id_t source, ffa_id_t dest)
  * 6. Cactus SP will perform End-Of-Interrupt and resume execution in the busy
  *    loop.
  *
- * 7. Cactus SP will send a direct response message with the elapsed time back
+ * 7. Trusted watchdog timer will trigger once again followed by steps 4 to 6.
+ *
+ * 8. Cactus SP will send a direct response message with the elapsed time back
  *    to the normal world.
  *
- * 8. We make sure the time elapsed in the sleep routine by SP is not less than
+ * 9. We make sure the time elapsed in the sleep routine by SP is not less than
  *    the requested value.
  *
- * 9. For robustness of state transition checks, TFTF sends echo command using
- *    a direct request message.
+ * 10. TFTF sends a direct request message to SP to query the ID of last serviced
+ *     secure virtual interrupt.
  *
- * 10. Further, TFTF expects SP to return with a success value through a direct
- *    response message.
+ * 11. Further, TFTF expects SP to return the ID of Trusted Watchdog timer
+ *     interrupt through a direct response message.
  *
- * 11. Test finishes successfully once the TFTF disables the trusted watchdog
+ * 12. Test finishes successfully once the TFTF disables the trusted watchdog
  *     interrupt through a direct message request command.
  *
  */
+
 test_result_t test_ffa_sec_interrupt_sp_running(void)
 {
 	smc_ret_values ret_values;
@@ -109,7 +113,7 @@ test_result_t test_ffa_sec_interrupt_sp_running(void)
 	}
 
 	/* Send request to first Cactus SP to sleep */
-	ret_values = cactus_sleep_cmd(SENDER, RECEIVER, SP_SLEEP_TIME);
+	ret_values = cactus_sleep_trigger_wdog_cmd(SENDER, RECEIVER, SP_SLEEP_TIME, 50);
 
 	/*
 	 * Secure interrupt should trigger during this time, Cactus
@@ -129,16 +133,18 @@ test_result_t test_ffa_sec_interrupt_sp_running(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	ret_values = cactus_echo_send_cmd(SENDER, RECEIVER, ECHO_VAL1);
+	/* Check for the last serviced secure virtual interrupt. */
+	ret_values = cactus_get_last_interrupt_cmd(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret_values)) {
-		ERROR("Expected direct response for echo command\n");
+		ERROR("Expected a direct response for last serviced interrupt"
+			" command\n");
 		return TEST_RESULT_FAIL;
 	}
 
-	if (cactus_get_response(ret_values) != CACTUS_SUCCESS ||
-	    cactus_echo_get_val(ret_values) != ECHO_VAL1) {
-		ERROR("Echo Failed!\n");
+	/* Make sure Trusted Watchdog timer interrupt was serviced*/
+	if (cactus_get_response(ret_values) != IRQ_TWDOG_INTID) {
+		ERROR("Trusted watchdog timer interrupt not serviced by SP\n");
 		return TEST_RESULT_FAIL;
 	}
 
@@ -179,11 +185,11 @@ test_result_t test_ffa_sec_interrupt_sp_running(void)
  * 9. We make sure the time elapsed in the sleep routine is not less than
  *    the requested value.
  *
- * 10. For robustness of state transition checks, TFTF sends echo command using
- *    a direct request message.
+ * 10. TFTF sends a direct request message to SP to query the ID of last serviced
+ *     secure virtual interrupt.
  *
- * 11. Further, TFTF expects SP to return with a success value through a direct
- *    response message.
+ * 11. Further, TFTF expects SP to return the ID of Trusted Watchdog timer
+ *     interrupt through a direct response message.
  *
  * 12. Test finishes successfully once the TFTF disables the trusted watchdog
  *     interrupt through a direct message request command.
@@ -231,16 +237,18 @@ test_result_t test_ffa_sec_interrupt_sp_waiting(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	ret_values = cactus_echo_send_cmd(SENDER, RECEIVER, ECHO_VAL1);
+	/* Check for the last serviced secure virtual interrupt. */
+	ret_values = cactus_get_last_interrupt_cmd(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret_values)) {
-		ERROR("Expected direct response for echo command\n");
+		ERROR("Expected a direct response for last serviced interrupt"
+			" command\n");
 		return TEST_RESULT_FAIL;
 	}
 
-	if (cactus_get_response(ret_values) != CACTUS_SUCCESS ||
-	    cactus_echo_get_val(ret_values) != ECHO_VAL1) {
-		ERROR("Echo Failed!\n");
+	/* Make sure Trusted Watchdog timer interrupt was serviced*/
+	if (cactus_get_response(ret_values) != IRQ_TWDOG_INTID) {
+		ERROR("Trusted watchdog timer interrupt not serviced by SP\n");
 		return TEST_RESULT_FAIL;
 	}
 
@@ -280,11 +288,11 @@ test_result_t test_ffa_sec_interrupt_sp_waiting(void)
  * 8. First SP checks for the elapsed time and sends a direct response with
  *    a SUCCESS value back to tftf.
  *
- * 9. For robustness of state transition checks, TFTF sends echo command using
- *    a direct request message to first SP.
+ * 9. TFTF sends a direct request message to SP to query the ID of last serviced
+ *    secure virtual interrupt.
  *
- * 10. Further, TFTF expects SP to return with a success value through a direct
- *    response message.
+ * 10. Further, TFTF expects SP to return the ID of Trusted Watchdog timer
+ *     interrupt through a direct response message.
  *
  * 11. Test finishes successfully once the TFTF disables the trusted watchdog
  *     interrupt through a direct message request command.
@@ -327,16 +335,18 @@ test_result_t test_ffa_sec_interrupt_sp_blocked(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	ret_values = cactus_echo_send_cmd(SENDER, RECEIVER, ECHO_VAL1);
+	/* Check for the last serviced secure virtual interrupt. */
+	ret_values = cactus_get_last_interrupt_cmd(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret_values)) {
-		ERROR("Expected direct response for echo command\n");
+		ERROR("Expected a direct response for last serviced interrupt"
+			" command\n");
 		return TEST_RESULT_FAIL;
 	}
 
-	if (cactus_get_response(ret_values) != CACTUS_SUCCESS ||
-	    cactus_echo_get_val(ret_values) != ECHO_VAL1) {
-		ERROR("Echo Failed!\n");
+	/* Make sure Trusted Watchdog timer interrupt was serviced*/
+	if (cactus_get_response(ret_values) != IRQ_TWDOG_INTID) {
+		ERROR("Trusted watchdog timer interrupt not serviced by SP\n");
 		return TEST_RESULT_FAIL;
 	}
 
@@ -378,11 +388,11 @@ test_result_t test_ffa_sec_interrupt_sp_blocked(void)
  * 9. We make sure the time elapsed in the sleep routine by SP is not less than
  *    the requested value.
  *
- * 10. For robustness of state transition checks, TFTF sends echo command using
- *    a direct request message to both SPs.
+ * 10. TFTF sends a direct request message to SP to query the ID of last serviced
+ *     secure virtual interrupt.
  *
- * 11. Further, TFTF expects SP to return with a success value through a direct
- *    response message.
+ * 11. Further, TFTF expects SP to return the ID of Trusted Watchdog timer
+ *     interrupt through a direct response message.
  *
  * 12. Test finishes successfully once the TFTF disables the trusted watchdog
  *     interrupt through a direct message request command.
@@ -422,29 +432,18 @@ test_result_t test_ffa_sec_interrupt_sp1_waiting_sp2_running(void)
 		ERROR("Lapsed time less than requested sleep time\n");
 	}
 
-	ret_values = cactus_echo_send_cmd(SENDER, RECEIVER, ECHO_VAL1);
+	/* Check for the last serviced secure virtual interrupt. */
+	ret_values = cactus_get_last_interrupt_cmd(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret_values)) {
-		ERROR("Echo to SP1 Failed no response!\n");
+		ERROR("Expected a direct response for last serviced interrupt"
+			" command\n");
 		return TEST_RESULT_FAIL;
 	}
 
-	if (cactus_get_response(ret_values) != CACTUS_SUCCESS ||
-	    cactus_echo_get_val(ret_values) != ECHO_VAL1) {
-		ERROR("Echo to SP1 Failed!\n");
-		return TEST_RESULT_FAIL;
-	}
-
-	ret_values = cactus_echo_send_cmd(SENDER, RECEIVER_2, ECHO_VAL1);
-
-	if (!is_ffa_direct_response(ret_values)) {
-		ERROR("Echo to SP2 Failed no response!\n");
-		return TEST_RESULT_FAIL;
-	}
-
-	if (cactus_get_response(ret_values) != CACTUS_SUCCESS ||
-	    cactus_echo_get_val(ret_values) != ECHO_VAL1) {
-		ERROR("Echo to SP2 Failed!\n");
+	/* Make sure Trusted Watchdog timer interrupt was serviced*/
+	if (cactus_get_response(ret_values) != IRQ_TWDOG_INTID) {
+		ERROR("Trusted watchdog timer interrupt not serviced by SP\n");
 		return TEST_RESULT_FAIL;
 	}
 
