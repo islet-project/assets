@@ -233,8 +233,14 @@ grub-clean:
 # Boot Image
 ################################################################################
 
+.PHONY: boot-img-partition
+boot-img-partition:
+	dd if=/dev/zero bs=256k count=1024 > $(BOOT_IMG)
+	echo -e "n\np\n\n\n+64M\nn\np\n\n\n\nw" | fdisk $(BOOT_IMG)
+
+
 .PHONY: boot-img
-boot-img: linux $(GRUB_BIN)
+boot-img: linux boot-img-partition $(GRUB_BIN)
 	rm -rf $(OUT_PATH)/rootfs*
 	mkdir -p $(OUT_PATH)/rootfs
 	fakeroot bash -c " \
@@ -243,8 +249,6 @@ boot-img: linux $(GRUB_BIN)
 		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
 	gzip $(OUT_PATH)/rootfs.cpio
 	mv $(OUT_PATH)/rootfs.cpio.gz $(OUT_PATH)/initrd.img
-	dd if=/dev/zero bs=256k count=1024 > $(BOOT_IMG)
-	echo -e "n\np\n\n\n+64M\nn\np\n\n\n\nw" | fdisk $(BOOT_IMG)
 	$(eval dev_name := $(shell sudo losetup -Pf --show $(BOOT_IMG)))
 	sudo mkfs.msdos $(dev_name)p1
 	sudo mkfs.ext4 $(dev_name)p2
