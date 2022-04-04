@@ -63,6 +63,9 @@ GRUB_BIN		?= $(OUT_PATH)/bootaa64.efi
 BOOT_IMG		?= $(OUT_PATH)/boot.img
 FTPM_PATH		?= $(ROOT)/ms-tpm-20-ref/Samples/ARM32-FirmwareTPM/optee_ta
 
+LINUX_BIN		?= ${OUT_PATH}/Image
+LINUX_DTB_BIN		?= ${OUT_PATH}/fvp-base-revc.dtb
+
 # Build ancillary components to access fTPM if Measured Boot is enabled.
 ifeq ($(MEASURED_BOOT),y)
 DEFCONFIG_FTPM ?= --br-defconfig build/br-ext/configs/ftpm_optee
@@ -240,7 +243,7 @@ boot-img-partition:
 
 
 .PHONY: boot-img
-boot-img: linux boot-img-partition $(GRUB_BIN)
+boot-img: boot-img-partition $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	rm -rf $(OUT_PATH)/rootfs*
 	mkdir -p $(OUT_PATH)/rootfs
 	fakeroot bash -c " \
@@ -254,15 +257,15 @@ boot-img: linux boot-img-partition $(GRUB_BIN)
 	sudo mkfs.ext4 $(dev_name)p2
 	sudo mount $(dev_name)p1 $(OUT_PATH)/rootfs
 	sudo cp $(OUT_PATH)/initrd.img $(OUT_PATH)/rootfs/.
-	sudo cp $(LINUX_PATH)/arch/arm64/boot/Image $(OUT_PATH)/rootfs/.
-	sudo cp $(LINUX_PATH)/arch/arm64/boot/dts/arm/fvp-base-revc.dtb $(OUT_PATH)/rootfs/.
+	sudo cp $(LINUX_BIN) $(OUT_PATH)/rootfs/.
+	sudo cp $(LINUX_DTB_BIN) $(OUT_PATH)/rootfs/.
 	sudo mkdir -p $(OUT_PATH)/rootfs/EFI/BOOT
 	sudo cp $(GRUB_BIN) $(OUT_PATH)/rootfs/EFI/BOOT/bootaa64.efi
 	sudo cp $(GRUB_CONFIG_PATH)/grub.cfg $(OUT_PATH)/rootfs/EFI/BOOT/grub.cfg
 	sudo umount $(OUT_PATH)/rootfs
 	sudo mount $(dev_name)p2 $(OUT_PATH)/rootfs
 	sudo cp -R $(ROOT)/assets/prebuilt/qemu/* $(OUT_PATH)/rootfs/.
-	sudo cp $(LINUX_PATH)/arch/arm64/boot/Image $(OUT_PATH)/rootfs/guest/.
+	sudo cp $(LINUX_BIN) $(OUT_PATH)/rootfs/guest/.
 	sudo umount $(OUT_PATH)/rootfs
 	sudo losetup -d $(dev_name)
 
