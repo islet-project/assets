@@ -22,11 +22,15 @@ func cactus_entrypoint
 	/* Entry reason is primary EC cold boot */
 	mov	x19, #1
 secondary_cold_entry:
-	/* Saving parameter registers to temporary registers. */
-	mov x10, x1
-	mov x11, x2
-	mov x12, x3
-	mov x13, x4
+	/*
+	 * x0 holds a pointer to the Boot Information Blob.
+	 * Save it for later usage.
+	 */
+	mov	x20, x0
+
+	/* Get the vMPIDR. The SPMC passes the vCPU linear id in lower bits. */
+	mrs	x0, mpidr_el1
+	bic	x0, x0, #0x80000000
 
 	/* Entry reason is secondary EC cold boot */
 	mrs	x0, mpidr_el1
@@ -81,14 +85,12 @@ pie_fixup:
 	add	x1, x1, x0
 	bl	fixup_gdt_reloc
 
-	/* Jump to the C entrypoint (it does not return) */
+	/*
+	 * Jump to the C entrypoint (it does not return).
+	 * Pass the cold boot reason and BIB address.
+	 */
 0:	mov	x0, x19
-
-	/* Restoring parameter registers before jumping to cactus_main. */
-	mov x1, x10
-	mov x2, x11
-	mov x3, x12
-	mov x4, x13
+	mov	x1, x20
 
 	/* And jump to the C entrypoint. */
 	b	cactus_main
