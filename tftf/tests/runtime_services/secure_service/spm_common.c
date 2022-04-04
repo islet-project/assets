@@ -443,9 +443,6 @@ ffa_memory_handle_t memory_send(
 	struct ffa_memory_region *memory_region, uint32_t mem_func,
 	uint32_t fragment_length, uint32_t total_length, smc_ret_values *ret)
 {
-	ffa_id_t receiver =
-		memory_region->receivers[0].receiver_permissions.receiver;
-
 	if (fragment_length != total_length) {
 		ERROR("For now, fragment_length and total_length need to be"
 		      " equal");
@@ -469,7 +466,10 @@ ffa_memory_handle_t memory_send(
 	}
 
 	if (is_ffa_call_error(*ret)) {
-		ERROR("Failed to send message to: %x\n", receiver);
+		VERBOSE("Failed to send memory to: %x\n",
+			memory_region->receivers[0]
+					.receiver_permissions
+					.receiver);
 		return FFA_MEMORY_HANDLE_INVALID;
 	}
 
