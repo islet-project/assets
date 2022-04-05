@@ -265,6 +265,8 @@ boot-img: boot-img-partition $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	sudo umount $(OUT_PATH)/rootfs
 	sudo mount $(dev_name)p2 $(OUT_PATH)/rootfs
 	sudo cp -R $(ROOT)/assets/prebuilt/qemu/* $(OUT_PATH)/rootfs/.
+	# This is temporarily added for testing
+	sudo cp $(OUT_PATH)/aarch64-unknown-none-softfloat/release/bootstrap.bin $(OUT_PATH)/rootfs/guest/.
 	sudo cp $(LINUX_BIN) $(OUT_PATH)/rootfs/guest/.
 	sudo umount $(OUT_PATH)/rootfs
 	sudo losetup -d $(dev_name)
