@@ -1,0 +1,15 @@
+Realm payload tests
+Realm payload boot
+Realm payload multi CPU request
+Realm payload Delegate and Undelegate
+Multi CPU Realm payload Delegate and Undelegate
+Testing delegation fails
+Realm testing with SPM tests
+PSCI System Suspend Validation
+PSCI STAT/Stats test cases after system suspend
+IRQ support in TSP/Resume preempted STD SMC after PSCI SYSTEM SUSPEND
+PSCI SYSTEM SUSPEND stress tests
+Timer framework Validation/Verify the timer interrupt generation
+CPU Hotplug/CPU hotplug
+PSCI CPU Suspend
+PSCI STAT/for valid composite state CPU suspend

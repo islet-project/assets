@@ -46,14 +46,16 @@ static int cpu_test_spm_rmi[PLATFORM_CORE_COUNT];
 static void rand_cpu_spm_rmi(void)
 {
 	int fentry;
-	int seln;
+	int seln = 0;
 	for (int i = 0; i < PLATFORM_CORE_COUNT; i++) {
 		cpu_test_spm_rmi[i] = -1;
 	}
 	for (int i = 0; i < NUM_CPU_DED_SPM; i++) {
 		fentry = 0;
 		while (fentry == 0) {
+#if (PLATFORM_CORE_COUNT > 1)
 			seln = (rand() % (PLATFORM_CORE_COUNT - 1)) + 1;
+#endif
 			if (cpu_test_spm_rmi[seln] == -1) {
 				cpu_test_spm_rmi[seln] = 1;
 				fentry = 1;
