@@ -1,0 +1,30 @@
+#
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+# Disable SMMUv3 tests
+SMMUv3 tests
+
+# PSCI is enabled but not tested
+PSCI STAT/Stats test cases after system suspend
+PSCI System Suspend Validation
+
+# Disable FF-A Interrupt tests as TWDOG is not supported by TC platform
+FF-A Interrupt
+
+# The following tests were disabled to make TFTF successfully run on N1SDP
+#
+# There is an issue where issuing an SGI to a powered off core will not wake it up
+#
+# Most of these tests should work but something is likely wrong with the plat
+# files in TFTF, since the port was done purely to test the spectre workaround
+# performance impact. Once that was done no further work was done on the port.
+
+Timer framework Validation/Target timer to a power down cpu
+Timer framework Validation/Test scenario where multiple CPUs call same timeout
+Timer framework Validation/Stress test the timer framework
+PSCI Affinity Info/Affinity info level0 powerdown
+PSCI CPU Suspend
+PSCI STAT/for valid composite state CPU suspend
