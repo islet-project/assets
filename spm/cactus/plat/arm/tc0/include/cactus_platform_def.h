@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -32,5 +32,6 @@
 #define CACTUS_SP1_MEM_SHARE_BASE 0xfe500000
 #define CACTUS_SP2_MEM_SHARE_BASE 0xfe501000
 #define CACTUS_SP3_MEM_SHARE_BASE 0xfe502000
+#define CACTUS_SP3_NS_MEM_SHARE_BASE 0x880080001000ULL
 
 #endif /* CACTUS_PLATFORM_DEF_H */
