@@ -26,8 +26,8 @@ maintainers to prioritise and respond to your ticket.
 
 --------------
 
-*Copyright (c) 2019, Arm Limited. All rights reserved.*
+*Copyright (c) 2019-2022, Arm Limited. All rights reserved.*
 
 .. _`issue tracker`: https://developer.trustedfirmware.org
-.. _`TF-A-Tests development`: https://lists.trustedfirmware.org/pipermail/tf-a-tests/
-.. _`summary of all the lists`: https://lists.trustedfirmware.org
+.. _`TF-A-Tests development`: https://lists.trustedfirmware.org/mailman3/lists/tf-a-tests.lists.trustedfirmware.org/
+.. _`summary of all the lists`: https://lists.trustedfirmware.org/mailman3/lists/
