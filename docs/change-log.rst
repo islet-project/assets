@@ -7,6 +7,122 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+Version 2.7
+-----------
+
+New features
+^^^^^^^^^^^^
+-  More tests are made available in this release to help validate the
+   functionalities in the following areas:
+
+   - FF-A Features
+   - New Architecture Specific features related to v8.7
+   - New platform port
+
+TFTF
+~~~~
+
+-  FF-A testing:
+
+    - FF-A partition information structure is updated to include UUIDs.
+    - Memory Management helper functions are refactored to fetch the details
+      of smc call failures in tftf and cactus.
+    - Added test to validate memory sharing operations from SP to NS-endpoint
+      are denied by SPMC.
+    - Added test to ensure an endpoint that sets its version to v1.0 receives
+      v1.0 partition information descriptors as defined in v1.0 FF-A
+      specification.
+    - Added test to validate that memory is cleared on memory sharing operations
+      between normal world and secure world.
+
+    - FF-A v1.1 Secure interrupts
+
+        - Added support to enhance the secure interrupt handling test.
+        - Support for registering and unregistering custom handler that is
+          invoked by SP at the tail end of the virtual interrupt processing.
+        - Added support for querying the ID of the last serviced virtual interrupt.
+
+-  New tests:
+
+    - Added test to validate that realm region access is being prevented from
+      normal world.
+    - Added test to validate that secure region access is being prevented from
+      normal world.
+    - Added test to validate that secure region access is being prevented from
+      realm world.
+    - Added test to validate that root region access is being prevented from
+      realm world.
+    - Added a test for v8.7 Advanced floating-point behavior (FEAT_AFP).
+    - Added a SPE test that reads static profiling system registers
+      of available SPE version i.e. FEAT_SPE/FEAT_SPEv1p1/FEAT_SPEv1p2.
+    - Added a test to validate functionality of WFET and WFIT instructions
+      introduced by v8.7 FEAT_WFxT.
+    - Added basic SME tests to ensure feature enablement by EL3 is proper for
+      its usage at lower non-secure ELs.
+    - Added test to check Data Independent timing (DIT) field of PSTATE is
+      retained on exception.
+    - Added test to ensure that EL3 has properly enabled access to FEAT_BRBE
+      from non-secure ELs.
+
+-  Platforms:
+
+    - Add initial platform support for corstone1000.
+
+    - TC:
+
+        - Support for notification in tertiary SP manifest.
+
+    - FVP:
+
+        - Support to provide test memory addresses to validate the invalid
+          memory access test from tftf(ns-el2).
+
+-  Miscellaneous:
+
+    - Added support to configure the physical/virtual address space for FVP.
+    - Added common header file for defining macros with size to support all the
+      platforms.
+    - Introduced handler for synchronous exceptions (AArch64).
+    - Added macros to extract the ISS portion of an ELx ESR exception syndrome
+      register.
+    - Support to dynamically map/unmap test region to validate invalid memory
+      access tests.
+    - Added support to receive boot information through secure partitions,
+      according to the FF-A v1.1 EAC0 specification.
+    - Added an helper API function from SPM test suite to initialize FFA-mailbox
+      and enable FF-A based message with SP.
+    - Updated the build string to display the rc-tagged version.
+
+Cactus (Secure-EL1 test partition)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Added test for nonsecure memory sharing between Secure Partitions(SPs).
+    - Added test to validate that a realm region cannot be accessed from secure
+      world.
+    - Added test to permit checking a root region cannot be accessed from secure
+      world.
+    - Extended the test command CACTUS_MEM_SEND_CMD to add support for memory
+      sharing flags.
+    - Added support to save the state of general purpose registers x0-x4 at the
+      entry to cold boot and restore them before jumping to entrypoint of cactus.
+
+Issues resolved since last release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    - Fixed a bug to align RMI FIDs with SMCCC.
+    - Fixed encoding of vCPU and receiver IDs in the FFA_NOTIFICATION_GET
+      interface to comply with the FF-A v1.1 beta0 specification.
+    - Fixed memory retrieve request attributes by enforcing them to be inner
+      shareable rather than outer.
+    - Fixed static memory mapping of EL3 in EL2.
+    - Fixed a spurious error log message with memory share test.
+    - Aligning RMI FIDs with SMCCC.
+    - Fixed PSCI system suspend test suite execution in a four world system.
+    - Configured the build system to use DWARF 4 standard for debug builds with
+      ArmDS.
+    - Introduced macro IRQ_TWDOG_INTID for the Tegra210, Tegra186 and Tegra194
+      platforms to fix the compilation failures.
+
 Version 2.6
 -----------
 
@@ -1227,7 +1343,7 @@ All test images
 
 --------------
 
-*Copyright (c) 2018-2020, Arm Limited. All rights reserved.*
+*Copyright (c) 2018-2022, Arm Limited. All rights reserved.*
 
 .. _Arm Neoverse Reference Design N1 Edge (RD-N1-Edge): https://developer.arm.com/products/system-design/reference-design/neoverse-reference-design
 .. _Arm SGI-575: https://developer.arm.com/products/system-design/fixed-virtual-platforms
