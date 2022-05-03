@@ -236,15 +236,9 @@ grub-clean:
 # Boot Image
 ################################################################################
 
-.PHONY: boot-img-partition
-boot-img-partition:
-	dd if=/dev/zero bs=256k count=1024 > $(BOOT_IMG)
-	echo -e "n\np\n\n\n+64M\nn\np\n\n\n\nw" | fdisk $(BOOT_IMG)
-
-
 .PHONY: boot-img
-boot-img: boot-img-partition $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
-	rm -rf $(OUT_PATH)/rootfs*
+boot-img: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
+	mformat -i $(BOOT_IMG) -n 64 -h 2 -T 65536 -v "BOOT IMG" -C ::
 	mkdir -p $(OUT_PATH)/rootfs
 	fakeroot bash -c " \
 		tar xfj $(ROOT)/assets/prebuilt/rootfs.tar.bz2 -C $(OUT_PATH)/rootfs; \
@@ -252,27 +246,18 @@ boot-img: boot-img-partition $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
 	gzip $(OUT_PATH)/rootfs.cpio
 	mv $(OUT_PATH)/rootfs.cpio.gz $(OUT_PATH)/initrd.img
-	$(eval dev_name := $(shell sudo losetup -Pf --show $(BOOT_IMG)))
-	sudo mkfs.msdos $(dev_name)p1
-	sudo mkfs.ext4 $(dev_name)p2
-	sudo mount $(dev_name)p1 $(OUT_PATH)/rootfs
-	sudo cp $(OUT_PATH)/initrd.img $(OUT_PATH)/rootfs/.
-	sudo cp $(LINUX_BIN) $(OUT_PATH)/rootfs/.
-	sudo cp $(LINUX_DTB_BIN) $(OUT_PATH)/rootfs/.
-	sudo mkdir -p $(OUT_PATH)/rootfs/EFI/BOOT
-	sudo cp $(GRUB_BIN) $(OUT_PATH)/rootfs/EFI/BOOT/bootaa64.efi
-	sudo cp $(GRUB_CONFIG_PATH)/grub.cfg $(OUT_PATH)/rootfs/EFI/BOOT/grub.cfg
-	sudo umount $(OUT_PATH)/rootfs
-	sudo mount $(dev_name)p2 $(OUT_PATH)/rootfs
-	sudo cp -R $(ROOT)/assets/prebuilt/qemu/* $(OUT_PATH)/rootfs/.
-	sudo cp $(OUT_PATH)/realm.bin $(OUT_PATH)/rootfs/guest/.
-	sudo cp $(LINUX_BIN) $(OUT_PATH)/rootfs/guest/.
-	sudo umount $(OUT_PATH)/rootfs
-	sudo losetup -d $(dev_name)
+	mcopy -i $(BOOT_IMG) $(LINUX_BIN) ::
+	mcopy -i $(BOOT_IMG) $(LINUX_DTB_BIN) ::
+	mmd -i $(BOOT_IMG) ::/EFI
+	mmd -i $(BOOT_IMG) ::/EFI/BOOT
+	mcopy -i $(BOOT_IMG) $(OUT_PATH)/initrd.img ::/initrd.img
+	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
+	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
 
 .PHONY: boot-img-clean
 boot-img-clean:
 	rm -f $(BOOT_IMG)
+	rm -rf $(OUT_PATH)/rootfs*
 
 ################################################################################
 # Run targets
