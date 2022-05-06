@@ -22,7 +22,7 @@
 	exception-level = <2>; /* S-EL1 */
 	execution-state = <0>; /* AARCH64 */
 	load-address = <0xfe000000>;
-	entrypoint-offset = <0x00001000>;
+	entrypoint-offset = <0x00002000>;
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
 	messaging-method = <3>; /* Direct messaging only */
@@ -31,7 +31,13 @@
 	run-time-model = <1>; /* Run to completion */
 
 	/* Boot protocol */
-	gp-register-num = <0x0>;
+	gp-register-num = <0>;
+
+	/* Boot Info */
+	boot-info {
+		compatible = "arm,ffa-manifest-boot-info";
+		ffa_manifest;
+	};
 
 	rx_tx-info {
 		compatible = "arm,ffa-manifest-rx_tx-buffer";

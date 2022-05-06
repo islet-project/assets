@@ -138,6 +138,45 @@ static void cactus_print_memory_layout(unsigned int vm_id)
 		(void *)get_sp_tx_end(vm_id));
 }
 
+static void cactus_print_boot_info(struct ffa_boot_info_header *boot_info_header)
+{
+	struct ffa_boot_info_desc *boot_info_desc;
+
+	if (boot_info_header == NULL) {
+		NOTICE("SP doesn't have boot information!\n");
+		return;
+	}
+
+	VERBOSE("SP boot info:\n");
+	VERBOSE("  Signature: %x\n", boot_info_header->signature);
+	VERBOSE("  Version: %x\n", boot_info_header->version);
+	VERBOSE("  Blob Size: %u\n", boot_info_header->info_blob_size);
+	VERBOSE("  Descriptor Size: %u\n", boot_info_header->desc_size);
+	VERBOSE("  Descriptor Count: %u\n", boot_info_header->desc_count);
+
+	boot_info_desc = boot_info_header->boot_info;
+
+	if (boot_info_desc == NULL) {
+		ERROR("Boot data arguments error...\n");
+		return;
+	}
+
+	for (uint32_t i = 0; i < boot_info_header->desc_count; i++) {
+		VERBOSE("    Boot Data:\n");
+		VERBOSE("      Type: %u\n",
+				ffa_boot_info_type(&boot_info_desc[i]));
+		VERBOSE("      Type ID: %u\n",
+				ffa_boot_info_type_id(&boot_info_desc[i]));
+		VERBOSE("      Flags:\n");
+		VERBOSE("        Name Format: %x\n",
+				ffa_boot_info_name_format(&boot_info_desc[i]));
+		VERBOSE("        Content Format: %x\n",
+				ffa_boot_info_content_format(&boot_info_desc[i]));
+		VERBOSE("      Size: %u\n", boot_info_desc[i].size);
+		VERBOSE("      Value: %llx\n", boot_info_desc[i].content);
+	}
+}
+
 static void cactus_plat_configure_mmu(unsigned int vm_id)
 {
 	mmap_add_region(CACTUS_TEXT_START,
@@ -181,7 +220,8 @@ static void register_secondary_entrypoint(void)
 	tftf_smc(&args);
 }
 
-void __dead2 cactus_main(bool primary_cold_boot)
+void __dead2 cactus_main(bool primary_cold_boot,
+			 struct ffa_boot_info_header *boot_info_header)
 {
 	assert(IS_IN_EL1() != 0);
 
@@ -209,6 +249,20 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 		/* Initialize locks for tail end interrupt handler */
 		sp_handler_spin_lock_init();
+
+		if (boot_info_header != NULL) {
+			/*
+			 * TODO: Currently just validating that cactus can
+			 * access the boot info descriptors. In case we want to
+			 * use the boot info contents, we should check the
+			 * blob and remap if the size is bigger than one page.
+			 * Only then access the contents.
+			 */
+			mmap_add_dynamic_region(
+				(unsigned long long)boot_info_header,
+				(uintptr_t)boot_info_header,
+				PAGE_SIZE, MT_RO_DATA);
+		}
 	}
 
 	/*
@@ -234,6 +288,7 @@ void __dead2 cactus_main(bool primary_cold_boot)
 
 		set_putc_impl(PL011_AS_STDOUT);
 
+		cactus_print_boot_info(boot_info_header);
 	} else {
 		set_putc_impl(HVC_CALL_AS_STDOUT);
 	}

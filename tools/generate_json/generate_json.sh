@@ -21,14 +21,20 @@ GENERATED_JSON=$2/sp_layout.json
 # different partition manifests.
 if [ "$1" == "cactus" ]; then
 	echo -e "{\n\t\"$1-primary\" : {\n \
-	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"$1.dts\",\n \
+	\t\"image\": {\n \
+	\t\t\"file\": \"$1.bin\",\n \
+	\t\t\"offset\":\"0x2000\"\n\
+	\t},\n \
+	\t\"pm\": {\n \
+	\t\t\"file\": \"$1.dts\",\n \
+	\t\t\"offset\":\"0x1000\"\n\
+	\t},\n
 	\t\"owner\": \"SiP\"\n\t},\n\n\t\"$1-secondary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
 	\t\"pm\": \"$1-secondary.dts\",\n \
 	\t\"owner\": \"Plat\"\n\t},\n\n\t\"$1-tertiary\" : {\n \
 	\t\"image\": \"$1.bin\",\n \
-	\t\"pm\": \"$1-tertiary.dts\", \n \
+	\t\"pm\": \"$1-tertiary.dts\",\n \
 	\t\"owner\": \"Plat\"\n\t},\n\n\t\"ivy\" : {\n \
 	\t\"image\": \"ivy.bin\",\n \
 	\t\"pm\": \"ivy.dts\", \n \
