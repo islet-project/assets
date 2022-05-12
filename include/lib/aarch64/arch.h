@@ -167,6 +167,11 @@
 #define ID_AA64DFR0_V8_2_DEBUG_ARCH_SUPPORTED	U(8)
 #define ID_AA64DFR0_V8_4_DEBUG_ARCH_SUPPORTED	U(9)
 
+/* ID_AA64DFR0_EL1.BRBE definitions */
+#define ID_AA64DFR0_BRBE_SHIFT			U(52)
+#define ID_AA64DFR0_BRBE_MASK			ULL(0xf)
+#define ID_AA64DFR0_BRBE_SUPPORTED		ULL(1)
+
 /* ID_AA64DFR0_EL1.TraceBuffer definitions */
 #define ID_AA64DFR0_TRACEBUFFER_SHIFT		U(44)
 #define ID_AA64DFR0_TRACEBUFFER_MASK		ULL(0xf)
@@ -1112,6 +1117,19 @@
 #define TRBMAR_EL1	S3_0_C9_C11_4
 #define TRBTRG_EL1	S3_0_C9_C11_6
 #define TRBIDR_EL1	S3_0_C9_C11_7
+
+/*******************************************************************************
+ * FEAT_BRBE - Branch Record Buffer Extension System Registers
+ ******************************************************************************/
+
+#define BRBCR_EL1	S2_1_C9_C0_0
+#define BRBCR_EL2	S2_4_C9_C0_0
+#define BRBFCR_EL1	S2_1_C9_C0_1
+#define BRBTS_EL1	S2_1_C9_C0_2
+#define BRBINFINJ_EL1	S2_1_C9_C1_0
+#define BRBSRCINJ_EL1	S2_1_C9_C1_1
+#define BRBTGTINJ_EL1	S2_1_C9_C1_2
+#define BRBIDR0_EL1	S2_1_C9_C2_0
 
 /*******************************************************************************
  * Armv8.4 - Trace Filter System Registers

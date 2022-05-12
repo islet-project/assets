@@ -309,6 +309,14 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 	} while (false)
 #endif
 
+#define SKIP_TEST_IF_BRBE_NOT_SUPPORTED()					\
+	do {									\
+		if (!get_feat_brbe_support()) {				\
+			tftf_testcase_printf("FEAT_BRBE not supported\n");	\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (false)
+
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp_supported()	\
 		(tftf_get_psci_feature_info(SMC_PSCI_SYSTEM_SUSPEND)		\
