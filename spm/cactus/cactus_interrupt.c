@@ -46,7 +46,7 @@ void cactus_interrupt_handler(void)
 		 * Interrupt triggered due to Trusted watchdog timer expiry.
 		 * Clear the interrupt and stop the timer.
 		 */
-		NOTICE("Trusted WatchDog timer stopped\n");
+		VERBOSE("Trusted WatchDog timer stopped\n");
 		sp805_twdog_stop();
 
 		/* Perform secure interrupt de-activation. */
