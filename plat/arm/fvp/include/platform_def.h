@@ -70,7 +70,7 @@
  *              RME enabled(64MB)                RME not enabled(16MB)
  * 0xFC00_0000  --------------------             ------------------- 0xFF00_0000
  *              |                  |             |                 |
- *              | AP Secure (~28MB)|             |  AP TZC (~14MB) |
+ * 0xFD000000   | AP Secure (~28MB)|             |  AP TZC (~14MB) |
  *              --------------------             ------------------- 0xFFE0_0000
  *              |                  |             |                 |
  *              |  REALM (32MB)    |             |  EL3 TZC (2MB)  |
@@ -86,6 +86,7 @@
  */
 /* For both RME & non-RME case top 2MB will be EL3 memory */
 #define EL3_MEMORY_ACCESS_ADDR			U(0xFFE00000)
+#define SECURE_MEMORY_ACCESS_ADDR		U(0xFD000000)
 
 /*******************************************************************************
  * Base address and size for the FIP that contains FWU images.

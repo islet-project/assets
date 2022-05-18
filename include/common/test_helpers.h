@@ -244,6 +244,14 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (false);
 
+#define INIT_TFTF_MAILBOX(mb)							\
+	do {									\
+		if (!mailbox_init(mb)) {					\
+			ERROR("Mailbox not configured properly!\n");		\
+			return TEST_RESULT_FAIL;				\
+		}								\
+	} while (false);
+
 #define CHECK_SPMC_TESTING_SETUP(ffa_major, ffa_minor, expected_uuids)		\
 	do {									\
 		SKIP_TEST_IF_AARCH32();						\
@@ -407,4 +415,9 @@ bool spm_core_sp_init(ffa_id_t sp_id);
  */
 bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable);
 
+/**
+ * Initializes the Mailbox for other SPM related tests that need to use
+ * RXTX buffers.
+ */
+bool mailbox_init(struct mailbox_buffers mb);
 #endif /* __TEST_HELPERS_H__ */

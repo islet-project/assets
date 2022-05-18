@@ -20,6 +20,9 @@
 #include <xlat_tables_v2.h>
 
 #include <platform_def.h>
+#include <cactus_test_cmds.h>
+#include <ffa_endpoints.h>
+
 
 /*
  * Using "__aarch64__" here looks weird but its unavoidable because of following reason
@@ -30,8 +33,14 @@
  */
 #ifdef __aarch64__
 
+#define SENDER HYP_ID
+#define RECEIVER SP_ID(1)
+
 static volatile bool sync_exception_triggered;
 static volatile bool data_abort_triggered;
+static const struct ffa_uuid expected_sp_uuids[] = {
+		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}
+};
 
 static __aligned(PAGE_SIZE) uint64_t share_page[PAGE_SIZE / sizeof(uint64_t)];
 
@@ -65,7 +74,7 @@ static bool data_abort_handler(void)
 	return false;
 }
 
-test_result_t access_el3_memory_from_ns(void)
+test_result_t el3_memory_cannot_be_accessed_in_ns(void)
 {
 	const uintptr_t test_address = EL3_MEMORY_ACCESS_ADDR;
 
@@ -163,15 +172,220 @@ out_unregister:
 	return result;
 }
 
+/**
+ * @Test_Aim@ Check a secure region cannot be accessed from normal world.
+ *
+ * Following test intends to run on RME enabled platforms when EL3
+ * is Root world. In a non RME platform, EL3 is secure.
+ * Access to secure memory from NS world is already covered
+ * by el3_memory_cannot_be_accessed_in_ns.
+ */
+test_result_t s_memory_cannot_be_accessed_in_ns(void)
+{
+	const uintptr_t test_address = SECURE_MEMORY_ACCESS_ADDR;
+
+	/* skipp non RME platforms */
+	if (get_armv9_2_feat_rme_support() == 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
+	VERBOSE("Attempt to access secure memory (0x%lx)\n", test_address);
+
+	data_abort_triggered = false;
+	sync_exception_triggered = false;
+	register_custom_sync_exception_handler(data_abort_handler);
+	dsbsy();
+
+	int rc = mmap_add_dynamic_region(test_address, test_address, PAGE_SIZE,
+					MT_MEMORY | MT_RW | MT_NS);
+
+	if (rc != 0) {
+		tftf_testcase_printf("%d: mmap_add_dynamic_region() = %d\n", __LINE__, rc);
+		return TEST_RESULT_FAIL;
+	}
+
+	*((volatile uint64_t *)test_address);
+
+	mmap_remove_dynamic_region(test_address, PAGE_SIZE);
+
+	dsbsy();
+	unregister_custom_sync_exception_handler();
+
+	if (sync_exception_triggered == false) {
+		tftf_testcase_printf("No sync exception while accessing (0x%lx)\n", test_address);
+		return TEST_RESULT_SKIPPED;
+	}
+
+	if (data_abort_triggered == false) {
+		tftf_testcase_printf("Sync exception is not data abort\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+static test_result_t memory_cannot_be_accessed_in_rl(u_register_t params)
+{
+	u_register_t retrmm;
+	static char rd[GRANULE_SIZE] __aligned(GRANULE_SIZE);
+
+	if (get_armv9_2_feat_rme_support() == 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
+	retrmm = realm_version();
+
+	VERBOSE("RMM version is: %lu.%lu\n",
+			RMI_ABI_VERSION_GET_MAJOR(retrmm),
+			RMI_ABI_VERSION_GET_MINOR(retrmm));
+
+	/*
+	 * TODO: Remove this once SMC_RMM_REALM_CREATE is implemented in TRP
+	 * For the moment skip the test if RMM is TRP, TRP version is always null.
+	 */
+	if (retrmm == 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
+	retrmm = realm_granule_delegate((u_register_t)&rd[0]);
+	if (retrmm != 0UL) {
+		ERROR("Delegate operation returns fail, %lx\n", retrmm);
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Create a realm using a parameter in a secure physical address space should fail. */
+	retrmm = realm_create((u_register_t)&rd[0], params);
+	if (retrmm == 0UL) {
+		ERROR("Realm create operation should fail, %lx\n", retrmm);
+		retrmm = realm_destroy((u_register_t)&rd[0]);
+		if (retrmm != 0UL) {
+			ERROR("Realm destroy operation returns fail, %lx\n", retrmm);
+			return TEST_RESULT_FAIL;
+		}
+		return TEST_RESULT_FAIL;
+	} else if (retrmm != RMM_STATUS_ERROR_INPUT) {
+		ERROR("Realm create operation should fail with code:%ld retrmm:%ld\n",
+		RMM_STATUS_ERROR_INPUT, retrmm);
+		return TEST_RESULT_FAIL;
+	}
+
+	retrmm = realm_granule_undelegate((u_register_t)&rd[0]);
+	if (retrmm != 0UL) {
+		INFO("Undelegate operation returns fail, %lx\n", retrmm);
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/**
+ * @Test_Aim@ Check a root region cannot be accessed from a secure partition.
+ *
+ * This change adds TFTF and cactus test to permit checking a root region
+ * cannot be accessed from secure world.
+ * A hardcoded address marked Root in the GPT is shared to a secure
+ * partition. The SP retrieves the region from the SPM, maps it and
+ * attempts a read access to the region. It is expected to trigger a GPF
+ * data abort on the PE caught by a custom exception handler.
+ *
+ */
+test_result_t rt_memory_cannot_be_accessed_in_s(void)
+{
+	const uintptr_t test_address = EL3_MEMORY_ACCESS_ADDR;
+	struct ffa_memory_region_constituent constituents[] = {
+		{
+			(void *)test_address, 1, 0
+		}
+	};
+	const uint32_t constituents_count = sizeof(constituents) /
+		sizeof(struct ffa_memory_region_constituent);
+	ffa_memory_handle_t handle;
+	struct mailbox_buffers mb;
+	smc_ret_values ret;
+
+	if (get_armv9_2_feat_rme_support() == 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
+	INIT_TFTF_MAILBOX(mb);
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	GET_TFTF_MAILBOX(mb);
+
+	handle = memory_init_and_send((struct ffa_memory_region *)mb.send,
+					PAGE_SIZE, SENDER, RECEIVER,
+					constituents, constituents_count,
+					FFA_MEM_SHARE_SMC32, &ret);
+
+	if (handle == FFA_MEMORY_HANDLE_INVALID) {
+		return TEST_RESULT_FAIL;
+	}
+
+	VERBOSE("TFTF - Handle: %llx Address: %p\n",
+		handle, constituents[0].address);
+
+	/* Retrieve the shared page and attempt accessing it. */
+	ret = cactus_mem_send_cmd(SENDER, RECEIVER, FFA_MEM_SHARE_SMC32,
+				  handle, 0, true, 1);
+
+	if (is_ffa_call_error(ffa_mem_reclaim(handle, 0))) {
+		ERROR("Memory reclaim failed!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Expect success response with value 1 hinting an exception
+	 * triggered while the SP accessed the region.
+	 */
+	if (!(cactus_get_response(ret) == CACTUS_SUCCESS &&
+	      cactus_error_code(ret) == 1)) {
+		ERROR("Exceptions test failed!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+test_result_t s_memory_cannot_be_accessed_in_rl(void)
+{
+	u_register_t params = (u_register_t)SECURE_MEMORY_ACCESS_ADDR;
+	return memory_cannot_be_accessed_in_rl(params);
+}
+
+test_result_t rt_memory_cannot_be_accessed_in_rl(void)
+{
+	u_register_t params = (u_register_t)EL3_MEMORY_ACCESS_ADDR;
+	return memory_cannot_be_accessed_in_rl(params);
+}
+
 #else
 
-test_result_t access_el3_memory_from_ns(void)
+test_result_t el3_memory_cannot_be_accessed_in_ns(void)
 {
 	tftf_testcase_printf("Test not ported to AArch32\n");
 	return TEST_RESULT_SKIPPED;
 }
 
 test_result_t rl_memory_cannot_be_accessed_in_ns(void)
+{
+	tftf_testcase_printf("Test not ported to AArch32\n");
+	return TEST_RESULT_SKIPPED;
+}
+
+test_result_t s_memory_cannot_be_accessed_in_ns(void)
+{
+	tftf_testcase_printf("Test not ported to AArch32\n");
+	return TEST_RESULT_SKIPPED;
+}
+
+test_result_t s_memory_cannot_be_accessed_in_rl(void)
+{
+	tftf_testcase_printf("Test not ported to AArch32\n");
+	return TEST_RESULT_SKIPPED;
+}
+
+test_result_t rt_memory_cannot_be_accessed_in_rl(void)
 {
 	tftf_testcase_printf("Test not ported to AArch32\n");
 	return TEST_RESULT_SKIPPED;
