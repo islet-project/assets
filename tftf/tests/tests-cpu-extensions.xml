@@ -27,6 +27,8 @@
     <testcase name="SME support" function="test_sme_support" />
     <testcase name="SPE support" function="test_spe_support" />
     <testcase name="AFP support" function="test_afp_support" />
+    <testcase name="Test wfit instruction" function="test_wfit_instruction" />
+    <testcase name="Test wfet instruction" function="test_wfet_instruction" />
   </testsuite>
 
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">

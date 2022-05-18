@@ -19,6 +19,7 @@ TESTS_SOURCES	+=	$(addprefix tftf/tests/,			\
 	extensions/sys_reg_trace/test_sys_reg_trace.c			\
 	extensions/trbe/test_trbe.c					\
 	extensions/trf/test_trf.c					\
+	extensions/wfxt/test_wfxt.c					\
 	runtime_services/arm_arch_svc/smccc_arch_soc_id.c		\
 	runtime_services/arm_arch_svc/smccc_arch_workaround_1.c		\
 	runtime_services/arm_arch_svc/smccc_arch_workaround_2.c		\

@@ -8,7 +8,6 @@
 #define ARCH_FEATURES_H
 
 #include <stdbool.h>
-
 #include <arch_helpers.h>
 
 static inline bool is_armv7_gentimer_present(void)
@@ -112,21 +111,21 @@ static inline uint32_t arch_get_debug_version(void)
 
 static inline bool get_armv9_0_trbe_support(void)
 {
-        return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEBUFFER_SHIFT) &
+	return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEBUFFER_SHIFT) &
 		ID_AA64DFR0_TRACEBUFFER_MASK) ==
 		ID_AA64DFR0_TRACEBUFFER_SUPPORTED;
 }
 
 static inline bool get_armv8_4_trf_support(void)
 {
-        return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEFILT_SHIFT) &
+	return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEFILT_SHIFT) &
 		ID_AA64DFR0_TRACEFILT_MASK) ==
 		ID_AA64DFR0_TRACEFILT_SUPPORTED;
 }
 
 static inline bool get_armv8_0_sys_reg_trace_support(void)
 {
-        return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEVER_SHIFT) &
+	return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_TRACEVER_SHIFT) &
 		ID_AA64DFR0_TRACEVER_MASK) ==
 		ID_AA64DFR0_TRACEVER_SUPPORTED;
 }
@@ -159,6 +158,12 @@ static inline bool get_feat_brbe_support(void)
 	return ((read_id_aa64dfr0_el1() >> ID_AA64DFR0_BRBE_SHIFT) &
 		ID_AA64DFR0_BRBE_MASK) ==
 		ID_AA64DFR0_BRBE_SUPPORTED;
+}
+
+static inline bool get_feat_wfxt_present(void)
+{
+	return (((read_id_aa64isar2_el1() >> ID_AA64ISAR2_WFXT_SHIFT) &
+		ID_AA64ISAR2_WFXT_MASK) == ID_AA64ISAR2_WFXT_SUPPORTED);
 }
 
 #endif /* ARCH_FEATURES_H */
