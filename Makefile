@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -174,8 +174,8 @@ COMMON_CFLAGS		:=
 COMMON_LDFLAGS		:=
 
 ifeq (${DEBUG},1)
-COMMON_CFLAGS		+= 	-g
-COMMON_ASFLAGS		+= 	-g -Wa,--gdwarf-2
+COMMON_CFLAGS		+= 	-g -gdwarf-4
+COMMON_ASFLAGS		+= 	-g -Wa,--gdwarf-4
 endif
 
 # Set the compiler's target architecture profile based on ARM_ARCH_MINOR option
