@@ -685,6 +685,9 @@ struct ffa_value ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
 struct ffa_value ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
 				      uint32_t flags);
 struct ffa_value ffa_notification_info_get(void);
+
+struct ffa_value ffa_console_log(const char* message, size_t char_count);
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* FFA_HELPERS_H */
