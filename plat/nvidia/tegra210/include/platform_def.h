@@ -123,6 +123,7 @@
  * IRQ value for Tegra RTC
  ******************************************************************************/
 #define TEGRA_RTC_IRQ			U(34)
+#define IRQ_TWDOG_INTID			TEGRA_RTC_IRQ
 
 /*******************************************************************************
  * Platform specific page table and MMU setup constants

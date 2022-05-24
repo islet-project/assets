@@ -124,6 +124,7 @@
  * IRQ value for Tegra Timer0
  ******************************************************************************/
 #define TEGRA_RTC_IRQ			U(42)
+#define IRQ_TWDOG_INTID			TEGRA_RTC_IRQ
 
 /*******************************************************************************
  * Platform specific page table and MMU setup constants
