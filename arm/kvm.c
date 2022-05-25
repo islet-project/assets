@@ -6,6 +6,7 @@
 #include "kvm/fdt.h"
 
 #include "arm-common/gic.h"
+#include <asm/realm.h>
 
 #include <sys/resource.h>
 
@@ -167,6 +168,9 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	pr_debug("Loaded kernel to 0x%llx (%llu bytes)",
 		 kvm->arch.kern_guest_start, kvm->arch.kern_size);
 
+	if (kvm->cfg.arch.is_realm)
+		kvm_arm_realm_populate_kernel(kvm);
+
 	/*
 	 * Now load backwards from the end of memory so the kernel
 	 * decompressor has plenty of space to work with. First up is
@@ -188,7 +192,6 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	/* ... and finally the initrd, if we have one. */
 	if (fd_initrd != -1) {
 		struct stat sb;
-		unsigned long initrd_start;
 
 		if (fstat(fd_initrd, &sb))
 			die_perror("fstat");
@@ -199,7 +202,6 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 		if (pos < kernel_end)
 			die("initrd overlaps with kernel image.");
 
-		initrd_start = guest_addr;
 		file_size = read_file(fd_initrd, pos, limit - pos);
 		if (file_size == -1) {
 			if (errno == ENOMEM)
@@ -208,11 +210,13 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 			die_perror("initrd read");
 		}
 
-		kvm->arch.initrd_guest_start = initrd_start;
+		kvm->arch.initrd_guest_start = guest_addr;
 		kvm->arch.initrd_size = file_size;
 		pr_debug("Loaded initrd to 0x%llx (%llu bytes)",
-			 kvm->arch.initrd_guest_start,
-			 kvm->arch.initrd_size);
+			 kvm->arch.initrd_guest_start, kvm->arch.initrd_size);
+
+		if (kvm->cfg.arch.is_realm)
+			kvm_arm_realm_populate_initrd(kvm);
 	} else {
 		kvm->arch.initrd_size = 0;
 	}
@@ -269,6 +273,8 @@ bool kvm__load_firmware(struct kvm *kvm, const char *firmware_filename)
 
 	/* Kernel isn't loaded by kvm, point start address to firmware */
 	kvm->arch.kern_guest_start = fw_addr;
+	kvm->arch.kern_size = fw_sz;
+
 	pr_debug("Loaded firmware to 0x%llx (%zd bytes)",
 		 kvm->arch.kern_guest_start, fw_sz);
 
@@ -282,6 +288,10 @@ bool kvm__load_firmware(struct kvm *kvm, const char *firmware_filename)
 	pr_debug("Placing fdt at 0x%llx - 0x%llx",
 		 kvm->arch.dtb_guest_start,
 		 kvm->arch.dtb_guest_start + FDT_MAX_SIZE);
+
+	if (kvm->cfg.arch.is_realm)
+		/* We hijack the kernel fields to describe the firmware. */
+		kvm_arm_realm_populate_kernel(kvm);
 
 	return true;
 }
