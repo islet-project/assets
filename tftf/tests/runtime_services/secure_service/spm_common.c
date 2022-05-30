@@ -530,8 +530,14 @@ bool ffa_partition_info_helper(struct mailbox_buffers *mb,
 
 	if (ffa_func_id(ret) == FFA_SUCCESS_SMC32) {
 		if (ffa_partition_info_count(ret) != expected_size) {
-			ERROR("Unexpected number of partitions %ld\n",
-			      ret.arg2);
+			ERROR("Unexpected number of partitions %d\n",
+			      ffa_partition_info_count(ret));
+			return false;
+		}
+		if (ffa_partition_info_desc_size(ret) !=
+		    sizeof(struct ffa_partition_info)) {
+			ERROR("Unexpected partition info descriptor size %d\n",
+			      ffa_partition_info_desc_size(ret));
 			return false;
 		}
 		const struct ffa_partition_info *info =

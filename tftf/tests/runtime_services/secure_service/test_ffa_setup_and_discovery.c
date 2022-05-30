@@ -390,6 +390,12 @@ test_result_t test_ffa_partition_info_v1_0(void)
 			      ffa_partition_info_count(ret));
 			return TEST_RESULT_FAIL;
 		}
+		if (ffa_partition_info_desc_size(ret) !=
+		    sizeof(struct ffa_partition_info_v1_0)) {
+			ERROR("Unexepcted partition info descriptor size %d\n",
+			      ffa_partition_info_desc_size(ret));
+			return TEST_RESULT_FAIL;
+		}
 		const struct ffa_partition_info_v1_0 *info =
 			(const struct ffa_partition_info_v1_0 *)(mb.recv);
 
