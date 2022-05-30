@@ -189,6 +189,9 @@ int kvm__get_vm_type(struct kvm *kvm)
 	/* Otherwise, compute the minimal required IPA size */
 	max_ipa = kvm->cfg.ram_addr + kvm->cfg.ram_size - 1;
 	ipa_bits = max(32, fls_long(max_ipa));
+	/* Realm needs double the IPA space */
+	if (kvm->cfg.arch.is_realm)
+		ipa_bits++;
 	pr_debug("max_ipa %lx ipa_bits %d max_ipa_bits %d",
 		 max_ipa, ipa_bits, max_ipa_bits);
 
