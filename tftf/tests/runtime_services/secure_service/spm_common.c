@@ -516,6 +516,15 @@ ffa_memory_handle_t memory_init_and_send(
 			       total_length, ret);
 }
 
+static bool ffa_uuid_equal(const struct ffa_uuid uuid1,
+			   const struct ffa_uuid uuid2)
+{
+	return (uuid1.uuid[0] == uuid2.uuid[0]) &&
+	       (uuid1.uuid[1] == uuid2.uuid[1]) &&
+	       (uuid1.uuid[2] == uuid2.uuid[2]) &&
+	       (uuid2.uuid[3] == uuid2.uuid[3]);
+}
+
 /**
  * Sends a ffa_partition_info request and checks the response against the
  * target.
@@ -544,6 +553,15 @@ bool ffa_partition_info_helper(struct mailbox_buffers *mb,
 			(const struct ffa_partition_info *)(mb->recv);
 
 		for (unsigned int i = 0U; i < expected_size; i++) {
+			/*
+			 * If a UUID is specified then the UUID returned in the
+			 * partition info descriptor MBZ.
+			 */
+			struct ffa_uuid expected_uuid =
+				ffa_uuid_equal(uuid, NULL_UUID) ?
+				expected[i].uuid :
+				NULL_UUID;
+
 			if (info[i].id != expected[i].id) {
 				ERROR("Wrong ID. Expected %x, got %x\n",
 				      expected[i].id,
@@ -562,16 +580,14 @@ bool ffa_partition_info_helper(struct mailbox_buffers *mb,
 				      info[i].properties);
 				result = false;
 			}
-			if (info[i].uuid.uuid[0] != expected[i].uuid.uuid[0] ||
-			    info[i].uuid.uuid[1] != expected[i].uuid.uuid[1] ||
-			    info[i].uuid.uuid[2] != expected[i].uuid.uuid[2] ||
-			    info[i].uuid.uuid[3] != expected[i].uuid.uuid[3]) {
+
+			if (!ffa_uuid_equal(info[i].uuid, expected_uuid)) {
 				ERROR("Wrong UUID. Expected %x %x %x %x, "
 				      "got %x %x %x %x\n",
-				      expected[i].uuid.uuid[0],
-				      expected[i].uuid.uuid[1],
-				      expected[i].uuid.uuid[2],
-				      expected[i].uuid.uuid[3],
+				      expected_uuid.uuid[0],
+				      expected_uuid.uuid[1],
+				      expected_uuid.uuid[2],
+				      expected_uuid.uuid[3],
 				      info[i].uuid.uuid[0],
 				      info[i].uuid.uuid[1],
 				      info[i].uuid.uuid[2],

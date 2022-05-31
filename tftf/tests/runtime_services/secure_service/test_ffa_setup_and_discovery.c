@@ -21,7 +21,6 @@ static struct mailbox_buffers mb;
 static const struct ffa_uuid sp_uuids[] = {
 		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}, {IVY_UUID}
 	};
-static const struct ffa_uuid null_uuid = { .uuid = {0} };
 
 static const struct ffa_partition_info ffa_expected_partition_info[] = {
 	/* Primary partition info */
@@ -358,7 +357,7 @@ test_result_t test_ffa_partition_info(void)
 		&ffa_expected_partition_info[2], 1)) {
 		return TEST_RESULT_FAIL;
 	}
-	if (!ffa_partition_info_helper(&mb, null_uuid,
+	if (!ffa_partition_info_helper(&mb, NULL_UUID,
 		ffa_expected_partition_info,
 		ARRAY_SIZE(ffa_expected_partition_info))) {
 		return TEST_RESULT_FAIL;
@@ -381,7 +380,7 @@ test_result_t test_ffa_partition_info_v1_0(void)
 	GET_TFTF_MAILBOX(mb);
 
 	test_result_t result = TEST_RESULT_SUCCESS;
-	struct ffa_value ret = ffa_partition_info_get(null_uuid);
+	struct ffa_value ret = ffa_partition_info_get(NULL_UUID);
 	uint64_t expected_size = ARRAY_SIZE(ffa_expected_partition_info);
 
 	if (ffa_func_id(ret) == FFA_SUCCESS_SMC32) {
