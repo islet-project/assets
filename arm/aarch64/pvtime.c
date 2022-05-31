@@ -58,8 +58,8 @@ int kvm_cpu__setup_pvtime(struct kvm_cpu *vcpu)
 	if (kvm_cfg->no_pvtime)
 		return 0;
 
-	has_stolen_time = kvm__supports_extension(vcpu->kvm,
-						  KVM_CAP_STEAL_TIME);
+	has_stolen_time = kvm__supports_vm_extension(vcpu->kvm,
+						     KVM_CAP_STEAL_TIME);
 	if (!has_stolen_time) {
 		kvm_cfg->no_pvtime = true;
 		return 0;
