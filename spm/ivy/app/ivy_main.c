@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,6 +12,7 @@
 #include <sp_helpers.h>
 
 #include "ivy.h"
+#include "sp_tests.h"
 
 /* Host machine information injected by the build system in the ELF file. */
 extern const char build_message[];
@@ -19,36 +20,46 @@ extern const char version_string[];
 
 void __dead2 ivy_main(void)
 {
-	u_register_t ret;
-	svc_args args;
+	struct ffa_value ret;
+	ffa_id_t my_id;
+	struct mailbox_buffers mb;
 
 	set_putc_impl(SVC_CALL_AS_STDOUT);
 
-	args = (svc_args) {.fid = FFA_ID_GET};
-	ret = sp_svc(&args);
+	/* Get FF-A id. */
+	ret = ffa_id_get();
+	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
+		ERROR("Cannot get FF-A id.\n");
+		panic();
+	}
+	my_id = ffa_endpoint_id(ret);
 
-	NOTICE("Booting Secure Partition (ID: %x)\n",
-		(unsigned int)args.arg2);
+	NOTICE("Booting Secure Partition (ID: %x)\n", my_id);
 	NOTICE("%s\n", build_message);
 	NOTICE("%s\n", version_string);
 
 init:
-	args = (svc_args) {.fid = FFA_MSG_WAIT};
-	ret = sp_svc(&args);
+	VERBOSE("Mapping RXTX Regions\n");
+	CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);
+	if (ffa_func_id(ret) != FFA_SUCCESS_SMC32) {
+		ERROR("Failed to map RXTX buffers. Error %x\n",
+		      ffa_error_code(ret));
+		panic();
+	}
+
+	ffa_tests(&mb);
+
+	ret = ffa_msg_wait();
 
 	while (1) {
-		if (ret != FFA_MSG_SEND_DIRECT_REQ_SMC32) {
-			ERROR("unknown FF-A request %lx\n", ret);
+		if (ffa_func_id(ret) != FFA_MSG_SEND_DIRECT_REQ_SMC32) {
+			ERROR("unknown FF-A request %x\n", ffa_func_id(ret));
 			goto init;
 		}
 
-		VERBOSE("Received request: %lx\n", args.arg3);
+		VERBOSE("Received request: %lx\n", ret.ret3);
 
-		args.fid = FFA_MSG_SEND_DIRECT_RESP_SMC32;
-		args.arg1 = 0x80020000;
-		args.arg2 = 0;
-		args.arg3 = 0;
-
-		ret = sp_svc(&args);
+		ret = ffa_msg_send_direct_resp32(my_id, ffa_dir_msg_source(ret),
+						 0, 0, 0, 0, 0);
 	}
 }

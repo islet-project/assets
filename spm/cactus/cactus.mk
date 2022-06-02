@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -27,7 +27,8 @@ CACTUS_INCLUDES :=					\
 	-Iinclude/plat/common				\
 	-Iinclude/runtime_services			\
 	-Ispm/cactus					\
-	-Ispm/common
+	-Ispm/common					\
+	-Ispm/common/sp_tests
 
 CACTUS_SOURCES	:=					\
 	$(addprefix spm/cactus/,			\
@@ -37,16 +38,17 @@ CACTUS_SOURCES	:=					\
 		cactus_main.c				\
 	)						\
 	$(addprefix spm/common/,			\
-		aarch64/sp_arch_helpers.S		\
 		sp_debug.c				\
 		sp_helpers.c				\
 		spm_helpers.c				\
+	)						\
+	$(addprefix spm/common/sp_tests/,		\
+		sp_test_ffa.c				\
 	)						\
 	$(addprefix spm/cactus/cactus_tests/,		\
 		cactus_message_loop.c			\
 		cactus_test_cpu_features.c		\
 		cactus_test_direct_messaging.c		\
-		cactus_test_ffa.c 			\
 		cactus_test_interrupts.c		\
 		cactus_test_memory_sharing.c		\
 		cactus_tests_smmuv3.c			\
@@ -54,11 +56,12 @@ CACTUS_SOURCES	:=					\
 	)
 
 # TODO: Remove dependency on TFTF files.
-CACTUS_SOURCES	+=					\
-	tftf/framework/debug.c				\
-	tftf/framework/${ARCH}/asm_debug.S		\
-	tftf/tests/runtime_services/secure_service/ffa_helpers.c \
-	tftf/tests/runtime_services/secure_service/spm_common.c	\
+CACTUS_SOURCES	+=							\
+	tftf/framework/debug.c						\
+	tftf/framework/${ARCH}/asm_debug.S				\
+	tftf/tests/runtime_services/secure_service/${ARCH}/ffa_arch_helpers.S \
+	tftf/tests/runtime_services/secure_service/ffa_helpers.c 	\
+	tftf/tests/runtime_services/secure_service/spm_common.c		\
 	tftf/framework/${ARCH}/exception_report.c
 
 CACTUS_SOURCES	+= 	drivers/arm/pl011/${ARCH}/pl011_console.S	\
@@ -91,7 +94,7 @@ $(CACTUS_DTB) : $(BUILD_PLAT)/cactus $(BUILD_PLAT)/cactus/cactus.elf
 $(CACTUS_DTB) : $(CACTUS_DTS)
 	@echo "  DTBGEN  $@"
 	${Q}tools/generate_dtb/generate_dtb.sh \
-		cactus ${CACTUS_DTS} $(BUILD_PLAT)
+		cactus ${CACTUS_DTS} $(BUILD_PLAT) $(CACTUS_DTB)
 	${Q}tools/generate_json/generate_json.sh \
 		cactus $(BUILD_PLAT)
 	@echo

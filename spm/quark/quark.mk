@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -63,7 +63,7 @@ $(QUARK_DTB) : $(BUILD_PLAT)/quark $(BUILD_PLAT)/quark/quark.elf
 $(QUARK_DTB) : spm/quark/quark.dts
 	@echo "  DTBGEN  spm/quark/quark.dts"
 	${Q}tools/generate_dtb/generate_dtb.sh \
-		quark spm/quark/quark.dts $(BUILD_PLAT)
+		quark spm/quark/quark.dts $(BUILD_PLAT) $(QUARK_DTB)
 	@echo
 	@echo "Built $@ successfully"
 	@echo

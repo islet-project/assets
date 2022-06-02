@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -229,7 +229,7 @@ bool spm_core_sp_init(ffa_id_t sp_id)
 	 */
 	if (sp_id != SP_ID(1)) {
 		uint32_t core_pos = get_current_core_id();
-		smc_ret_values ret = ffa_run(sp_id, core_pos);
+		struct ffa_value ret = ffa_run(sp_id, core_pos);
 
 		if (ffa_func_id(ret) != FFA_MSG_WAIT) {
 			ERROR("Failed to run SP%x on core %u\n",
@@ -243,7 +243,7 @@ bool spm_core_sp_init(ffa_id_t sp_id)
 
 bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	ret = cactus_interrupt_cmd(HYP_ID, sp_id, MANAGED_EXIT_INTERRUPT_ID,
 				   enable, INTERRUPT_TYPE_FIQ);
@@ -263,7 +263,7 @@ bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable)
  */
 bool mailbox_init(struct mailbox_buffers mb)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	ffa_rxtx_unmap();
 	CONFIGURE_AND_MAP_MAILBOX(mb, PAGE_SIZE, ret);

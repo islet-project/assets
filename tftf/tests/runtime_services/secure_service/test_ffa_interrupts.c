@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -64,7 +64,7 @@ static int timer_handler(void *data)
 test_result_t test_ffa_ns_interrupt(void)
 {
 	int ret;
-	smc_ret_values ret_values;
+	struct ffa_value ret_values;
 
 	CHECK_SPMC_TESTING_SETUP(1, 0, expected_sp_uuids);
 

@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <cactus_def.h>
-#include <cactus_platform_def.h>
+#include <sp_def.h>
 #include "cactus_message_loop.h"
 #include "cactus_test_cmds.h"
-#include "cactus_tests.h"
 #include <debug.h>
 #include <ffa_helpers.h>
 #include <sp_helpers.h>
+#include "sp_tests.h"
 #include <xlat_tables_defs.h>
 #include <lib/xlat_tables/xlat_tables_v2.h>
 #include <sync.h>
@@ -181,7 +180,7 @@ CACTUS_CMD_HANDLER(mem_send_cmd, CACTUS_MEM_SEND_CMD)
 
 CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 {
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	uint32_t mem_func = cactus_req_mem_send_get_mem_func(*args);
 	ffa_id_t receiver = cactus_req_mem_send_get_receiver(*args);
 	ffa_memory_handle_t handle;

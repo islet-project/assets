@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,14 +9,14 @@
 #include <arch_helpers.h>
 #include "cactus.h"
 #include "cactus_message_loop.h"
-#include <cactus_platform_def.h>
+#include <sp_platform_def.h>
 #include "cactus_test_cmds.h"
-#include "cactus_tests.h"
 #include <debug.h>
 #include <ffa_helpers.h>
 #include <mmio.h>
 #include "smmuv3_test_engine.h"
 #include <sp_helpers.h>
+#include "sp_tests.h"
 #include <spm_common.h>
 
 /* Source and target address for memcopy operation */
@@ -150,7 +150,7 @@ static bool run_smmuv3_test(void)
 
 CACTUS_CMD_HANDLER(smmuv3_cmd, CACTUS_DMA_SMMUv3_CMD)
 {
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	ffa_id_t source = ffa_dir_msg_source(*args);
 

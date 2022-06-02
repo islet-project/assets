@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -10,7 +10,13 @@
 
 OUTPUT_FORMAT(PLATFORM_LINKER_FORMAT)
 OUTPUT_ARCH(PLATFORM_LINKER_ARCH)
+
+#if IVY_SHIM == 1
 ENTRY(shim_entrypoint)
+#else
+ENTRY(ivy_entrypoint)
+#endif
+
 
 SECTIONS
 {
@@ -19,7 +25,7 @@ SECTIONS
     ASSERT(. == ALIGN(PAGE_SIZE),
            "TEXT_START address is not aligned to PAGE_SIZE.")
 
-    /*----------------- START S-EL1 SHIM ----------------*/
+#if IVY_SHIM == 1
 
     .shim_text : {
         __SHIM_TEXT_START__ = .;
@@ -59,7 +65,7 @@ SECTIONS
         __SHIM_BSS_END__ = .;
     }
 
-    /*----------------- END S-EL1 SHIM ----------------*/
+#endif
 
     .text : {
         __TEXT_START__ = .;

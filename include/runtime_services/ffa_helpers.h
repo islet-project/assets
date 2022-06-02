@@ -172,28 +172,57 @@ struct ffa_partition_info_v1_0 {
 	uint32_t properties;
 };
 
-static inline uint32_t ffa_func_id(smc_ret_values val)
+struct ffa_value {
+	u_register_t fid;
+	u_register_t arg1;
+	u_register_t arg2;
+	u_register_t arg3;
+	u_register_t arg4;
+	u_register_t arg5;
+	u_register_t arg6;
+	u_register_t arg7;
+};
+
+/* Function to make an SMC or SVC service call depending on the exception
+ * level of the SP.
+ */
+struct ffa_value ffa_service_call(struct ffa_value *args);
+
+/*
+ * Functions to trigger a service call.
+ *
+ * The arguments to pass through the service call must be stored in the
+ * ffa_value structure. The return values of the service call will be stored
+ * in the same structure (overriding the input arguments).
+ *
+ * Return the first return value. It is equivalent to args.fid but is also
+ * provided as the return value for convenience.
+ */
+u_register_t ffa_svc(struct ffa_value *args);
+u_register_t ffa_smc(struct ffa_value *args);
+
+static inline uint32_t ffa_func_id(struct ffa_value val)
 {
-	return (uint32_t) val.ret0;
+	return (uint32_t)val.fid;
 }
 
-static inline int32_t ffa_error_code(smc_ret_values val)
+static inline int32_t ffa_error_code(struct ffa_value val)
 {
-	return (int32_t) val.ret2;
+	return (int32_t)val.arg2;
 }
 
-static inline ffa_id_t ffa_endpoint_id(smc_ret_values val) {
-	return (ffa_id_t) val.ret2 & 0xffff;
+static inline ffa_id_t ffa_endpoint_id(struct ffa_value val) {
+	return (ffa_id_t)val.arg2 & 0xffff;
 }
 
-static inline uint32_t ffa_partition_info_count(smc_ret_values val)
+static inline uint32_t ffa_partition_info_count(struct ffa_value val)
 {
-	return (uint32_t) val.ret2;
+	return (uint32_t)val.arg2;
 }
 
-static inline uint32_t ffa_feature_intid(smc_ret_values val)
+static inline uint32_t ffa_feature_intid(struct ffa_value val)
 {
-	return (uint32_t)val.ret2;
+	return (uint32_t)val.arg2;
 }
 
 typedef uint64_t ffa_notification_bitmap_t;
@@ -226,14 +255,16 @@ typedef uint64_t ffa_notification_bitmap_t;
 
 #define FFA_NOTIFICATIONS_FLAGS_VCPU_ID(id) UINT32_C((id & 0xFFFF) << 16)
 
-static inline ffa_notification_bitmap_t ffa_notifications_get_from_sp(smc_ret_values val)
+static inline ffa_notification_bitmap_t ffa_notifications_get_from_sp(
+       struct ffa_value val)
 {
-	return FFA_NOTIFICATIONS_BITMAP(val.ret2, val.ret3);
+	return FFA_NOTIFICATIONS_BITMAP(val.arg2, val.arg3);
 }
 
-static inline ffa_notification_bitmap_t ffa_notifications_get_from_vm(smc_ret_values val)
+static inline ffa_notification_bitmap_t ffa_notifications_get_from_vm(
+       struct ffa_value val)
 {
-	return FFA_NOTIFICATIONS_BITMAP(val.ret4, val.ret5);
+	return FFA_NOTIFICATIONS_BITMAP(val.arg4, val.arg5);
 }
 
 /*
@@ -250,22 +281,22 @@ static inline ffa_notification_bitmap_t ffa_notifications_get_from_vm(smc_ret_va
 #define FFA_NOTIFICATIONS_LIST_SIZE_MASK 		0x3U
 
 static inline uint32_t ffa_notifications_info_get_lists_count(
-	smc_ret_values ret)
+	struct ffa_value ret)
 {
-	return (uint32_t)(ret.ret2 >> FFA_NOTIFICATIONS_LISTS_COUNT_SHIFT)
+	return (uint32_t)(ret.arg2 >> FFA_NOTIFICATIONS_LISTS_COUNT_SHIFT)
 	       & FFA_NOTIFICATIONS_LISTS_COUNT_MASK;
 }
 
 static inline uint32_t ffa_notifications_info_get_list_size(
-	smc_ret_values ret, uint32_t list)
+	struct ffa_value ret, uint32_t list)
 {
-	return (uint32_t)(ret.ret2 >> FFA_NOTIFICATIONS_LIST_SHIFT(list)) &
+	return (uint32_t)(ret.arg2 >> FFA_NOTIFICATIONS_LIST_SHIFT(list)) &
 	       FFA_NOTIFICATIONS_LIST_SIZE_MASK;
 }
 
-static inline bool ffa_notifications_info_get_more_pending(smc_ret_values ret)
+static inline bool ffa_notifications_info_get_more_pending(struct ffa_value ret)
 {
-	return (ret.ret2 & FFA_NOTIFICATIONS_INFO_GET_FLAG_MORE_PENDING) != 0U;
+	return (ret.arg2 & FFA_NOTIFICATIONS_INFO_GET_FLAG_MORE_PENDING) != 0U;
 }
 
 enum ffa_data_access {
@@ -531,9 +562,9 @@ static inline ffa_memory_handle_t ffa_assemble_handle(uint32_t h1, uint32_t h2)
 	       (ffa_notification_bitmap_t)h2 << 32;
 }
 
-static inline ffa_memory_handle_t ffa_mem_success_handle(smc_ret_values r)
+static inline ffa_memory_handle_t ffa_mem_success_handle(struct ffa_value r)
 {
-	return ffa_assemble_handle(r.ret2, r.ret3);
+	return ffa_assemble_handle(r.arg2, r.arg3);
 }
 
 /**
@@ -586,69 +617,69 @@ uint32_t ffa_memory_region_init(
 	enum ffa_memory_shareability shareability, uint32_t *total_length,
 	uint32_t *fragment_length);
 
-static inline ffa_id_t ffa_dir_msg_dest(smc_ret_values val) {
-	return (ffa_id_t)val.ret1 & U(0xFFFF);
+static inline ffa_id_t ffa_dir_msg_dest(struct ffa_value val) {
+	return (ffa_id_t)val.arg1 & U(0xFFFF);
 }
 
-static inline ffa_id_t ffa_dir_msg_source(smc_ret_values val) {
-	return (ffa_id_t)(val.ret1 >> 16U);
+static inline ffa_id_t ffa_dir_msg_source(struct ffa_value val) {
+	return (ffa_id_t)(val.arg1 >> 16U);
 }
 
-smc_ret_values ffa_msg_send_direct_req64(ffa_id_t source_id,
-					 ffa_id_t dest_id, uint64_t arg0,
-					 uint64_t arg1, uint64_t arg2,
-					 uint64_t arg3, uint64_t arg4);
+struct ffa_value ffa_msg_send_direct_req64(ffa_id_t source_id,
+					   ffa_id_t dest_id, uint64_t arg0,
+					   uint64_t arg1, uint64_t arg2,
+					   uint64_t arg3, uint64_t arg4);
 
-smc_ret_values ffa_msg_send_direct_req32(ffa_id_t source_id,
-					 ffa_id_t dest_id, uint32_t arg0,
-					 uint32_t arg1, uint32_t arg2,
-					 uint32_t arg3, uint32_t arg4);
+struct ffa_value ffa_msg_send_direct_req32(ffa_id_t source_id,
+					   ffa_id_t dest_id, uint32_t arg0,
+					   uint32_t arg1, uint32_t arg2,
+					   uint32_t arg3, uint32_t arg4);
 
-smc_ret_values ffa_msg_send_direct_resp64(ffa_id_t source_id,
-					  ffa_id_t dest_id, uint64_t arg0,
-					  uint64_t arg1, uint64_t arg2,
-					  uint64_t arg3, uint64_t arg4);
+struct ffa_value ffa_msg_send_direct_resp64(ffa_id_t source_id,
+					    ffa_id_t dest_id, uint64_t arg0,
+					    uint64_t arg1, uint64_t arg2,
+					    uint64_t arg3, uint64_t arg4);
 
-smc_ret_values ffa_msg_send_direct_resp32(ffa_id_t source_id,
-					  ffa_id_t dest_id, uint32_t arg0,
-					  uint32_t arg1, uint32_t arg2,
-					  uint32_t arg3, uint32_t arg4);
+struct ffa_value ffa_msg_send_direct_resp32(ffa_id_t source_id,
+					    ffa_id_t dest_id, uint32_t arg0,
+					    uint32_t arg1, uint32_t arg2,
+					    uint32_t arg3, uint32_t arg4);
 
-smc_ret_values ffa_run(uint32_t dest_id, uint32_t vcpu_id);
-smc_ret_values ffa_version(uint32_t input_version);
-smc_ret_values ffa_id_get(void);
-smc_ret_values ffa_spm_id_get(void);
-smc_ret_values ffa_msg_wait(void);
-smc_ret_values ffa_error(int32_t error_code);
-smc_ret_values ffa_features(uint32_t feature);
-smc_ret_values ffa_partition_info_get(const struct ffa_uuid uuid);
-smc_ret_values ffa_rx_release(void);
-smc_ret_values ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages);
-smc_ret_values ffa_rxtx_unmap(void);
-smc_ret_values ffa_mem_donate(uint32_t descriptor_length,
+struct ffa_value ffa_run(uint32_t dest_id, uint32_t vcpu_id);
+struct ffa_value ffa_version(uint32_t input_version);
+struct ffa_value ffa_id_get(void);
+struct ffa_value ffa_spm_id_get(void);
+struct ffa_value ffa_msg_wait(void);
+struct ffa_value ffa_error(int32_t error_code);
+struct ffa_value ffa_features(uint32_t feature);
+struct ffa_value ffa_partition_info_get(const struct ffa_uuid uuid);
+struct ffa_value ffa_rx_release(void);
+struct ffa_value ffa_rxtx_map(uintptr_t send, uintptr_t recv, uint32_t pages);
+struct ffa_value ffa_rxtx_unmap(void);
+struct ffa_value ffa_mem_donate(uint32_t descriptor_length,
+				uint32_t fragment_length);
+struct ffa_value ffa_mem_lend(uint32_t descriptor_length,
 			      uint32_t fragment_length);
-smc_ret_values ffa_mem_lend(uint32_t descriptor_length,
-			    uint32_t fragment_length);
-smc_ret_values ffa_mem_share(uint32_t descriptor_length,
-			     uint32_t fragment_length);
-smc_ret_values ffa_mem_retrieve_req(uint32_t descriptor_length,
-			            uint32_t fragment_length);
-smc_ret_values ffa_mem_relinquish(void);
-smc_ret_values ffa_mem_reclaim(uint64_t handle, uint32_t flags);
-smc_ret_values ffa_notification_bitmap_create(ffa_id_t vm_id,
-					      ffa_vcpu_count_t vcpu_count);
-smc_ret_values ffa_notification_bitmap_destroy(ffa_id_t vm_id);
-smc_ret_values ffa_notification_bind(ffa_id_t sender, ffa_id_t receiver,
-				     uint32_t flags,
-				     ffa_notification_bitmap_t notifications);
-smc_ret_values ffa_notification_unbind(ffa_id_t sender, ffa_id_t receiver,
+struct ffa_value ffa_mem_share(uint32_t descriptor_length,
+			       uint32_t fragment_length);
+struct ffa_value ffa_mem_retrieve_req(uint32_t descriptor_length,
+				      uint32_t fragment_length);
+struct ffa_value ffa_mem_relinquish(void);
+struct ffa_value ffa_mem_reclaim(uint64_t handle, uint32_t flags);
+struct ffa_value ffa_notification_bitmap_create(ffa_id_t vm_id,
+						ffa_vcpu_count_t vcpu_count);
+struct ffa_value ffa_notification_bitmap_destroy(ffa_id_t vm_id);
+struct ffa_value ffa_notification_bind(ffa_id_t sender, ffa_id_t receiver,
+				       uint32_t flags,
 				       ffa_notification_bitmap_t notifications);
-smc_ret_values ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
-				    uint32_t flags,
-				    ffa_notification_bitmap_t bitmap);
-smc_ret_values ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
-				    uint32_t flags);
-smc_ret_values ffa_notification_info_get(void);
+struct ffa_value ffa_notification_unbind(ffa_id_t sender, ffa_id_t receiver,
+				  ffa_notification_bitmap_t notifications);
+struct ffa_value ffa_notification_set(ffa_id_t sender, ffa_id_t receiver,
+				      uint32_t flags,
+				      ffa_notification_bitmap_t bitmap);
+struct ffa_value ffa_notification_get(ffa_id_t receiver, uint32_t vcpu_id,
+				      uint32_t flags);
+struct ffa_value ffa_notification_info_get(void);
 #endif /* __ASSEMBLY__ */
 
 #endif /* FFA_HELPERS_H */

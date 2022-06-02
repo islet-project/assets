@@ -76,7 +76,7 @@ test_result_t test_ffa_features(void)
 		return TEST_RESULT_SUCCESS;
 	}
 
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 	unsigned int expected_ret;
 	const struct ffa_features_test *ffa_feature_test_target;
 	unsigned int i, test_target_size =
@@ -124,9 +124,9 @@ static test_result_t test_ffa_version(uint32_t input_version,
 		return TEST_RESULT_SKIPPED;
 	}
 
-	smc_ret_values ret_values = ffa_version(input_version);
+	struct ffa_value ret_values = ffa_version(input_version);
 
-	uint32_t spm_version = (uint32_t)(0xFFFFFFFF & ret_values.ret0);
+	uint32_t spm_version = (uint32_t)(0xFFFFFFFF & ret_values.fid);
 
 	if (spm_version == expected_return) {
 		return TEST_RESULT_SUCCESS;
@@ -199,7 +199,7 @@ test_result_t test_ffa_version_smaller(void)
 
 static test_result_t test_ffa_rxtx_map(uint32_t expected_return)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/**********************************************************************
 	 * Verify that FFA is there and that it has the correct version.
@@ -246,7 +246,7 @@ test_result_t test_ffa_rxtx_map_fail(void)
 
 static test_result_t test_ffa_rxtx_unmap(uint32_t expected_return)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/**********************************************************************
 	 * Verify that FFA is there and that it has the correct version.
@@ -309,7 +309,7 @@ test_result_t test_ffa_spm_id_get(void)
 {
 	SKIP_TEST_IF_FFA_VERSION_LESS_THAN(1, 1);
 
-	smc_ret_values ffa_ret = ffa_spm_id_get();
+	struct ffa_value ffa_ret = ffa_spm_id_get();
 
 	if (is_ffa_call_error(ffa_ret)) {
 		ERROR("FFA_SPM_ID_GET call failed! Error code: 0x%x\n",
@@ -381,7 +381,7 @@ test_result_t test_ffa_partition_info_v1_0(void)
 	GET_TFTF_MAILBOX(mb);
 
 	test_result_t result = TEST_RESULT_SUCCESS;
-	smc_ret_values ret = ffa_partition_info_get(null_uuid);
+	struct ffa_value ret = ffa_partition_info_get(null_uuid);
 	uint64_t expected_size = ARRAY_SIZE(ffa_expected_partition_info);
 
 	if (ffa_func_id(ret) == FFA_SUCCESS_SMC32) {

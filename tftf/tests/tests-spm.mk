@@ -1,11 +1,12 @@
 #
-# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
 TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/secure_service/,	\
+		${ARCH}/ffa_arch_helpers.S				\
 		ffa_helpers.c						\
 		spm_common.c						\
 		test_ffa_direct_messaging.c				\

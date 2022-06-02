@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2018-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -30,7 +30,7 @@ static test_result_t send_cactus_echo_cmd(ffa_id_t sender,
 					  ffa_id_t dest,
 					  uint64_t value)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 	ret = cactus_echo_send_cmd(sender, dest, value);
 
 	/*
@@ -96,7 +96,7 @@ static test_result_t send_cactus_req_echo_cmd(ffa_id_t sender,
 					      ffa_id_t echo_dest,
 					      uint64_t value)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	ret = cactus_req_echo_send_cmd(sender, dest, echo_dest, value);
 
@@ -141,7 +141,7 @@ test_result_t test_ffa_sp_to_sp_direct_messaging(void)
 
 test_result_t test_ffa_sp_to_sp_deadlock(void)
 {
-	smc_ret_values ret;
+	struct ffa_value ret;
 
 	/**********************************************************************
 	 * Check SPMC has ffa_version and expected FFA endpoints are deployed.
@@ -169,7 +169,7 @@ static test_result_t cpu_on_handler(void)
 {
 	unsigned int core_pos = get_current_core_id();
 	test_result_t ret = TEST_RESULT_SUCCESS;
-	smc_ret_values ffa_ret;
+	struct ffa_value ffa_ret;
 
 	/*
 	 * Send a direct message request to SP1 (MP SP) from current physical

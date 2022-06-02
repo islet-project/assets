@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2017-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2017-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <cactus_def.h>
+#include <sp_def.h>
 #include <platform_def.h>
 #include <xlat_tables_defs.h>
 
@@ -14,7 +14,7 @@ ENTRY(cactus_entrypoint)
 
 SECTIONS
 {
-    . = CACTUS_IMAGE_BASE;
+    . = SP_IMAGE_BASE;
 
     ASSERT(. == ALIGN(PAGE_SIZE),
            "TEXT_START address is not aligned to PAGE_SIZE.")

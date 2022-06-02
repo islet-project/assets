@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -12,8 +12,8 @@
  */
 struct cactus_cmd_handler {
 	const uint64_t id;
-	smc_ret_values (*fn)(const smc_ret_values *args,
-			     struct mailbox_buffers *mb);
+	struct ffa_value (*fn)(const struct ffa_value *args,
+			       struct mailbox_buffers *mb);
 };
 
 /**
@@ -25,8 +25,8 @@ struct cactus_cmd_handler {
  * Define handler's function signature.
  */
 #define CACTUS_HANDLER_FN(name)						\
-	static smc_ret_values CACTUS_HANDLER_FN_NAME(name)(		\
-		const smc_ret_values *args, struct mailbox_buffers *mb)
+	static struct ffa_value CACTUS_HANDLER_FN_NAME(name)(		\
+		const struct ffa_value *args, struct mailbox_buffers *mb)
 
 /**
  * Helper to define Cactus command handler, and pair it with a command ID.
@@ -40,5 +40,5 @@ struct cactus_cmd_handler {
 	};								\
 	CACTUS_HANDLER_FN(name)
 
-bool cactus_handle_cmd(smc_ret_values *cmd_args, smc_ret_values *ret,
+bool cactus_handle_cmd(struct ffa_value *cmd_args, struct ffa_value *ret,
 		       struct mailbox_buffers *mb);
