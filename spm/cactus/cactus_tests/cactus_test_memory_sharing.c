@@ -205,8 +205,11 @@ CACTUS_CMD_HANDLER(req_mem_send_cmd, CACTUS_REQ_MEM_SEND_CMD)
 
 	VERBOSE("Sharing at 0x%llx\n", (uint64_t)constituents[0].address);
 	mem_attrs = MT_RW_DATA;
-	if (non_secure)
+
+	if (non_secure) {
 		mem_attrs |= MT_NS;
+	}
+
 	ret = mmap_add_dynamic_region(
 		(uint64_t)constituents[0].address,
 		(uint64_t)constituents[0].address,

@@ -253,7 +253,7 @@
 #define MAX_MMAP_REGIONS		50
 #else
 #if IMAGE_CACTUS
-#define MAX_XLAT_TABLES			8
+#define MAX_XLAT_TABLES			9
 #else
 #define MAX_XLAT_TABLES			5
 #endif
