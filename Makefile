@@ -94,6 +94,10 @@ ifeq ($(wildcard ${PLAT_MAKEFILE_FULL}),)
   $(error "Error: Invalid platform. The following platforms are available: ${PLATFORMS}")
 endif
 
+
+EL3_PAYLOAD_PLAT_PATH		:=	$(shell find el3_payload/plat/ -wholename '*/${PLAT}')
+EL3_PAYLOAD_PLAT_MAKEFILE_FULL	:=	${EL3_PAYLOAD_PLAT_PATH}/${PLAT_MAKEFILE}
+
 .PHONY: all
 all: msg_start
 
@@ -531,11 +535,13 @@ endif
 # system.
 .PHONY: el3_payload
 ifneq (${ARCH},aarch32)
+ifneq ($(wildcard ${EL3_PAYLOAD_PLAT_MAKEFILE_FULL}),)
 el3_payload: $(BUILD_DIR)
 	${Q}${MAKE} -C el3_payload PLAT=${PLAT}
 	${Q}find "el3_payload/build/${PLAT}" -name '*.bin' -exec cp {} "${BUILD_PLAT}" \;
 
 all: el3_payload
+endif
 endif
 
 doc:
