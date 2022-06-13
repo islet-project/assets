@@ -248,4 +248,6 @@ void virtio_set_guest_features(struct kvm *kvm, struct virtio_device *vdev,
 void virtio_notify_status(struct kvm *kvm, struct virtio_device *vdev,
 			  void *dev, u8 status);
 
+u64 virtio_dev_get_host_features(struct virtio_device *vdev, struct kvm *kvm, void *dev);
+
 #endif /* KVM__VIRTIO_H */

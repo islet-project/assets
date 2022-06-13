@@ -283,6 +283,11 @@ void virtio_notify_status(struct kvm *kvm, struct virtio_device *vdev,
 		vdev->ops->notify_status(kvm, dev, ext_status);
 }
 
+u64 virtio_dev_get_host_features(struct virtio_device *vdev, struct kvm *kvm, void *dev)
+{
+	return vdev->ops->get_host_features(kvm, dev);
+}
+
 bool virtio_access_config(struct kvm *kvm, struct virtio_device *vdev,
 			  void *dev, unsigned long offset, void *data,
 			  size_t size, bool is_write)
