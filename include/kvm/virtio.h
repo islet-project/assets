@@ -278,4 +278,6 @@ int virtio_vhost_set_features(int vhost_fd, u64 features);
 
 int virtio_transport_parser(const struct option *opt, const char *arg, int unset);
 
+u64 virtio_dev_get_host_features(struct virtio_device *vdev, struct kvm *kvm, void *dev);
+
 #endif /* KVM__VIRTIO_H */

@@ -26,7 +26,7 @@ static void virtio_mmio_config_in(struct kvm_cpu *vcpu,
 		break;
 	case VIRTIO_MMIO_DEVICE_FEATURES:
 		if (vmmio->hdr.host_features_sel == 0)
-			val = vdev->ops->get_host_features(vmmio->kvm,
+			val = virtio_dev_get_host_features(vdev, vmmio->kvm,
 							   vmmio->dev);
 		ioport__write32(data, val);
 		break;

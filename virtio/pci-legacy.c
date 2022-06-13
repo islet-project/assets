@@ -44,7 +44,7 @@ static bool virtio_pci__data_in(struct kvm_cpu *vcpu, struct virtio_device *vdev
 
 	switch (offset) {
 	case VIRTIO_PCI_HOST_FEATURES:
-		val = vdev->ops->get_host_features(kvm, vpci->dev);
+		val = virtio_dev_get_host_features(vdev, kvm, vpci->dev);
 		ioport__write32(data, val);
 		break;
 	case VIRTIO_PCI_QUEUE_PFN:

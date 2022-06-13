@@ -26,7 +26,7 @@ static void virtio_mmio_config_in(struct kvm_cpu *vcpu,
 	case VIRTIO_MMIO_DEVICE_FEATURES:
 		if (vmmio->hdr.host_features_sel > 1)
 			break;
-		features |= vdev->ops->get_host_features(vmmio->kvm, vmmio->dev);
+		features |= virtio_dev_get_host_features(vdev, vmmio->kvm, vmmio->dev);
 		val = features >> (32 * vmmio->hdr.host_features_sel);
 		break;
 	case VIRTIO_MMIO_QUEUE_NUM_MAX:
