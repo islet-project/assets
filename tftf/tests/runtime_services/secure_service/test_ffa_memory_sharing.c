@@ -211,17 +211,21 @@ test_result_t test_req_mem_share_sp_to_sp(void)
 
 test_result_t test_req_ns_mem_share_sp_to_sp(void)
 {
-	/* Added this peprocessor condition because the test fails when RME is
-	 * enabled, because the model has PA_SIZE=48, but still doesn't have
-	 * allocated RAM allocatable there nor the itnerconnect support 48bit
-	 * addresses. */
-#if PA_SIZE == 48
+	/*
+	 * Skip the test when RME is enabled (for test setup reasons).
+	 * For RME tests, the model specifies 48b physical address size
+	 * at the PE, but misses allocating RAM and increasing the PA at
+	 * the interconnect level.
+	 */
+	if (get_armv9_2_feat_rme_support() != 0U) {
+		return TEST_RESULT_SKIPPED;
+	}
+
+	/* This test requires 48b physical address size capability. */
 	SKIP_TEST_IF_PA_SIZE_LESS_THAN(48);
+
 	return test_req_mem_send_sp_to_sp(FFA_MEM_SHARE_SMC32, SP_ID(3),
 					  SP_ID(2), true);
-#else
-	return TEST_RESULT_SKIPPED;
-#endif
 }
 
 test_result_t test_req_mem_lend_sp_to_sp(void)
