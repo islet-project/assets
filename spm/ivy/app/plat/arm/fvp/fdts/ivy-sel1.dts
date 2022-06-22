@@ -25,6 +25,7 @@
 	entrypoint-offset = <0x00004000>;
 	boot-order = <0>;
 	messaging-method = <3>; /* Direct messaging only */
+	/* Non-secure interrupts are signaled by default. */
 
 	/* Boot protocol */
 	gp-register-num = <0x0>;
