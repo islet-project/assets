@@ -108,6 +108,10 @@
 
    <testsuite name="FF-A Interrupt"
              description="Test non-secure Interrupts" >
+<!--
+     <testcase name="Test SPx with NS Interrupt queued"
+               function="test_ffa_ns_interrupt_queued" />
+-->
      <testcase name="Test Managed Exit"
                function="test_ffa_ns_interrupt_managed_exit" />
      <testcase name="Test NS interrupt Signalable"
