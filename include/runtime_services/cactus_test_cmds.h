@@ -24,6 +24,10 @@
 #define CACTUS_ERROR_FFA_CALL		U(3)
 #define CACTUS_ERROR_UNHANDLED		U(4)
 
+#define ECHO_VAL1 U(0xa0a0a0a0)
+#define ECHO_VAL2 U(0xb0b0b0b0)
+#define ECHO_VAL3 U(0xc0c0c0c0)
+
 /**
  * Get command from struct ffa_value.
  */
