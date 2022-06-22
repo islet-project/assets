@@ -4,6 +4,7 @@
 #include <linux/byteorder.h>
 #include <linux/cpumask.h>
 #include <linux/sizes.h>
+#include <linux/virtio_config.h>
 
 #include <kvm/util.h>
 
@@ -243,5 +244,10 @@ void kvm__arch_enable_mte(struct kvm *kvm)
 
 u64 kvm__arch_get_virtio_host_features(struct kvm *kvm)
 {
-	return 0;
+	u64 features = 0;
+
+	/* Enforce F_ACCESS_PLATFORM for Realms */
+	if (kvm__is_realm(kvm))
+		features |= (1ULL << VIRTIO_F_ACCESS_PLATFORM);
+	return features;
 }
