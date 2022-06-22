@@ -12,3 +12,8 @@ u64 kvm__arch_default_ram_address(void)
 {
 	return ARM_MEMORY_AREA;
 }
+
+u64 kvm__arch_get_virtio_host_features(struct kvm *kvm)
+{
+	return 0;
+}
