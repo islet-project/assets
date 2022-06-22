@@ -112,6 +112,8 @@
      <testcase name="Test SPx with NS Interrupt queued"
                function="test_ffa_ns_interrupt_queued" />
 -->
+     <testcase name="Test SPx with NS Interrupt signaled and SPy with Managed Exit"
+               function="test_ffa_SPx_signaled_SPy_ME" />
      <testcase name="Test Managed Exit in SP call chain"
                function="test_ffa_ns_interrupt_managed_exit_chained" />
      <testcase name="Test SPx with Managed Exit and SPy with NS Interrupt signaled"

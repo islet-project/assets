@@ -487,6 +487,138 @@ test_result_t test_ffa_SPx_ME_SPy_signaled(void)
 }
 
 /*
+ * @Test_Aim@ This test exercises the following scenario: Managed exit is
+ * supported by the second SP but not by the first SP in a call chain. A non-secure
+ * interrupt triggers while the second SP is processing a direct request message
+ * sent by the first SP. We choose SP(2) as the first SP and SP(1) as the second SP.
+ *
+ * 1. Enable managed exit interrupt by sending interrupt_enable command to
+ *    the second Cactus SP in the call chain.
+ *
+ * 2. Register a handler for the non-secure timer interrupt. Program it to fire
+ *    in a certain time.
+ *
+ * 3. Send a direct request to the first SP(i.e., SP(2)) to forward sleep command to
+ *    the second SP(i.e., SP(1)).
+ *
+ * 4. While the second SP is running the busy loop, non-secure interrupt would
+ *    trigger during this time.
+ *
+ * 5. The interrupt will be trapped to SPMC as FIQ. SPMC will inject the managed
+ *    exit signal to the second SP through vFIQ conduit and perform eret to
+ *    resume execution in the second SP.
+ *
+ * 6. The second SP sends the managed exit direct response to the first SP
+ *    through its interrupt handler for managed exit. Note that SPMC does not
+ *    change the state of the non-secure interrupt at the GIC interface. SPMC
+ *    resumes the first SP but execution immediately traps to fiq handler of
+ *    SPMC.
+ *
+ * 7. SPMC returns control to the normal world with the help of SPMD through
+ *    FFA_INTERRUPT ABI for TFTF to handle the non-secure interrupt.
+ *
+ * 8. TFTF checks the direct message request to the first SP returned with a
+ *    FFA_INTERRUPT status.
+ *
+ * 9. Check whether the pending non-secure timer interrupt successfully got
+ *    handled in the normal world by TFTF.
+ *
+ * 10. Resume the first Cactus SP using FFA_RUN ABI.
+ *
+ * 11. The first SP direct message request returns with managed exit response. It
+ *     then sends a dummy direct message request command to resume the second SP's
+ *     execution.
+ *
+ * 12. The second SP resumes in the sleep routine and sends a direct message
+ *     response to the first SP.
+ *
+ * 13. The first SP checks if time lapsed is not lesser than sleep time and if
+ *     successful, sends direct message response to the TFTF.
+ *
+ * 14. TFTF ensures the direct message response did not return with an error.
+ *
+ * 15. TFTF further disables the managed exit virtual interrupt for the second
+ *     Cactus SP.
+ *
+ */
+test_result_t test_ffa_SPx_signaled_SPy_ME(void)
+{
+	int ret;
+	struct ffa_value ret_values;
+	unsigned int core_pos = get_current_core_id();
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	/* Enable managed exit interrupt as FIQ in the secure side. */
+	if (!spm_set_managed_exit_int(RECEIVER, true)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	ret = program_timer(TIMER_DURATION);
+	if (ret < 0) {
+		ERROR("Failed to program timer (%d)\n", ret);
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Send a request to the first Cactus SP to send request to another Cactus
+	 * SP to sleep.
+	 */
+	VERBOSE("Forward sleep command\n");
+	ret_values = cactus_fwd_sleep_cmd(SENDER, RECEIVER_2, RECEIVER,
+					  SLEEP_TIME_FWD);
+
+	if (check_timer_interrupt() == 0) {
+		ERROR("Timer interrupt hasn't actually been handled.\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Cactus SP should be preempted by non-secure interrupt. SPMC
+	 * returns control to the normal world through FFA_INTERRUPT ABI
+	 * for it to handle the non-secure interrupt.
+	 */
+	if (ffa_func_id(ret_values) != FFA_INTERRUPT) {
+		ERROR("Expected FFA_INTERRUPT as return status!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Ensure SPMC returns FFA_ERROR with BUSY error code when a direct
+	 * request message is sent to the preempted SP.
+	 */
+	ret_values = cactus_echo_send_cmd(SENDER, RECEIVER_2, ECHO_VAL1);
+
+	if ((ffa_func_id(ret_values) != FFA_ERROR) ||
+	    (ffa_error_code(ret_values) != FFA_ERROR_BUSY)) {
+		ERROR("Expected FFA_ERROR(BUSY)! Got %x(%x)\n",
+		      ffa_func_id(ret_values), ffa_error_code(ret_values));
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Resume the Cactus SP using FFA_RUN ABI for it to complete the
+	 * sleep routine and send the direct response message.
+	 */
+	ret_values = ffa_run(RECEIVER_2, core_pos);
+
+	if (!is_ffa_direct_response(ret_values)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (cactus_get_response(ret_values) == CACTUS_ERROR) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Disable Managed exit interrupt. */
+	if (!spm_set_managed_exit_int(RECEIVER, false)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/*
  * @Test_Aim@ Test the scenario where a non-secure interrupt triggers while a
  * Secure Partition,that specified action for NS interrupt as QUEUED, is
  * executing.
