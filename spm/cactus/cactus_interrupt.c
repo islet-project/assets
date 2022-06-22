@@ -21,11 +21,28 @@
 extern void notification_pending_interrupt_handler(void);
 
 extern ffa_id_t g_ffa_id;
+static uint32_t managed_exit_interrupt_id;
 
 /* Secure virtual interrupt that was last handled by Cactus SP. */
 uint32_t last_serviced_interrupt[PLATFORM_CORE_COUNT];
 
 extern spinlock_t sp_handler_lock[NUM_VINT_ID];
+
+/*
+ * Managed exit ID discoverable by querying the SPMC through
+ * FFA_FEATURES API.
+ */
+void discover_managed_exit_interrupt_id(void)
+{
+	struct ffa_value ffa_ret;
+
+	/* Interrupt ID value is returned through register W2. */
+	ffa_ret = ffa_features(FFA_FEATURE_MEI);
+	managed_exit_interrupt_id = ffa_feature_intid(ffa_ret);
+
+	VERBOSE("Discovered managed exit interrupt ID: %d\n",
+	     managed_exit_interrupt_id);
+}
 
 void cactus_interrupt_handler(void)
 {
