@@ -114,6 +114,8 @@
 -->
      <testcase name="Test Managed Exit in SP call chain"
                function="test_ffa_ns_interrupt_managed_exit_chained" />
+     <testcase name="Test SPx with Managed Exit and SPy with NS Interrupt signaled"
+               function="test_ffa_SPx_ME_SPy_signaled" />
      <testcase name="Test Managed Exit"
                function="test_ffa_ns_interrupt_managed_exit" />
      <testcase name="Test NS interrupt Signalable"

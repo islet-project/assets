@@ -369,6 +369,124 @@ test_result_t test_ffa_ns_interrupt_managed_exit_chained(void)
 }
 
 /*
+ * @Test_Aim@ This test exercises the following scenario: Managed exit is
+ * supported by the first SP but not by the second SP in a call chain. A
+ * non-secure interrupt triggers while the second SP is processing a direct request
+ * message sent by the first SP. We choose SP(1) as the first SP and SP(2) as
+ * the second SP.
+ *
+ * 1. Enable managed exit interrupt by sending interrupt_enable command to
+ *    the first Cactus SP in the call chain.
+ *
+ * 2. Register a handler for the non-secure timer interrupt. Program it to fire
+ *    in a certain time.
+ *
+ * 3. Send a direct request to the first SP(i.e., SP(1)) to forward sleep command to
+ *    the second SP(i.e., SP(2)).
+ *
+ * 4. While the second SP is running the busy loop, non-secure interrupt would
+ *    trigger during this time.
+ *
+ * 5. The interrupt will be trapped to SPMC as FIQ. SPMC finds the source of
+ *    the interrupted direct message request and prepares the return status
+ *    as FFA_INTERRUPT.
+ *
+ * 6. SPMC injects managed exit signal to the first SP through vFIQ
+ *    conduit and resumes it using eret.
+ *
+ * 7. The first Cactus SP sends the managed exit direct response to TFTF through
+ *    its interrupt handler for managed exit.
+ *
+ * 8. TFTF checks the return value in the direct message response from the first SP
+ *    and ensures it is managed signal interrupt ID.
+ *
+ * 9. Check whether the pending non-secure timer interrupt successfully got
+ *    handled in the normal world by TFTF.
+ *
+ * 10. Send a dummy direct message request command to resume the first SP's execution.
+ *
+ * 11. The first SP direct message request returns with FFA_INTERRUPT status. It
+ *     then resumes the second SP's execution using FFA_RUN ABI.
+ *
+ * 12. The second SP resumes in the sleep routine and sends a direct message
+ *     response to the first SP.
+ *
+ * 13. The first SP checks if time lapsed is not lesser than sleep time and if
+ *     successful, sends direct message response to the TFTF.
+ *
+ * 14. TFTF ensures the direct message response did not return with an error.
+ *
+ * 15. TFTF further disables the managed exit virtual interrupt for the first
+ *     Cactus SP.
+ *
+ */
+test_result_t test_ffa_SPx_ME_SPy_signaled(void)
+{
+	int ret;
+	struct ffa_value ret_values;
+
+	CHECK_SPMC_TESTING_SETUP(1, 1, expected_sp_uuids);
+
+	/* Enable managed exit interrupt as FIQ in the secure side. */
+	if (!spm_set_managed_exit_int(RECEIVER, true)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	ret = program_timer(TIMER_DURATION);
+	if (ret < 0) {
+		ERROR("Failed to program timer (%d)\n", ret);
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Send request to first Cactus SP to send request to another Cactus
+	 * SP to sleep.
+	 */
+	ret_values = cactus_fwd_sleep_cmd(SENDER, RECEIVER, RECEIVER_2,
+					  SLEEP_TIME_FWD);
+
+	if (!is_ffa_direct_response(ret_values)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Managed exit interrupt occurs during this time, Cactus
+	 * will respond with interrupt ID.
+	 */
+	if (cactus_get_response(ret_values) != MANAGED_EXIT_INTERRUPT_ID) {
+		ERROR("Managed exit interrupt did not occur!\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	if (check_timer_interrupt() == 0) {
+		ERROR("Timer interrupt hasn't actually been handled.\n");
+		return TEST_RESULT_FAIL;
+	}
+
+	/*
+	 * Send a dummy direct message request to relinquish CPU cycles.
+	 * This resumes Cactus in the sleep routine.
+	 */
+	ret_values = ffa_msg_send_direct_req64(SENDER, RECEIVER,
+					       0, 0, 0, 0, 0);
+
+	if (!is_ffa_direct_response(ret_values)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	if (cactus_get_response(ret_values) == CACTUS_ERROR) {
+		return TEST_RESULT_FAIL;
+	}
+
+	/* Disable Managed exit interrupt. */
+	if (!spm_set_managed_exit_int(RECEIVER, false)) {
+		return TEST_RESULT_FAIL;
+	}
+
+	return TEST_RESULT_SUCCESS;
+}
+
+/*
  * @Test_Aim@ Test the scenario where a non-secure interrupt triggers while a
  * Secure Partition,that specified action for NS interrupt as QUEUED, is
  * executing.
