@@ -203,6 +203,8 @@ int kvm__arch_free_firmware(struct kvm *kvm);
 bool kvm__arch_cpu_supports_vm(void);
 void kvm__arch_read_term(struct kvm *kvm);
 
+u64 kvm__arch_get_virtio_host_features(struct kvm *kvm);
+
 #ifdef ARCH_HAS_CFG_RAM_ADDRESS
 static inline bool kvm__arch_has_cfg_ram_address(void)
 {

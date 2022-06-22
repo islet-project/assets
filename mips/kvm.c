@@ -374,3 +374,8 @@ void ioport__map_irq(u8 *irq)
 void serial8250__inject_sysrq(struct kvm *kvm, char sysrq)
 {
 }
+
+u64 kvm__arch_get_virtio_host_features(struct kvm *kvm)
+{
+	return 0;
+}

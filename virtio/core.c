@@ -285,7 +285,10 @@ void virtio_notify_status(struct kvm *kvm, struct virtio_device *vdev,
 
 u64 virtio_dev_get_host_features(struct virtio_device *vdev, struct kvm *kvm, void *dev)
 {
-	return vdev->ops->get_host_features(kvm, dev);
+	u64 features = kvm__arch_get_virtio_host_features(kvm);
+
+	features |= vdev->ops->get_host_features(kvm, dev);
+	return features;
 }
 
 bool virtio_access_config(struct kvm *kvm, struct virtio_device *vdev,

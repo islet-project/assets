@@ -387,3 +387,8 @@ void kvm__arch_read_term(struct kvm *kvm)
 	serial8250__update_consoles(kvm);
 	virtio_console__inject_interrupt(kvm);
 }
+
+u64 kvm__arch_get_virtio_host_features(struct kvm *kvm)
+{
+	return 0;
+}

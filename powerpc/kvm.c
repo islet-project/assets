@@ -529,3 +529,8 @@ int kvm__arch_free_firmware(struct kvm *kvm)
 {
 	return 0;
 }
+
+u64 kvm__arch_get_virtio_host_features(struct kvm *kvm)
+{
+	return 0;
+}
