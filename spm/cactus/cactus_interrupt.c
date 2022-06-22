@@ -21,6 +21,7 @@
 extern void notification_pending_interrupt_handler(void);
 
 extern ffa_id_t g_ffa_id;
+extern ffa_id_t g_dir_req_source_id;
 static uint32_t managed_exit_interrupt_id;
 
 /* Secure virtual interrupt that was last handled by Cactus SP. */
@@ -44,44 +45,9 @@ void discover_managed_exit_interrupt_id(void)
 	     managed_exit_interrupt_id);
 }
 
-void cactus_interrupt_handler(void)
+static void post_interrupt_handler(uint32_t intid)
 {
-	uint32_t intid = spm_interrupt_get();
 	unsigned int core_pos = get_current_core_id();
-
-	switch (intid) {
-	case MANAGED_EXIT_INTERRUPT_ID:
-		/*
-		 * A secure partition performs its housekeeping and sends a
-		 * direct response to signal interrupt completion.
-		 * This is a pure virtual interrupt, no need for deactivation.
-		 */
-		cactus_response(g_ffa_id, HYP_ID, MANAGED_EXIT_INTERRUPT_ID);
-		break;
-	case IRQ_TWDOG_INTID:
-		/*
-		 * Interrupt triggered due to Trusted watchdog timer expiry.
-		 * Clear the interrupt and stop the timer.
-		 */
-		VERBOSE("Trusted WatchDog timer stopped\n");
-		sp805_twdog_stop();
-
-		/* Perform secure interrupt de-activation. */
-		spm_interrupt_deactivate(intid);
-
-		break;
-	case NOTIFICATION_PENDING_INTERRUPT_INTID:
-		notification_pending_interrupt_handler();
-		break;
-	default:
-		/*
-		 * Currently the only source of secure interrupt is Trusted
-		 * Watchdog timer.
-		 */
-		ERROR("%s: Interrupt ID %x not handled!\n", __func__,
-			 intid);
-		panic();
-	}
 
 	last_serviced_interrupt[core_pos] = intid;
 
@@ -91,4 +57,72 @@ void cactus_interrupt_handler(void)
 		sp_interrupt_tail_end_handler[intid]();
 	}
 	spin_unlock(&sp_handler_lock[intid]);
+}
+
+void cactus_interrupt_handler_irq(void)
+{
+	uint32_t intid = spm_interrupt_get();
+
+	if (intid == managed_exit_interrupt_id) {
+		/*
+		 * A secure partition performs its housekeeping and
+		 * sends a direct response to signal interrupt
+		 * completion. This is a pure virtual interrupt, no
+		 * need for deactivation.
+		 */
+		VERBOSE("vIRQ: Sending ME response to %x\n",
+			g_dir_req_source_id);
+		cactus_response(g_ffa_id, g_dir_req_source_id,
+				managed_exit_interrupt_id);
+	} else {
+		switch (intid) {
+		case IRQ_TWDOG_INTID:
+			/*
+			 * Interrupt triggered due to Trusted watchdog timer expiry.
+			 * Clear the interrupt and stop the timer.
+			 */
+			VERBOSE("Trusted WatchDog timer stopped\n");
+			sp805_twdog_stop();
+
+			/* Perform secure interrupt de-activation. */
+			spm_interrupt_deactivate(intid);
+
+			break;
+		case NOTIFICATION_PENDING_INTERRUPT_INTID:
+			notification_pending_interrupt_handler();
+			break;
+		default:
+			ERROR("%s: Interrupt ID %x not handled!\n", __func__,
+				 intid);
+			panic();
+			break;
+		}
+	}
+	post_interrupt_handler(intid);
+}
+
+void cactus_interrupt_handler_fiq(void)
+{
+	uint32_t intid = spm_interrupt_get();
+
+	switch (intid) {
+	case MANAGED_EXIT_INTERRUPT_ID:
+		/*
+		 * A secure partition performs its housekeeping and sends a
+		 * direct response to signal interrupt completion.
+		 * This is a pure virtual interrupt, no need for deactivation.
+		 */
+		VERBOSE("vFIQ: Sending ME response to %x\n",
+			g_dir_req_source_id);
+		cactus_response(g_ffa_id, g_dir_req_source_id,
+				MANAGED_EXIT_INTERRUPT_ID);
+		break;
+	default:
+		/*
+		 * Currently only managed exit interrupt is supported by vFIQ.
+		 */
+		panic();
+		break;
+	}
+	post_interrupt_handler(intid);
 }

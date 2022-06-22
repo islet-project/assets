@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -16,6 +16,15 @@
 	vector_entry \name
 	b crash_dump
 	end_vector_entry \name
+.endm
+
+.macro interrupt_vector _type
+	sub	sp, sp, #0x100
+	save_gp_regs
+	bl	cactus_interrupt_handler_\_type
+	restore_gp_regs
+	add	sp, sp, #0x100
+	eret
 .endm
 
 vector_base cactus_vector
@@ -36,11 +45,11 @@ vector_entry sync_spx
 end_vector_entry sync_spx
 
 vector_entry irq_spx
-	b	interrupt_vector_entry
+	b	irq_vector_entry
 end_vector_entry irq_spx
 
 vector_entry fiq_spx
-	b	interrupt_vector_entry
+	b	fiq_vector_entry
 end_vector_entry fiq_spx
 
 unhandled_exception serr_spx
@@ -116,14 +125,13 @@ func sync_exception_vector_entry
 	eret
 endfunc sync_exception_vector_entry
 
-func interrupt_vector_entry
-	sub	sp, sp, #0x100
-	save_gp_regs
-	bl	cactus_interrupt_handler
-	restore_gp_regs
-	add	sp, sp, #0x100
-	eret
-endfunc interrupt_vector_entry
+func irq_vector_entry
+	interrupt_vector irq
+endfunc irq_vector_entry
+
+func fiq_vector_entry
+	interrupt_vector fiq
+endfunc fiq_vector_entry
 
 func crash_dump
 	/* Save general-purpose registers on the stack. */

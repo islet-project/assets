@@ -30,6 +30,7 @@
 	notification-support;
 	messaging-method = <3>; /* Direct messaging only */
 	managed-exit; /* Managed exit is supported */
+	managed-exit-virq;
 
 	memory-regions {
 		compatible = "arm,ffa-manifest-memory-regions";
