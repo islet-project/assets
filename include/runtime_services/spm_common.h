@@ -47,6 +47,8 @@ enum interrupt_pin {
 #define VM_ID(x)	(x & ~SP_ID_MASK)
 #define IS_SP_ID(x)	((x & SP_ID_MASK) != 0U)
 
+#define NULL_UUID (const struct ffa_uuid) { .uuid = {0} }
+
 struct ffa_features_test {
 	const char *test_name;
 	unsigned int feature;

@@ -24,7 +24,6 @@ static uint32_t spm_version;
 static const struct ffa_uuid sp_uuids[] = {
 		{PRIMARY_UUID}, {SECONDARY_UUID}, {TERTIARY_UUID}, {IVY_UUID}
 	};
-static const struct ffa_uuid null_uuid = { .uuid = {0} };
 
 static const struct ffa_partition_info ffa_expected_partition_info[] = {
 	/* Primary partition info */
@@ -130,7 +129,7 @@ static void ffa_partition_info_get_test(struct mailbox_buffers *mb)
 	expect(ffa_partition_info_helper(mb, sp_uuids[0],
 		&ffa_expected_partition_info[0], 1), true);
 
-	expect(ffa_partition_info_helper(mb, null_uuid,
+	expect(ffa_partition_info_helper(mb, NULL_UUID,
 		ffa_expected_partition_info,
 		ARRAY_SIZE(ffa_expected_partition_info)), true);
 

@@ -220,6 +220,11 @@ static inline uint32_t ffa_partition_info_count(struct ffa_value val)
 	return (uint32_t)val.arg2;
 }
 
+static inline uint32_t ffa_partition_info_desc_size(struct ffa_value val)
+{
+	return (uint32_t)val.arg3;
+}
+
 static inline uint32_t ffa_feature_intid(struct ffa_value val)
 {
 	return (uint32_t)val.arg2;
