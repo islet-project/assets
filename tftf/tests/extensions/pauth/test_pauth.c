@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -60,7 +60,7 @@ static void set_store_pauth_keys(void)
 
 	memset(pauth_keys_before, 0, NUM_KEYS * sizeof(uint128_t));
 
-	if (is_armv8_3_pauth_apa_api_present()) {
+	if (is_armv8_3_pauth_apa_api_apa3_present()) {
 		if (is_pauth_key_enabled(SCTLR_EnIA_BIT)) {
 			/* Read APIAKey_EL1 */
 			plat_key = read_apiakeylo_el1() |
@@ -119,7 +119,7 @@ static void set_store_pauth_keys(void)
 	 * APGAKey_EL1 can be re-programmed, as this key is not set in
 	 * TF-A Test suite and PACGA instruction is not used.
 	 */
-	if (is_armv8_3_pauth_gpa_gpi_present()) {
+	if (is_armv8_3_pauth_gpa_gpi_gpa3_present()) {
 		/* Program APGAKey_EL1 */
 		plat_key = init_apkey();
 		write_apgakeylo_el1((uint64_t)plat_key);
@@ -138,7 +138,7 @@ static void read_pauth_keys(void)
 {
 	memset(pauth_keys_after, 0, NUM_KEYS * sizeof(uint128_t));
 
-	if (is_armv8_3_pauth_apa_api_present()) {
+	if (is_armv8_3_pauth_apa_api_apa3_present()) {
 		/* Read APIAKey_EL1 */
 		pauth_keys_after[0] = read_apiakeylo_el1() |
 			((uint128_t)(read_apiakeyhi_el1()) << 64);
@@ -156,7 +156,7 @@ static void read_pauth_keys(void)
 			((uint128_t)(read_apdbkeyhi_el1()) << 64);
 	}
 
-	if (is_armv8_3_pauth_gpa_gpi_present()) {
+	if (is_armv8_3_pauth_gpa_gpi_gpa3_present()) {
 		/* Read APGAKey_EL1 */
 		pauth_keys_after[4] = read_apgakeylo_el1() |
 			((uint128_t)(read_apgakeyhi_el1()) << 64);
