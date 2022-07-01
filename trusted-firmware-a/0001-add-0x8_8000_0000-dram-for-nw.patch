@@ -1,0 +1,54 @@
+From 8264f8d4b53839707f43b4bbb18c366fac43d3b6 Mon Sep 17 00:00:00 2001
+From: Bokdeuk Jeong <bd.jeong@samsung.com>
+Date: Tue, 7 Jun 2022 15:39:26 +0900
+Subject: add 0x8_8000_0000 dram for nw
+
+start addr: 0x8_8000_0000
+size: 0x8000_0000 (2GB)
+---
+ include/plat/arm/common/arm_pas_def.h | 7 ++++++-
+ plat/arm/common/arm_bl2_setup.c       | 3 ++-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/include/plat/arm/common/arm_pas_def.h b/include/plat/arm/common/arm_pas_def.h
+index 4fee41b3f..fe3f5084c 100644
+--- a/include/plat/arm/common/arm_pas_def.h
++++ b/include/plat/arm/common/arm_pas_def.h
+@@ -88,7 +88,12 @@
+ 							       ARM_L1_GPT_SIZE, \
+ 							       GPT_GPI_ROOT)
+ 
++
++#define ARM_PAS_NW_DRAM2 GPT_MAP_REGION_GRANULE(0x880000000, \
++                                    0x80000000, \
++                                    GPT_GPI_NS)
++
+ /* GPT Configuration options */
+-#define PLATFORM_L0GPTSZ		GPCCR_L0GPTSZ_30BITS
++#define PLATFORM_L0GPTSZ		GPCCR_L0GPTSZ_36BITS
+ 
+ #endif /* ARM_PAS_DEF_H */
+diff --git a/plat/arm/common/arm_bl2_setup.c b/plat/arm/common/arm_bl2_setup.c
+index 08c014d8e..5d3616594 100644
+--- a/plat/arm/common/arm_bl2_setup.c
++++ b/plat/arm/common/arm_bl2_setup.c
+@@ -139,6 +139,7 @@ static void arm_bl2_plat_gpt_setup(void)
+ 	 * the layout, so the array cannot be constant.
+ 	 */
+ 	pas_region_t pas_regions[] = {
++		ARM_PAS_NW_DRAM2,
+ 		ARM_PAS_KERNEL,
+ 		ARM_PAS_SECURE,
+ 		ARM_PAS_REALM,
+@@ -147,7 +148,7 @@ static void arm_bl2_plat_gpt_setup(void)
+ 	};
+ 
+ 	/* Initialize entire protected space to GPT_GPI_ANY. */
+-	if (gpt_init_l0_tables(GPCCR_PPS_4GB, ARM_L0_GPT_ADDR_BASE,
++	if (gpt_init_l0_tables(GPCCR_PPS_64GB, ARM_L0_GPT_ADDR_BASE,
+ 		ARM_L0_GPT_SIZE) < 0) {
+ 		ERROR("gpt_init_l0_tables() failed!\n");
+ 		panic();
+-- 
+2.25.1
+
