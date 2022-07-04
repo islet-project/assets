@@ -1,0 +1,81 @@
+From 7d9e25f2e40990a63c7dc45d22ad026a4296be04 Mon Sep 17 00:00:00 2001
+From: Bokdeuk Jeong <bd.jeong@samsung.com>
+Date: Mon, 4 Jul 2022 18:30:07 +0900
+Subject: [PATCH] [temporal] context: do not save/restore some sysregs
+
+Do not save and restore some sysregs to synchronize the reg values
+during the world switch between normal and realm
+This is temporal solution until we design how to synchronize registers
+between the two worlds.
+---
+ lib/el3_runtime/aarch64/context.S | 22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/lib/el3_runtime/aarch64/context.S b/lib/el3_runtime/aarch64/context.S
+index acfef8052..43f213c8a 100644
+--- a/lib/el3_runtime/aarch64/context.S
++++ b/lib/el3_runtime/aarch64/context.S
+@@ -172,15 +172,15 @@ func el2_sysregs_context_restore_common
+ 	msr	amair_el2, x12
+ 
+ 	ldp	x13, x14, [x0, #CTX_CNTHCTL_EL2]
+-	msr	cnthctl_el2, x13
+-	msr	cntvoff_el2, x14
++	//msr	cnthctl_el2, x13
++	//msr	cntvoff_el2, x14
+ 
+ 	ldr	x15, [x0, #CTX_CPTR_EL2]
+ 	msr	cptr_el2, x15
+ 
+ #if CTX_INCLUDE_AARCH32_REGS
+ 	ldr	x16, [x0, #CTX_DBGVCR32_EL2]
+-	msr	dbgvcr32_el2, x16
++	//msr	dbgvcr32_el2, x16
+ #endif /* CTX_INCLUDE_AARCH32_REGS */
+ 
+ 	ldp	x9, x10, [x0, #CTX_ELR_EL2]
+@@ -196,16 +196,16 @@ func el2_sysregs_context_restore_common
+ 	msr	hpfar_el2, x14
+ 
+ 	ldp	x15, x16, [x0, #CTX_HSTR_EL2]
+-	msr	hstr_el2, x15
+-	msr	ICC_SRE_EL2, x16
++	//msr	hstr_el2, x15
++	//msr	ICC_SRE_EL2, x16
+ 
+ 	ldp	x9, x10, [x0, #CTX_ICH_HCR_EL2]
+-	msr	ICH_HCR_EL2, x9
+-	msr	ICH_VMCR_EL2, x10
++	//msr	ICH_HCR_EL2, x9
++	//msr	ICH_VMCR_EL2, x10
+ 
+ 	ldp	x11, x12, [x0, #CTX_MAIR_EL2]
+ 	msr	mair_el2, x11
+-	msr	mdcr_el2, x12
++	//msr	mdcr_el2, x12
+ 
+ 	ldr	x14, [x0, #CTX_SCTLR_EL2]
+ 	msr	sctlr_el2, x14
+@@ -223,8 +223,8 @@ func el2_sysregs_context_restore_common
+ 	msr	vbar_el2, x12
+ 
+ 	ldp	x13, x14, [x0, #CTX_VMPIDR_EL2]
+-	msr	vmpidr_el2, x13
+-	msr	vpidr_el2, x14
++	//msr	vmpidr_el2, x13
++	//msr	vpidr_el2, x14
+ 
+ 	ldp	x15, x16, [x0, #CTX_VTCR_EL2]
+ 	msr	vtcr_el2, x15
+@@ -362,7 +362,7 @@ endfunc el2_sysregs_context_save_ecv
+ 
+ func el2_sysregs_context_restore_ecv
+ 	ldr	x11, [x0, #CTX_CNTPOFF_EL2]
+-	msr	CNTPOFF_EL2, x11
++	//msr	CNTPOFF_EL2, x11
+ 	ret
+ endfunc el2_sysregs_context_restore_ecv
+ #endif /* ENABLE_FEAT_ECV */
+-- 
+2.17.1
+
