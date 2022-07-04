@@ -28,8 +28,8 @@ extern struct cactus_cmd_handler cactus_cmd_handler_end[];
 
 #define PRINT_CMD(smc_ret)						\
 	VERBOSE("cmd %lx; args: %lx, %lx, %lx, %lx\n",	 		\
-		smc_ret.ret3, smc_ret.ret4, smc_ret.ret5, 		\
-		smc_ret.ret6, smc_ret.ret7)
+		smc_ret.arg3, smc_ret.arg4, smc_ret.arg5, 		\
+		smc_ret.arg6, smc_ret.arg7)
 
 /**
  * Traverses command table from section ".cactus_handler", searches for a

@@ -57,7 +57,7 @@ init:
 			goto init;
 		}
 
-		VERBOSE("Received request: %lx\n", ret.ret3);
+		VERBOSE("Received request: %lx\n", ret.arg3);
 
 		ret = ffa_msg_send_direct_resp32(my_id, ffa_dir_msg_source(ret),
 						 0, 0, 0, 0, 0);
