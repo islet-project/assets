@@ -20,18 +20,18 @@
 GENERATED_JSON=$2/sp_layout.json
 primary_dts="$1.dts"
 
+if [ "$1" == "ivy" ]; then
+	if [ "$3" == "1" ]; then
+		primary_dts="ivy-sel1.dts"
+	else
+		primary_dts="ivy-sel0.dts"
+	fi
+fi
+
 # Remove closing bracket and add comma if the dts is already present.
 if [ ! -f "$GENERATED_JSON" ]; then
 	echo -e "{\n" >> "$GENERATED_JSON"
 else
-	if [ "$1" == "ivy" ]; then
-		if [ "$3" == "1" ]; then
-			primary_dts="ivy-sel1.dts"
-		else
-			primary_dts="ivy-sel0.dts"
-		fi
-	fi
-
 	if [ $(grep "$primary_dts" "$GENERATED_JSON" | wc -l) -eq "0" ]; then
 		sed -i '$d' "$GENERATED_JSON"
 		sed -i '$ s/$/,/' "$GENERATED_JSON"
