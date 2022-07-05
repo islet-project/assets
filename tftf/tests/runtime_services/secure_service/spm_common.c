@@ -495,13 +495,21 @@ ffa_memory_handle_t memory_init_and_send(
 						FFA_DATA_ACCESS_NOT_SPECIFIED :
 						FFA_DATA_ACCESS_RW;
 
+	/*
+	 * Initialize memory region structure for the respective memory send
+	 * operation. Note that memory type shall only be specified for memory
+	 * share, for memory lend and memory donate these shall remain
+	 * unspecified.
+	 */
 	remaining_constituent_count = ffa_memory_region_init(
 		memory_region, memory_region_max_size, sender, receiver, constituents,
 		constituents_count, 0, 0, data_access,
 		FFA_INSTRUCTION_ACCESS_NOT_SPECIFIED,
-		FFA_MEMORY_NORMAL_MEM, FFA_MEMORY_CACHE_WRITE_BACK,
-		FFA_MEMORY_INNER_SHAREABLE, &total_length, &fragment_length
-	);
+		mem_func == FFA_MEM_SHARE_SMC32
+			? FFA_MEMORY_NORMAL_MEM
+			: FFA_MEMORY_NOT_SPECIFIED_MEM,
+		FFA_MEMORY_CACHE_WRITE_BACK, FFA_MEMORY_INNER_SHAREABLE,
+		&total_length, &fragment_length);
 
 	/*
 	 * For simplicity of the test, and at least for the time being,
