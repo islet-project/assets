@@ -275,3 +275,27 @@ bool mailbox_init(struct mailbox_buffers mb)
 	return true;
 }
 
+/*
+ * Utility function to wait for all CPUs other than the caller to be
+ * OFF.
+ */
+void wait_for_non_lead_cpus(void)
+{
+	unsigned int target_mpid, target_node;
+
+	for_each_cpu(target_node) {
+		target_mpid = tftf_get_mpidr_from_node(target_node);
+		wait_for_core_to_turn_off(target_mpid);
+	}
+}
+
+void wait_for_core_to_turn_off(unsigned int mpidr)
+{
+	/* Skip lead CPU, as it is powered on */
+	if (mpidr == (read_mpidr_el1() & MPID_MASK))
+		return;
+
+	while (tftf_psci_affinity_info(mpidr, MPIDR_AFFLVL0) != PSCI_STATE_OFF) {
+		continue;
+	}
+}

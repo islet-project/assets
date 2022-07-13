@@ -34,27 +34,6 @@ static event_t target_booted, target_keep_on_booted, target_keep_on;
  */
 #define BASELINE_VARIANCE	10
 
-/*
- * Utility function to wait for all CPUs other than the caller to be
- * OFF.
- */
-static void wait_for_non_lead_cpus(void)
-{
-	unsigned int lead_mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int target_mpid, target_node;
-
-	for_each_cpu(target_node) {
-		target_mpid = tftf_get_mpidr_from_node(target_node);
-		/* Skip lead CPU, as it is powered on */
-		if (target_mpid == lead_mpid)
-			continue;
-
-		while (tftf_psci_affinity_info(target_mpid, MPIDR_AFFLVL0)
-				!= PSCI_STATE_OFF)
-			;
-	}
-}
-
 static test_result_t test_target_function(void)
 {
 	tftf_send_event(&target_booted);

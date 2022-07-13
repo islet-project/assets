@@ -47,27 +47,6 @@ static unsigned int include_cpu_suspend;
 static test_result_t secondary_cpu_on_race_test(void);
 
 /*
- * Utility function to wait for all CPUs other than the caller to be
- * OFF.
- */
-static void wait_for_non_lead_cpus(void)
-{
-	unsigned int lead_mpid = read_mpidr_el1() & MPID_MASK;
-	unsigned int target_mpid, target_node;
-
-	for_each_cpu(target_node) {
-		target_mpid = tftf_get_mpidr_from_node(target_node);
-		/* Skip lead CPU, as it is powered on */
-		if (target_mpid == lead_mpid)
-			continue;
-
-		while (tftf_psci_affinity_info(target_mpid, MPIDR_AFFLVL0)
-				!= PSCI_STATE_OFF)
-			;
-	}
-}
-
-/*
  * Update per-cpu counter corresponding to the current CPU.
  * This function updates 2 counters, one in normal memory and the other
  * in coherent device memory. The counts are then compared to check if they
