@@ -3,11 +3,12 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include <smccc.h>
+#include <assert.h>
 
 #include <ffa_endpoints.h>
 #include <ffa_helpers.h>
 #include <ffa_svc.h>
+#include <smccc.h>
 
 struct ffa_value ffa_service_call(struct ffa_value *args)
 {
@@ -630,6 +631,43 @@ struct ffa_value ffa_notification_info_get(void)
 		.arg6 = FFA_PARAM_MBZ,
 		.arg7 = FFA_PARAM_MBZ
 	};
+
+	return ffa_service_call(&args);
+}
+
+static size_t char_to_arg_helper(const char *message, size_t size,
+				 u_register_t *arg)
+{
+	size_t to_write = size > sizeof(uint64_t) ? sizeof(uint64_t) : size;
+
+	for (int i = 0; i < to_write; i++) {
+		((char *)arg)[i] = message[i];
+	}
+	return to_write;
+}
+
+struct ffa_value ffa_console_log(const char *message, size_t char_count)
+{
+	struct ffa_value args = {
+		.fid = FFA_CONSOLE_LOG_SMC64,
+		.arg1 = char_count,
+	};
+	size_t written = 0;
+
+	assert(char_count <= sizeof(uint64_t) * 6);
+
+	written += char_to_arg_helper(&message[written], char_count - written,
+			&args.arg2);
+	written += char_to_arg_helper(&message[written], char_count - written,
+			&args.arg3);
+	written += char_to_arg_helper(&message[written], char_count - written,
+			&args.arg4);
+	written += char_to_arg_helper(&message[written], char_count - written,
+			&args.arg5);
+	written += char_to_arg_helper(&message[written], char_count - written,
+			&args.arg6);
+	char_to_arg_helper(&message[written], char_count - written,
+			&args.arg7);
 
 	return ffa_service_call(&args);
 }

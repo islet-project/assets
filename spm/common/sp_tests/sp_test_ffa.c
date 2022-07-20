@@ -189,6 +189,19 @@ void ffa_spm_id_get_test(void)
 	announce_test_end(test_spm_id_get);
 }
 
+void ffa_console_log_test(void)
+{
+	const char *test_name = "FFA_CONSOLE_LOG SMC Function";
+	announce_test_start(test_name);
+
+	const char test_string[] = "[FFA_CONSOLE_LOG]: Hello World!\n";
+	struct ffa_value ret = ffa_console_log(test_string, sizeof(test_string));
+
+	expect(ffa_func_id(ret), FFA_SUCCESS_SMC32);
+
+	announce_test_end(test_name);
+}
+
 void ffa_tests(struct mailbox_buffers *mb)
 {
 	const char *test_ffa = "FFA Interfaces";
@@ -198,6 +211,7 @@ void ffa_tests(struct mailbox_buffers *mb)
 	ffa_features_test();
 	ffa_version_test();
 	ffa_spm_id_get_test();
+	ffa_console_log_test();
 	ffa_partition_info_get_test(mb);
 
 	announce_test_section_end(test_ffa);
