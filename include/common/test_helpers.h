@@ -334,6 +334,15 @@ typedef test_result_t (*test_function_arg_t)(void *arg);
 		}								\
 	} while (false)
 
+#define SKIP_TEST_IF_RNG_TRAP_NOT_SUPPORTED()					\
+	do {									\
+		if (!is_feat_rng_trap_present()) {				\
+			tftf_testcase_printf("ARMv8.5-RNG_TRAP not"		\
+ 					"supported\n");				\
+			return TEST_RESULT_SKIPPED;				\
+		}								\
+	} while (false)
+
 /* Helper macro to verify if system suspend API is supported */
 #define is_psci_sys_susp_supported()	\
 		(tftf_get_psci_feature_info(SMC_PSCI_SYSTEM_SUSPEND)		\

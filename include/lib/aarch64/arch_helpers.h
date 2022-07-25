@@ -417,6 +417,10 @@ DEFINE_SYSREG_RW_FUNCS(pmccfiltr_el0)
 DEFINE_SYSREG_RW_FUNCS(pmevtyper0_el0)
 DEFINE_SYSREG_READ_FUNC(pmevcntr0_el0)
 
+/* Armv8.5 FEAT_RNG Registers */
+DEFINE_SYSREG_READ_FUNC(rndr)
+DEFINE_SYSREG_READ_FUNC(rndrrs)
+
 /* GICv3 System Registers */
 
 DEFINE_RENAME_SYSREG_RW_FUNCS(icc_sre_el1, ICC_SRE_EL1)

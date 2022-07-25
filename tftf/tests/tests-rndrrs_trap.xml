@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2022, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="RNDRRS_TRAP" description="Tests that a read access to RNDRRS generates a trap to EL3.">
+    <testcase name="Test EL3 trap upon a RNDRRS read access" function="test_rndrrs_trap_enabled" />
+  </testsuite>
+
+</testsuites>
