@@ -112,6 +112,9 @@ include tftf/tests/tests.mk
 include fwu/ns_bl1u/ns_bl1u.mk
 include fwu/ns_bl2u/ns_bl2u.mk
 
+# List of secure partitions present.
+SECURE_PARTITIONS	:=
+
 # Only platform fvp supports cactus_mm, quark
 ifeq (${ARCH}-${PLAT},aarch64-fvp)
 include spm/cactus_mm/cactus_mm.mk
@@ -530,6 +533,10 @@ ifeq (${ARCH}-${PLAT},aarch64-tc0)
   $(eval $(call MAKE_IMG,cactus))
   $(eval $(call MAKE_IMG,ivy))
 endif
+
+SP_LAYOUT:
+	${Q}tools/generate_json/generate_json.sh \
+		$(BUILD_PLAT) $(SECURE_PARTITIONS)
 
 # The EL3 test payload is only supported in AArch64. It has an independent build
 # system.

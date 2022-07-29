@@ -13,7 +13,8 @@ ifneq (${CACTUS_PLAT_PATH},)
 	include ${CACTUS_PLAT_PATH}/platform.mk
 endif
 
-CACTUS_DTB	:= $(BUILD_PLAT)/cactus.dtb
+CACTUS_DTB		:= $(BUILD_PLAT)/cactus.dtb
+SECURE_PARTITIONS	+= cactus
 
 CACTUS_INCLUDES :=					\
 	-Itftf/framework/include			\
@@ -95,13 +96,11 @@ $(CACTUS_DTB) : $(CACTUS_DTS)
 	@echo "  DTBGEN  $@"
 	${Q}tools/generate_dtb/generate_dtb.sh \
 		cactus ${CACTUS_DTS} $(BUILD_PLAT) $(CACTUS_DTB)
-	${Q}tools/generate_json/generate_json.sh \
-		cactus $(BUILD_PLAT)
 	@echo
 	@echo "Built $@ successfully"
 	@echo
 
-cactus: $(CACTUS_DTB)
+cactus: $(CACTUS_DTB) SP_LAYOUT
 
 # FDTS_CP copies flattened device tree sources
 #   $(1) = output directory

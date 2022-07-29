@@ -16,9 +16,11 @@ endif
 IVY_SHIM	:= 1
 
 ifeq (${IVY_SHIM},1)
-	IVY_DTB		:= $(BUILD_PLAT)/ivy-sel1.dtb
+	IVY_DTB			:= $(BUILD_PLAT)/ivy-sel1.dtb
+	SECURE_PARTITIONS	+= ivy_shim
 else
-	IVY_DTB		:= $(BUILD_PLAT)/ivy-sel0.dtb
+	IVY_DTB			:= $(BUILD_PLAT)/ivy-sel0.dtb
+	SECURE_PARTITIONS	+= ivy
 endif
 
 IVY_INCLUDES :=					\
@@ -98,13 +100,11 @@ $(IVY_DTB) : $(IVY_DTS)
 	@echo "  DTBGEN  $@"
 	${Q}tools/generate_dtb/generate_dtb.sh \
 		ivy ${IVY_DTS} $(BUILD_PLAT) $(IVY_DTB)
-	${Q}tools/generate_json/generate_json.sh \
-		ivy $(BUILD_PLAT) $(IVY_SHIM)
 	@echo
 	@echo "Built $@ successfully"
 	@echo
 
-ivy: $(IVY_DTB)
+ivy: $(IVY_DTB) SP_LAYOUT
 
 # FDTS_CP copies flattened device tree sources
 #   $(1) = output directory
