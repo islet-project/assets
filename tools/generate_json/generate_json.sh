@@ -83,7 +83,7 @@ elif [ $IVY_SHIM_PRESENT == "true" ]; then
 	if [ $PARTITION_ALREADY_PRESENT == "true" ]; then
 		echo -ne ",\n\n" >> $GENERATED_JSON
 	fi
-	echo -ne "\t\"ivy_shim\" : {\n \
+	echo -ne "\t\"ivy\" : {\n \
 	\t\"image\": \"ivy.bin\",\n \
 	\t\"pm\": \"ivy-sel1.dts\",\n \
 	\t\"owner\": \"Plat\"\n\t}" >> "$GENERATED_JSON"
