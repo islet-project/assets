@@ -14,6 +14,8 @@
 
 #include <ffa_helpers.h>
 
+#include <lib/extensions/sve.h>
+
 /* Hypervisor ID at physical FFA instance */
 #define HYP_ID          (0)
 /* SPMC ID */
@@ -94,17 +96,14 @@ bool is_expected_cactus_response(struct ffa_value ret, uint32_t expected_resp,
 void dump_ffa_value(struct ffa_value ret);
 
 /*
- * Vector length:
+ * Max. vector length:
  * SIMD: 128 bits = 16 bytes
- * SVE:	 512 bits = 64 bytes
  */
 #define SIMD_VECTOR_LEN_BYTES		16
-#define SVE_VECTOR_LEN_BYTES		64
 
 #define SIMD_NUM_VECTORS		32
-#define SVE_NUM_VECTORS			32
+
 typedef uint8_t simd_vector_t[SIMD_VECTOR_LEN_BYTES];
-typedef uint8_t sve_vector_t[SVE_VECTOR_LEN_BYTES];
 
 /*
  * Fills SIMD/SVE registers with the content of the container v.

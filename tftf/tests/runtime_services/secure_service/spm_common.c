@@ -207,7 +207,6 @@ void fill_sve_vector_regs(const sve_vector_t v[SVE_NUM_VECTORS])
 void read_sve_vector_regs(sve_vector_t v[SVE_NUM_VECTORS])
 {
 #ifdef __aarch64__
-	memset(v, 0, sizeof(sve_vector_t) * SVE_NUM_VECTORS);
 	__asm__ volatile(
 		".arch_extension sve\n"
 		read_sve_helper(0)
