@@ -17,6 +17,8 @@
 #define SVE_VECTOR_LEN_BYTES		256
 #define SVE_NUM_VECTORS			32
 
+#ifndef __ASSEMBLY__
+
 typedef uint8_t sve_vector_t[SVE_VECTOR_LEN_BYTES];
 
 #ifdef __aarch64__
@@ -37,5 +39,5 @@ static inline uint64_t sve_vector_length_get(void)
 }
 
 #endif /* __aarch64__ */
-
+#endif /* __ASSEMBLY__ */
 #endif /* SVE_H */
