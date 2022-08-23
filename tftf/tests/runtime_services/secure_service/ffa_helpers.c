@@ -40,7 +40,7 @@ struct ffa_value ffa_service_call(struct ffa_value *args)
 struct ffa_value ffa_run(uint32_t dest_id, uint32_t vcpu_id)
 {
 	struct ffa_value args = {
-		FFA_MSG_RUN,
+		FFA_RUN,
 		(dest_id << 16) | vcpu_id,
 		0, 0, 0, 0, 0, 0
 	};
