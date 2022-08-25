@@ -70,19 +70,24 @@ static void __dead2 message_loop(ffa_id_t vm_id, struct mailbox_buffers *mb)
 
 		if (ffa_func_id(ffa_ret) != FFA_MSG_SEND_DIRECT_REQ_SMC32 &&
 		    ffa_func_id(ffa_ret) != FFA_MSG_SEND_DIRECT_REQ_SMC64 &&
-		    ffa_func_id(ffa_ret) != FFA_INTERRUPT) {
+		    ffa_func_id(ffa_ret) != FFA_INTERRUPT &&
+		    ffa_func_id(ffa_ret) != FFA_RUN) {
 			ERROR("%s(%u) unknown func id 0x%x\n",
 				__func__, vm_id, ffa_func_id(ffa_ret));
 			break;
 		}
 
-		if (ffa_func_id(ffa_ret) == FFA_INTERRUPT) {
+		if ((ffa_func_id(ffa_ret) == FFA_INTERRUPT) ||
+		    (ffa_func_id(ffa_ret) == FFA_RUN)) {
 			/*
 			 * Received FFA_INTERRUPT in waiting state.
 			 * The interrupt id is passed although this is just
 			 * informational as we're running with virtual
 			 * interrupts unmasked and the interrupt is processed
 			 * by the interrupt handler.
+			 *
+			 * Received FFA_RUN in waiting state, the endpoint
+			 * simply returns by FFA_MSG_WAIT.
 			 */
 			ffa_ret = ffa_msg_wait();
 			continue;
