@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef AMU_H
-#define AMU_H
+#ifndef SME_H
+#define SME_H
 
 #define SME_SMCR_LEN_MAX U(0x1FF)
 
@@ -19,4 +19,4 @@ void sme_smstop(bool disable_za);
 uint64_t sme_rdvl_1(void);
 void sme_try_illegal_instruction(void);
 
-#endif /* AMU_H */
+#endif /* SME_H */
