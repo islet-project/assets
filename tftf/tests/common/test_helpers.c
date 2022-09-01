@@ -241,22 +241,6 @@ bool spm_core_sp_init(ffa_id_t sp_id)
 	return true;
 }
 
-bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable)
-{
-	struct ffa_value ret;
-
-	ret = cactus_interrupt_cmd(HYP_ID, sp_id, MANAGED_EXIT_INTERRUPT_ID,
-				   enable, INTERRUPT_TYPE_FIQ);
-
-	if (!is_ffa_direct_response(ret) ||
-	    cactus_get_response(ret) != CACTUS_SUCCESS) {
-		ERROR("Failed to enable Managed exit interrupt\n");
-		return false;
-	}
-
-	return true;
-}
-
 /*
  * Initializes the Mailbox for other SPM related tests that need to use
  * RXTX buffers.

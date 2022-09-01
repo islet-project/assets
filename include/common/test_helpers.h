@@ -429,11 +429,6 @@ test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
 bool spm_core_sp_init(ffa_id_t sp_id);
 
 /**
- * Enable/Disable managed exit interrupt for the provided SP.
- */
-bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable);
-
-/**
  * Initializes the Mailbox for other SPM related tests that need to use
  * RXTX buffers.
  */
