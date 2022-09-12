@@ -301,15 +301,17 @@ static inline struct ffa_value cactus_sleep_cmd(
  *
  * The sender of this command expects to receive CACTUS_SUCCESS if the requested
  * echo interaction happened successfully, or CACTUS_ERROR otherwise.
+ * Moreover, the sender can send a hint to the destination SP to expect that
+ * the forwaded sleep command could be preempted by a non-secure interrupt.
  */
 #define CACTUS_FWD_SLEEP_CMD (CACTUS_SLEEP_CMD + 1)
 
 static inline struct ffa_value cactus_fwd_sleep_cmd(
 	ffa_id_t source, ffa_id_t dest, ffa_id_t fwd_dest,
-	uint32_t sleep_time)
+	uint32_t sleep_time, bool hint_interrupted)
 {
 	return cactus_send_cmd(source, dest, CACTUS_FWD_SLEEP_CMD, sleep_time,
-			       fwd_dest, 0, 0);
+			       fwd_dest, hint_interrupted, 0);
 }
 
 static inline uint32_t cactus_get_sleep_time(struct ffa_value ret)
@@ -320,6 +322,11 @@ static inline uint32_t cactus_get_sleep_time(struct ffa_value ret)
 static inline ffa_id_t cactus_get_fwd_sleep_dest(struct ffa_value ret)
 {
 	return (ffa_id_t)ret.arg5;
+}
+
+static inline bool cactus_get_fwd_sleep_interrupted_hint(struct ffa_value ret)
+{
+	return (bool)ret.arg6;
 }
 
 /**

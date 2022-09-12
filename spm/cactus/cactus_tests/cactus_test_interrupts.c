@@ -48,6 +48,8 @@ CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	ffa_id_t fwd_dest = cactus_get_fwd_sleep_dest(*args);
 	uint32_t sleep_ms = cactus_get_sleep_time(*args);
+	bool hint_interrupted = cactus_get_fwd_sleep_interrupted_hint(*args);
+	bool fwd_dest_interrupted;
 
 	VERBOSE("VM%x requested %x to sleep for value %u\n",
 		ffa_dir_msg_source(*args), fwd_dest, sleep_ms);
@@ -62,6 +64,7 @@ CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 	while ((ffa_func_id(ffa_ret) == FFA_INTERRUPT) ||
 		is_expected_cactus_response(ffa_ret, MANAGED_EXIT_INTERRUPT_ID,
 					    0)) {
+		fwd_dest_interrupted = true;
 
 		if (ffa_func_id(ffa_ret) == FFA_INTERRUPT) {
 			/* Received FFA_INTERRUPT in blocked state. */
@@ -82,6 +85,13 @@ CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 			ffa_ret = ffa_msg_send_direct_req64(vm_id, fwd_dest,
 							    0, 0, 0, 0, 0);
 		}
+	}
+
+	if (hint_interrupted && !fwd_dest_interrupted) {
+		ERROR("Forwaded destination of the sleep command was not"
+		      " interrupted as anticipated\n");
+		return cactus_error_resp(vm_id, ffa_dir_msg_source(*args),
+					 CACTUS_ERROR_TEST);
 	}
 
 	if (!is_ffa_direct_response(ffa_ret)) {

@@ -320,7 +320,7 @@ test_result_t test_ffa_sec_interrupt_sp_blocked(void)
 	 * SP to sleep
 	 */
 	ret_values = cactus_fwd_sleep_cmd(SENDER, RECEIVER, RECEIVER_2,
-					 SP_SLEEP_TIME);
+					 SP_SLEEP_TIME, false);
 
 	/*
 	 * Secure interrupt should trigger during this time, Cactus
@@ -380,7 +380,7 @@ test_result_t test_ffa_sec_interrupt_sp_blocked(void)
  *    deactivate HVC and invoke FFA_MSG_WAIT ABI to perform interrupt signal
  *    completion.
  *
- * 7. SPM then resumes the second SP which was pre-empted by secure interrupt.
+ * 7. SPM then resumes the second SP which was preempted by secure interrupt.
  *
  * 8. Second SP will complete the busy sleep loop and send a direct response
  *    message with the elapsed time back to the first SP.
