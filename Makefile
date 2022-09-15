@@ -320,14 +320,18 @@ endif
 clean:
 			@echo "  CLEAN"
 			${Q}rm -rf ${BUILD_PLAT}
+ifneq ($(wildcard ${EL3_PAYLOAD_PLAT_MAKEFILE_FULL}),)
 			${MAKE} -C el3_payload clean
+endif
 
 .PHONY: realclean distclean
 realclean distclean:
 			@echo "  REALCLEAN"
 			${Q}rm -rf ${BUILD_BASE}
 			${Q}rm -f ${CURDIR}/cscope.*
+ifneq ($(wildcard ${EL3_PAYLOAD_PLAT_MAKEFILE_FULL}),)
 			${MAKE} -C el3_payload distclean
+endif
 
 .PHONY: checkcodebase
 checkcodebase:		locate-checkpatch
