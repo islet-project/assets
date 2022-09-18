@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -22,3 +22,6 @@ include plat/arm/common/arm_common.mk
 ifeq (${USE_NVM},1)
 $(error "USE_NVM is not supported on SGI platforms")
 endif
+
+# Pass CSS_SGI_PLATFORM_VARIANT flag to the build system
+$(eval $(call add_define,TFTF_DEFINES,CSS_SGI_PLATFORM_VARIANT))
