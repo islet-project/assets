@@ -584,4 +584,20 @@ static inline struct ffa_value cactus_get_last_interrupt_cmd(
 	return cactus_send_cmd(source, dest, CACTUS_LAST_INTERRUPT_SERVICED_CMD,
 				 0, 0, 0, 0);
 }
+
+/**
+ * Request SP to resume the task requested by current endpoint after managed
+ * exit.
+ *
+ * The command id is the hex representation of the string "RAME" which denotes
+ * (R)esume (A)fter (M)anaged (E)xit.
+ */
+#define CACTUS_RESUME_AFTER_MANAGED_EXIT U(0x52414d45)
+
+static inline struct ffa_value cactus_resume_after_managed_exit(
+	ffa_id_t source, ffa_id_t dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_RESUME_AFTER_MANAGED_EXIT,
+				 0, 0, 0, 0);
+}
 #endif
