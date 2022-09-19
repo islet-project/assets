@@ -82,8 +82,8 @@ CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 			 */
 			VERBOSE("SP%x: received Managed Exit as response\n",
 				vm_id);
-			ffa_ret = ffa_msg_send_direct_req64(vm_id, fwd_dest,
-							    0, 0, 0, 0, 0);
+			ffa_ret = cactus_resume_after_managed_exit(vm_id,
+								   fwd_dest);
 		}
 	}
 

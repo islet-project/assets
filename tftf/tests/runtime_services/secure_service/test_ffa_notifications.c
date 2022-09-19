@@ -1346,7 +1346,7 @@ test_result_t test_ffa_notifications_sp_signals_sp_immediate_sri(void)
 	/*
 	 * Resume setter Cactus in the handling of CACTUS_NOTIFICATIONS_SET_CMD.
 	 */
-	ret = ffa_msg_send_direct_req64(HYP_ID, sender, 0, 0, 0, 0, 0);
+	ret = cactus_resume_after_managed_exit(HYP_ID, sender);
 
 	/* Expected result to CACTUS_NOTIFICATIONS_SET_CMD. */
 	if (!is_expected_cactus_response(ret, CACTUS_SUCCESS, 0)) {

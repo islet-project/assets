@@ -75,10 +75,12 @@ static int check_timer_interrupt(void)
  * 6. Check whether the pending non-secure timer interrupt successfully got
  *    handled in TFTF.
  *
- * 7. Send a direct message request command to resume Cactus's execution.
- *    It resumes in the sleep loop and completes it. It then returns with
- *    a direct message response. Check if time lapsed is greater than
- *    sleeping time.
+ * 7. Send a new sleep command to Cactus SP. An error response must be sent
+ *    back by the Cactus SP with CACTUS_ERROR_TEST as the error code.
+ *
+ * 8. Send a command asking the SP to resume after managed exit. SP resumes in
+ *    the suspended sleep loop and completes it. It then returns with a direct
+ *    message response. Check if time lapsed is greater than sleeping time.
  *
  */
 test_result_t test_ffa_ns_interrupt_managed_exit(void)
@@ -116,11 +118,19 @@ test_result_t test_ffa_ns_interrupt_managed_exit(void)
 	}
 
 	/*
-	 * Send a dummy direct message request to relinquish CPU cycles.
-	 * This resumes Cactus in the sleep routine.
+	 * Send a command asking the SP to resume after managed exit. This
+	 * effectively resumes the Cactus in the sleep routine. Note that
+	 * Cactus should return error if the current endpoint sent a new
+	 * command.
 	 */
-	ret_values = ffa_msg_send_direct_req64(SENDER, RECEIVER,
-					       0, 0, 0, 0, 0);
+	ret_values = cactus_sleep_cmd(SENDER, RECEIVER, SLEEP_TIME);
+
+	if (cactus_get_response(ret_values) != CACTUS_ERROR &&
+	    cactus_error_code(ret_values) != CACTUS_ERROR_TEST) {
+		return TEST_RESULT_FAIL;
+	}
+
+	ret_values = cactus_resume_after_managed_exit(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret_values)) {
 		return TEST_RESULT_FAIL;
@@ -320,11 +330,19 @@ test_result_t test_ffa_ns_interrupt_managed_exit_chained(void)
 	}
 
 	/*
-	 * Send a dummy direct message request to relinquish CPU cycles.
-	 * This resumes Cactus in the sleep routine.
+	 * Send a command asking the SP to resume after managed exit. This
+	 * effectively resumes the Cactus in the sleep routine. Note that
+	 * Cactus should return error if the current endpoint sent a new
+	 * command.
 	 */
-	ret_values = ffa_msg_send_direct_req64(SENDER, RECEIVER,
-					       0, 0, 0, 0, 0);
+	ret_values = cactus_sleep_cmd(SENDER, RECEIVER, SLEEP_TIME);
+
+	if (cactus_get_response(ret_values) != CACTUS_ERROR &&
+	    cactus_error_code(ret_values) != CACTUS_ERROR_TEST) {
+		return TEST_RESULT_FAIL;
+	}
+
+	ret_values = cactus_resume_after_managed_exit(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret_values)) {
 		return TEST_RESULT_FAIL;
@@ -422,11 +440,19 @@ test_result_t test_ffa_SPx_ME_SPy_signaled(void)
 	}
 
 	/*
-	 * Send a dummy direct message request to relinquish CPU cycles.
-	 * This resumes Cactus in the sleep routine.
+	 * Send a command asking the SP to resume after managed exit. This
+	 * effectively resumes the Cactus in the sleep routine. Note that
+	 * Cactus should return error if the current endpoint sent a new
+	 * command.
 	 */
-	ret_values = ffa_msg_send_direct_req64(SENDER, RECEIVER,
-					       0, 0, 0, 0, 0);
+	ret_values = cactus_sleep_cmd(SENDER, RECEIVER, SLEEP_TIME);
+
+	if (cactus_get_response(ret_values) != CACTUS_ERROR &&
+	    cactus_error_code(ret_values) != CACTUS_ERROR_TEST) {
+		return TEST_RESULT_FAIL;
+	}
+
+	ret_values = cactus_resume_after_managed_exit(SENDER, RECEIVER);
 
 	if (!is_ffa_direct_response(ret_values)) {
 		return TEST_RESULT_FAIL;
