@@ -1,0 +1,13 @@
+#
+# Copyright (c) 2022, Arm Limited. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
+# System suspend is not supported as there are no wakeup sources in RD-N2 FVP
+PSCI STAT/Stats test cases after system suspend
+PSCI System Suspend Validation
+
+# The following test cases result in unhandled exception at EL3
+CPU extensions/Use trace buffer control Registers
+CPU extensions/Use trace filter control Registers
