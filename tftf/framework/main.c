@@ -550,7 +550,7 @@ void __dead2 tftf_cold_boot_main(void)
 	 * authentication would fail then.
 	 */
 #if ENABLE_PAUTH
-	assert(is_armv8_3_pauth_apa_api_present());
+	assert(is_armv8_3_pauth_apa_api_apa3_present());
 
 	/*
 	 * Program APIAKey_EL1 key and enable ARMv8.3-PAuth here as this
