@@ -50,13 +50,19 @@ static void validate_mem_cfg(struct kvm *kvm)
 	}
 }
 
+#define SVE_VL_ALIGN	128
+
 static void validate_realm_cfg(struct kvm *kvm)
 {
+	u32 sve_vl;
+
 	if (!kvm__is_realm(kvm)) {
 		if (kvm->cfg.arch.measurement_algo)
 			die("--measurement-algo valid only with --realm");
 		if (kvm->cfg.arch.realm_pv)
 			die("--realm-pv valid only with --realm");
+		if (kvm->cfg.arch.sve_vl)
+			die("--sve-vl valid only with --realm");
 		return;
 	}
 
@@ -73,6 +79,23 @@ static void validate_realm_cfg(struct kvm *kvm)
 	} else {
 		pr_debug("Realm Hash algorithm: Using default SHA256\n");
 		kvm->arch.measurement_algo = KVM_CAP_ARM_RME_MEASUREMENT_ALGO_SHA256;
+	}
+
+	sve_vl = kvm->cfg.arch.sve_vl;
+	if (sve_vl) {
+		if (kvm->cfg.arch.disable_sve)
+			die("SVE VL requested when SVE is disabled");
+		if (!IS_ALIGNED(sve_vl, SVE_VL_ALIGN))
+			die("SVE VL is not aligned to %dbit\n", SVE_VL_ALIGN);
+		kvm->arch.sve_vq = (sve_vl / SVE_VL_ALIGN) - 1;
+	} else {
+		/*
+		 * Disable SVE for Realms, if a VL is not requested.
+		 * The SVE VL will be measured as part of the parameter
+		 * and we do not want to add an unknown entity to the
+		 * measurement.
+		 */
+		kvm->cfg.arch.disable_sve = true;
 	}
 
 	if (kvm->cfg.arch.realm_pv) {

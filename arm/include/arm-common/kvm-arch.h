@@ -109,6 +109,7 @@ struct kvm_arch {
 
 	cpu_set_t *vcpu_affinity_cpuset;
 	u64	measurement_algo;
+	u64	sve_vq;
 };
 
 #endif /* ARM_COMMON__KVM_ARCH_H */

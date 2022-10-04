@@ -29,8 +29,10 @@ int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset);
 			 "Realm Measurement algorithm, default: sha256"),\
 	OPT_STRING('\0', "realm-pv", &(cfg)->realm_pv,			\
 			"personalisation value",			\
-			"Personalisation Value (only) for Realm VMs"),
-
+			"Personalisation Value (only) for Realm VMs"),	\
+	OPT_U64('\0', "sve-vl", &(cfg)->sve_vl,				\
+			"SVE Vector Length the VM"			\
+			"(only supported for Realms)"),
 
 #include "arm-common/kvm-config-arch.h"
 
