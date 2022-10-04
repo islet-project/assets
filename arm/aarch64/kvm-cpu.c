@@ -149,8 +149,9 @@ void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
 		init->features[0] |= 1UL << KVM_ARM_VCPU_PTRAUTH_GENERIC;
 	}
 
-	/* Enable SVE if available */
-	if (kvm__supports_vm_extension(kvm, KVM_CAP_ARM_SVE))
+	/* If SVE is not disabled explicitly, enable if available */
+	if (!kvm->cfg.arch.disable_sve &&
+	    kvm__supports_vm_extension(kvm, KVM_CAP_ARM_SVE))
 		init->features[0] |= 1UL << KVM_ARM_VCPU_SVE;
 }
 
@@ -158,7 +159,8 @@ int kvm_cpu__configure_features(struct kvm_cpu *vcpu)
 {
 	struct kvm *kvm = vcpu->kvm;
 
-	if (kvm__supports_vm_extension(kvm, KVM_CAP_ARM_SVE)) {
+	if (!kvm->cfg.arch.disable_sve &&
+	    kvm__supports_vm_extension(kvm, KVM_CAP_ARM_SVE)) {
 		int feature = KVM_ARM_VCPU_SVE;
 
 		if (ioctl(vcpu->vcpu_fd, KVM_ARM_VCPU_FINALIZE, &feature)) {
