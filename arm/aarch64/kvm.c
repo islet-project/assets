@@ -1,4 +1,5 @@
 #include "kvm/kvm.h"
+#include "asm/realm.h"
 
 #include <linux/byteorder.h>
 #include <linux/cpumask.h>
@@ -36,9 +37,8 @@ int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset)
 	return 0;
 }
 
-void kvm__arch_validate_cfg(struct kvm *kvm)
+static void validate_mem_cfg(struct kvm *kvm)
 {
-
 	if (kvm->cfg.ram_addr < ARM_MEMORY_AREA) {
 		die("RAM address is below the I/O region ending at %luGB",
 		    ARM_MEMORY_AREA >> 30);
@@ -48,6 +48,23 @@ void kvm__arch_validate_cfg(struct kvm *kvm)
 	    kvm->cfg.ram_addr + kvm->cfg.ram_size > SZ_4G) {
 		die("RAM extends above 4GB");
 	}
+}
+
+static void validate_realm_cfg(struct kvm *kvm)
+{
+	if (!kvm__is_realm(kvm))
+		return;
+
+	if (kvm->cfg.arch.aarch32_guest)
+		die("Realms supported only for 64bit guests");
+
+	die("Realms not supported");
+}
+
+void kvm__arch_validate_cfg(struct kvm *kvm)
+{
+	validate_mem_cfg(kvm);
+	validate_realm_cfg(kvm);
 }
 
 u64 kvm__arch_default_ram_address(void)
