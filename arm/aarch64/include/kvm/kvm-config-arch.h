@@ -21,7 +21,10 @@ int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset);
 	OPT_BOOLEAN('\0', "no-pvtime", &(cfg)->no_pvtime, "Disable"	\
 			" stolen time"),				\
 	OPT_BOOLEAN('\0', "disable-sve", &(cfg)->disable_sve,		\
-			"Disable SVE"),
+			"Disable SVE"),					\
+	OPT_BOOLEAN('\0', "realm", &(cfg)->is_realm,			\
+			"Create VM running in a realm using Arm RME"),
+
 #include "arm-common/kvm-config-arch.h"
 
 #endif /* KVM__KVM_CONFIG_ARCH_H */
