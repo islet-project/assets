@@ -461,3 +461,7 @@ void kvm_cpu__show_registers(struct kvm_cpu *vcpu)
 
 	kvm_cpu__show_csrs(vcpu);
 }
+
+void kvm_cpu__arch_unhandled_mmio(struct kvm_cpu *cpu)
+{
+}

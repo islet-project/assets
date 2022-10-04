@@ -29,4 +29,6 @@ void kvm_cpu__show_page_tables(struct kvm_cpu *vcpu);
 void kvm_cpu__arch_nmi(struct kvm_cpu *cpu);
 void kvm_cpu__run_on_all_cpus(struct kvm *kvm, struct kvm_cpu_task *task);
 
+void kvm_cpu__arch_unhandled_mmio(struct kvm_cpu *cpu);
+
 #endif /* KVM__KVM_CPU_H */
