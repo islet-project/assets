@@ -188,6 +188,11 @@ void kvm_cpu__reset_vcpu(struct kvm_cpu *vcpu)
 	cpu_set_t *affinity;
 	int ret;
 
+	/* VCPU reset is done before activating the realm. */
+	if (kvm__is_realm(kvm) &&
+	    kvm->arch.realm_is_active)
+		return;
+
 	affinity = kvm->arch.vcpu_affinity_cpuset;
 	if (affinity) {
 		ret = sched_setaffinity(0, sizeof(cpu_set_t), affinity);
