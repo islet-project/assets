@@ -105,8 +105,6 @@ static void validate_realm_cfg(struct kvm *kvm)
 		if (strlen(kvm->cfg.arch.realm_pv) > KVM_CAP_ARM_RME_RPV_SIZE)
 			die("Invalid size for Realm Personalization Value\n");
 	}
-
-	die("Realms not supported");
 }
 
 void kvm__arch_validate_cfg(struct kvm *kvm)
