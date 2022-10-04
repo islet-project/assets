@@ -444,3 +444,7 @@ void kvm_cpu__arch_nmi(struct kvm_cpu *cpu)
 
 	ioctl(cpu->vcpu_fd, KVM_NMI);
 }
+
+void kvm_cpu__arch_unhandled_mmio(struct kvm_cpu *cpu)
+{
+}

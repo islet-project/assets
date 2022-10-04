@@ -288,3 +288,7 @@ void kvm_cpu__show_page_tables(struct kvm_cpu *vcpu)
 {
 	/* Does nothing yet */
 }
+
+void kvm_cpu__arch_unhandled_mmio(struct kvm_cpu *cpu)
+{
+}

@@ -151,3 +151,7 @@ bool kvm_cpu__handle_exit(struct kvm_cpu *vcpu)
 void kvm_cpu__show_page_tables(struct kvm_cpu *vcpu)
 {
 }
+
+void kvm_cpu__arch_unhandled_mmio(struct kvm_cpu *vcpu)
+{
+}
