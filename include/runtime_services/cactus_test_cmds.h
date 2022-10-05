@@ -24,6 +24,10 @@
 #define CACTUS_ERROR_FFA_CALL		U(3)
 #define CACTUS_ERROR_UNHANDLED		U(4)
 
+#define ECHO_VAL1 U(0xa0a0a0a0)
+#define ECHO_VAL2 U(0xb0b0b0b0)
+#define ECHO_VAL3 U(0xc0c0c0c0)
+
 /**
  * Get command from struct ffa_value.
  */
@@ -297,15 +301,17 @@ static inline struct ffa_value cactus_sleep_cmd(
  *
  * The sender of this command expects to receive CACTUS_SUCCESS if the requested
  * echo interaction happened successfully, or CACTUS_ERROR otherwise.
+ * Moreover, the sender can send a hint to the destination SP to expect that
+ * the forwaded sleep command could be preempted by a non-secure interrupt.
  */
 #define CACTUS_FWD_SLEEP_CMD (CACTUS_SLEEP_CMD + 1)
 
 static inline struct ffa_value cactus_fwd_sleep_cmd(
 	ffa_id_t source, ffa_id_t dest, ffa_id_t fwd_dest,
-	uint32_t sleep_time)
+	uint32_t sleep_time, bool hint_interrupted)
 {
 	return cactus_send_cmd(source, dest, CACTUS_FWD_SLEEP_CMD, sleep_time,
-			       fwd_dest, 0, 0);
+			       fwd_dest, hint_interrupted, 0);
 }
 
 static inline uint32_t cactus_get_sleep_time(struct ffa_value ret)
@@ -316,6 +322,11 @@ static inline uint32_t cactus_get_sleep_time(struct ffa_value ret)
 static inline ffa_id_t cactus_get_fwd_sleep_dest(struct ffa_value ret)
 {
 	return (ffa_id_t)ret.arg5;
+}
+
+static inline bool cactus_get_fwd_sleep_interrupted_hint(struct ffa_value ret)
+{
+	return (bool)ret.arg6;
 }
 
 /**
@@ -571,6 +582,22 @@ static inline struct ffa_value cactus_get_last_interrupt_cmd(
 	ffa_id_t source, ffa_id_t dest)
 {
 	return cactus_send_cmd(source, dest, CACTUS_LAST_INTERRUPT_SERVICED_CMD,
+				 0, 0, 0, 0);
+}
+
+/**
+ * Request SP to resume the task requested by current endpoint after managed
+ * exit.
+ *
+ * The command id is the hex representation of the string "RAME" which denotes
+ * (R)esume (A)fter (M)anaged (E)xit.
+ */
+#define CACTUS_RESUME_AFTER_MANAGED_EXIT U(0x52414d45)
+
+static inline struct ffa_value cactus_resume_after_managed_exit(
+	ffa_id_t source, ffa_id_t dest)
+{
+	return cactus_send_cmd(source, dest, CACTUS_RESUME_AFTER_MANAGED_EXIT,
 				 0, 0, 0, 0);
 }
 #endif

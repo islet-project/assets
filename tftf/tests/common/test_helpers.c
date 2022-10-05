@@ -191,6 +191,7 @@ test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
 		tftf_init_event(&cpu_done[i]);
 	}
 
+	 /* Power on each secondary CPU one after the other. */
 	for_each_cpu(cpu_node) {
 		mpidr = tftf_get_mpidr_from_node(cpu_node);
 		if (mpidr == lead_mpid) {
@@ -202,16 +203,8 @@ test_result_t spm_run_multi_core_test(uintptr_t cpu_on_handler,
 			ERROR("tftf_cpu_on mpidr 0x%x returns %d\n",
 			      mpidr, ret);
 		}
-	}
 
-	VERBOSE("Waiting secondary CPUs to turn off ...\n");
-
-	for_each_cpu(cpu_node) {
-		mpidr = tftf_get_mpidr_from_node(cpu_node);
-		if (mpidr == lead_mpid) {
-			continue;
-		}
-
+		/* Wait for the secondary CPU to be ready. */
 		core_pos = platform_get_core_pos(mpidr);
 		tftf_wait_for_event(&cpu_done[core_pos]);
 	}
@@ -236,22 +229,6 @@ bool spm_core_sp_init(ffa_id_t sp_id)
 			      sp_id, core_pos);
 			return false;
 		}
-	}
-
-	return true;
-}
-
-bool spm_set_managed_exit_int(ffa_id_t sp_id, bool enable)
-{
-	struct ffa_value ret;
-
-	ret = cactus_interrupt_cmd(HYP_ID, sp_id, MANAGED_EXIT_INTERRUPT_ID,
-				   enable, INTERRUPT_TYPE_FIQ);
-
-	if (!is_ffa_direct_response(ret) ||
-	    cactus_get_response(ret) != CACTUS_SUCCESS) {
-		ERROR("Failed to enable Managed exit interrupt\n");
-		return false;
 	}
 
 	return true;

@@ -695,28 +695,6 @@ static void schedule_receiver_interrupt_init(void)
 }
 
 /**
- * Enable the Notification Pending Interrupt for the target SP.
- */
-static bool notification_pending_interrupt_sp_enable(ffa_id_t receiver,
-						     bool enable)
-{
-	VERBOSE("Configuring NPI to receiver: %x\n", receiver);
-	struct ffa_value ret = cactus_interrupt_cmd(
-		HYP_ID, receiver, NOTIFICATION_PENDING_INTERRUPT_INTID,
-		enable, INTERRUPT_TYPE_IRQ);
-
-
-	if (!is_ffa_direct_response(ret) ||
-	     cactus_get_response(ret) != CACTUS_SUCCESS) {
-		ERROR("Failed to configure NPI in SP %x core: %x\n",
-		      receiver, get_current_core_id());
-		return false;
-	}
-
-	return true;
-}
-
-/**
  * Disable the Schedule Receiver Interrupt and unregister the respective
  * handler.
  */
@@ -761,11 +739,6 @@ static test_result_t base_test_global_notifications_signal_sp(
 
 	schedule_receiver_interrupt_init();
 
-	/* Enable NPI. */
-	if (!notification_pending_interrupt_sp_enable(receiver, true)) {
-		return TEST_RESULT_FAIL;
-	}
-
 	if (!notification_bind_and_set(sender, receiver, notifications,
 				       FFA_NOTIFICATIONS_FLAG_DELAY_SRI)) {
 		return TEST_RESULT_FAIL;
@@ -795,11 +768,6 @@ static test_result_t base_test_global_notifications_signal_sp(
 
 	if (!request_notification_unbind(receiver, receiver, sender,
 					 notifications, CACTUS_SUCCESS, 0)) {
-		return TEST_RESULT_FAIL;
-	}
-
-	/* Disable NPI. */
-	if (!notification_pending_interrupt_sp_enable(receiver, false)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -1040,11 +1008,6 @@ static test_result_t base_npi_enable_per_cpu(bool enable)
 		goto out;
 	}
 
-	if (!notification_pending_interrupt_sp_enable(per_vcpu_receiver,
-						      enable)) {
-		goto out;
-	}
-
 	result = TEST_RESULT_SUCCESS;
 
 out:
@@ -1108,11 +1071,6 @@ static test_result_t base_test_per_vcpu_notifications(ffa_id_t sender,
 	if (spm_run_multi_core_test(
 		(uintptr_t)npi_enable_per_vcpu_on_handler,
 		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
-		return TEST_RESULT_FAIL;
-	}
-
-	/* Enable NPI in lead core. */
-	if (!notification_pending_interrupt_sp_enable(receiver, true)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -1180,11 +1138,6 @@ out:
 	if (spm_run_multi_core_test(
 		(uintptr_t)npi_disable_per_vcpu_on_handler,
 		per_vcpu_finished) != TEST_RESULT_SUCCESS) {
-		return TEST_RESULT_FAIL;
-	}
-
-	/* Disable the NPI in the receiver. */
-	if (!notification_pending_interrupt_sp_enable(receiver, false)) {
 		return TEST_RESULT_FAIL;
 	}
 
@@ -1351,11 +1304,6 @@ test_result_t test_ffa_notifications_sp_signals_sp_immediate_sri(void)
 	ids[0] = receiver;
 	lists_count = 1;
 
-	/* Enable managed exit interrupt as FIQ in the secure side. */
-	if (!spm_set_managed_exit_int(sender, true)) {
-		return TEST_RESULT_FAIL;
-	}
-
 	schedule_receiver_interrupt_init();
 
 	/* Request receiver to bind a set of notifications to the sender. */
@@ -1398,7 +1346,7 @@ test_result_t test_ffa_notifications_sp_signals_sp_immediate_sri(void)
 	/*
 	 * Resume setter Cactus in the handling of CACTUS_NOTIFICATIONS_SET_CMD.
 	 */
-	ret = ffa_msg_send_direct_req64(HYP_ID, sender, 0, 0, 0, 0, 0);
+	ret = cactus_resume_after_managed_exit(HYP_ID, sender);
 
 	/* Expected result to CACTUS_NOTIFICATIONS_SET_CMD. */
 	if (!is_expected_cactus_response(ret, CACTUS_SUCCESS, 0)) {
@@ -1412,11 +1360,6 @@ test_result_t test_ffa_notifications_sp_signals_sp_immediate_sri(void)
 	}
 
 	schedule_receiver_interrupt_deinit();
-
-	/* Disable managed exit interrupt as FIQ in the secure side. */
-	if (!spm_set_managed_exit_int(sender, false)) {
-		return TEST_RESULT_FAIL;
-	}
 
 	return result;
 }
@@ -1442,11 +1385,6 @@ test_result_t test_ffa_notifications_sp_signals_sp_delayed_sri(void)
 
 	ids[0] = receiver;
 	lists_count = 1;
-
-	/* Enable managed exit interrupt as FIQ in the secure side. */
-	if (!spm_set_managed_exit_int(sender, true)) {
-		return TEST_RESULT_FAIL;
-	}
 
 	schedule_receiver_interrupt_init();
 
@@ -1529,11 +1467,6 @@ test_result_t test_ffa_notifications_sp_signals_sp_delayed_sri(void)
 
 	schedule_receiver_interrupt_deinit();
 
-	/* Disable managed exit interrupt as FIQ in the secure side. */
-	if (!spm_set_managed_exit_int(sender, false)) {
-		return TEST_RESULT_FAIL;
-	}
-
 	return result;
 }
 
@@ -1576,8 +1509,6 @@ test_result_t test_ffa_notifications_mp_sp_signals_up_sp(void)
 	per_vcpu_receiver = SP_ID(3); /* UP SP */
 
 	schedule_receiver_interrupt_init();
-
-	notification_pending_interrupt_sp_enable(per_vcpu_receiver, true);
 
 	/* Prepare notifications bitmap to have one bit platform core. */
 	for (uint32_t i = 0; i < PLATFORM_CORE_COUNT; i++) {
@@ -1627,8 +1558,6 @@ test_result_t test_ffa_notifications_mp_sp_signals_up_sp(void)
 	}
 
 	schedule_receiver_interrupt_deinit();
-
-	notification_pending_interrupt_sp_enable(per_vcpu_receiver, false);
 
 	return TEST_RESULT_SUCCESS;
 }

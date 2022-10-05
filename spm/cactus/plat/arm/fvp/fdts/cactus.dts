@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2019-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -28,9 +28,8 @@
 	xlat-granule = <0>; /* 4KiB */
 	boot-order = <0>;
 	messaging-method = <3>; /* Direct messaging only */
-	managed-exit; /* Managed exit is supported */
+	ns-interrupts-action = <1>; /* Managed exit is supported */
 	notification-support; /* Support receipt of notifications. */
-	run-time-model = <0>; /* Run to completion */
 
 	/* Boot protocol */
 	gp-register-num = <0>;

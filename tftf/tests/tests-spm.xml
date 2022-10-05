@@ -108,8 +108,20 @@
 
    <testsuite name="FF-A Interrupt"
              description="Test non-secure Interrupts" >
-     <testcase name="Test NS interrupts"
-               function="test_ffa_ns_interrupt" />
+<!--
+     <testcase name="Test SPx with NS Interrupt queued"
+               function="test_ffa_ns_interrupt_queued" />
+-->
+     <testcase name="Test SPx with NS Interrupt signaled and SPy with Managed Exit"
+               function="test_ffa_SPx_signaled_SPy_ME" />
+     <testcase name="Test Managed Exit in SP call chain"
+               function="test_ffa_ns_interrupt_managed_exit_chained" />
+     <testcase name="Test SPx with Managed Exit and SPy with NS Interrupt signaled"
+               function="test_ffa_SPx_ME_SPy_signaled" />
+     <testcase name="Test Managed Exit"
+               function="test_ffa_ns_interrupt_managed_exit" />
+     <testcase name="Test NS interrupt Signalable"
+               function="test_ffa_ns_interrupt_signaled" />
      <testcase name="Test Secure interrupt handling while SP running"
                function="test_ffa_sec_interrupt_sp_running" />
      <testcase name="Test Secure interrupt handling while SP waiting"

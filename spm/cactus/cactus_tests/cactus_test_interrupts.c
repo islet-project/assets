@@ -48,18 +48,50 @@ CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 	ffa_id_t vm_id = ffa_dir_msg_dest(*args);
 	ffa_id_t fwd_dest = cactus_get_fwd_sleep_dest(*args);
 	uint32_t sleep_ms = cactus_get_sleep_time(*args);
+	bool hint_interrupted = cactus_get_fwd_sleep_interrupted_hint(*args);
+	bool fwd_dest_interrupted;
 
 	VERBOSE("VM%x requested %x to sleep for value %u\n",
 		ffa_dir_msg_source(*args), fwd_dest, sleep_ms);
 
 	ffa_ret = cactus_sleep_cmd(vm_id, fwd_dest, sleep_ms);
 
-	while (ffa_func_id(ffa_ret) == FFA_INTERRUPT) {
-		/* Received FFA_INTERRUPT in blocked state. */
-		VERBOSE("Processing FFA_INTERRUPT while blocked on direct response\n");
-		unsigned int my_core_pos = platform_get_core_pos(read_mpidr_el1());
+	/*
+	 * The target of the direct request could be pre-empted any number of
+	 * times. Moreover, the target SP may or may not support managed exit.
+	 * Hence, the target is allocated cpu cycles in this while loop.
+	 */
+	while ((ffa_func_id(ffa_ret) == FFA_INTERRUPT) ||
+		is_expected_cactus_response(ffa_ret, MANAGED_EXIT_INTERRUPT_ID,
+					    0)) {
+		fwd_dest_interrupted = true;
 
-		ffa_ret = ffa_run(fwd_dest, my_core_pos);
+		if (ffa_func_id(ffa_ret) == FFA_INTERRUPT) {
+			/* Received FFA_INTERRUPT in blocked state. */
+			VERBOSE("Processing FFA_INTERRUPT while"
+				" blocked on direct response\n");
+			unsigned int my_core_pos =
+				platform_get_core_pos(read_mpidr_el1());
+
+			ffa_ret = ffa_run(fwd_dest, my_core_pos);
+		} else {
+			/*
+			 * Destination sent managed exit response. Allocate
+			 * dummy cycles through direct request message to
+			 * destination SP.
+			 */
+			VERBOSE("SP%x: received Managed Exit as response\n",
+				vm_id);
+			ffa_ret = cactus_resume_after_managed_exit(vm_id,
+								   fwd_dest);
+		}
+	}
+
+	if (hint_interrupted && !fwd_dest_interrupted) {
+		ERROR("Forwaded destination of the sleep command was not"
+		      " interrupted as anticipated\n");
+		return cactus_error_resp(vm_id, ffa_dir_msg_source(*args),
+					 CACTUS_ERROR_TEST);
 	}
 
 	if (!is_ffa_direct_response(ffa_ret)) {
@@ -68,7 +100,7 @@ CACTUS_CMD_HANDLER(sleep_fwd_cmd, CACTUS_FWD_SLEEP_CMD)
 					 CACTUS_ERROR_FFA_CALL);
 	}
 
-	if (cactus_get_response(ffa_ret) != sleep_ms) {
+	if (cactus_get_response(ffa_ret) < sleep_ms) {
 		ERROR("Request returned: %u ms!\n",
 		      cactus_get_response(ffa_ret));
 		return cactus_error_resp(vm_id, ffa_dir_msg_source(*args),

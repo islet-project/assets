@@ -31,6 +31,9 @@ extern struct cactus_cmd_handler cactus_cmd_handler_end[];
 		smc_ret.arg3, smc_ret.arg4, smc_ret.arg5, 		\
 		smc_ret.arg6, smc_ret.arg7)
 
+/* Global FFA_MSG_DIRECT_REQ source ID */
+ffa_id_t g_dir_req_source_id;
+
 /**
  * Traverses command table from section ".cactus_handler", searches for a
  * registered command and invokes the respective handler.
@@ -47,6 +50,12 @@ bool cactus_handle_cmd(struct ffa_value *cmd_args, struct ffa_value *ret,
 	if (cmd_args == NULL || ret == NULL) {
 		ERROR("Invalid arguments passed to %s!\n", __func__);
 		return false;
+	}
+
+	/* Get the source of the Direct Request message. */
+	if (ffa_func_id(*cmd_args) == FFA_MSG_SEND_DIRECT_REQ_SMC32 ||
+	    ffa_func_id(*cmd_args) == FFA_MSG_SEND_DIRECT_REQ_SMC64) {
+		g_dir_req_source_id = ffa_dir_msg_source(*cmd_args);
 	}
 
 	PRINT_CMD((*cmd_args));

@@ -316,6 +316,7 @@ void __dead2 cactus_main(bool primary_cold_boot,
 	cactus_print_memory_layout(ffa_id);
 
 	register_secondary_entrypoint();
+	discover_managed_exit_interrupt_id();
 
 	/* Invoking Tests */
 	ffa_tests(&mb);

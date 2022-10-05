@@ -78,4 +78,6 @@ void sp_register_interrupt_tail_end_handler(void (*handler)(void),
 /* Un-register the handler. */
 void sp_unregister_interrupt_tail_end_handler(uint32_t interrupt_id);
 
+void discover_managed_exit_interrupt_id(void);
+
 #endif /* SP_HELPERS_H */
