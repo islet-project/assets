@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Arm Limited. All rights reserved.
+ * Copyright (c) 2020-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -11,8 +11,12 @@ OUTPUT_FORMAT(PLATFORM_LINKER_FORMAT)
 OUTPUT_ARCH(PLATFORM_LINKER_ARCH)
 ENTRY(tftf_entrypoint)
 
+#ifndef TFTF_MAX_IMAGE_SIZE
+#define TFTF_MAX_IMAGE_SIZE DRAM_SIZE
+#endif
+
 MEMORY {
-    RAM (rwx): ORIGIN = DRAM_BASE, LENGTH = DRAM_SIZE
+    RAM (rwx): ORIGIN = TFTF_BASE, LENGTH = TFTF_MAX_IMAGE_SIZE
 }
 
 

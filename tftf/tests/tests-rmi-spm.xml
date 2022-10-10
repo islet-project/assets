@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2021-2022, Arm Limited. All rights reserved.
+
+  SPDX-License-Identifier: BSD-3-Clause
+-->
+
+<testsuites>
+
+  <testsuite name="RMI and SPM tests" description="Tests for SPM and RMI delegate/undelegate">
+	  <testcase name="Test TFTF can call RMM/TRP and SPM serially on a single core"
+	  function="test_spm_rmm_serial_smc" />
+	  <testcase name="Test TFTF can call RMM/TRP and SPM parallelly on a multi core"
+	  function="test_spm_rmm_parallel_smc" />
+  </testsuite>
+
+</testsuites>

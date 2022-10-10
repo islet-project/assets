@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2020, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2017-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -178,5 +178,25 @@
 #define PXN_SHIFT			53
 #define XN_SHIFT			54
 #define UXN_SHIFT			XN_SHIFT
+
+/*
+ * Stage 2 translation Lower attributes
+ */
+#define S2TTE_AP_SHIFT			6
+#define S2TTE_AP_RW			(3UL << S2TTE_AP_SHIFT)
+
+#define S2TTE_SH_SHIFT			8
+#define S2TTE_SH_MASK			(3UL << S2TTE_SH_SHIFT)
+#define S2TTE_SH_NS			(0UL << S2TTE_SH_SHIFT)
+#define S2TTE_SH_OS			(2UL << S2TTE_SH_SHIFT)
+#define S2TTE_SH_IS			(3UL << S2TTE_SH_SHIFT)
+
+/*
+ * Attributes when FEAT_S2FWB is enabled at EL2 (HCR_EL2.FWB == 1).
+ * For Normal WB cacheability attribute, set bit[4] to 1 and bits[3:2] to 0b10.
+ */
+#define S2TTE_MEMATTR_FWB_NORMAL_WB	((1UL << 4) | (2UL << 2))
+#define S2TTE_ATTR_FWB_WB_RW	(S2TTE_MEMATTR_FWB_NORMAL_WB | S2TTE_AP_RW | \
+			S2TTE_SH_IS)
 
 #endif /* XLAT_TABLES_DEFS_H */

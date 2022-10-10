@@ -8,16 +8,16 @@ TFTF_INCLUDES +=							\
 	-Iinclude/runtime_services/host_realm_managment
 
 TESTS_SOURCES	+=							\
-	$(addprefix tftf/tests/runtime_services/realm_payload/,		\
-		host_realm_payload_tests.c				\
+	$(addprefix tftf/tests/runtime_services/host_realm_managment/,	\
+		host_realm_rmi.c					\
+		rmi_spm_tests.c						\
 	)
 
 TESTS_SOURCES	+=							\
-	$(addprefix tftf/tests/runtime_services/host_realm_managment/,	\
-		host_realm_rmi.c					\
-		host_realm_helper.c					\
-		host_shared_data.c					\
-		rmi_delegate_tests.c					\
+	$(addprefix tftf/tests/runtime_services/secure_service/,	\
+		${ARCH}/ffa_arch_helpers.S				\
+		ffa_helpers.c						\
+		spm_common.c						\
 	)
 
 TESTS_SOURCES	+=							\

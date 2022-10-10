@@ -6,20 +6,19 @@
 
 #include <stdlib.h>
 
-#include <debug.h>
-#include <smccc.h>
-
 #include <arch_helpers.h>
 #include <cactus_test_cmds.h>
+#include <debug.h>
 #include <ffa_endpoints.h>
 #include <ffa_svc.h>
+#include <host_realm_helper.h>
 #include <lib/events.h>
 #include <lib/power_management.h>
-#include <platform.h>
-#include <test_helpers.h>
-
 #include <plat_topology.h>
-#include <runtime_services/realm_payload/realm_payload_test.h>
+#include <platform.h>
+#include "rmi_spm_tests.h"
+#include <smccc.h>
+#include <test_helpers.h>
 
 static test_result_t realm_multi_cpu_payload_del_undel(void);
 
@@ -29,7 +28,8 @@ static test_result_t realm_multi_cpu_payload_del_undel(void);
 #define MAX_REPEATED_TEST 3
 
 /* Buffer to delegate and undelegate */
-static char bufferdelegate[NUM_GRANULES * GRANULE_SIZE * PLATFORM_CORE_COUNT] __aligned(GRANULE_SIZE);
+static char bufferdelegate[NUM_GRANULES * GRANULE_SIZE * PLATFORM_CORE_COUNT]
+	__aligned(GRANULE_SIZE);
 static char bufferstate[NUM_GRANULES * PLATFORM_CORE_COUNT];
 static int cpu_test_spm_rmi[PLATFORM_CORE_COUNT];
 static event_t cpu_booted[PLATFORM_CORE_COUNT];
@@ -89,10 +89,12 @@ static test_result_t init_buffer_del_spm_rmi(void)
 
 	for (int i = 0; i < (NUM_GRANULES * PLATFORM_CORE_COUNT) ; i++) {
 		if ((rand() % 2) == 0) {
-			retrmm = realm_granule_delegate((u_register_t)&bufferdelegate[i * GRANULE_SIZE]);
+			retrmm = rmi_granule_delegate(
+				(u_register_t)&bufferdelegate[i * GRANULE_SIZE]);
 			bufferstate[i] = B_DELEGATED;
 			if (retrmm != 0UL) {
-				tftf_testcase_printf("Delegate operation returns fail, %lx\n", retrmm);
+				tftf_testcase_printf("Delegate operation\
+				returns fail, %lx\n", retrmm);
 				return TEST_RESULT_FAIL;
 			}
 		} else {
@@ -106,9 +108,9 @@ static test_result_t reset_buffer_del_spm_rmi(void)
 {
 	u_register_t retrmm;
 
-	for (uint32_t i = 0; i < (NUM_GRANULES * PLATFORM_CORE_COUNT) ; i++) {
+	for (uint32_t i = 0U; i < (NUM_GRANULES * PLATFORM_CORE_COUNT) ; i++) {
 		if (bufferstate[i] == B_DELEGATED) {
-			retrmm = realm_granule_undelegate(
+			retrmm = rmi_granule_undelegate(
 				(u_register_t)&bufferdelegate[i * GRANULE_SIZE]);
 			if (retrmm != 0UL) {
 				ERROR("Undelegate operation returns fail, %lx\n",
@@ -129,7 +131,9 @@ static test_result_t reset_buffer_del_spm_rmi(void)
 static test_result_t wait_then_call(test_result_t (*callback)(void))
 {
 	unsigned int mpidr, this_mpidr = read_mpidr_el1() & MPID_MASK;
-	unsigned int cpu_node, core_pos, this_core_pos = platform_get_core_pos(this_mpidr);
+	unsigned int cpu_node, core_pos;
+	unsigned int this_core_pos = platform_get_core_pos(this_mpidr);
+
 	tftf_send_event_to_all(&cpu_booted[this_core_pos]);
 	for_each_cpu(cpu_node) {
 		mpidr = tftf_get_mpidr_from_node(cpu_node);
@@ -252,7 +256,8 @@ static test_result_t run_spm_direct_message(void)
 		ffa_ret = cactus_echo_send_cmd(HYP_ID, SP_ID(3), ECHO_VAL3);
 		if ((ffa_func_id(ffa_ret) == FFA_ERROR) &&
 		    (ffa_error_code(ffa_ret) == FFA_ERROR_BUSY)) {
-			VERBOSE("%s(%u) trial %u\n", __func__, core_pos, trial_loop);
+			VERBOSE("%s(%u) trial %u\n", __func__,
+			core_pos, trial_loop);
 			waitms(1);
 			continue;
 		}
@@ -277,7 +282,7 @@ out:
 /*
  * Secondary core will perform sequentially a call to secure and realm worlds.
  */
-test_result_t non_secure_call_secure_and_realm(void)
+static test_result_t non_secure_call_secure_and_realm(void)
 {
 	test_result_t result = run_spm_direct_message();
 	if (result != TEST_RESULT_SUCCESS)
@@ -310,18 +315,19 @@ static test_result_t realm_multi_cpu_payload_del_undel(void)
 
 	for (int i = 0; i < NUM_GRANULES; i++) {
 		if (bufferstate[((cpu_node * NUM_GRANULES) + i)] == B_UNDELEGATED) {
-			retrmm = realm_granule_delegate((u_register_t)
+			retrmm = rmi_granule_delegate((u_register_t)
 					&bufferdelegate[((cpu_node *
 						NUM_GRANULES) + i) * GRANULE_SIZE]);
 			bufferstate[((cpu_node * NUM_GRANULES) + i)] = B_DELEGATED;
 		} else {
-			retrmm = realm_granule_undelegate((u_register_t)
+			retrmm = rmi_granule_undelegate((u_register_t)
 					&bufferdelegate[((cpu_node *
 						NUM_GRANULES) + i) * GRANULE_SIZE]);
 			bufferstate[((cpu_node * NUM_GRANULES) + i)] = B_UNDELEGATED;
 		}
 		if (retrmm != 0UL) {
-			tftf_testcase_printf("Delegate operation returns fail, %lx\n", retrmm);
+			tftf_testcase_printf("Delegate operation returns fail, %lx\n",
+			retrmm);
 			return TEST_RESULT_FAIL;
 		}
 	}
@@ -423,7 +429,8 @@ test_result_t test_spm_rmm_parallel_smc(void)
 	 * Main test to run both SPM and RMM or TRP together in parallel
 	 */
 	for (int i = 0; i < MAX_REPEATED_TEST; i++) {
-		VERBOSE("Main test(%d) to run both SPM and RMM or TRP together in parallel...\n", i);
+		VERBOSE("Main test(%d) to run both SPM and RMM or\
+		TRP together in parallel...\n", i);
 
 		/* Reinitialize all CPUs event */
 		for (unsigned int i = 0U; i < PLATFORM_CORE_COUNT; i++) {

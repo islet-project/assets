@@ -717,6 +717,8 @@
 #define ISS_DFSC_MASK			U(0x3f)
 #define DFSC_EXT_DABORT			U(0x10)
 #define DFSC_GPF_DABORT			U(0x28)
+/* ISS encoding an exception from HVC or SVC instruction execution */
+#define ISS_HVC_SMC_IMM16_MASK		U(0xffff)
 
 /*
  * External Abort bit in Instruction and Data Aborts synchronous exception

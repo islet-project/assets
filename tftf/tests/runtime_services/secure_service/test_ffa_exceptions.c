@@ -9,9 +9,9 @@
 #include <debug.h>
 #include <ffa_endpoints.h>
 #include <ffa_svc.h>
+#include <host_realm_helper.h>
 #include <irq.h>
 #include <platform.h>
-#include <runtime_services/realm_payload/realm_payload_test.h>
 #include <smccc.h>
 #include <spm_common.h>
 #include <test_helpers.h>
@@ -71,7 +71,7 @@ test_result_t rl_memory_cannot_be_accessed_in_s(void)
 		handle, constituents[0].address);
 
 	/* Delegate the shared page to Realm. */
-	retmm = realm_granule_delegate((u_register_t)&share_page);
+	retmm = rmi_granule_delegate((u_register_t)&share_page);
 	if (retmm != 0UL) {
 		ERROR("Granule delegate failed!\n");
 		return TEST_RESULT_FAIL;
@@ -82,7 +82,7 @@ test_result_t rl_memory_cannot_be_accessed_in_s(void)
 				  handle, 0, true, 1);
 
 	/* Undelegate the shared page. */
-	retmm = realm_granule_undelegate((u_register_t)&share_page);
+	retmm = rmi_granule_undelegate((u_register_t)&share_page);
 	if (retmm != 0UL) {
 		ERROR("Granule undelegate failed!\n");
 		return TEST_RESULT_FAIL;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -7,17 +7,23 @@
 #include <stdlib.h>
 
 #include <arch_features.h>
+#include <host_realm_helper.h>
+#include <host_realm_mem_layout.h>
+#include <host_shared_data.h>
 #include <plat_topology.h>
-#include <power_management.h>
 #include <platform.h>
-#include <runtime_services/realm_payload/realm_payload_test.h>
+#include <power_management.h>
+#include "rmi_spm_tests.h"
 #include <test_helpers.h>
+
+
 
 static test_result_t realm_multi_cpu_payload_test(void);
 static test_result_t realm_multi_cpu_payload_del_undel(void);
 
 /* Buffer to delegate and undelegate */
-static char bufferdelegate[NUM_GRANULES * GRANULE_SIZE * PLATFORM_CORE_COUNT] __aligned(GRANULE_SIZE);
+static char bufferdelegate[NUM_GRANULES * GRANULE_SIZE * PLATFORM_CORE_COUNT]
+	__aligned(GRANULE_SIZE);
 static char bufferstate[NUM_GRANULES * PLATFORM_CORE_COUNT];
 
 /*
@@ -41,12 +47,14 @@ test_result_t init_buffer_del(void)
 {
 	u_register_t retrmm;
 
-	for (int i = 0; i < (NUM_GRANULES * PLATFORM_CORE_COUNT) ; i++) {
+	for (uint32_t i = 0; i < (NUM_GRANULES * PLATFORM_CORE_COUNT) ; i++) {
 		if ((rand() % 2) == 0) {
-			retrmm = realm_granule_delegate((u_register_t)&bufferdelegate[i * GRANULE_SIZE]);
+			retrmm = rmi_granule_delegate(
+					(u_register_t)&bufferdelegate[i * GRANULE_SIZE]);
 			bufferstate[i] = B_DELEGATED;
 			if (retrmm != 0UL) {
-				tftf_testcase_printf("Delegate operation returns fail, %lx\n", retrmm);
+				tftf_testcase_printf("Delegate operation returns fail, %lx\n",
+						retrmm);
 				return TEST_RESULT_FAIL;
 			}
 		} else {
@@ -67,7 +75,7 @@ test_result_t realm_version_single_cpu(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	retrmm = realm_version();
+	retrmm = rmi_version();
 
 	tftf_testcase_printf("RMM version is: %lu.%lu\n",
 			RMI_ABI_VERSION_GET_MAJOR(retrmm),
@@ -138,12 +146,12 @@ test_result_t realm_delegate_undelegate(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	retrmm = realm_granule_delegate((u_register_t)bufferdelegate);
+	retrmm = rmi_granule_delegate((u_register_t)bufferdelegate);
 	if (retrmm != 0UL) {
 		tftf_testcase_printf("Delegate operation returns fail, %lx\n", retrmm);
 		return TEST_RESULT_FAIL;
 	}
-	retrmm = realm_granule_undelegate((u_register_t)bufferdelegate);
+	retrmm = rmi_granule_undelegate((u_register_t)bufferdelegate);
 	if (retrmm != 0UL) {
 		tftf_testcase_printf("Undelegate operation returns fail, %lx\n", retrmm);
 		return TEST_RESULT_FAIL;
@@ -156,7 +164,7 @@ test_result_t realm_delegate_undelegate(void)
 
 static test_result_t realm_multi_cpu_payload_test(void)
 {
-	u_register_t retrmm = realm_version();
+	u_register_t retrmm = rmi_version();
 
 	tftf_testcase_printf("Multi CPU RMM version on CPU %llx is: %lu.%lu\n",
 			(long long)read_mpidr_el1() & MPID_MASK, RMI_ABI_VERSION_GET_MAJOR(retrmm),
@@ -221,12 +229,14 @@ test_result_t realm_delundel_multi_cpu(void)
 	 * Cleanup to set all granules back to undelegated
 	 */
 
-	for (int i = 0; i < (NUM_GRANULES * PLATFORM_CORE_COUNT) ; i++) {
+	for (uint32_t i = 0; i < (NUM_GRANULES * PLATFORM_CORE_COUNT) ; i++) {
 		if (bufferstate[i] == B_DELEGATED) {
-			retrmm = realm_granule_undelegate((u_register_t)&bufferdelegate[i * GRANULE_SIZE]);
+			retrmm = rmi_granule_undelegate(
+					(u_register_t)&bufferdelegate[i * GRANULE_SIZE]);
 			bufferstate[i] = B_UNDELEGATED;
 			if (retrmm != 0UL) {
-				tftf_testcase_printf("Delegate operation returns fail, %lx\n", retrmm);
+				tftf_testcase_printf("Delegate operation returns fail, %lx\n",
+						retrmm);
 				return TEST_RESULT_FAIL;
 			}
 		}
@@ -250,13 +260,13 @@ static test_result_t realm_multi_cpu_payload_del_undel(void)
 
 	cpu_node = platform_get_core_pos(read_mpidr_el1() & MPID_MASK);
 
-	for (int i = 0; i < NUM_GRANULES; i++) {
+	for (uint32_t i = 0; i < NUM_GRANULES; i++) {
 		if (bufferstate[((cpu_node * NUM_GRANULES) + i)] == B_UNDELEGATED) {
-			retrmm = realm_granule_delegate((u_register_t)
+			retrmm = rmi_granule_delegate((u_register_t)
 					&bufferdelegate[((cpu_node * NUM_GRANULES) + i) * GRANULE_SIZE]);
 			bufferstate[((cpu_node * NUM_GRANULES) + i)] = B_DELEGATED;
 		} else {
-			retrmm = realm_granule_undelegate((u_register_t)
+			retrmm = rmi_granule_undelegate((u_register_t)
 					&bufferdelegate[((cpu_node * NUM_GRANULES) + i) * GRANULE_SIZE]);
 			bufferstate[((cpu_node * NUM_GRANULES) + i)] = B_UNDELEGATED;
 		}
@@ -281,7 +291,7 @@ test_result_t realm_fail_del(void)
 
 	u_register_t retrmm;
 
-	retrmm = realm_granule_delegate((u_register_t)&bufferdelegate[0]);
+	retrmm = rmi_granule_delegate((u_register_t)&bufferdelegate[0]);
 
 	if (retrmm != 0UL) {
 		tftf_testcase_printf
@@ -289,7 +299,7 @@ test_result_t realm_fail_del(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	retrmm = realm_granule_delegate((u_register_t)&bufferdelegate[0]);
+	retrmm = rmi_granule_delegate((u_register_t)&bufferdelegate[0]);
 
 	if (retrmm == 0UL) {
 		tftf_testcase_printf
@@ -297,7 +307,7 @@ test_result_t realm_fail_del(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	retrmm = realm_granule_undelegate((u_register_t)&bufferdelegate[1]);
+	retrmm = rmi_granule_undelegate((u_register_t)&bufferdelegate[1]);
 
 	if (retrmm == 0UL) {
 		tftf_testcase_printf
@@ -305,7 +315,7 @@ test_result_t realm_fail_del(void)
 		return TEST_RESULT_FAIL;
 	}
 
-	retrmm = realm_granule_undelegate((u_register_t)&bufferdelegate[0]);
+	retrmm = rmi_granule_undelegate((u_register_t)&bufferdelegate[0]);
 
 	if (retrmm != 0UL) {
 		tftf_testcase_printf

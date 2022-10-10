@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2021, ARM Limited and Contributors. All rights reserved.
+ * Copyright (c) 2016-2022, ARM Limited and Contributors. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -504,6 +504,50 @@
 #define CNTP_CTL_ENABLE_MASK    U(1)
 #define CNTP_CTL_IMASK_MASK     U(1)
 #define CNTP_CTL_ISTATUS_MASK   U(1)
+
+/* Exception Syndrome register bits and bobs */
+#define ESR_EC_SHIFT			U(26)
+#define ESR_EC_MASK			U(0x3f)
+#define ESR_EC_LENGTH			U(6)
+#define ESR_ISS_SHIFT			U(0x0)
+#define ESR_ISS_MASK			U(0x1ffffff)
+#define EC_UNKNOWN			U(0x0)
+#define EC_WFE_WFI			U(0x1)
+#define EC_CP15_MRC_MCR			U(0x3)
+#define EC_CP15_MRRC_MCRR		U(0x4)
+#define EC_CP14_MRC_MCR			U(0x5)
+#define EC_CP14_LDC_STC			U(0x6)
+#define EC_FP_SIMD			U(0x7)
+#define EC_CP10_MRC			U(0x8)
+#define EC_CP14_MRRC_MCRR		U(0xc)
+#define EC_ILLEGAL			U(0xe)
+#define EC_SVC				U(0x11)
+#define EC_HVC				U(0x12)
+#define EC_SMC				U(0x13)
+#define EC_IABORT_LOWER_EL		U(0x20)
+#define EC_IABORT_CUR_EL		U(0x21)
+#define EC_PC_ALIGN			U(0x22)
+#define EC_DABORT_LOWER_EL		U(0x24)
+#define EC_DABORT_CUR_EL		U(0x25)
+#define EC_SP_ALIGN			U(0x26)
+#define EC_FP				U(0x28)
+#define EC_SERROR			U(0x2f)
+/* Data Fault Status code, not all error codes listed */
+#define ISS_DFSC_MASK			U(0x3f)
+#define DFSC_EXT_DABORT			U(0x10)
+#define DFSC_GPF_DABORT			U(0x28)
+/* ISS encoding an exception from HVC or SVC instruction execution */
+#define ISS_HVC_SMC_IMM16_MASK		U(0xffff)
+
+/*
+ * External Abort bit in Instruction and Data Aborts synchronous exception
+ * syndromes.
+ */
+#define ESR_ISS_EABORT_EA_BIT		U(9)
+
+#define EC_BITS(x)			(((x) >> ESR_EC_SHIFT) & ESR_EC_MASK)
+#define ISS_BITS(x)			(((x) >> ESR_ISS_SHIFT) & ESR_ISS_MASK)
+
 
 /* MAIR macros */
 #define MAIR0_ATTR_SET(attr, index)	((attr) << ((index) << U(3)))
