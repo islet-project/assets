@@ -55,6 +55,8 @@ static void validate_realm_cfg(struct kvm *kvm)
 	if (!kvm__is_realm(kvm)) {
 		if (kvm->cfg.arch.measurement_algo)
 			die("--measurement-algo valid only with --realm");
+		if (kvm->cfg.arch.realm_pv)
+			die("--realm-pv valid only with --realm");
 		return;
 	}
 
@@ -71,6 +73,11 @@ static void validate_realm_cfg(struct kvm *kvm)
 	} else {
 		pr_debug("Realm Hash algorithm: Using default SHA256\n");
 		kvm->arch.measurement_algo = KVM_CAP_ARM_RME_MEASUREMENT_ALGO_SHA256;
+	}
+
+	if (kvm->cfg.arch.realm_pv) {
+		if (strlen(kvm->cfg.arch.realm_pv) > KVM_CAP_ARM_RME_RPV_SIZE)
+			die("Invalid size for Realm Personalization Value\n");
 	}
 
 	die("Realms not supported");
