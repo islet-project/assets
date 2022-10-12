@@ -88,7 +88,7 @@ void send_managed_exit_response(void)
 			 cactus_get_cmd(ffa_ret) != CACTUS_RESUME_AFTER_MANAGED_EXIT;
 
 		if (waiting_resume_after_managed_exit) {
-			ERROR("Expected a direct message request from endpoint"
+			VERBOSE("Expected a direct message request from endpoint"
 			      " %x with command CACTUS_RESUME_AFTER_MANAGED_EXIT\n",
 			       g_dir_req_source_id);
 			ffa_ret = cactus_error_resp(g_ffa_id,
