@@ -88,7 +88,7 @@ bool is_expected_cactus_response(struct ffa_value ret, uint32_t expected_resp,
 
 	if (cactus_get_response(ret) != expected_resp ||
 	    (uint32_t)ret.arg4 != arg) {
-		ERROR("Expected response %x and %x; "
+		VERBOSE("Expected response %x and %x; "
 		      "Obtained %x and %x\n",
 		      expected_resp, arg, cactus_get_response(ret),
 		      (int32_t)ret.arg4);
