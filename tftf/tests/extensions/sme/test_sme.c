@@ -36,6 +36,7 @@ test_result_t test_sme_support(void)
 		ERROR("Could not enable SME.\n");
 		return TEST_RESULT_FAIL;
 	}
+	isb();
 
 	/* Make sure TPIDR2_EL0 is accessible. */
 	write_tpidr2_el0(0);
