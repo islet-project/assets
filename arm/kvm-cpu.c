@@ -155,4 +155,13 @@ void kvm_cpu__show_page_tables(struct kvm_cpu *vcpu)
 
 void kvm_cpu__arch_unhandled_mmio(struct kvm_cpu *vcpu)
 {
+	struct kvm_vcpu_events events = { };
+
+	if (!vcpu->kvm->cfg.arch.is_realm)
+		return;
+
+	events.exception.ext_dabt_pending = 1;
+
+	if (ioctl(vcpu->vcpu_fd, KVM_SET_VCPU_EVENTS, &events) < 0)
+		die_perror("KVM_SET_VCPU_EVENTS failed");
 }
