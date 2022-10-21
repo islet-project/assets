@@ -42,12 +42,12 @@
 #define SMC_TRNG_RND				0x84000053
 #define TRNG_MAX_BITS				U(96)
 #define TRNG_ENTROPY_MASK			U(0xFFFFFFFF)
-#endif
+#endif  /* __aarch64__ */
 
 /*
  * Number of TRNG calls defined in the TRNG specification.
  */
-#define TRNG_NUM_CALLS				4
+#define TRNG_NUM_CALLS				(4U)
 
 #ifndef __ASSEMBLY__
 typedef struct {
@@ -67,17 +67,16 @@ smc_ret_values tftf_trng_rnd(uint32_t nbits);
 /*******************************************************************************
  * TRNG version
  ******************************************************************************/
-#define TRNG_MAJOR_VER_SHIFT	(16)
-#define TRNG_VERSION(major, minor)	((major << TRNG_MAJOR_VER_SHIFT) \
-					| minor)
+#define TRNG_MAJOR_VER_SHIFT	        (16)
+#define TRNG_VERSION(major, minor)	((major << TRNG_MAJOR_VER_SHIFT)| minor)
 
 /*******************************************************************************
  * TRNG error codes
  ******************************************************************************/
-#define TRNG_E_SUCCESS		(0)
-#define TRNG_E_NOT_SUPPORTED	(-1)
-#define TRNG_E_INVALID_PARAMS	(-2)
-#define TRNG_E_NO_ENTOPY	(-3)
-#define TRNG_E_NOT_IMPLEMENTED	(-4)
+#define TRNG_E_SUCCESS			(0)
+#define TRNG_E_NOT_SUPPORTED		(-1)
+#define TRNG_E_INVALID_PARAMS		(-2)
+#define TRNG_E_NO_ENTROPY		(-3)
+#define TRNG_E_NOT_IMPLEMENTED		(-4)
 
 #endif /* __TRNG_H__ */

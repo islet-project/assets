@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Arm Limited. All rights reserved.
+ * Copyright (c) 2021-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -29,7 +29,6 @@ test_result_t test_trng_version(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-
 	if (version < TRNG_VERSION(1, 0)) {
 		return TEST_RESULT_FAIL;
 	}
@@ -51,8 +50,7 @@ test_result_t test_trng_features(void)
 		return TEST_RESULT_SKIPPED;
 	}
 
-	if (!(tftf_trng_feature_implemented(SMC_TRNG_VERSION) &&
-	      tftf_trng_feature_implemented(SMC_TRNG_FEATURES) &&
+	if (!(tftf_trng_feature_implemented(SMC_TRNG_FEATURES) &&
 	      tftf_trng_feature_implemented(SMC_TRNG_UUID) &&
 	      tftf_trng_feature_implemented(SMC_TRNG_RND))) {
 		return TEST_RESULT_FAIL;
@@ -73,6 +71,11 @@ test_result_t test_trng_rnd(void)
 
 	if (version == TRNG_E_NOT_SUPPORTED) {
 		return TEST_RESULT_SKIPPED;
+	}
+
+	/* Ensure function is implemented before requesting Entropy */
+	if (!(tftf_trng_feature_implemented(SMC_TRNG_RND))) {
+		return TEST_RESULT_FAIL;
 	}
 
 	/* Test invalid entropy sizes */
@@ -97,7 +100,7 @@ test_result_t test_trng_rnd(void)
 	/* For N = 1, all returned entropy bits should be 0
 	 * except the least significant bit */
 	rnd_out = tftf_trng_rnd(U(1));
-	if (rnd_out.ret0 == TRNG_E_NO_ENTOPY) {
+	if (rnd_out.ret0 == TRNG_E_NO_ENTROPY) {
 		WARN("There is not a single bit of entropy\n");
 		return TEST_RESULT_SKIPPED;
 	}
@@ -116,7 +119,7 @@ test_result_t test_trng_rnd(void)
 
 	/* For N = MAX_BITS-1, the most significant bit should be 0 */
 	rnd_out = tftf_trng_rnd(TRNG_MAX_BITS - U(1));
-	if (rnd_out.ret0 == TRNG_E_NO_ENTOPY) {
+	if (rnd_out.ret0 == TRNG_E_NO_ENTROPY) {
 		WARN("There is not a single bit of entropy\n");
 		return TEST_RESULT_SKIPPED;
 	}
