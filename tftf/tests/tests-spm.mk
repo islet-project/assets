@@ -3,7 +3,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
-
 TESTS_SOURCES	+=							\
 	$(addprefix tftf/tests/runtime_services/secure_service/,	\
 		${ARCH}/ffa_arch_helpers.S				\
@@ -18,6 +17,7 @@ TESTS_SOURCES	+=							\
 		test_spm_cpu_features.c					\
 		test_spm_smmu.c						\
 		test_ffa_exceptions.c					\
+		sve_operations_cactus.S					\
 	)
 
 TESTS_SOURCES	+=							\

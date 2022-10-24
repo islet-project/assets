@@ -104,6 +104,8 @@
                function="test_simd_vectors_preserved" />
      <testcase name="Check that SVE registers context is preserved"
                function="test_sve_vectors_preserved" />
+     <testcase name="Check that SVE operations in NWd are unaffected by SWd"
+               function="test_sve_vectors_operations" />
   </testsuite>
 
    <testsuite name="FF-A Interrupt"
