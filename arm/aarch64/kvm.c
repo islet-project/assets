@@ -145,6 +145,12 @@ void kvm__arch_enable_mte(struct kvm *kvm)
 		return;
 	}
 
+	if (kvm->cfg.flash_filename) {
+		kvm->cfg.arch.mte_disabled = true;
+		pr_info("MTE is incompatible with CFI flash support, disabling");
+		return;
+	}
+
 	if (kvm->cfg.arch.mte_disabled) {
 		pr_debug("MTE disabled by user");
 		return;
