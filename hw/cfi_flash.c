@@ -455,6 +455,8 @@ static int map_flash_memory(struct kvm *kvm, struct cfi_flash_device *sfdev)
 				KVM_MEM_TYPE_RAM | KVM_MEM_TYPE_READONLY);
 	if (!ret)
 		sfdev->is_mapped = true;
+	else
+		die("CFI Flash: ERROR: Unable to map memory: %d\n", ret);
 
 	return ret;
 }
@@ -472,6 +474,8 @@ static int unmap_flash_memory(struct kvm *kvm, struct cfi_flash_device *sfdev)
 
 	if (!ret)
 		sfdev->is_mapped = false;
+	else
+		die("CFI Flash: Failed to unmap Flash %d", ret);
 
 	return ret;
 }
