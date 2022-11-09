@@ -14,6 +14,7 @@
 #include <asm/pgtable-hwdef.h>
 #include <asm/thread_info.h>
 #include <asm/sysreg.h>
+#include <asm/smc-rsi.h>
 
 .macro zero_range, tmp1, tmp2
 9998:	cmp	\tmp1, \tmp2
@@ -61,6 +62,7 @@ start:
 	b	1b
 
 1:
+	bl	__early_mem_setup
 	/* zero BSS */
 	adrp	x4, bss
 	add	x4, x4, :lo12:bss
@@ -169,6 +171,76 @@ arm_smccc_hvc:
 .globl arm_smccc_smc
 arm_smccc_smc:
 	do_smccc_call smc
+
+__early_mem_setup:
+	/* Preserve x0 - x3 */
+	mov	x5, x0
+	mov	x6, x1
+	mov	x7, x2
+	mov	x8, x3
+
+	/*
+	 * Check for EL3, otherwise an SMC instruction
+	 * will cause an UNDEFINED exception.
+	 */
+	mrs	x9, ID_AA64PFR0_EL1
+	lsr	x9, x9, #12
+	and	x9, x9, 0b11
+	cbnz	x9, 1f
+	ret
+
+1:
+	/*
+	 * Are we a realm? Request the RSI ABI version.
+	 * If KVM is catching SMCs, it returns an error in x0 (~0UL)
+	 */
+	ldr	x0, =SMC_RSI_ABI_VERSION
+	smc	#0
+
+	ldr	x1, =RSI_ABI_VERSION
+	cmp	x0, x1
+	bne	3f
+
+	/*
+	 * For realms, we must mark area from bss
+	 * to the end of stack as memory before it is
+	 * accessed, as they are not populated as part
+	 * of the initial image. As such we can run
+	 * this unconditionally irrespective of whether
+	 * we are a normal VM or Realm.
+	 *
+	 * x1 = bss_start.
+	 */
+	adrp	x1, bss
+
+	/* x9 = (end of stack - bss_start) */
+	adrp	x9, (stacktop + PAGE_SIZE)
+2:
+	/* calculate the size as (end - start) */
+	sub	x2, x9, x1
+
+	/* x3 = RIPAS_RAM */
+	mov	x3, #1
+
+	/* x0 = SMC_RSI_IPA_STATE_SET */
+	movz	x0, :abs_g2_s:SMC_RSI_IPA_STATE_SET
+	movk	x0, :abs_g1_nc:SMC_RSI_IPA_STATE_SET
+	movk	x0, :abs_g0_nc:SMC_RSI_IPA_STATE_SET
+
+	/* Run the RSI request */
+	smc	#0
+
+	/* halt if there is an error */
+	cbnz x0, halt
+
+	cmp x1, x9
+	bne 2b
+3:
+	mov	x3, x8
+	mov	x2, x7
+	mov	x1, x6
+	mov	x0, x5
+	ret
 
 get_mmu_off:
 	adrp	x0, auxinfo
