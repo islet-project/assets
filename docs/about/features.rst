@@ -19,6 +19,7 @@ not exhaustive):
 -  `Firmware update`_ (or recovery mode)
 -  `EL3 payload boot flow`_
 -  Secure partition support
+-  `True Random Number Generator Firmware Interface (TRNG_FW)`_
 
 These tests are not a compliance test suite for the Arm interface standards used
 in TF-A (such as PSCI).
@@ -55,3 +56,4 @@ Still to come
 .. _TSP: https://git.trustedfirmware.org/TF-A/trusted-firmware-a.git/tree/bl32/tsp
 .. _Firmware update: https://trustedfirmware-a.readthedocs.io/en/latest/components/firmware-update.html
 .. _EL3 payload boot flow: https://trustedfirmware-a.readthedocs.io/en/latest/design/alt-boot-flows.html#el3-payloads-alternative-boot-flow
+.. _TRNG_FW: https://developer.arm.com/documentation/den0098/latest
