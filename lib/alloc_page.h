@@ -21,6 +21,7 @@
 
 #define FLAG_DONTZERO	0x10000
 #define FLAG_FRESH	0x20000
+#define FLAG_SHARED	0x40000
 
 /* Returns true if the page allocator has been initialized */
 bool page_alloc_initialized(void);
@@ -120,5 +121,28 @@ int reserve_pages(phys_addr_t addr, size_t npages);
  * pages will be freed and unreserved.
  */
 void unreserve_pages(phys_addr_t addr, size_t npages);
+
+/* Shared page operations */
+static inline void *alloc_pages_shared(unsigned long order)
+{
+	return alloc_pages_flags(order, FLAG_SHARED);
+}
+
+static inline void *alloc_page_shared(void)
+{
+	return alloc_pages_shared(0);
+}
+
+void free_pages_shared(void *mem);
+
+static inline void free_page_shared(void *page)
+{
+	free_pages_shared(page);
+}
+
+static inline void free_pages_shared_by_order(void *mem, unsigned long order)
+{
+	free_pages_shared(mem);
+}
 
 #endif

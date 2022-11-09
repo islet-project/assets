@@ -53,6 +53,20 @@ static struct mem_area areas[MAX_AREAS];
 /* Mask of initialized areas */
 static unsigned int areas_mask;
 /* Protects areas and areas mask */
+
+#ifndef set_memory_encrypted
+static inline void set_memory_encrypted(unsigned long mem, unsigned long size)
+{
+}
+#endif
+
+#ifndef set_memory_decrypted
+static inline void set_memory_decrypted(unsigned long mem, unsigned long size)
+{
+}
+#endif
+
+
 static struct spinlock lock;
 
 bool page_alloc_initialized(void)
@@ -263,7 +277,7 @@ static bool coalesce(struct mem_area *a, u8 order, pfn_t pfn, pfn_t pfn2)
  * - no pages in the memory block were already free
  * - no pages in the memory block are special
  */
-static void _free_pages(void *mem)
+static void _free_pages(void *mem, u32 flags)
 {
 	pfn_t pfn2, pfn = virt_to_pfn(mem);
 	struct mem_area *a = NULL;
@@ -280,6 +294,9 @@ static void _free_pages(void *mem)
 
 	p = pfn - a->base;
 	order = a->page_states[p] & ORDER_MASK;
+
+	if (flags & FLAG_SHARED)
+		set_memory_encrypted((unsigned long)mem, BIT(order) * PAGE_SIZE);
 
 	/* ensure that the first page is allocated and not special */
 	assert(IS_ALLOCATED(a->page_states[p]));
@@ -320,7 +337,14 @@ static void _free_pages(void *mem)
 void free_pages(void *mem)
 {
 	spin_lock(&lock);
-	_free_pages(mem);
+	_free_pages(mem, 0);
+	spin_unlock(&lock);
+}
+
+void free_pages_shared(void *mem)
+{
+	spin_lock(&lock);
+	_free_pages(mem, FLAG_SHARED);
 	spin_unlock(&lock);
 }
 
@@ -353,7 +377,7 @@ static void _unreserve_one_page(pfn_t pfn)
 	i = pfn - a->base;
 	assert(a->page_states[i] == STATUS_SPECIAL);
 	a->page_states[i] = STATUS_ALLOCATED;
-	_free_pages(pfn_to_virt(pfn));
+	_free_pages(pfn_to_virt(pfn), 0);
 }
 
 int reserve_pages(phys_addr_t addr, size_t n)
@@ -401,6 +425,10 @@ static void *page_memalign_order_flags(u8 al, u8 ord, u32 flags)
 		if (area & BIT(i))
 			res = page_memalign_order(areas + i, al, ord, fresh);
 	spin_unlock(&lock);
+
+	if (res && (flags & FLAG_SHARED))
+		set_memory_decrypted((unsigned long)res, BIT(ord) * PAGE_SIZE);
+
 	if (res && !(flags & FLAG_DONTZERO))
 		memset(res, 0, BIT(ord) * PAGE_SIZE);
 	return res;
