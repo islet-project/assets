@@ -54,7 +54,7 @@ static void its_baser_alloc_table(struct its_baser *baser, size_t size)
 	void *reg_addr = gicv3_its_base() + GITS_BASER + baser->index * 8;
 	u64 val = readq(reg_addr);
 
-	baser->table_addr = alloc_pages(order);
+	baser->table_addr = alloc_pages_shared(order);
 
 	val |= virt_to_phys(baser->table_addr) | GITS_BASER_VALID;
 
@@ -70,7 +70,7 @@ static void its_cmd_queue_init(void)
 	unsigned long order = get_order(SZ_64K >> PAGE_SHIFT);
 	u64 cbaser;
 
-	its_data.cmd_base = alloc_pages(order);
+	its_data.cmd_base = alloc_pages_shared(order);
 
 	cbaser = virt_to_phys(its_data.cmd_base) | (SZ_64K / SZ_4K - 1) | GITS_CBASER_VALID;
 
@@ -123,7 +123,7 @@ struct its_device *its_create_device(u32 device_id, int nr_ites)
 	new->nr_ites = nr_ites;
 
 	n = (its_data.typer.ite_size * nr_ites) >> PAGE_SHIFT;
-	new->itt = alloc_pages(get_order(n));
+	new->itt = alloc_pages_shared(get_order(n));
 
 	its_data.nr_devices++;
 	return new;
