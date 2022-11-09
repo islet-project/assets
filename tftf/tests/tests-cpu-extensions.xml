@@ -34,6 +34,7 @@
   <testsuite name="ARM_ARCH_SVC" description="Arm Architecture Service tests">
      <testcase name="SMCCC_ARCH_WORKAROUND_1 test" function="test_smccc_arch_workaround_1" />
      <testcase name="SMCCC_ARCH_WORKAROUND_2 test" function="test_smccc_arch_workaround_2" />
+     <testcase name="SMCCC_ARCH_WORKAROUND_3 test" function="test_smccc_arch_workaround_3" />
      <testcase name="SMCCC_ARCH_SOC_ID test" function="test_smccc_arch_soc_id" />
   </testsuite>
 
