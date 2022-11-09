@@ -28,6 +28,11 @@ extern unsigned long prot_ns_shared;
 */
 #define PTE_NS_SHARED		(prot_ns_shared)
 
+static inline unsigned long arm_shared_phys_alias(void *addr)
+{
+	return ((unsigned long)addr | PTE_NS_SHARED);
+}
+
 /*
  * Highest possible physical address supported.
  */
