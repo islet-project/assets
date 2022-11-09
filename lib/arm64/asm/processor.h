@@ -114,6 +114,14 @@ static inline unsigned long get_id_aa64mmfr0_el1(void)
 #define ID_AA64MMFR0_TGRAN64_SUPPORTED	0x0
 #define ID_AA64MMFR0_TGRAN16_SUPPORTED	0x1
 
+static inline unsigned long get_id_aa64pfr0_el1(void)
+{
+	return read_sysreg(id_aa64pfr0_el1);
+}
+
+#define ID_AA64PFR0_EL1_EL3	(0xf << 12)
+#define ID_AA64PFR0_EL1_EL3_NI	(0x0 << 12)
+
 static inline bool system_supports_granule(size_t granule)
 {
 	u32 shift;

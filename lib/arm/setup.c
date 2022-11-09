@@ -24,6 +24,7 @@
 #include <asm/page.h>
 #include <asm/pgtable.h>
 #include <asm/processor.h>
+#include <asm/rsi.h>
 #include <asm/smp.h>
 #include <asm/timer.h>
 #include <asm/psci.h>
@@ -243,6 +244,8 @@ void setup(const void *fdt, phys_addr_t freemem_start)
 	const char *bootargs, *tmp;
 	u32 fdt_size;
 	int ret;
+
+	arm_rsi_init();
 
 	assert(sizeof(long) == 8 || freemem_start < (3ul << 30));
 	freemem = (void *)(unsigned long)freemem_start;
