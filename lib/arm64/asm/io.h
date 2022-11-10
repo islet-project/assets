@@ -89,6 +89,12 @@ static inline void *phys_to_virt(phys_addr_t x)
 	return (void *)__phys_to_virt(x);
 }
 
+extern void set_memory_decrypted(unsigned long va, size_t size);
+#define set_memory_decrypted		set_memory_decrypted
+
+extern void set_memory_encrypted(unsigned long va, size_t size);
+#define set_memory_encrypted	set_memory_encrypted
+
 #include <asm-generic/io.h>
 
 #endif /* _ASMARM64_IO_H_ */

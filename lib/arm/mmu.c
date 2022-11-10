@@ -22,6 +22,7 @@
 #include <linux/compiler.h>
 
 pgd_t *mmu_idmap;
+unsigned long idmap_end;
 
 /* Used by Realms, depends on IPA size */
 unsigned long prot_ns_shared = 0;
@@ -29,6 +30,11 @@ unsigned long phys_mask_shift = 48;
 
 /* CPU 0 starts with disabled MMU */
 static cpumask_t mmu_enabled_cpumask;
+
+static bool is_idmap_address(phys_addr_t pa)
+{
+	return pa < idmap_end;
+}
 
 bool mmu_enabled(void)
 {
@@ -92,12 +98,17 @@ static pteval_t *get_pte(pgd_t *pgtable, uintptr_t vaddr)
 	return &pte_val(*pte);
 }
 
+static void set_pte(uintptr_t vaddr, pteval_t *p_pte, pteval_t pte)
+{
+	WRITE_ONCE(*p_pte, pte);
+	flush_tlb_page(vaddr);
+}
+
 static pteval_t *install_pte(pgd_t *pgtable, uintptr_t vaddr, pteval_t pte)
 {
 	pteval_t *p_pte = get_pte(pgtable, vaddr);
 
-	WRITE_ONCE(*p_pte, pte);
-	flush_tlb_page(vaddr);
+	set_pte(vaddr, p_pte, pte);
 	return p_pte;
 }
 
@@ -120,6 +131,39 @@ phys_addr_t virt_to_pte_phys(pgd_t *pgtable, void *mem)
 {
 	return (*get_pte(pgtable, (uintptr_t)mem) & PHYS_MASK & -PAGE_SIZE)
 		+ ((ulong)mem & (PAGE_SIZE - 1));
+}
+
+/*
+ * __idmap_set_range_prot - Apply permissions to the given idmap range.
+ */
+static void __idmap_set_range_prot(unsigned long virt_offset, size_t size, pgprot_t prot)
+{
+	pteval_t *ptep;
+	pteval_t default_prot = PTE_TYPE_PAGE | PTE_AF | PTE_SHARED;
+
+	while (size > 0) {
+		pteval_t pte = virt_offset | default_prot | pgprot_val(prot);
+
+		if (!is_idmap_address(virt_offset))
+			break;
+		/* Break before make : Clear the PTE entry first */
+		ptep = install_pte(mmu_idmap, (uintptr_t)virt_offset, 0);
+		/* Now apply the changes */
+		set_pte((uintptr_t)virt_offset, ptep, pte);
+
+		size -= PAGE_SIZE;
+		virt_offset += PAGE_SIZE;
+	}
+}
+
+static void idmap_set_range_shared(unsigned long virt_offset, size_t size)
+{
+	return __idmap_set_range_prot(virt_offset, size, __pgprot(PTE_WBWA | PTE_USER | PTE_NS_SHARED));
+}
+
+static void idmap_set_range_protected(unsigned long virt_offset, size_t size)
+{
+	__idmap_set_range_prot(virt_offset, size, __pgprot(PTE_WBWA | PTE_USER));
 }
 
 void mmu_set_range_ptes(pgd_t *pgtable, uintptr_t virt_offset,
@@ -190,6 +234,7 @@ void *setup_mmu(phys_addr_t phys_end, void *unused)
 	}
 
 	mmu_enable(mmu_idmap);
+	idmap_end = phys_end;
 	return mmu_idmap;
 }
 
@@ -276,5 +321,21 @@ void mmu_clear_user(pgd_t *pgtable, unsigned long vaddr)
 		pteval_t entry = *p_pte & ~PTE_USER;
 		WRITE_ONCE(*p_pte, entry);
 		flush_tlb_page(vaddr);
+	}
+}
+
+void set_memory_encrypted(unsigned long va, size_t size)
+{
+	if (is_realm()) {
+		arm_set_memory_protected(__virt_to_phys(va), size);
+		idmap_set_range_protected(va, size);
+	}
+}
+
+void set_memory_decrypted(unsigned long va, size_t size)
+{
+	if (is_realm()) {
+		arm_set_memory_shared(__virt_to_phys(va), size);
+		idmap_set_range_shared(va, size);
 	}
 }
