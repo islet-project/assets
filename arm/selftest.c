@@ -18,6 +18,7 @@
 #include <asm/smp.h>
 #include <asm/mmu.h>
 #include <asm/barrier.h>
+#include <asm/rsi.h>
 
 static cpumask_t ready, valid;
 
@@ -392,11 +393,17 @@ static void check_vectors(void *arg __unused)
 					  user_psci_system_off);
 #endif
 	} else {
+		if (is_realm()) {
+			report_skip("pabt test not supported in a realm");
+			goto out;
+		}
+
 		if (!check_pabt_init())
 			report_skip("Couldn't guess an invalid physical address");
 		else
 			report(check_pabt(), "pabt");
 	}
+out:
 	exit(report_summary());
 }
 
