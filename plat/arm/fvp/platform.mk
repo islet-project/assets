@@ -1,8 +1,11 @@
 #
-# Copyright (c) 2018-2020, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
+
+# If not specified as build arguments, set default to 10 MB
+TFTF_MAX_IMAGE_SIZE:=10485760
 
 # Default number of threads per CPU on FVP
 FVP_MAX_PE_PER_CPU		:= 1
@@ -79,6 +82,7 @@ $(eval $(call add_define,NS_BL2U_DEFINES,FVP_MAX_PE_PER_CPU))
 $(eval $(call add_define,TFTF_DEFINES,FVP_CLUSTER_COUNT))
 $(eval $(call add_define,TFTF_DEFINES,FVP_MAX_CPUS_PER_CLUSTER))
 $(eval $(call add_define,TFTF_DEFINES,FVP_MAX_PE_PER_CPU))
+$(eval $(call add_define,TFTF_DEFINES,TFTF_MAX_IMAGE_SIZE))
 
 # Default PA size for FVP platform
 PA_SIZE := 34
@@ -88,6 +92,7 @@ $(eval $(call add_define,IVY_DEFINES,PA_SIZE))
 $(eval $(call add_define,NS_BL1U_DEFINES,PA_SIZE))
 $(eval $(call add_define,NS_BL2U_DEFINES,PA_SIZE))
 $(eval $(call add_define,TFTF_DEFINES,PA_SIZE))
+$(eval $(call add_define,REALM_DEFINES,PA_SIZE))
 
 PLAT_INCLUDES	+=	-Iplat/arm/fvp/include/
 

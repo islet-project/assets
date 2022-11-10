@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2021, Arm Limited. All rights reserved.
+# Copyright (c) 2018-2022, Arm Limited. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -28,6 +28,7 @@ TFTF_INCLUDES	:= 					\
 	-Ispm/cactus					\
 	-Ispm/ivy					\
 	-Ispm/quark					\
+	-Irealm						\
 	-Ismc_fuzz/include
 
 FRAMEWORK_SOURCES	:=	${AUTOGEN_DIR}/tests_list.c

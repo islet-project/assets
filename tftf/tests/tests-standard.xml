@@ -24,6 +24,7 @@
   <!ENTITY tests-spm SYSTEM "tests-spm.xml">
   <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
   <!ENTITY tests-debugfs SYSTEM "tests-debugfs.xml">
+  <!ENTITY tests-rmi-spm SYSTEM "tests-rmi-spm.xml">
   <!ENTITY tests-realm-payload SYSTEM "tests-realm-payload.xml">
 ]>
 
@@ -44,6 +45,7 @@
   &tests-spm;
   &tests-pmu-leakage;
   &tests-debugfs;
+  &tests-rmi-spm;
   &tests-realm-payload;
 
 </testsuites>

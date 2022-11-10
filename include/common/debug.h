@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018, Arm Limited. All rights reserved.
+ * Copyright (c) 2014-2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -23,6 +23,11 @@
 __attribute__((format(printf, 1, 2)))
 void mp_printf(const char *fmt, ...);
 #endif /* IMAGE_CACTUS_MM */
+
+#ifdef IMAGE_REALM
+void realm_printf(const char *fmt, ...);
+#define mp_printf realm_printf
+#endif
 
 /*
  * The log output macros print output to the console. These macros produce

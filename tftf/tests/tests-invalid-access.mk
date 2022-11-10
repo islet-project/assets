@@ -4,11 +4,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+TFTF_INCLUDES +=							\
+	-Iinclude/runtime_services/host_realm_managment
+
 TESTS_SOURCES	+=	tftf/tests/misc_tests/test_invalid_access.c
 
 TESTS_SOURCES	+=							\
-	$(addprefix tftf/tests/runtime_services/realm_payload/,		\
-		realm_payload_test_helpers.c				\
+	$(addprefix tftf/tests/runtime_services/host_realm_managment/,	\
+		host_realm_rmi.c					\
 	)
 
 TESTS_SOURCES	+=							\

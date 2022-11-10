@@ -7,15 +7,18 @@
 -->
 
 <testsuites>
-
-  <testsuite name="Realm payload tests" description="Tests for Realm management interface">
-	  <testcase name="Realm payload boot" function="realm_version_single_cpu" />
-	  <testcase name="Realm payload multi CPU request" function="realm_version_multi_cpu" />
-	  <testcase name="Realm payload Delegate and Undelegate" function="realm_delegate_undelegate" />
-	  <testcase name="Multi CPU Realm payload Delegate and Undelegate" function="realm_delundel_multi_cpu" />
-	  <testcase name="Testing delegation fails" function="realm_fail_del" />
-	  <testcase name="Test TFTF can call RMM/TRP and SPM serially on a single core" function="test_spm_rmm_serial_smc" />
-	  <testcase name="Test TFTF can call RMM/TRP and SPM parallelly on a multi core" function="test_spm_rmm_parallel_smc" />
+  <testsuite name="Realm payload at EL1" description="Test Realm EL1 framework capabilities" >
+	  <testcase name="Realm EL1 creation and execution test"
+	  function="test_realm_create_enter" />
+	  <testcase name="Realm payload boot"
+	  function="realm_version_single_cpu" />
+	  <testcase name="Realm payload multi CPU request"
+	  function="realm_version_multi_cpu" />
+	  <testcase name="Realm payload Delegate and Undelegate"
+	  function="realm_delegate_undelegate" />
+	  <testcase name="Multi CPU Realm payload Delegate and Undelegate"
+	  function="realm_delundel_multi_cpu" />
+	  <testcase name="Testing delegation fails"
+	  function="realm_fail_del" />
   </testsuite>
-
 </testsuites>
