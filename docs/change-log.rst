@@ -7,6 +7,124 @@ Firmware-A version for simplicity. At any point in time, TF-A Tests version
 Tests are not guaranteed to be compatible. This also means that a version
 upgrade on the TF-A-Tests side might not necessarily introduce any new feature.
 
+Version 2.8
+-----------
+
+New features
+^^^^^^^^^^^^
+-  More tests are made available in this release to help validate the
+   functionalities in the following areas:
+
+   - FF-A Features
+   - Realm Management Extension
+   - New Architecture Specific features related to v8.8
+   - New platform ports
+
+TFTF
+~~~~
+
+-  FF-A testing:
+
+    - UUID included in partition information descriptors.
+    - Checks for size of partition information descriptors.
+    - Renamed FFA_MSG_RUN ABI function to FFA_RUN and allowed it to return from
+      Waiting state.
+    - Made ffa_tests available for Ivy.
+    - Updated verbose message log structure.
+    - Prevented generate_json.sh from being called more than once by requiring
+      a list of partitions to be supplied.
+    - Added a temporary workaround for unexpected affinity info state to prevent
+      a system panic.
+    - Added test to exercise FFA_CONSOLE_LOG ABI.
+
+    - FF-A v1.1 Secure interrupts
+
+        - Added managed exit to first and second SP in call chain.
+        - Added test to exercise managed exit by two SPs in a call chain.
+        - Added tests to exercise NS interrupt being queued and signaled to SP.
+
+-  New tests:
+
+    - Tests for SVE operations in Normal World and discover SVE vector length.
+    - Added cleanup TRNG service tests.
+    - Added test for SMCCC_ARCH_WORKAROUND_3.
+    - Updated PAuth helpers to support QARMA3 algorithm.
+    - Added tests for RNG_TRAP.
+
+-  Platforms:
+
+    - SGI:
+
+        - Introduced platform variant build option.
+        - Re-organized header files.
+        - Migrated to secure uart port for routing tftf logs.
+
+    - N1SDP:
+
+        - Added TFTF support for N1SDP.
+
+    - RD-N2:
+
+        - Added TFTF support for RD-N2.
+
+    - RD-N2-Cfg1:
+
+        - Added TFTF support for RD-N2-Cfg1.
+
+    - RD-V1:
+
+        - Added TFTF support for RD-V1.
+
+-  Miscellaneous:
+
+    - Added a missing ISB instruction in SME test.
+    - Refactor to make some helper functions re-usable.
+    - Updated build command to clean EL3 payload image.
+    - Move renaming of the primary dts file for ivy partitions.
+    - Added check that verifies if a platform supports el3_payload before
+      building it.
+    - Updated memory share test to meet Hafnium specification.
+    - Updated toolchain requirements documentation.
+
+
+Realm Management Extension (RME)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Added Realm payload management capabilities to TFTF to act as a NS Host.
+    - Added test to verify that RMM and SPM can co-exist and work properly.
+    - Added function to reset delegated buffers to non-delegated state.
+    - Re-used existing wait_for_non_lead_cpus() function helper.
+    - Refactored RMI FID macros to simplify usage.
+    - Added userguide for realm payload testing.
+
+Cactus (Secure-EL1 test partition)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Corrected some tests message types from ERROR to VERBOSE.
+    - Increased the cactus number of xlat to allow the use of 48b PA size for
+      memory sharing between SPs.
+    - Introduced a new direct request message command to resume after managed
+      exit.
+    - Skip enabling virtual maintenance interrupts explicitly.
+    - Allowed sender to resume interrupted target vCPU.
+    - Added support for handling managed exit through vIRQ.
+    - Added support for discovering interrupt IDs of managed exit signals.
+    - Specified action in response to NS interrupt in manifest.
+
+Ivy (Secure-EL0 test partition)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Allowed testing using VHE.
+    - Allowed Ivy partitions to use ffa_helpers functions.
+    - Requirement of common name for Ivy partitions for consistency.
+    - Specified action in response to NS interrupt in manifest.
+
+Issues resolved since last release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    - Fixed SME header guard name.
+    - Fixed response for incorrect direct message request for FF-A.
+
 Version 2.7
 -----------
 
