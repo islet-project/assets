@@ -1,0 +1,96 @@
+From ef74d39d326b0b05127b2f08f18a0c10f0274983 Mon Sep 17 00:00:00 2001
+From: Bokdeuk Jeong <bd.jeong@samsung.com>
+Date: Wed, 30 Nov 2022 03:34:30 -0500
+Subject: [PATCH] rsi: request rmm to reshare memory in pas
+
+Signed-off-by: Bokdeuk Jeong <bd.jeong@samsung.com>
+---
+ arch/arm64/mm/fault.c | 67 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 67 insertions(+)
+
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index c5e11768e5c1..b8c27bb01103 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -806,11 +806,78 @@ static const struct fault_info fault_info[] = {
+ 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 63"			},
+ };
+ 
++#include <linux/arm-smccc.h>
++static void reshare_with_ns(unsigned long addr, unsigned long far)
++{
++    struct arm_smccc_res smc_res;
++    struct mm_struct *mm;
++    pgd_t *pgdp;
++    pgd_t pgd;
++
++    if (is_ttbr0_addr(addr)) {
++        /* TTBR0 */
++        mm = current->active_mm;
++        if (mm == &init_mm) {
++            pr_alert("[%016lx] user address but active_mm is swapper\n",
++                 addr);
++            return;
++        }
++    } else if (is_ttbr1_addr(addr)) {
++        /* TTBR1 */
++        mm = &init_mm;
++    } else {
++        pr_alert("[%016lx] address between user and kernel address ranges\n",
++             addr);
++        return;
++    }
++
++    pgdp = pgd_offset(mm, addr);
++    pgd = READ_ONCE(*pgdp);
++
++    do {
++        p4d_t *p4dp, p4d;
++        pud_t *pudp, pud;
++        pmd_t *pmdp, pmd;
++        pte_t *ptep, pte;
++
++        if (pgd_none(pgd) || pgd_bad(pgd))
++            break;
++
++        p4dp = p4d_offset(pgdp, addr);
++        p4d = READ_ONCE(*p4dp);
++        if (p4d_none(p4d) || p4d_bad(p4d))
++            break;
++
++        pudp = pud_offset(p4dp, addr);
++        pud = READ_ONCE(*pudp);
++        if (pud_none(pud) || pud_bad(pud))
++            break;
++
++        pmdp = pmd_offset(pudp, addr);
++        pmd = READ_ONCE(*pmdp);
++        if (pmd_none(pmd) || pmd_bad(pmd))
++            break;
++
++        ptep = pte_offset_map(pmdp, addr);
++        pte = READ_ONCE(*ptep);
++
++        printk("[islet-realm] request_ns_share(0x%lx)\n", __pte_to_phys(pte));
++        arm_smccc_smc(0xFEED0001, __pte_to_phys(pte), far, 0, 0, 0, 0, 0, &smc_res);
++        break;
++    } while(0);
++}
++
+ void do_mem_abort(unsigned long far, unsigned long esr, struct pt_regs *regs)
+ {
+ 	const struct fault_info *inf = esr_to_fault_info(esr);
+ 	unsigned long addr = untagged_addr(far);
+ 
++    if ((esr & ESR_ELx_FSC) == 0x28) {
++        printk("[islet-realm] %s:%d %s GPT fault\n", __FILE__, __LINE__, __FUNCTION__);
++        reshare_with_ns(addr, far);
++        return;
++    }
++
+ 	if (!inf->fn(far, esr, regs))
+ 		return;
+ 
+-- 
+2.25.1
+
