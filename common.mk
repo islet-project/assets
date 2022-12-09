@@ -24,11 +24,11 @@ endef
 
 SHELL := bash
 BASH ?= bash
-ROOT ?= $(shell pwd)/..
+ROOT ?= $(shell pwd)/../..
 
 UNAME_M				:= $(shell uname -m)
-BUILD_PATH			?= $(ROOT)/build
-LINUX_PATH			?= $(ROOT)/linux
+BUILD_PATH			?= $(ROOT)/third-party/optee-build
+LINUX_PATH			?= $(ROOT)/third-party/nw-linux
 UBOOT_PATH			?= $(ROOT)/u-boot
 OPTEE_OS_PATH			?= $(ROOT)/optee_os
 OPTEE_CLIENT_PATH		?= $(ROOT)/optee_client

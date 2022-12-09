@@ -32,7 +32,7 @@ BR2_PACKAGE_LINUX_FTPM_MOD_EXT_PATH ?= $(LINUX_PATH)
 # Paths to git projects and various binaries
 ################################################################################
 MEASURED_BOOT		?= n
-TF_A_PATH		?= $(ROOT)/trusted-firmware-a
+TF_A_PATH		?= $(ROOT)/third-party/tf-a
 ifeq ($(MEASURED_BOOT),y)
 # Prefer release mode for TF-A if using Measured Boot, debug may exhaust memory.
 TF_A_BUILD		?= release
