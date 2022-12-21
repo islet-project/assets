@@ -9,6 +9,7 @@
 
 <!-- External references to all individual tests files. -->
 <!DOCTYPE testsuites [
+<!--
   <!ENTITY tests-psci-extensive SYSTEM "tests-psci-extensive.xml">
 
   <!ENTITY tests-tftf-validation SYSTEM "tests-tftf-validation.xml">
@@ -23,10 +24,11 @@
   <!ENTITY tests-performance SYSTEM "tests-performance.xml">
   <!ENTITY tests-smc SYSTEM "tests-smc.xml">
   <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
+-->
 ]>
 
 <testsuites>
-
+<!--
   &tests-psci-extensive;
 
   &tests-tftf-validation;
@@ -41,5 +43,5 @@
   &tests-performance;
   &tests-smc;
   &tests-pmu-leakage;
-
+-->
 </testsuites>

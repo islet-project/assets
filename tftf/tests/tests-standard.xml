@@ -9,6 +9,7 @@
 
 <!-- External references to all individual tests files. -->
 <!DOCTYPE testsuites [
+<!--
   <!ENTITY tests-tftf-validation SYSTEM "tests-tftf-validation.xml">
   <!ENTITY tests-boot-req SYSTEM "tests-boot-req.xml">
   <!ENTITY tests-psci SYSTEM "tests-psci.xml">
@@ -25,11 +26,12 @@
   <!ENTITY tests-pmu-leakage SYSTEM "tests-pmu-leakage.xml">
   <!ENTITY tests-debugfs SYSTEM "tests-debugfs.xml">
   <!ENTITY tests-rmi-spm SYSTEM "tests-rmi-spm.xml">
+-->
   <!ENTITY tests-realm-payload SYSTEM "tests-realm-payload.xml">
 ]>
 
 <testsuites>
-
+<!--
   &tests-tftf-validation;
   &tests-boot-req;
   &tests-psci;
@@ -46,6 +48,6 @@
   &tests-pmu-leakage;
   &tests-debugfs;
   &tests-rmi-spm;
+-->
   &tests-realm-payload;
-
 </testsuites>
