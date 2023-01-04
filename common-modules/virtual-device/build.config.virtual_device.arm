@@ -1,0 +1,8 @@
+. ${ROOT_DIR}/common-modules/virtual-device/build.config.virtual_device
+
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.arm
+
+DEFCONFIG=vd_arm_gki_defconfig
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/common-modules/virtual-device/virtual_device.fragment ${ROOT_DIR}/common-modules/virtual-device/arm.fragment"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/${DEFCONFIG}"
+BUILD_GOLDFISH_DRIVERS=m

@@ -1,0 +1,31 @@
+. ${ROOT_DIR}/common-modules/virtual-device/build.config.virtual_device
+
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki_kasan
+
+DEFCONFIG=vd_aarch_64_gki_defconfig
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/common-modules/virtual-device/virtual_device.fragment"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} && update_kasan_config"
+BUILD_GOLDFISH_DRIVERS=m
+
+function update_kasan_config() {
+    ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
+         -e CONFIG_KASAN \
+         -e CONFIG_KASAN_INLINE \
+         -e CONFIG_KASAN_PANIC_ON_WARN \
+         -e CONFIG_KCOV \
+         -e CONFIG_PANIC_ON_WARN_DEFAULT_ENABLE \
+         -d CONFIG_RANDOMIZE_BASE \
+         -d CONFIG_KASAN_OUTLINE \
+         --set-val CONFIG_FRAME_WARN 0 \
+         -d LTO_CLANG_THIN \
+         -d LTO_CLANG_FULL \
+         -d CFI_PERMISSIVE \
+         -d CFI_CLANG \
+         -d SHADOW_CALL_STACK
+    (cd ${OUT_DIR} && \
+     make ${CC_LD_ARG} O=${OUT_DIR} olddefconfig)
+}
+
+# Not saving any kernel images. This build step is meant purely to generate the .kos.
+FILES=""

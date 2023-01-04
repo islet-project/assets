@@ -1,0 +1,15 @@
+. ${ROOT_DIR}/common-modules/virtual-device/build.config.virtual_device
+
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
+
+DEFCONFIG=vd_aarch_64_gki_defconfig
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/common-modules/virtual-device/virtual_device.fragment"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
+BUILD_GOLDFISH_DRIVERS=m
+
+# Not building/saving any kernel images. This build step is meant purely to generate the .kos.
+FILES="arch/arm64/boot/dts/arm/fvp-base-revc.dtb"
+MAKE_GOALS="modules arm/fvp-base-revc.dtb"
+
+KMI_SYMBOL_LIST=android/abi_gki_aarch64_virtual_device
+TRIM_NONLISTED_KMI=1
