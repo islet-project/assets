@@ -22,6 +22,8 @@
 
 pgd_t *mmu_idmap;
 
+unsigned long phys_mask_shift = 48;
+
 /* CPU 0 starts with disabled MMU */
 static cpumask_t mmu_enabled_cpumask;
 

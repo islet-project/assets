@@ -22,6 +22,7 @@
 #include <asm/thread_info.h>
 #include <asm/setup.h>
 #include <asm/page.h>
+#include <asm/pgtable.h>
 #include <asm/processor.h>
 #include <asm/smp.h>
 #include <asm/timer.h>

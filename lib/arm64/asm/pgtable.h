@@ -21,6 +21,15 @@
 
 #include <linux/compiler.h>
 
+extern unsigned long prot_ns_shared;
+/*
+ * Highest possible physical address supported.
+ */
+extern unsigned long phys_mask_shift;
+#define PHYS_MASK_SHIFT		(phys_mask_shift)
+#define PHYS_MASK		((UL(1) << PHYS_MASK_SHIFT) - 1)
+
+
 /*
  * We can convert va <=> pa page table addresses with simple casts
  * because we always allocate their pages with alloc_page(), and
