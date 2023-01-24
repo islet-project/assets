@@ -65,3 +65,47 @@ void arm_rsi_init(void)
 	/* Set the upper bit of the IPA as the NS_SHARED pte attribute */
 	prot_ns_shared = (1UL << phys_mask_shift);
 }
+
+static unsigned rsi_set_addr_range_state(unsigned long start, unsigned long size,
+					 enum ripas_t state, unsigned long *top)
+{
+	struct smccc_result res;
+
+	rsi_invoke(SMC_RSI_IPA_STATE_SET, start, size, state, 0, 0, 0, 0, 0, 0, 0, 0, &res);
+	*top = res.r1;
+	return res.r0;
+}
+
+static void arm_set_memory_state(unsigned long start,
+				 unsigned long size,
+				 unsigned int ripas)
+{
+	int ret;
+	unsigned long end, top;
+	unsigned long old_start = start;
+
+	if (!is_realm())
+		return;
+
+	start = ALIGN_DOWN(start, RSI_GRANULE_SIZE);
+	if (start != old_start)
+		size += old_start - start;
+	end = ALIGN(start + size, RSI_GRANULE_SIZE);
+	while (start != end) {
+		ret = rsi_set_addr_range_state(start, (end - start),
+					       ripas, &top);
+		assert(!ret);
+		assert(top <= end);
+		start = top;
+	}
+}
+
+void arm_set_memory_protected(unsigned long start, unsigned long size)
+{
+	arm_set_memory_state(start, size, RIPAS_RAM);
+}
+
+void arm_set_memory_shared(unsigned long start, unsigned long size)
+{
+	arm_set_memory_state(start, size, RIPAS_EMPTY);
+}
