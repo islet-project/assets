@@ -41,6 +41,7 @@ tests += $(TEST_DIR)/micro-bench.flat
 tests += $(TEST_DIR)/cache.flat
 tests += $(TEST_DIR)/debug.flat
 tests += $(TEST_DIR)/realm-rsi.flat
+tests += $(TEST_DIR)/realm-attest.flat
 tests += $(TEST_DIR)/realm-fpu.flat
 tests += $(TEST_DIR)/realm-sea.flat
 
