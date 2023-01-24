@@ -181,6 +181,7 @@ static void mem_init(phys_addr_t freemem_start)
 	while (r && r->end != mem.end)
 		r = mem_region_find(r->end);
 	assert(r);
+	arm_set_memory_protected(r->start, r->end - r->start);
 
 	/* Ensure our selected freemem range is somewhere in our full range */
 	assert(freemem_start >= mem.start && freemem->end <= mem.end);
@@ -252,6 +253,11 @@ void setup(const void *fdt, phys_addr_t freemem_start)
 
 	/* Move the FDT to the base of free memory */
 	fdt_size = fdt_totalsize(fdt);
+	/*
+	 * Before we touch the memory @freemem, make sure it
+	 * is set to protected for Realms.
+	 */
+	arm_set_memory_protected((unsigned long)freemem, fdt_size);
 	ret = fdt_move(fdt, freemem, fdt_size);
 	assert(ret == 0);
 	ret = dt_init(freemem);
@@ -263,6 +269,7 @@ void setup(const void *fdt, phys_addr_t freemem_start)
 	assert(ret == 0 || ret == -FDT_ERR_NOTFOUND);
 	if (ret == 0) {
 		initrd = freemem;
+		arm_set_memory_protected((unsigned long)initrd, initrd_size);
 		memmove(initrd, tmp, initrd_size);
 		freemem += initrd_size;
 	}
