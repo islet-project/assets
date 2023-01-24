@@ -33,6 +33,7 @@ tests = $(TEST_DIR)/timer.flat
 tests += $(TEST_DIR)/micro-bench.flat
 tests += $(TEST_DIR)/cache.flat
 tests += $(TEST_DIR)/debug.flat
+tests += $(TEST_DIR)/realm-rsi.flat
 
 include $(SRCDIR)/$(TEST_DIR)/Makefile.common
 
