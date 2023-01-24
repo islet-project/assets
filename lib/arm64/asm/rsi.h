@@ -27,6 +27,13 @@ int rsi_invoke(unsigned int function_id, unsigned long arg0,
 	       struct smccc_result *result);
 
 int rsi_get_version(void);
+void rsi_attest_token_init(phys_addr_t addr, unsigned long *challenge,
+			   struct smccc_result *res);
+void rsi_attest_token_continue(phys_addr_t addr, struct smccc_result *res);
+void rsi_extend_measurement(unsigned int index, unsigned long size,
+			    unsigned long *measurement,
+			    struct smccc_result *res);
+void rsi_read_measurement(unsigned int index, struct smccc_result *res);
 
 static inline bool is_realm(void)
 {
