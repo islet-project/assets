@@ -22,6 +22,8 @@
 
 pgd_t *mmu_idmap;
 
+/* Used by Realms, depends on IPA size */
+unsigned long prot_ns_shared = 0;
 unsigned long phys_mask_shift = 48;
 
 /* CPU 0 starts with disabled MMU */
@@ -194,7 +196,8 @@ void __iomem *__ioremap(phys_addr_t phys_addr, size_t size)
 {
 	phys_addr_t paddr_aligned = phys_addr & PAGE_MASK;
 	phys_addr_t paddr_end = PAGE_ALIGN(phys_addr + size);
-	pgprot_t prot = __pgprot(PTE_UNCACHED | PTE_USER | PTE_UXN | PTE_PXN);
+	pgprot_t prot = __pgprot(PTE_UNCACHED | PTE_USER | PTE_UXN |
+				 PTE_PXN | PTE_NS_SHARED);
 	pgd_t *pgtable;
 
 	assert(sizeof(long) == 8 || !(phys_addr >> 32));
