@@ -44,6 +44,7 @@ tests += $(TEST_DIR)/realm-rsi.flat
 tests += $(TEST_DIR)/realm-attest.flat
 tests += $(TEST_DIR)/realm-fpu.flat
 tests += $(TEST_DIR)/realm-sea.flat
+tests += $(TEST_DIR)/realm-ns-memory.flat
 
 include $(SRCDIR)/$(TEST_DIR)/Makefile.common
 
