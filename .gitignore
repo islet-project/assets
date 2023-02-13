@@ -1,4 +1,3 @@
 *.log
 toolchains
-fastmodel
 prebuilt/qemu/qemu-system-aarch64
