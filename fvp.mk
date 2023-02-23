@@ -146,7 +146,7 @@ edk2-clean: edk2-clean-common
 ################################################################################
 LINUX_DEFCONFIG_COMMON_ARCH := arm64
 LINUX_DEFCONFIG_COMMON_FILES := \
-		$(LINUX_PATH)/arch/arm64/configs/defconfig \
+		$(LINUX_PATH)/arch/arm64/configs/host \
 		$(CURDIR)/kconfigs/fvp.conf
 
 .PHONY: linux-ftpm-module
