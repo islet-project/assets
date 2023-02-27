@@ -3,7 +3,7 @@
 ################################################################################
 SHELL				= /bin/bash
 ROOT				?= $(CURDIR)/..
-TOOLCHAIN_ROOT 			?= $(ROOT)/toolchains
+TOOLCHAIN_ROOT 			?= $(ROOT)/assets/toolchain
 UNAME_M				:= $(shell uname -m)
 
 # Download toolchain macro for saving some repetition
@@ -49,8 +49,8 @@ AARCH32_CROSS_COMPILE 		?= $(AARCH32_PATH)/bin/arm-linux-gnueabihf-
 AARCH32_GCC_VERSION 		?= gcc-arm-10.2-2020.11-x86_64-arm-none-linux-gnueabihf
 SRC_AARCH32_GCC 		?= https://developer.arm.com/-/media/Files/downloads/gnu-a/10.2-2020.11/binrel/$(AARCH32_GCC_VERSION).tar.xz
 
-AARCH64_PATH 			?= $(TOOLCHAIN_ROOT)/aarch64
-AARCH64_CROSS_COMPILE 		?= $(AARCH64_PATH)/bin/aarch64-linux-gnu-
+AARCH64_PATH 			?= $(TOOLCHAIN_ROOT)/aarch64-none-linux-gnu
+AARCH64_CROSS_COMPILE 		?= $(AARCH64_PATH)/bin/aarch64-none-linux-gnu-
 AARCH64_GCC_VERSION 		?= gcc-arm-10.2-2020.11-x86_64-aarch64-none-linux-gnu
 SRC_AARCH64_GCC 		?= https://developer.arm.com/-/media/Files/downloads/gnu-a/10.2-2020.11/binrel/$(AARCH64_GCC_VERSION).tar.xz
 
