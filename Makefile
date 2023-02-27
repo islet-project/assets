@@ -573,6 +573,7 @@ clean:
 	$(Q) rm -f tags
 	$(Q) rm -f TAGS
 	$(Q) rm -f KVMTOOLS-VERSION-FILE
+	$(Q) find ./ -name "*\.o\.d" -exec rm -f {} + # Build artifact closely related toolchain
 .PHONY: clean
 
 KVM_DEV	?= /dev/kvm
