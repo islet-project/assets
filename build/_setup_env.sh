@@ -64,7 +64,7 @@ set +a
 echo "= The final value for KERNEL_DIR: ${KERNEL_DIR}"
 
 export COMMON_OUT_DIR=$(readlink -m ${OUT_DIR:-${BASE_DIR}/out${OUT_DIR_SUFFIX}/${BRANCH}})
-export OUT_DIR=$(readlink -m ${COMMON_OUT_DIR}/${KERNEL_DIR})
+export OUT_DIR=$(readlink -m ${COMMON_OUT_DIR}/$(basename ${KERNEL_DIR}))
 export DIST_DIR=$(readlink -m ${DIST_DIR:-${COMMON_OUT_DIR}/dist})
 export UNSTRIPPED_DIR=${DIST_DIR}/unstripped
 export UNSTRIPPED_MODULES_ARCHIVE=unstripped_modules.tar.gz
