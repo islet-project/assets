@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Greg Kroah-Hartman <gregkh@google.com>
+Date: Tue, 16 Nov 2021 19:14:19 +0100
+Subject: Revert "scsi: ufs: core: Add a compile-time structure size check"
+
+This reverts commit 9a868c8ad3f467fe3487e3d96fc0e2f3c90f34f9.
+
+Currently breaks the build due to the modified Android UFS/Crypto
+code, so revert this until it is worked out...
+
+Cc: Eric Biggers <ebiggers@google.com>
+Cc: Bart Van Assche <bvanassche@google.com>
+Fixes: 9a868c8ad3f4 ("scsi: ufs: core: Add a compile-time structure size check")
+Signed-off-by: Greg Kroah-Hartman <gregkh@google.com>
+Change-Id: I8ad94a4c50d9d28fb21ce691dd6cb34090668b03
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/ufs/core/ufshcd.c | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -10027,11 +10027,6 @@ static int __init ufshcd_core_init(void)
+ {
+ 	int ret;
+ 
+-	/* Verify that there are no gaps in struct utp_transfer_cmd_desc. */
+-	static_assert(sizeof(struct utp_transfer_cmd_desc) ==
+-		      2 * ALIGNED_UPIU_SIZE +
+-			      SG_ALL * sizeof(struct ufshcd_sg_entry));
+-
+ 	ufs_debugfs_init();
+ 
+ 	ret = scsi_register_driver(&ufs_dev_wlun_template.gendrv);

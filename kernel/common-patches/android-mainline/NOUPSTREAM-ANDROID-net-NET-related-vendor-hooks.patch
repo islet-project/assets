@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bae Soukjin <soukjin.bae@samsung.com>
+Date: Wed, 19 Aug 2020 08:30:51 +0900
+Subject: NOUPSTREAM: ANDROID: net: NET related vendor hooks
+
+  android_vh_ptype_head:
+    To add a debugging chain to ptype list
+
+  android_vh_kfree_skb
+    To sniff the dropped packet at kernel network
+
+[CPNOTE: 04/08/21] Lee: Vendor hooks
+
+Bug: 163716381
+
+Signed-off-by: Bae Soukjin <soukjin.bae@samsung.com>
+Change-Id: Ide80bf0a129da31a1824d4a33026ac42be327361
+(cherry picked from commit d88b2969cfa78608ad4563e5f4fa84497cc0ffa6)
+(cherry picked from commit a8021ba684c584b8a4361d1680f6e466748ab012)
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ include/trace/hooks/net.h | 22 ++++++++++++++++++++++
+ net/core/dev.c            |  7 +++++++
+ 2 files changed, 29 insertions(+)
+ create mode 100644 include/trace/hooks/net.h
+
+diff --git a/include/trace/hooks/net.h b/include/trace/hooks/net.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/net.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM net
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_NET_VH_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_NET_VH_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++struct packet_type;
++struct list_head;
++DECLARE_HOOK(android_vh_ptype_head,
++	TP_PROTO(const struct packet_type *pt, struct list_head *vendor_pt),
++	TP_ARGS(pt, vendor_pt));
++
++/* macro versions of hooks are no longer required */
++
++#endif /* _TRACE_HOOK_NET_VH_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/net/core/dev.c b/net/core/dev.c
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -150,6 +150,7 @@
+ #include <linux/pm_runtime.h>
+ #include <linux/prandom.h>
+ #include <linux/once_lite.h>
++#include <trace/hooks/net.h>
+ 
+ #include "dev.h"
+ #include "net-sysfs.h"
+@@ -535,6 +536,12 @@ static inline void netdev_set_addr_lockdep_class(struct net_device *dev)
+ 
+ static inline struct list_head *ptype_head(const struct packet_type *pt)
+ {
++	struct list_head vendor_pt = { .next  = NULL, };
++
++	trace_android_vh_ptype_head(pt, &vendor_pt);
++	if (vendor_pt.next)
++		return vendor_pt.next;
++
+ 	if (pt->type == htons(ETH_P_ALL))
+ 		return pt->dev ? &pt->dev->ptype_all : &ptype_all;
+ 	else

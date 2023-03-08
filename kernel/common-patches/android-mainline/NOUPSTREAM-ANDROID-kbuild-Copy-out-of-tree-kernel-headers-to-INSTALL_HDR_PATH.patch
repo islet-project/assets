@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tai Kuo <taikuo@google.com>
+Date: Thu, 4 Mar 2021 21:37:48 +0800
+Subject: NOUPSTREAM: ANDROID: kbuild: Copy out-of-tree kernel headers to
+ INSTALL_HDR_PATH
+
+The external modules "headers_install" target does not copy the
+out-of-tree kernel headers from external modules obj folders to
+INSTALL_HDR_PATH.
+Add $(hdr-prefix) as the rsync command source folder prefix to copy
+out-of-tree kernel headers.
+
+[CPNOTE: 21/07/21] Lee: Androidness
+
+Bug: 173331163
+Signed-off-by: Tai Kuo <taikuo@google.com>
+Change-Id: Ie54c64d026acda65894e048a785c0b66cc9a7ddf
+Signed-off-by: Matthias Maennich <maennich@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -1213,7 +1213,7 @@ quiet_cmd_headers_install = INSTALL $(INSTALL_HDR_PATH)/include
+       cmd_headers_install = \
+ 	mkdir -p $(INSTALL_HDR_PATH); \
+ 	rsync -mrl --include='*/' --include='*\.h' --exclude='*' \
+-	usr/include $(INSTALL_HDR_PATH)
++	$(hdr-prefix)usr/include $(INSTALL_HDR_PATH);
+ 
+ PHONY += headers_install
+ headers_install: headers

@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kuan-Ying Lee <Kuan-Ying.Lee@mediatek.com>
+Date: Fri, 18 Jun 2021 13:28:11 +0800
+Subject: ANDROID: syscall_check: add vendor hook for open syscall
+
+Through this vendor hook, we can get the timing to check
+current running task for the validation of its credential
+and open operation.
+
+Bug: 191291287
+
+Signed-off-by: Kuan-Ying Lee <Kuan-Ying.Lee@mediatek.com>
+Change-Id: Ia644ceb02dbc230ee1d25cad3630c2c3f908e41a
+(cherry picked from commit a7a3b31d5860bead8eec9e72a333351b8c2ac1ca)
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/vendor_hooks.c      | 1 +
+ fs/open.c                           | 2 ++
+ include/trace/hooks/syscall_check.h | 4 ++++
+ 3 files changed, 7 insertions(+)
+
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -95,4 +95,5 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_module_permit_before_init);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_module_permit_after_init);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_selinux_is_initialized);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_mmap_file);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_file_open);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_bpf_syscall);
+diff --git a/fs/open.c b/fs/open.c
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -35,6 +35,7 @@
+ #include <linux/mnt_idmapping.h>
+ 
+ #include "internal.h"
++#include <trace/hooks/syscall_check.h>
+ 
+ int do_truncate(struct user_namespace *mnt_userns, struct dentry *dentry,
+ 		loff_t length, unsigned int time_attrs, struct file *filp)
+@@ -865,6 +866,7 @@ static int do_dentry_open(struct file *f,
+ 		error = -ENODEV;
+ 		goto cleanup_all;
+ 	}
++	trace_android_vh_check_file_open(f);
+ 
+ 	error = security_file_open(f);
+ 	if (error)
+diff --git a/include/trace/hooks/syscall_check.h b/include/trace/hooks/syscall_check.h
+--- a/include/trace/hooks/syscall_check.h
++++ b/include/trace/hooks/syscall_check.h
+@@ -18,6 +18,10 @@ DECLARE_HOOK(android_vh_check_mmap_file,
+ 		unsigned long flag, unsigned long ret),
+ 	TP_ARGS(file, prot, flag, ret));
+ 
++DECLARE_HOOK(android_vh_check_file_open,
++	TP_PROTO(const struct file *file),
++	TP_ARGS(file));
++
+ DECLARE_HOOK(android_vh_check_bpf_syscall,
+ 	TP_PROTO(int cmd, const union bpf_attr *attr, unsigned int size),
+ 	TP_ARGS(cmd, attr, size));

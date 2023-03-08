@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright 2015 The Android Open Source Project
 #
@@ -69,7 +69,7 @@ class NeighbourTest(multinetwork_base.MultiNetworkBaseTest):
       for proto in ["ipv4", "ipv6"]:
           cls.SetSysctl(
               "/proc/sys/net/%s/neigh/%s/delay_first_probe_time" % (proto, iface),
-              cls.DELAY_TIME_MS / 1000)
+              cls.DELAY_TIME_MS // 1000)
           cls.SetSysctl(
               "/proc/sys/net/%s/neigh/%s/retrans_time_ms" % (proto, iface),
               cls.RETRANS_TIME_MS)
@@ -98,14 +98,6 @@ class NeighbourTest(multinetwork_base.MultiNetworkBaseTest):
 
     # MultinetworkBaseTest always uses NUD_PERMANENT for router ARP entries.
     # Temporarily change those entries to NUD_STALE so we can test them.
-    if net_test.LINUX_VERSION < (4, 9, 0):
-      # Cannot change state from NUD_PERMANENT to NUD_STALE directly,
-      # so delete it to make it NUD_FAILED then change it to NUD_STALE.
-      router = self._RouterAddress(self.netid, 4)
-      macaddr = self.RouterMacAddress(self.netid)
-      self.iproute.DelNeighbour(4, router, macaddr, self.ifindex)
-      self.ExpectNeighbourNotification(router, NUD_FAILED)
-      self.assertNeighbourState(NUD_FAILED, router)
     self.ChangeRouterNudState(4, NUD_STALE)
 
   def SetUnicastSolicit(self, proto, iface, value):
@@ -167,8 +159,8 @@ class NeighbourTest(multinetwork_base.MultiNetworkBaseTest):
         dst = addr
       else:
         solicited = inet_pton(AF_INET6, addr)
-        last3bytes = tuple([ord(b) for b in solicited[-3:]])
-        dst = "ff02::1:ff%02x:%02x%02x" % last3bytes
+        last3bytes = tuple([net_test.ByteToHex(b) for b in solicited[-3:]])
+        dst = "ff02::1:ff%s:%s%s" % last3bytes
         src = self.MyAddress(6, self.netid)
       expected = (
           scapy.IPv6(src=src, dst=dst) /
@@ -267,11 +259,7 @@ class NeighbourTest(multinetwork_base.MultiNetworkBaseTest):
     # Respond to the NS and verify we're in REACHABLE again.
     self.ReceiveUnicastAdvertisement(router6, self.RouterMacAddress(self.netid))
     self.assertNeighbourState(NUD_REACHABLE, router6)
-    if net_test.LINUX_VERSION >= (3, 13, 0):
-      # commit 53385d2 (v3.13) "neigh: Netlink notification for administrative
-      # NUD state change" produces notifications for NUD_REACHABLE, but these
-      # are not generated on earlier kernels.
-      self.ExpectNeighbourNotification(router6, NUD_REACHABLE)
+    self.ExpectNeighbourNotification(router6, NUD_REACHABLE)
 
     # Wait until the reachable time has passed, and verify we're in STALE.
     self.SleepMs(self.MAX_REACHABLE_TIME_MS * 1.2)

@@ -1,0 +1,213 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wooyeon Kim <wooy88.kim@samsung.com>
+Date: Thu, 9 Jul 2020 14:43:13 +0900
+Subject: NOUPSTREAM: ANDROID: arm64: ARM64 related vendor hooks
+
+ - To use fpsimd in kernel task, vendor_hook call is needed to
+   save/restore fpsimd at scheduling time.
+ - ANDROID_VENDOR_DATA added to thread_struct.
+ - Vendor_hooks is called when thread is switching for save/restore
+   fpsimd states.
+  (trace_android_vh_is_fpsimd_save(prev, next))
+
+[CPNOTE: 27/05/21] Lee: Vendor related code - maintain forever
+
+Squash:
+
+  NOUPSTREAM: ANDROID: mpam: add vendor hook to record MPAM
+  NOUPSTREAM: ANDROID: vendor_hooks: Add new android vendor hooks for ipi stop
+  NOUPSTREAM: ANDROID: iommu: Add vendor hook for setting up DMA ops for IOMMU clients
+
+Bug: 149632552
+Bug: 165333282
+Bug: 165956922
+Bug: 179291683
+Bug: 195574584
+Signed-off-by: Wooyeon Kim <wooy88.kim@samsung.com>
+Change-Id: I853e1b6a9a51e24f770423bbc39fdd84265d78fc
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ arch/arm64/kernel/process.c    |  7 +++++++
+ arch/arm64/kernel/smp.c        |  3 +++
+ arch/arm64/mm/dma-mapping.c    |  5 ++++-
+ drivers/android/vendor_hooks.c |  8 +++++++-
+ include/trace/hooks/debug.h    | 21 +++++++++++++++++++++
+ include/trace/hooks/iommu.h    | 28 ++++++++++++++++++++++++++++
+ include/trace/hooks/mpam.h     | 21 +++++++++++++++++++++
+ 7 files changed, 91 insertions(+), 2 deletions(-)
+ create mode 100644 include/trace/hooks/debug.h
+ create mode 100644 include/trace/hooks/iommu.h
+ create mode 100644 include/trace/hooks/mpam.h
+
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -41,6 +41,7 @@
+ #include <linux/thread_info.h>
+ #include <linux/prctl.h>
+ #include <linux/stacktrace.h>
++#include <trace/hooks/mpam.h>
+ 
+ #include <asm/alternative.h>
+ #include <asm/compat.h>
+@@ -533,6 +534,12 @@ struct task_struct *__switch_to(struct task_struct *prev,
+ 	erratum_1418040_thread_switch(next);
+ 	ptrauth_thread_switch_user(next);
+ 
++	/*
++	 *  vendor hook is needed before the dsb(),
++	 *  because MPAM is related to cache maintenance.
++	 */
++	trace_android_vh_mpam_set(prev, next);
++
+ 	/*
+ 	 * Complete any pending TLB or cache maintenance on this CPU in case
+ 	 * the thread migrates to a different CPU.
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -53,6 +53,8 @@
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/ipi.h>
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/debug.h>
+ 
+ DEFINE_PER_CPU_READ_MOSTLY(int, cpu_number);
+ EXPORT_PER_CPU_SYMBOL(cpu_number);
+@@ -877,6 +879,7 @@ static void do_handle_IPI(int ipinr)
+ 		break;
+ 
+ 	case IPI_CPU_STOP:
++		trace_android_vh_ipi_stop(get_irq_regs());
+ 		local_cpu_stop();
+ 		break;
+ 
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -9,6 +9,7 @@
+ #include <linux/dma-map-ops.h>
+ #include <linux/iommu.h>
+ #include <xen/xen.h>
++#include <trace/hooks/iommu.h>
+ 
+ #include <asm/cacheflush.h>
+ #include <asm/xen/xen-ops.h>
+@@ -73,8 +74,10 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
+ 		   ARCH_DMA_MINALIGN, cls);
+ 
+ 	dev->dma_coherent = coherent;
+-	if (iommu)
++	if (iommu) {
+ 		iommu_setup_dma_ops(dev, dma_base, dma_base + size - 1);
++		trace_android_vh_iommu_setup_dma_ops(dev, dma_base, dma_base + size - 1);
++	}
+ 
+ 	xen_setup_dma_ops(dev);
+ }
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -8,9 +8,15 @@
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/hooks/vendor_hooks.h>
++#include <linux/tracepoint.h>
++#include <trace/hooks/mpam.h>
++#include <trace/hooks/debug.h>
++#include <trace/hooks/iommu.h>
+ 
+ /*
+  * Export tracepoints that act as a bare tracehook (ie: have no trace event
+  * associated with them) to allow external modules to probe them.
+  */
+-
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mpam_set);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ipi_stop);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_iommu_setup_dma_ops);
+diff --git a/include/trace/hooks/debug.h b/include/trace/hooks/debug.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/debug.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM debug
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_DEBUG_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_DEBUG_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++struct pt_regs;
++
++DECLARE_HOOK(android_vh_ipi_stop,
++	TP_PROTO(struct pt_regs *regs),
++	TP_ARGS(regs))
++
++#endif /* _TRACE_HOOK_DEBUG_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/iommu.h b/include/trace/hooks/iommu.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/iommu.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM iommu
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_IOMMU_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_IOMMU_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++#if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_ANDROID_VENDOR_HOOKS)
++
++DECLARE_HOOK(android_vh_iommu_setup_dma_ops,
++	TP_PROTO(struct device *dev, u64 dma_base, u64 dma_limit),
++	TP_ARGS(dev, dma_base, dma_limit));
++
++#else
++
++#define trace_android_vh_iommu_setup_dma_ops(dev, dma_base, dma_limit)
++
++#endif
++
++#endif /* _TRACE_HOOK_IOMMU_H */
++
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/mpam.h b/include/trace/hooks/mpam.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/mpam.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM mpam
++#undef TRACE_INCLUDE_PATH
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_MPAM_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_MPAM_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++struct task_struct;
++DECLARE_HOOK(android_vh_mpam_set,
++	TP_PROTO(struct task_struct *prev, struct task_struct *next),
++	TP_ARGS(prev, next));
++
++#endif /* _TRACE_HOOK_MPAM_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>

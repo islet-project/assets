@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Marco Elver <elver@google.com>
+Date: Tue, 7 Sep 2021 23:12:08 +0200
+Subject: Revert: "kbuild: Only default to -Werror if COMPILE_TEST"
+
+Change-Id: I36357133a96e2bd2ce051016f9470305b5168d31
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ init/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -155,7 +155,7 @@ config COMPILE_TEST
+ 
+ config WERROR
+ 	bool "Compile the kernel with warnings as errors"
+-	default COMPILE_TEST
++	default y
+ 	help
+ 	  A kernel build should not cause any compiler warnings, and this
+ 	  enables the '-Werror' (for C) and '-Dwarnings' (for Rust) flags

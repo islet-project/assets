@@ -1,0 +1,89 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Guangming Cao <Guangming.Cao@mediatek.com>
+Date: Tue, 18 May 2021 15:31:28 +0800
+Subject: ANDROID: iommu: Add vendor hook for iova allocation and free tracking
+
+Add vendor hook for iommu_dma_alloc_iova and iommu_dma_free_iova
+to allow vendor enhancement.
+
+Bug: 187861158
+
+Change-Id: I2ebe8b24318bd5292edc66a94d7109332d478212
+Signed-off-by: Guangming Cao <Guangming.Cao@mediatek.com>
+(cherry picked from commit 15acc8fac61185e8d511dfd485f392e4ad783cf8)
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/vendor_hooks.c |  2 ++
+ drivers/iommu/dma-iommu.c      |  5 +++++
+ include/trace/hooks/iommu.h    | 12 +++++++-----
+ 3 files changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -68,6 +68,8 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_tm_command);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_check_int_errors);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cgroup_attach);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_iommu_setup_dma_ops);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_iommu_iovad_alloc_iova);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_iommu_iovad_free_iova);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ptype_head);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_allow_domain_state);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cpuidle_psci_enter);
+diff --git a/drivers/iommu/dma-iommu.c b/drivers/iommu/dma-iommu.c
+--- a/drivers/iommu/dma-iommu.c
++++ b/drivers/iommu/dma-iommu.c
+@@ -28,6 +28,7 @@
+ #include <linux/spinlock.h>
+ #include <linux/swiotlb.h>
+ #include <linux/vmalloc.h>
++#include <trace/hooks/iommu.h>
+ 
+ #include "dma-iommu.h"
+ 
+@@ -651,6 +652,8 @@ static dma_addr_t iommu_dma_alloc_iova(struct iommu_domain *domain,
+ 		iova = alloc_iova_fast(iovad, iova_len, dma_limit >> shift,
+ 				       true);
+ 
++	trace_android_vh_iommu_iovad_alloc_iova(dev, iovad, (dma_addr_t)iova << shift, size);
++
+ 	return (dma_addr_t)iova << shift;
+ }
+ 
+@@ -669,6 +672,8 @@ static void iommu_dma_free_iova(struct iommu_dma_cookie *cookie,
+ 	else
+ 		free_iova_fast(iovad, iova_pfn(iovad, iova),
+ 				size >> iova_shift(iovad));
++
++	trace_android_vh_iommu_iovad_free_iova(iovad, iova, size);
+ }
+ 
+ static void __iommu_dma_unmap(struct device *dev, dma_addr_t dma_addr,
+diff --git a/include/trace/hooks/iommu.h b/include/trace/hooks/iommu.h
+--- a/include/trace/hooks/iommu.h
++++ b/include/trace/hooks/iommu.h
+@@ -10,17 +10,19 @@
+ #include <linux/tracepoint.h>
+ #include <trace/hooks/vendor_hooks.h>
+ 
+-#if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_ANDROID_VENDOR_HOOKS)
+-
+ DECLARE_RESTRICTED_HOOK(android_rvh_iommu_setup_dma_ops,
+ 	TP_PROTO(struct device *dev, u64 dma_base, u64 dma_limit),
+ 	TP_ARGS(dev, dma_base, dma_limit), 1);
+ 
+-#else
++struct iova_domain;
+ 
+-#define trace_android_vh_iommu_setup_dma_ops(dev, dma_base, dma_limit)
++DECLARE_HOOK(android_vh_iommu_iovad_alloc_iova,
++	TP_PROTO(struct device *dev, struct iova_domain *iovad, dma_addr_t iova, size_t size),
++	TP_ARGS(dev, iovad, iova, size));
+ 
+-#endif
++DECLARE_HOOK(android_vh_iommu_iovad_free_iova,
++	TP_PROTO(struct iova_domain *iovad, dma_addr_t iova, size_t size),
++	TP_ARGS(iovad, iova, size));
+ 
+ #endif /* _TRACE_HOOK_IOMMU_H */
+ 

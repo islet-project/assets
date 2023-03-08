@@ -1,0 +1,261 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matthias Maennich <maennich@google.com>
+Date: Tue, 23 Feb 2021 12:49:45 +0000
+Subject: NOUPSTREAM: ANDROID: OWNERS
+
+In order to provide better reviewer suggestions and to introduce fine
+grained additional approval permissions, sprinkle some OWNERS files over
+the tree.
+
+This essentially grants additional OWNERS permissions in
+  - net/
+  - arch/arm*/net
+  - arch/x86/net
+  - drivers/net
+  - fs/crypto
+  - fs/f2fs
+  - fs/verity
+
+All other permissions are already covered by ref/meta/config:OWNERS.
+
+[CPNOTE: 21/07/21] Lee: Androidness
+
+Signed-off-by: Matthias Maennich <maennich@google.com>
+Change-Id: I02a6563e4dd63842af37c50f7180bf38e9b9b4be
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ Documentation/ABI/testing/OWNERS              |  1 +
+ Documentation/filesystems/OWNERS              |  1 +
+ OWNERS                                        | 13 +++++++++++
+ OWNERS_DrNo                                   | 23 +++++++++++++++++++
+ arch/arm/OWNERS                               |  1 +
+ arch/arm64/OWNERS                             |  4 ++++
+ arch/x86/OWNERS                               |  3 +++
+ block/OWNERS                                  |  2 ++
+ crypto/OWNERS                                 |  1 +
+ drivers/OWNERS                                |  6 +++++
+ fs/OWNERS                                     |  1 +
+ fs/f2fs/OWNERS                                |  1 +
+ fs/fuse/OWNERS                                |  1 +
+ fs/incfs/OWNERS                               |  2 ++
+ include/OWNERS                                |  1 +
+ include/linux/OWNERS                          |  4 ++++
+ include/trace/events/OWNERS                   |  1 +
+ include/uapi/linux/OWNERS                     |  3 +++
+ kernel/sched/OWNERS                           |  4 ++++
+ mm/OWNERS                                     |  3 +++
+ net/OWNERS                                    |  2 ++
+ .../selftests/filesystems/incfs/OWNERS        |  1 +
+ 22 files changed, 79 insertions(+)
+ create mode 100644 Documentation/ABI/testing/OWNERS
+ create mode 100644 Documentation/filesystems/OWNERS
+ create mode 100644 OWNERS
+ create mode 100644 OWNERS_DrNo
+ create mode 100644 arch/arm/OWNERS
+ create mode 100644 arch/arm64/OWNERS
+ create mode 100644 arch/x86/OWNERS
+ create mode 100644 block/OWNERS
+ create mode 100644 crypto/OWNERS
+ create mode 100644 drivers/OWNERS
+ create mode 100644 fs/OWNERS
+ create mode 100644 fs/f2fs/OWNERS
+ create mode 100644 fs/fuse/OWNERS
+ create mode 100644 fs/incfs/OWNERS
+ create mode 100644 include/OWNERS
+ create mode 100644 include/linux/OWNERS
+ create mode 100644 include/trace/events/OWNERS
+ create mode 100644 include/uapi/linux/OWNERS
+ create mode 100644 kernel/sched/OWNERS
+ create mode 100644 mm/OWNERS
+ create mode 100644 net/OWNERS
+ create mode 100644 tools/testing/selftests/filesystems/incfs/OWNERS
+
+diff --git a/Documentation/ABI/testing/OWNERS b/Documentation/ABI/testing/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/Documentation/ABI/testing/OWNERS
+@@ -0,0 +1 @@
++per-file sysfs-fs-f2fs=file:/fs/f2fs/OWNERS
+diff --git a/Documentation/filesystems/OWNERS b/Documentation/filesystems/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/Documentation/filesystems/OWNERS
+@@ -0,0 +1 @@
++per-file f2fs**=file:/fs/f2fs/OWNERS
+diff --git a/OWNERS b/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/OWNERS
+@@ -0,0 +1,13 @@
++# The full list of approvers is defined in
++# https://android.googlesource.com/kernel/common/+/refs/meta/config/OWNERS
++
++# The following OWNERS are defined at the top level to improve the OWNERS
++# suggestions through any user interface. Consider those people the ones that
++# can help with finding the best person to review.
++adelva@google.com
++gregkh@google.com
++maennich@google.com
++saravanak@google.com
++smuckle@google.com
++surenb@google.com
++tkjos@google.com
+diff --git a/OWNERS_DrNo b/OWNERS_DrNo
+new file mode 100644
+--- /dev/null
++++ b/OWNERS_DrNo
+@@ -0,0 +1,23 @@
++# Authoritative list of Dr. No reviewers to approve changes on GKI release
++# branches, such as android12-5.10.
++#
++# This file has no effect in this branch, but is referred to from release
++# branches. So, please do not move or rename.
++#
++# See the GKI release documentation (go/gki-dr-no) for further details.
++
++# Main reviewers
++adelva@google.com
++maennich@google.com
++saravanak@google.com
++vmartensson@google.com
++tkjos@google.com
++willdeacon@google.com
++
++# GKI Release Team
++howardsoc@google.com #{LAST_RESORT_SUGGESTION}
++szuweilin@google.com #{LAST_RESORT_SUGGESTION}
++
++# Backup
++sspatil@google.com #{LAST_RESORT_SUGGESTION}
++malchev@google.com #{LAST_RESORT_SUGGESTION}
+diff --git a/arch/arm/OWNERS b/arch/arm/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/arch/arm/OWNERS
+@@ -0,0 +1 @@
++include ../arm64/OWNERS
+diff --git a/arch/arm64/OWNERS b/arch/arm64/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/arch/arm64/OWNERS
+@@ -0,0 +1,4 @@
++per-file crypto/**=file:/crypto/OWNERS
++per-file {include,kernel,kvm,lib}/**=mzyngier@google.com,willdeacon@google.com
++per-file mm/**=file:/mm/OWNERS
++per-file net/**=file:/net/OWNERS
+diff --git a/arch/x86/OWNERS b/arch/x86/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/arch/x86/OWNERS
+@@ -0,0 +1,3 @@
++per-file crypto/**=file:/crypto/OWNERS
++per-file mm/**=file:/mm/OWNERS
++per-file net/**=file:/net/OWNERS
+diff --git a/block/OWNERS b/block/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/block/OWNERS
+@@ -0,0 +1,2 @@
++bvanassche@google.com
++jaegeuk@google.com
+diff --git a/crypto/OWNERS b/crypto/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/crypto/OWNERS
+@@ -0,0 +1 @@
++ardb@google.com
+diff --git a/drivers/OWNERS b/drivers/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/drivers/OWNERS
+@@ -0,0 +1,6 @@
++per-file base/**=gregkh@google.com,saravanak@google.com
++per-file block/**=akailash@google.com
++per-file md/**=akailash@google.com,paullawrence@google.com
++per-file net/**=file:/net/OWNERS
++per-file scsi/**=bvanassche@google.com,jaegeuk@google.com
++per-file {tty,usb}/**=gregkh@google.com
+diff --git a/fs/OWNERS b/fs/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/fs/OWNERS
+@@ -0,0 +1 @@
++per-file {crypto,verity}/**=ebiggers@google.com
+diff --git a/fs/f2fs/OWNERS b/fs/f2fs/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/fs/f2fs/OWNERS
+@@ -0,0 +1 @@
++jaegeuk@google.com
+diff --git a/fs/fuse/OWNERS b/fs/fuse/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/fs/fuse/OWNERS
+@@ -0,0 +1 @@
++balsini@google.com
+diff --git a/fs/incfs/OWNERS b/fs/incfs/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/fs/incfs/OWNERS
+@@ -0,0 +1,2 @@
++akailash@google.com
++paullawrence@google.com
+diff --git a/include/OWNERS b/include/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/include/OWNERS
+@@ -0,0 +1 @@
++per-file net/**=file:/net/OWNERS
+diff --git a/include/linux/OWNERS b/include/linux/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/include/linux/OWNERS
+@@ -0,0 +1,4 @@
++per-file bio.h=file:/block/OWNERS
++per-file blk*.h=file:/block/OWNERS
++per-file f2fs**=file:/fs/f2fs/OWNERS
++per-file net**=file:/net/OWNERS
+diff --git a/include/trace/events/OWNERS b/include/trace/events/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/include/trace/events/OWNERS
+@@ -0,0 +1 @@
++per-file f2fs**=file:/fs/f2fs/OWNERS
+diff --git a/include/uapi/linux/OWNERS b/include/uapi/linux/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/include/uapi/linux/OWNERS
+@@ -0,0 +1,3 @@
++per-file f2fs**=file:/fs/f2fs/OWNERS
++per-file fuse**=file:/fs/fuse/OWNERS
++per-file net**=file:/net/OWNERS
+diff --git a/kernel/sched/OWNERS b/kernel/sched/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/kernel/sched/OWNERS
+@@ -0,0 +1,4 @@
++connoro@google.com
++elavila@google.com
++qperret@google.com
++tkjos@google.com
+diff --git a/mm/OWNERS b/mm/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/mm/OWNERS
+@@ -0,0 +1,3 @@
++kaleshsingh@google.com
++surenb@google.com
++minchan@google.com
+diff --git a/net/OWNERS b/net/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/net/OWNERS
+@@ -0,0 +1,2 @@
++lorenzo@google.com
++maze@google.com
+diff --git a/tools/testing/selftests/filesystems/incfs/OWNERS b/tools/testing/selftests/filesystems/incfs/OWNERS
+new file mode 100644
+--- /dev/null
++++ b/tools/testing/selftests/filesystems/incfs/OWNERS
+@@ -0,0 +1 @@
++file:/fs/incfs/OWNERS

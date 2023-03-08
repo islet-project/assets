@@ -1,10 +1,22 @@
+CONFIG_HIGHMEM=y
 CONFIG_KERNEL_MODE_NEON=y
 CONFIG_NEON=y
 CONFIG_RUNTIME_TESTING_MENU=y
 CONFIG_SMP=y
 CONFIG_TASKSTATS=y
+CONFIG_UNWINDER_FRAME_POINTER=y
 CONFIG_VFP=y
 CONFIG_VFPv3=y
+# CONFIG_WERROR is not set
+
+# MTE and SW_TAGS aren't available on ARMv7-A, so this is generic KASAN
+# which just wastes memory and can't provide KFENCE anyway
+# CONFIG_KASAN is not set
+
 # b/154934534
-# CONFIG_TEST_STACKINIT is not set
 # CONFIG_BPF_JIT_ALWAYS_ON is not set
+# CONFIG_TEST_STACKINIT is not set
+
+# b/271887158
+# CONFIG_MACH_SUN8I is not set
+# CONFIG_MACH_SUN9I is not set

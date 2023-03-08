@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Steve Muckle <smuckle@google.com>
+Date: Tue, 7 Sep 2021 20:53:43 +0000
+Subject: NOUPSTREAM: ANDROID: TEST_MAPPING for net/ and include/net
+
+Run CtsNetTestCases in presubmit for changes in net/ and
+include/net/.
+
+[CPNOTE: 08/09/21] Lee: Android build infrastructure config files
+
+Bug: 186664401
+Change-Id: I3cf942bd0418ad55a6559d6933927b0da86da595
+Signed-off-by: Steve Muckle <smuckle@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ include/net/TEST_MAPPING | 12 ++++++++++++
+ net/TEST_MAPPING         | 12 ++++++++++++
+ 2 files changed, 24 insertions(+)
+ create mode 100644 include/net/TEST_MAPPING
+ create mode 100644 net/TEST_MAPPING
+
+diff --git a/include/net/TEST_MAPPING b/include/net/TEST_MAPPING
+new file mode 100644
+--- /dev/null
++++ b/include/net/TEST_MAPPING
+@@ -0,0 +1,12 @@
++{
++  "presubmit": [
++    {
++      "name": "CtsNetTestCases",
++      "options": [
++        {
++          "exclude-annotation": "com.android.testutils.SkipPresubmit"
++        }
++      ]
++    }
++  ]
++}
+diff --git a/net/TEST_MAPPING b/net/TEST_MAPPING
+new file mode 100644
+--- /dev/null
++++ b/net/TEST_MAPPING
+@@ -0,0 +1,12 @@
++{
++  "presubmit": [
++    {
++      "name": "CtsNetTestCases",
++      "options": [
++        {
++          "exclude-annotation": "com.android.testutils.SkipPresubmit"
++        }
++      ]
++    }
++  ]
++}

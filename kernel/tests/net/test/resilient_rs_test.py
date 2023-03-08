@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright 2017 The Android Open Source Project
 #
@@ -77,12 +77,15 @@ class ResilientRouterSolicitationTest(multinetwork_base.MultiNetworkBaseTest):
 
   @classmethod
   def isIPv6RouterSolicitation(cls, packet):
+    def ToByte(c):
+      return c if isinstance(c, int) else ord(c)
+
     return ((len(packet) >= 14 + 40 + 1) and
             # Use net_test.ETH_P_IPV6 here
-            (ord(packet[12]) == 0x86) and
-            (ord(packet[13]) == 0xdd) and
-            (ord(packet[14]) >> 4 == 6) and
-            (ord(packet[14 + 40]) == cls.ROUTER_SOLICIT))
+            (ToByte(packet[12]) == 0x86) and
+            (ToByte(packet[13]) == 0xdd) and
+            (ToByte(packet[14]) >> 4 == 6) and
+            (ToByte(packet[14 + 40]) == cls.ROUTER_SOLICIT))
 
   def makeTunInterface(self, netid):
     defaultDisableIPv6Path = self._PROC_NET_TUNABLE % ("default", "disable_ipv6")
@@ -97,14 +100,14 @@ class ResilientRouterSolicitationTest(multinetwork_base.MultiNetworkBaseTest):
 
   def testRouterSolicitationBackoff(self):
     # Test error tolerance
-    EPSILON = 0.1
+    EPSILON = 0.15
     # Minimum RFC3315 S14 backoff
     MIN_EXP = 1.9 - EPSILON
     # Maximum RFC3315 S14 backoff
     MAX_EXP = 2.1 + EPSILON
     SOLICITATION_INTERVAL = 1
-    # Linear backoff for 4 samples yields 3.6 < T < 4.4
-    # Exponential backoff for 4 samples yields 4.83 < T < 9.65
+    # Linear backoff for 4 samples yields 3.5 < T < 4.5
+    # Exponential backoff for 4 samples yields 4.36 < T < 10.39
     REQUIRED_SAMPLES = 4
     # Give up after 10 seconds. Tuned for REQUIRED_SAMPLES = 4
     SAMPLE_INTERVAL = 10

@@ -21,7 +21,7 @@
 [ -n "$_SETUP_ENV_SH_INCLUDED" ] && return || export _SETUP_ENV_SH_INCLUDED=1
 
 # TODO: Use a $(gettop) style method.
-export ROOT_DIR=$(readlink -f $PWD)
+export BASE_DIR=$(readlink -f $PWD)
 
 export BUILD_CONFIG=${BUILD_CONFIG:-build.config}
 
@@ -44,18 +44,21 @@ if [ -z "${KERNEL_DIR}" ]; then
     # for the case that KERNEL_DIR is specified in the BUILD_CONFIG file,
     # or via the config files sourced, the value of KERNEL_DIR
     # set here would be overwritten, and the specified value would be used.
-    build_config_path=$(readlink -f ${ROOT_DIR}/${BUILD_CONFIG})
+    build_config_path=$(readlink -f ${BASE_DIR}/${BUILD_CONFIG})
     real_root_dir=${build_config_path%%${BUILD_CONFIG}}
     build_config_dir=$(dirname ${build_config_path})
-    build_config_dir=${build_config_dir##${ROOT_DIR}/}
+    build_config_dir=${build_config_dir##${BASE_DIR}/}
     build_config_dir=${build_config_dir##${real_root_dir}}
     KERNEL_DIR="${build_config_dir}"
+    echo "ROOT_DIR: ${ROOT_DIR}"
+    echo "BASE_DIR: ${BASE_DIR}"
+    echo "= Set default KERNEL_DIR: ${KERNEL_DIR}"
 fi
 
 set -a
-. ${ROOT_DIR}/${BUILD_CONFIG}
+. ${BASE_DIR}/${BUILD_CONFIG}
 for fragment in ${BUILD_CONFIG_FRAGMENTS}; do
-  . ${ROOT_DIR}/${fragment}
+  . ${BASE_DIR}/${fragment}
 done
 set +a
 
@@ -70,8 +73,8 @@ if [[ -n "${FAST_BUILD}" ]]; then
   : ${SKIP_CP_KERNEL_HDR:="1"}
 fi
 
-export COMMON_OUT_DIR=$(readlink -m ${OUT_DIR:-${ROOT_DIR}/out${OUT_DIR_SUFFIX}/${BRANCH}})
-export OUT_DIR=$(readlink -m ${COMMON_OUT_DIR}/${KERNEL_DIR})
+export COMMON_OUT_DIR=$(readlink -m ${OUT_DIR:-${BASE_DIR}/out${OUT_DIR_SUFFIX}/${BRANCH}})
+export OUT_DIR=$(readlink -m ${COMMON_OUT_DIR})
 export DIST_DIR=$(readlink -m ${DIST_DIR:-${COMMON_OUT_DIR}/dist})
 export UNSTRIPPED_DIR=${DIST_DIR}/unstripped
 export UNSTRIPPED_MODULES_ARCHIVE=unstripped_modules.tar.gz
@@ -80,12 +83,16 @@ export MODULES_ARCHIVE=modules.tar.gz
 export TZ=UTC
 export LC_ALL=C
 if [ -z "${SOURCE_DATE_EPOCH}" ]; then
-  export SOURCE_DATE_EPOCH=$(git -C ${ROOT_DIR}/${KERNEL_DIR} log -1 --pretty=%ct)
+  export SOURCE_DATE_EPOCH=$(git -C ${KERNEL_DIR} log -1 --pretty=%ct)
 fi
+
 export KBUILD_BUILD_TIMESTAMP="$(date -d @${SOURCE_DATE_EPOCH})"
 export KBUILD_BUILD_HOST=build-host
 export KBUILD_BUILD_USER=build-user
 export KBUILD_BUILD_VERSION=1
+
+# Download prebuilt clang tool
+${BASE_DIR}/build/prepare_clang.sh
 
 # List of prebuilt directories shell variables to incorporate into PATH
 prebuilts_paths=(
@@ -102,11 +109,11 @@ BUILDTOOLS_PREBUILT_BIN
 # Have host compiler use LLD and compiler-rt.
 LLD_COMPILER_RT="-fuse-ld=lld --rtlib=compiler-rt"
 if [[ -n "${NDK_TRIPLE}" ]]; then
-  NDK_DIR=${ROOT_DIR}/prebuilts/ndk-r23
+  NDK_DIR=${BASE_DIR}/prebuilts/ndk-r23
   if [[ ! -d "${NDK_DIR}" ]]; then
     # Kleaf/Bazel will checkout the ndk to a different directory than
     # build.sh.
-    NDK_DIR=${ROOT_DIR}/external/prebuilt_ndk
+    NDK_DIR=${BASE_DIR}/external/prebuilt_ndk
     if [[ ! -d "${NDK_DIR}" ]]; then
       echo "ERROR: NDK_TRIPLE set, but unable to find prebuilts/ndk." 1>&2
       echo "Did you forget to checkout prebuilts/ndk?" 1>&2
@@ -135,6 +142,8 @@ else
 fi
 export USERCFLAGS USERLDFLAGS
 
+unset LD_LIBRARY_PATH
+
 if [ "${HERMETIC_TOOLCHAIN:-0}" -eq 1 ]; then
   HOST_TOOLS=${OUT_DIR}/host_tools
   rm -rf ${HOST_TOOLS}
@@ -155,21 +164,22 @@ if [ "${HERMETIC_TOOLCHAIN:-0}" -eq 1 ]; then
 
   # use relative paths for file name references in the binaries
   # (e.g. debug info)
-  export KCPPFLAGS="-ffile-prefix-map=${ROOT_DIR}/${KERNEL_DIR}/= -ffile-prefix-map=${ROOT_DIR}/="
+  export KCPPFLAGS="-ffile-prefix-map=${BASE_DIR}/${KERNEL_DIR}/= -ffile-prefix-map=${BASE_DIR}/="
 
   # set the common sysroot
-  sysroot_flags+="--sysroot=${ROOT_DIR}/build/kernel/build-tools/sysroot "
+  sysroot_flags+="--sysroot=${BASE_DIR}/build/kernel/build-tools/sysroot "
 
   # add openssl (via boringssl) and other prebuilts into the lookup path
-  cflags+="-I${ROOT_DIR}/prebuilts/kernel-build-tools/linux-x86/include "
+  cflags+="-I${BASE_DIR}/prebuilts/kernel-build-tools/linux-x86/include "
 
   # add openssl and further prebuilt libraries into the lookup path
-  ldflags+="-Wl,-rpath,${ROOT_DIR}/prebuilts/kernel-build-tools/linux-x86/lib64 "
-  ldflags+="-L ${ROOT_DIR}/prebuilts/kernel-build-tools/linux-x86/lib64 "
+  ldflags+="-L ${BASE_DIR}/prebuilts/kernel-build-tools/linux-x86/lib64 "
   ldflags+=${LLD_COMPILER_RT}
+  export LD_LIBRARY_PATH="${BASE_DIR}/prebuilts/kernel-build-tools/linux-x86/lib64"
 
   export HOSTCFLAGS="$sysroot_flags $cflags"
   export HOSTLDFLAGS="$sysroot_flags $ldflags"
+
 fi
 
 for prebuilt_bin in "${prebuilts_paths[@]}"; do
@@ -177,13 +187,12 @@ for prebuilt_bin in "${prebuilts_paths[@]}"; do
     eval prebuilt_bin="${prebuilt_bin}"
     if [ -n "${prebuilt_bin}" ]; then
         # Mitigate dup paths
-        PATH=${PATH//"${ROOT_DIR}\/${prebuilt_bin}:"}
-        PATH=${ROOT_DIR}/${prebuilt_bin}:${PATH}
+        PATH=${PATH//"${BASE_DIR}\/${prebuilt_bin}:"}
+        PATH=${BASE_DIR}/${prebuilt_bin}:${PATH}
     fi
 done
 export PATH
 
-unset LD_LIBRARY_PATH
 unset PYTHONPATH
 unset PYTHONHOME
 unset PYTHONSTARTUP

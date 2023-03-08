@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Will McVicker <willmcvicker@google.com>
+Date: Wed, 10 Aug 2022 18:52:40 +0000
+Subject: ANDROID: GKI: export thermal_cdev_update
+
+This export was removed by the upstream commit 6390383b67fa
+("thermal/core: Remove unneeded EXPORT_SYMBOLS") since it's only used by
+the thermal frameworks. Pixel 6 is using this symbol for it's external
+thermal driver module and is needed for GKI testing.
+
+Bug: 242078480
+Signed-off-by: Will McVicker <willmcvicker@google.com>
+Change-Id: I5f704055f53816c1e3fdfd776c2d253dffbdab72
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/thermal/thermal_helpers.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/thermal/thermal_helpers.c b/drivers/thermal/thermal_helpers.c
+--- a/drivers/thermal/thermal_helpers.c
++++ b/drivers/thermal/thermal_helpers.c
+@@ -254,6 +254,7 @@ void thermal_cdev_update(struct thermal_cooling_device *cdev)
+ 	}
+ 	mutex_unlock(&cdev->lock);
+ }
++EXPORT_SYMBOL_GPL(thermal_cdev_update);
+ 
+ /**
+  * thermal_zone_get_slope - return the slope attribute of the thermal zone

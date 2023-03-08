@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Will McVicker <willmcvicker@google.com>
+Date: Tue, 7 Dec 2021 09:41:37 -0800
+Subject: ANDROID: kbuild: add support for compiling external device trees
+
+Similar to external modules, the device tree should also be allowed to
+be compiled using out-of-tree source. This would allow one to further
+separate the core kernel from the vendor-specific device trees. To do
+this, we just need to allow the user to set the "dtstree" and
+"DTC_INCLUDE" build properties in the build environment.
+
+To setup the external device tree, you can follow these steps:
+
+1) Move the device tree to your out-of-tree project.
+2) Move the dt-bindings to your out-of-tree project.
+3) Configure your build environment to set the following variables:
+
+  dtstree=/path/to/device/tree
+  DTC_INCLUDE=/path/to/device/tree/dtc/include-prefixes
+
+If you are using build.sh, then you can use DTS_EXT_DIR to define the
+dtstree.
+
+Bug: 210036798
+Signed-off-by: Will McVicker <willmcvicker@google.com>
+Change-Id: Ibf05544ee8250a68b882328817a267518ae478b5
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ Makefile             | 8 ++++++--
+ scripts/Makefile.lib | 4 +++-
+ 2 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -1478,7 +1478,9 @@ kselftest-merge:
+ # Devicetree files
+ 
+ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/boot/dts/),)
+-dtstree := arch/$(SRCARCH)/boot/dts
++# ANDROID: allow this to be overridden by the build environment. This allows
++# one to compile a device tree that is located out-of-tree.
++dtstree ?= arch/$(SRCARCH)/boot/dts
+ endif
+ 
+ ifneq ($(dtstree),)
+@@ -2035,7 +2037,9 @@ $(clean-dirs):
+ 
+ clean: $(clean-dirs)
+ 	$(call cmd,rmfiles)
+-	@find $(or $(KBUILD_EXTMOD), .) $(RCS_FIND_IGNORE) \
++	@find $(or $(KBUILD_EXTMOD), .) \
++		$(if $(filter-out arch/$(SRCARCH)/boot/dts, $(dtstree)), $(dtstree)) \
++		$(RCS_FIND_IGNORE) \
+ 		\( -name '*.[aios]' -o -name '*.rsi' -o -name '*.ko' -o -name '.*.cmd' \
+ 		-o -name '*.ko.*' \
+ 		-o -name '*.dtb' -o -name '*.dtbo' \
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -242,7 +242,9 @@ cpp_flags      = -Wp,-MMD,$(depfile) $(NOSTDINC_FLAGS) $(LINUXINCLUDE)     \
+ 
+ ld_flags       = $(KBUILD_LDFLAGS) $(ldflags-y) $(LDFLAGS_$(@F))
+ 
+-DTC_INCLUDE    := $(srctree)/scripts/dtc/include-prefixes
++# ANDROID: Allow DTC_INCLUDE to be set by the BUILD_CONFIG. This allows one to
++# compile an out-of-tree device tree.
++DTC_INCLUDE    += $(srctree)/scripts/dtc/include-prefixes
+ 
+ dtc_cpp_flags  = -Wp,-MMD,$(depfile).pre.tmp -nostdinc                    \
+ 		 $(addprefix -I,$(DTC_INCLUDE))                          \

@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gokul krishna Krishnakumar <quic_gokukris@quicinc.com>
+Date: Tue, 22 Jun 2021 15:11:24 -0700
+Subject: ANDROID: remoteproc: core: Export the rproc coredump APIs
+
+Marks the rproc_coredump() and rproc_coredump_cleanup()
+APIs as exported symbols.
+
+Signed-off-by: Siddharth Gupta <sidgup@codeaurora.org>
+
+Bug: 188764827
+Link: https://lore.kernel.org/lkml/1657016057-22806-2-git-send-email-quic_ylal@quicinc.com/
+Change-Id: I8333774acb748fae10e0fd5146b747c4cf2ea6c7
+Signed-off-by: Siddharth Gupta <quic_sidgup@quicinc.com>
+Signed-off-by: Gokul krishna Krishnakumar <quic_gokukris@quicinc.com>
+[quic_gurus: Changed EXPORT_SYMBOL -> EXPORT_SYMBOL_GPL]
+Signed-off-by: Guru Das Srinagesh <quic_gurus@quicinc.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/remoteproc/remoteproc_coredump.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/remoteproc/remoteproc_coredump.c b/drivers/remoteproc/remoteproc_coredump.c
+--- a/drivers/remoteproc/remoteproc_coredump.c
++++ b/drivers/remoteproc/remoteproc_coredump.c
+@@ -32,6 +32,7 @@ void rproc_coredump_cleanup(struct rproc *rproc)
+ 		kfree(entry);
+ 	}
+ }
++EXPORT_SYMBOL_GPL(rproc_coredump_cleanup);
+ 
+ /**
+  * rproc_coredump_add_segment() - add segment of device memory to coredump
+@@ -327,6 +328,7 @@ void rproc_coredump(struct rproc *rproc)
+ 	 */
+ 	wait_for_completion(&dump_state.dump_done);
+ }
++EXPORT_SYMBOL_GPL(rproc_coredump);
+ 
+ /**
+  * rproc_coredump_using_sections() - perform coredump using section headers

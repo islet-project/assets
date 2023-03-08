@@ -19,7 +19,7 @@ load("//build/kernel/kleaf:directory_with_structure.bzl", dws = "directory_with_
 load(
     ":common_providers.bzl",
     "KernelBuildInfo",
-    "KernelEnvInfo",
+    "KernelEnvAndOutputsInfo",
     "KernelModuleInfo",
 )
 load(":debug.bzl", "debug")
@@ -80,22 +80,27 @@ def _build_modules_image_impl_common(
     if restore_modules_install:
         inputs += dws.files(modules_install_staging_dws)
     inputs += ctx.files.deps
-    inputs += kernel_build[KernelEnvInfo].dependencies
+    transitive_inputs = [kernel_build[KernelEnvAndOutputsInfo].inputs]
+    tools = kernel_build[KernelEnvAndOutputsInfo].tools
 
     command_outputs = []
     command_outputs += outputs
     if implicit_outputs != None:
         command_outputs += implicit_outputs
 
-    command = ""
-    command += kernel_build[KernelEnvInfo].setup
+    command = kernel_build[KernelEnvAndOutputsInfo].get_setup_script(
+        data = kernel_build[KernelEnvAndOutputsInfo].data,
+        restore_out_dir_cmd = utils.get_check_sandbox_cmd(),
+    )
 
     for attr_name in (
         "modules_list",
         "modules_blocklist",
+        "vendor_dlkm_fs_type",
         "vendor_dlkm_modules_list",
         "vendor_dlkm_modules_blocklist",
         "vendor_dlkm_props",
+        "system_dlkm_fs_type",
         "system_dlkm_modules_list",
         "system_dlkm_modules_blocklist",
         "system_dlkm_props",
@@ -149,7 +154,8 @@ def _build_modules_image_impl_common(
     debug.print_scripts(ctx, command)
     ctx.actions.run_shell(
         mnemonic = mnemonic,
-        inputs = inputs,
+        inputs = depset(inputs, transitive = transitive_inputs),
+        tools = tools,
         outputs = command_outputs,
         progress_message = "Building {} {}".format(what, ctx.label),
         command = command,

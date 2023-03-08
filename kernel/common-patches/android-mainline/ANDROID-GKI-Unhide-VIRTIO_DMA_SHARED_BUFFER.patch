@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alistair Delva <adelva@google.com>
+Date: Wed, 16 Dec 2020 09:28:05 -0800
+Subject: ANDROID: GKI: Unhide VIRTIO_DMA_SHARED_BUFFER
+
+So downstream boards can select it. It is needed by some virtio drivers
+like virtio-gpu. We can't put this in init/Kconfig.gki because we don't
+want to enable VIRTIO options in GKI if they can be tristate.
+
+[CPNOTE: 21/07/21] Lee: Asked the author for status
+
+Bug: 175707513
+Change-Id: Ic8f7b0aa0ed6e9c74cda08d96eb30507d6886275
+Signed-off-by: Alistair Delva <adelva@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/virtio/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/virtio/Kconfig b/drivers/virtio/Kconfig
+--- a/drivers/virtio/Kconfig
++++ b/drivers/virtio/Kconfig
+@@ -167,7 +167,7 @@ config VIRTIO_MMIO_CMDLINE_DEVICES
+ 	 If unsure, say 'N'.
+ 
+ config VIRTIO_DMA_SHARED_BUFFER
+-	tristate
++	tristate "Virtio DMA shared buffer support"
+ 	depends on DMA_SHARED_BUFFER
+ 	help
+ 	 This option adds a flavor of dma buffers that are backed by

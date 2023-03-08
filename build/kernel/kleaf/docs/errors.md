@@ -64,18 +64,21 @@ Example:
 
 This means a kernel module dependency is missing.
 
-Solution: Add the `kernel_module` in `foo` to `kernel_module_deps` of the build
-rule.
+**Solution**:
+
+* Try the Kleaf [`build_cleaner`](build_cleaner.md).
+* If that doesn't work, manually add the `kernel_module` in `foo` to
+  `deps` of the build rule.
 
 Example:
 [Power Reset module depends on BMS](https://android.googlesource.com/kernel/google-modules/power/reset/+/refs/heads/android-gs-raviole-mainline/BUILD.bazel).
 
 ## ERROR: modpost: "foo" [.../mod_using_foo.ko] undefined! {#modpost-symbol-undefined}
 
-Solution:
+**Solution**:
 
-* First, ensure the `Module.symvers` file from the module defining `foo` is present.
-  See [this section](#module-symvers-missing).
+* First, ensure the `Module.symvers` file from the module defining `foo` is
+  present. See [this section](#module-symvers-missing).
 * For `kernel_module`s, set `KBUILD_EXTRA_SYMBOLS` accordingly in `Makefile`. Example:
   [Makefile for Power Reset module](https://android.googlesource.com/kernel/google-modules/power/reset/+/refs/heads/android-gs-raviole-mainline/Makefile)
   . This is unnecessary for `ddk_module` because `Makefile` is generated.
@@ -294,6 +297,27 @@ to prevent this in the future. See [sandbox.md](sandbox.md).
 See
 [CL:2082199](https://android-review.googlesource.com/2082199) for an example.
 
+## `signing_key.pem` not found
+
+If you see an error like the following:
+
+```text
+At main.c:172:
+- SSL error:02000002:system library:OPENSSL_internal:No such file or directory: external/boringssl/src/crypto/bio/file.c:98
+- SSL error:1100006e:BIO routines:OPENSSL_internal:NO_SUCH_FILE: external/boringssl/src/crypto/bio/file.c:102
+sign-file: <execroot>/common/certs/signing_key.pem
+```
+
+Add the following line to defconfig, or config fragment:
+
+```text
+# CONFIG_MODULE_SIG_ALL is not set
+```
+
+See the following change for an example:
+
+[ANDROID: kleaf: convert fips140 to kleaf](https://android-review.googlesource.com/c/kernel/common/+/2212995)
+
 ## fatal: not a git repository: '[...]/.git' {#not-git}
 
 This is a harmless warning message.
@@ -312,26 +336,3 @@ This is a harmless warning message.
 
 [comment]: <> (Bug 194427140)
 
-## ERROR: Skipping '//common:kernel_aarch64_abi_update': no such target
-
-When updating ABI definition file for the first time or a branch has no
-existing symbol list file, this error will be generated when running the ABI
-symbol list update target. This happens because Bazel can not find a file to
-update. In that case the target is not generated.
-
-To work around this, first create an empty ABI definition file using:
-
-```shell
-touch common/android/abi_gki_aarch64.xml
-```
-
-Second, run ABI definition update with no diff as reference file will be an empty file using:
-
-```shell
-bazel run //common:kernel_aarch64_abi_nodiff_update
-```
-
-This will geneate the base line ABI definition file and ABI definition update target
-`//common:kernel_aarch64_abi_update` will be available now onwards.
-
-For details, see [abi.md#update-abi](abi.md#update-abi)

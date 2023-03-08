@@ -1,0 +1,202 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: JianMin Liu <jian-min.liu@mediatek.com>
+Date: Tue, 21 Jul 2020 12:13:35 +0800
+Subject: NOUPSTREAM: ANDROID: binder: Add vendor hook to the binder
+
+   - To apply vendor's performance tune for blocked binder transaction,
+     add the hook on the begin/end of transaction.
+
+   - ANDROID_VENDOR_DATA added to binder_transaction.
+
+[CPNOTE: 03/06/21] Lee: Vendor related code - maintain forever
+
+Bug: 161400830
+Bug: 200103201
+
+Signed-off-by: JianMin Liu <jian-min.liu@mediatek.com>
+Change-Id: If60870623ce2669200238172737dd8455ac34b02
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/binder.c          | 11 +++++++++
+ drivers/android/binder_internal.h |  1 +
+ drivers/android/vendor_hooks.c    |  7 ++++++
+ include/trace/hooks/binder.h      | 38 +++++++++++++++++++++++++++++++
+ 4 files changed, 57 insertions(+)
+ create mode 100644 include/trace/hooks/binder.h
+
+diff --git a/drivers/android/binder.c b/drivers/android/binder.c
+--- a/drivers/android/binder.c
++++ b/drivers/android/binder.c
+@@ -66,6 +66,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/task_work.h>
+ #include <linux/sizes.h>
++#include <linux/android_vendor.h>
+ 
+ #include <uapi/linux/sched/types.h>
+ #include <uapi/linux/android/binder.h>
+@@ -74,6 +75,7 @@
+ 
+ #include "binder_internal.h"
+ #include "binder_trace.h"
++#include <trace/hooks/binder.h>
+ 
+ static HLIST_HEAD(binder_deferred_list);
+ static DEFINE_MUTEX(binder_deferred_lock);
+@@ -575,6 +577,7 @@ static void binder_wakeup_poll_threads_ilocked(struct binder_proc *proc,
+ 		thread = rb_entry(n, struct binder_thread, rb_node);
+ 		if (thread->looper & BINDER_LOOPER_STATE_POLL &&
+ 		    binder_available_for_proc_work_ilocked(thread)) {
++			trace_android_vh_binder_wakeup_ilocked(thread->task, sync, proc);
+ 			if (sync)
+ 				wake_up_interruptible_sync(&thread->wait);
+ 			else
+@@ -634,6 +637,7 @@ static void binder_wakeup_thread_ilocked(struct binder_proc *proc,
+ 	assert_spin_locked(&proc->inner_lock);
+ 
+ 	if (thread) {
++		trace_android_vh_binder_wakeup_ilocked(thread->task, sync, proc);
+ 		if (sync)
+ 			wake_up_interruptible_sync(&thread->wait);
+ 		else
+@@ -847,6 +851,7 @@ static void binder_transaction_priority(struct binder_thread *thread,
+ 	spin_unlock(&thread->prio_lock);
+ 
+ 	binder_set_priority(thread, &desired);
++	trace_android_vh_binder_set_priority(t, task);
+ }
+ 
+ static struct binder_node *binder_get_node_ilocked(struct binder_proc *proc,
+@@ -3300,6 +3305,7 @@ static void binder_transaction(struct binder_proc *proc,
+ 	INIT_LIST_HEAD(&t->fd_fixups);
+ 	binder_stats_created(BINDER_STAT_TRANSACTION);
+ 	spin_lock_init(&t->lock);
++	trace_android_vh_binder_transaction_init(t);
+ 
+ 	tcomplete = kzalloc(sizeof(*tcomplete), GFP_KERNEL);
+ 	if (tcomplete == NULL) {
+@@ -3771,6 +3777,7 @@ static void binder_transaction(struct binder_proc *proc,
+ 			spin_unlock(&thread->prio_lock);
+ 		}
+ 		wake_up_interruptible_sync(&target_thread->wait);
++		trace_android_vh_binder_restore_priority(in_reply_to, current);
+ 		binder_restore_priority(thread, &in_reply_to->saved_priority);
+ 		binder_free_transaction(in_reply_to);
+ 	} else if (!(t->flags & TF_ONE_WAY)) {
+@@ -3894,6 +3901,7 @@ static void binder_transaction(struct binder_proc *proc,
+ 
+ 	BUG_ON(thread->return_error.cmd != BR_OK);
+ 	if (in_reply_to) {
++		trace_android_vh_binder_restore_priority(in_reply_to, current);
+ 		binder_restore_priority(thread, &in_reply_to->saved_priority);
+ 		binder_set_txn_from_error(in_reply_to, t_debug_id,
+ 				return_error, return_error_param);
+@@ -4460,6 +4468,7 @@ static int binder_wait_for_work(struct binder_thread *thread,
+ 		if (do_proc_work)
+ 			list_add(&thread->waiting_thread_node,
+ 				 &proc->waiting_threads);
++		trace_android_vh_binder_wait_for_work(do_proc_work, thread, proc);
+ 		binder_inner_proc_unlock(proc);
+ 		schedule();
+ 		binder_inner_proc_lock(proc);
+@@ -4565,6 +4574,7 @@ static int binder_thread_read(struct binder_proc *proc,
+ 			wait_event_interruptible(binder_user_error_wait,
+ 						 binder_stop_on_user_error < 2);
+ 		}
++		trace_android_vh_binder_restore_priority(NULL, current);
+ 		binder_restore_priority(thread, &proc->default_priority);
+ 	}
+ 
+@@ -4813,6 +4823,7 @@ static int binder_thread_read(struct binder_proc *proc,
+ 			trd->sender_pid =
+ 				task_tgid_nr_ns(sender,
+ 						task_active_pid_ns(current));
++			trace_android_vh_sync_txn_recvd(thread->task, t_from->task);
+ 		} else {
+ 			trd->sender_pid = 0;
+ 		}
+diff --git a/drivers/android/binder_internal.h b/drivers/android/binder_internal.h
+--- a/drivers/android/binder_internal.h
++++ b/drivers/android/binder_internal.h
+@@ -576,6 +576,7 @@ struct binder_transaction {
+ 	 * during thread teardown
+ 	 */
+ 	spinlock_t lock;
++	ANDROID_VENDOR_DATA(1);
+ };
+ 
+ /**
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -10,6 +10,7 @@
+ #include <trace/hooks/vendor_hooks.h>
+ #include <linux/tracepoint.h>
+ 
++#include <trace/hooks/binder.h>
+ #include <trace/hooks/cpuidle.h>
+ #include <trace/hooks/mpam.h>
+ #include <trace/hooks/wqlockup.h>
+@@ -33,6 +34,10 @@
+  * Export tracepoints that act as a bare tracehook (ie: have no trace event
+  * associated with them) to allow external modules to probe them.
+  */
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_transaction_init);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_set_priority);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_restore_priority);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_wakeup_ilocked);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cpu_idle_enter);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cpu_idle_exit);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mpam_set);
+@@ -60,6 +65,8 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ptype_head);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_allow_domain_state);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cpuidle_psci_enter);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cpuidle_psci_exit);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_wait_for_work);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_sync_txn_recvd);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_balance_anon_file_reclaim);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_commit_creds);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_exit_creds);
+diff --git a/include/trace/hooks/binder.h b/include/trace/hooks/binder.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/binder.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM binder
++#undef TRACE_INCLUDE_PATH
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_BINDER_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_BINDER_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++struct binder_transaction;
++struct task_struct;
++DECLARE_HOOK(android_vh_binder_transaction_init,
++	TP_PROTO(struct binder_transaction *t),
++	TP_ARGS(t));
++DECLARE_HOOK(android_vh_binder_set_priority,
++	TP_PROTO(struct binder_transaction *t, struct task_struct *task),
++	TP_ARGS(t, task));
++DECLARE_HOOK(android_vh_binder_restore_priority,
++	TP_PROTO(struct binder_transaction *t, struct task_struct *task),
++	TP_ARGS(t, task));
++struct binder_proc;
++struct binder_thread;
++DECLARE_HOOK(android_vh_binder_wakeup_ilocked,
++	TP_PROTO(struct task_struct *task, bool sync, struct binder_proc *proc),
++	TP_ARGS(task, sync, proc));
++DECLARE_HOOK(android_vh_binder_wait_for_work,
++	TP_PROTO(bool do_proc_work, struct binder_thread *tsk, struct binder_proc *proc),
++	TP_ARGS(do_proc_work, tsk, proc));
++DECLARE_HOOK(android_vh_sync_txn_recvd,
++	TP_PROTO(struct task_struct *tsk, struct task_struct *from),
++	TP_ARGS(tsk, from));
++#endif /* _TRACE_HOOK_BINDER_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>

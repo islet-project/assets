@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Prasad Sodagudi <psodagud@codeaurora.org>
+Date: Mon, 21 Dec 2020 13:09:29 -0800
+Subject: NOUPSTREAM: ANDROID: mm: Memory Management Exports
+
+per_cpu_ptr_to_phys symbols is needed for vendor loadable modules
+to find the per cpu physical address of symbols.
+
+[CPNOTE: 01/07/21] Lee: Vendor GKI export
+
+Squash:
+
+  NOUPSTREAM: ANDROID: mm/memory.c: export mm_trace_rss_stat
+  NOUPSTREAM: ANDROID: mm/memblock: export memblock_end_of_DRAM
+  NOUPSTREAM: ANDROID: GKI: export cma symbols for cma heap as a module
+
+Bug: 176125613
+Bug: 171499373
+Bug: 140294230
+Change-Id: Ifc23a8a9cae8eb11c94107eb9b9237a838f830bc
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ mm/cma.c      | 5 +++++
+ mm/memblock.c | 1 +
+ mm/memory.c   | 1 +
+ mm/mmap.c     | 1 +
+ mm/percpu.c   | 1 +
+ 5 files changed, 9 insertions(+)
+
+diff --git a/mm/cma.c b/mm/cma.c
+--- a/mm/cma.c
++++ b/mm/cma.c
+@@ -24,6 +24,7 @@
+ #include <linux/memblock.h>
+ #include <linux/err.h>
+ #include <linux/mm.h>
++#include <linux/module.h>
+ #include <linux/sizes.h>
+ #include <linux/slab.h>
+ #include <linux/log2.h>
+@@ -55,6 +56,7 @@ const char *cma_get_name(const struct cma *cma)
+ {
+ 	return cma->name;
+ }
++EXPORT_SYMBOL_GPL(cma_get_name);
+ 
+ static unsigned long cma_bitmap_aligned_mask(const struct cma *cma,
+ 					     unsigned int align_order)
+@@ -546,6 +548,7 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
+ 
+ 	return page;
+ }
++EXPORT_SYMBOL_GPL(cma_alloc);
+ 
+ bool cma_pages_valid(struct cma *cma, const struct page *pages,
+ 		     unsigned long count)
+@@ -596,6 +599,7 @@ bool cma_release(struct cma *cma, const struct page *pages,
+ 
+ 	return true;
+ }
++EXPORT_SYMBOL_GPL(cma_release);
+ 
+ int cma_for_each_area(int (*it)(struct cma *cma, void *data), void *data)
+ {
+@@ -610,3 +614,4 @@ int cma_for_each_area(int (*it)(struct cma *cma, void *data), void *data)
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(cma_for_each_area);
+diff --git a/mm/memblock.c b/mm/memblock.c
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -1671,6 +1671,7 @@ phys_addr_t __init_memblock memblock_end_of_DRAM(void)
+ 
+ 	return (memblock.memory.regions[idx].base + memblock.memory.regions[idx].size);
+ }
++EXPORT_SYMBOL_GPL(memblock_end_of_DRAM);
+ 
+ static phys_addr_t __init_memblock __find_max_addr(phys_addr_t limit)
+ {
+diff --git a/mm/memory.c b/mm/memory.c
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -166,6 +166,7 @@ void mm_trace_rss_stat(struct mm_struct *mm, int member)
+ {
+ 	trace_rss_stat(mm, member);
+ }
++EXPORT_SYMBOL_GPL(mm_trace_rss_stat);
+ 
+ /*
+  * Note: this doesn't free the actual pages themselves. That
+diff --git a/mm/mmap.c b/mm/mmap.c
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1629,6 +1629,7 @@ unsigned long vm_unmapped_area(struct vm_unmapped_area_info *info)
+ 	trace_vm_unmapped_area(addr, info);
+ 	return addr;
+ }
++EXPORT_SYMBOL_GPL(vm_unmapped_area);
+ 
+ /* Get an address range which is currently unmapped.
+  * For shmat() with addr=0.
+diff --git a/mm/percpu.c b/mm/percpu.c
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -2409,6 +2409,7 @@ phys_addr_t per_cpu_ptr_to_phys(void *addr)
+ 		return page_to_phys(pcpu_addr_to_page(addr)) +
+ 		       offset_in_page(addr);
+ }
++EXPORT_SYMBOL_GPL(per_cpu_ptr_to_phys);
+ 
+ /**
+  * pcpu_alloc_alloc_info - allocate percpu allocation info

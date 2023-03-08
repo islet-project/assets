@@ -245,9 +245,6 @@ struct goldfish_pipe_dev {
 	/* Some device-specific data */
 	unsigned char __iomem *base;
 
-	/* an irq tasklet to run goldfish_interrupt_task */
-	struct tasklet_struct irq_tasklet;
-
 	struct miscdevice miscdev;
 
 	/* DMA info */
@@ -310,26 +307,14 @@ static int goldfish_pin_user_pages(unsigned long first_page,
 		*iter_last_page_size = last_page_size;
 	}
 
-	ret = get_user_pages_fast(first_page, requested_pages, !is_write,
-				  pages);
+	ret = pin_user_pages_fast(first_page, requested_pages,
+				  (!is_write ? FOLL_WRITE : 0), pages);
 	if (ret <= 0)
 		return -EFAULT;
 	if (ret < requested_pages)
 		*iter_last_page_size = PAGE_SIZE;
 
 	return ret;
-}
-
-static void release_user_pages(struct page **pages, int pages_count,
-			       int is_write, s32 consumed_size)
-{
-	int i;
-
-	for (i = 0; i < pages_count; i++) {
-		if (!is_write && consumed_size > 0)
-			set_page_dirty(pages[i]);
-		put_page(pages[i]);
-	}
 }
 
 /* Populate the call parameters, merging adjacent pages together */
@@ -410,7 +395,8 @@ static int transfer_max_buffers(struct goldfish_pipe *pipe,
 
 	*consumed_size = pipe->command_buffer->rw_params.consumed_size;
 
-	release_user_pages(pipe->pages, pages_count, is_write, *consumed_size);
+	unpin_user_pages_dirty_lock(pipe->pages, pages_count,
+				    !is_write && (*consumed_size > 0));
 
 	mutex_unlock(&pipe->lock);
 	return 0;
@@ -626,10 +612,10 @@ static struct goldfish_pipe *signalled_pipes_pop_front(
 	return pipe;
 }
 
-static void goldfish_interrupt_task(unsigned long dev_addr)
+static irqreturn_t goldfish_interrupt_task(int irq, void *dev_addr)
 {
 	/* Iterate over the signalled pipes and wake them one by one */
-	struct goldfish_pipe_dev *dev = (struct goldfish_pipe_dev *)dev_addr;
+	struct goldfish_pipe_dev *dev = dev_addr;
 	struct goldfish_pipe *pipe;
 	int wakes;
 
@@ -648,10 +634,11 @@ static void goldfish_interrupt_task(unsigned long dev_addr)
 		 */
 		wake_up_interruptible(&pipe->wake_queue);
 	}
+	return IRQ_HANDLED;
 }
 
 /*
- * The general idea of the interrupt handling:
+ * The general idea of the (threaded) interrupt handling:
  *
  *  1. device raises an interrupt if there's at least one signalled pipe
  *  2. IRQ handler reads the signalled pipes and their count from the device
@@ -660,8 +647,8 @@ static void goldfish_interrupt_task(unsigned long dev_addr)
  *      otherwise it leaves it raised, so IRQ handler will be called
  *      again for the next chunk
  *  4. IRQ handler adds all returned pipes to the device's signalled pipes list
- *  5. IRQ handler launches a tasklet to process the signalled pipes from the
- *      list in a separate context
+ *  5. IRQ handler defers processing the signalled pipes from the list in a
+ *      separate context
  */
 static irqreturn_t goldfish_pipe_interrupt(int irq, void *dev_id)
 {
@@ -691,8 +678,7 @@ static irqreturn_t goldfish_pipe_interrupt(int irq, void *dev_id)
 
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	tasklet_schedule(&dev->irq_tasklet);
-	return IRQ_HANDLED;
+	return IRQ_WAKE_THREAD;
 }
 
 static int get_free_pipe_id_locked(struct goldfish_pipe_dev *dev)
@@ -1142,12 +1128,10 @@ int goldfish_pipe_device_v2_init(struct platform_device *pdev,
 	dev->super.deinit = &goldfish_pipe_device_deinit;
 	spin_lock_init(&dev->lock);
 
-	tasklet_init(&dev->irq_tasklet, &goldfish_interrupt_task,
-		     (unsigned long)dev);
-
-	err = devm_request_irq(&pdev->dev, irq,
-			       goldfish_pipe_interrupt,
-			       IRQF_SHARED, DEVICE_NAME, dev);
+	err = devm_request_threaded_irq(&pdev->dev, irq,
+					goldfish_pipe_interrupt,
+					goldfish_interrupt_task,
+					IRQF_SHARED, DEVICE_NAME, dev);
 	if (err) {
 		dev_err(&pdev->dev, "unable to allocate IRQ for v2\n");
 		return err;
@@ -1208,7 +1192,6 @@ static int goldfish_pipe_device_deinit(void *raw_dev,
 	struct goldfish_pipe_dev *dev = raw_dev;
 
 	misc_deregister(&dev->miscdev);
-	tasklet_kill(&dev->irq_tasklet);
 	kfree(dev->pipes);
 	free_page((unsigned long)dev->buffers);
 

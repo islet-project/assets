@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Satya Durga Srinivasu Prabhala <satyap@codeaurora.org>
+Date: Tue, 15 Dec 2020 00:44:27 -0800
+Subject: ANDROID: binder: Export binder_transaction_received trace point
+
+Vendor modules would like to register with the binder_transaction_received
+trace point to implement features carried in their downstream kernels.
+
+Bug: 174219217
+Change-Id: Ica0f90c60964fc845de05169cbdd8a4948adb1cd
+Signed-off-by: Satya Durga Srinivasu Prabhala <satyap@codeaurora.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/binder.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/android/binder.c b/drivers/android/binder.c
+--- a/drivers/android/binder.c
++++ b/drivers/android/binder.c
+@@ -6808,5 +6808,6 @@ device_initcall(binder_init);
+ 
+ #define CREATE_TRACE_POINTS
+ #include "binder_trace.h"
++EXPORT_TRACEPOINT_SYMBOL_GPL(binder_transaction_received);
+ 
+ MODULE_LICENSE("GPL v2");

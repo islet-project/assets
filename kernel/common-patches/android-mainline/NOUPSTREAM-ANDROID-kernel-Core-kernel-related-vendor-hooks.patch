@@ -1,0 +1,899 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: JianMin Liu <jian-min.liu@mediatek.com>
+Date: Tue, 21 Jul 2020 13:36:22 +0800
+Subject: NOUPSTREAM: ANDROID: kernel: Core kernel related vendor hooks
+
+  - Add the hook to apply vendor's performance tune for owner
+    of rwsem.
+
+  - Add the hook for the waiter list of rwsem to allow
+    vendor perform waiting queue enhancement
+
+  - ANDROID_VENDOR_DATA added to rw_semaphore
+
+[CPNOTE: 27/05/21] Lee: Vendor related code - maintain forever
+
+Squash:
+  NOUPSTREAM: ANDROID: workqueue: add vendor hook for wq lockup information
+  NOUPSTREAM: ANDROID: printk: add vendor hook for console flush
+  NOUPSTREAM: ANDROID: vendor_hooks: Add hook for jiffies updates
+  NOUPSTREAM: ANDROID: sched_clock: Add vendor hook to print epoch values
+  NOUPSTREAM: ANDROID: sched/cpuset: Add vendor hook to change tasks affinity
+  NOUPSTREAM: ANDROID: tracing: Add restricted vendor hooks for preemptirq events
+  NOUPSTREAM: ANDROID: ftrace: vendor hook for ftrace dump on oops
+  NOUPSTREAM: ANDROID: cgroup: Add vendor hook to the cgroup
+  NOUPSTREAM: ANDROID: Add vendor hooks when syscall prctl finished
+  NOUPSTREAM: ANDROID: timer: Add vendor hook for timer calc index
+  ANDROID: cgroup: Add android_rvh_cgroup_force_kthread_migration
+  ANDROID: kernel: Add restricted vendor hook in creds
+  ANDROID: module: Add vendor hook
+  ANDROID: syscall_check: add vendor hook for bpf syscall
+  ANDROID: Re-apply vendor hooks for information of blocked tasks
+  ANDROID: Re-apply vendor hooks for rt_mutex information of blocked tasks
+  Revert "ANDROID: timer: Add vendor hook for timer calc index"
+
+Bug: 161400830
+Bug: 169374262
+Bug: 165340180
+Bug: 148928265
+Bug: 172945021
+Bug: 174125747
+Bug: 174541725
+Bug: 177387994
+Bug: 181917687
+Bug: 181819699
+Bug: 178758017
+Bug: 184594949
+Bug: 181639260
+Bug: 181639260
+Bug: 191291287
+Bug: 216016261
+
+Signed-off-by: JianMin Liu <jian-min.liu@mediatek.com>
+Change-Id: I007a5e26f3db2adaeaf4e5ccea414ce7abfa83b8
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/vendor_hooks.c      | 77 ++++++++++++++---------------
+ include/trace/hooks/cgroup.h        | 37 ++++++++++++++
+ include/trace/hooks/creds.h         | 34 +++++++++++++
+ include/trace/hooks/epoch.h         | 23 +++++++++
+ include/trace/hooks/module.h        | 32 ++++++++++++
+ include/trace/hooks/preemptirq.h    | 32 ++++++++++++
+ include/trace/hooks/printk.h        | 19 +++++++
+ include/trace/hooks/sched.h         |  4 ++
+ include/trace/hooks/sys.h           | 17 +++++++
+ include/trace/hooks/syscall_check.h |  5 ++
+ include/trace/hooks/wqlockup.h      | 20 ++++++++
+ kernel/bpf/syscall.c                |  4 ++
+ kernel/cgroup/cgroup-v1.c           |  2 +
+ kernel/cgroup/cgroup.c              |  4 ++
+ kernel/cred.c                       |  6 +++
+ kernel/module/main.c                | 10 ++++
+ kernel/printk/printk.c              |  8 +++
+ kernel/sched/vendor_hooks.c         |  1 -
+ kernel/sys.c                        |  3 ++
+ kernel/time/sched_clock.c           |  3 ++
+ kernel/time/tick-common.c           |  2 +
+ kernel/time/tick-sched.c            |  5 +-
+ kernel/trace/trace_preemptirq.c     | 40 ++++++++++++---
+ kernel/workqueue.c                  |  5 ++
+ 24 files changed, 342 insertions(+), 51 deletions(-)
+ create mode 100644 include/trace/hooks/cgroup.h
+ create mode 100644 include/trace/hooks/creds.h
+ create mode 100644 include/trace/hooks/epoch.h
+ create mode 100644 include/trace/hooks/module.h
+ create mode 100644 include/trace/hooks/preemptirq.h
+ create mode 100644 include/trace/hooks/printk.h
+ create mode 100644 include/trace/hooks/sys.h
+ create mode 100644 include/trace/hooks/wqlockup.h
+
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -11,60 +11,55 @@
+ #include <linux/tracepoint.h>
+ 
+ #include <trace/hooks/mpam.h>
++#include <trace/hooks/wqlockup.h>
+ #include <trace/hooks/debug.h>
++#include <trace/hooks/printk.h>
++#include <trace/hooks/epoch.h>
++#include <trace/hooks/preemptirq.h>
++#include <trace/hooks/ufshcd.h>
++#include <trace/hooks/cgroup.h>
++#include <trace/hooks/sys.h>
+ #include <trace/hooks/iommu.h>
++#include <trace/hooks/net.h>
+ #include <trace/hooks/vmscan.h>
++#include <trace/hooks/creds.h>
++#include <trace/hooks/module.h>
+ #include <trace/hooks/syscall_check.h>
+ 
+ /*
+  * Export tracepoints that act as a bare tracehook (ie: have no trace event
+  * associated with them) to allow external modules to probe them.
+  */
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_task_rq_fair);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_task_rq_rt);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_fallback_rq);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_scheduler_tick);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_can_migrate_task);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_lowest_rq);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_rtmutex_prepare_setprio);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_prepare_prio_fork);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_finish_prio_fork);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_user_nice);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_setscheduler);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mpam_set);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_wq_lockup_pool);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ipi_stop);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_dump_throttled_rt_tasks);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_newidle_balance);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_nohz_balancer_kick);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_rebalance_domains);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_busiest_queue);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_migrate_queued_task);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_overutilized);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_setaffinity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_printk_hotplug);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_show_suspend_epoch_val);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_show_resume_epoch_val);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_preempt_disable);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_preempt_enable);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_irqs_disable);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_irqs_enable);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_cgroup_attach);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_cgroup_online);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_fill_prdt);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_prepare_command);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_update_sysfs);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_command);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_compl_command);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cgroup_set_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_syscall_prctl_finished);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cgroup_attach);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_iommu_setup_dma_ops);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_tick);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup_ignore);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_replace_next_task_fair);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_build_sched_domains);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_balance_rt);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_pick_next_entity);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ptype_head);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_balance_anon_file_reclaim);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_free_task);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_enqueue_task);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_dequeue_task);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_entity);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_entity);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_entity_tick);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task_fair);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task_fair);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_cpus_allowed_by_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_commit_creds);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_exit_creds);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_override_creds);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_revert_creds);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_module_core_rw_nx);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_module_init_rw_nx);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_module_permit_before_init);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_module_permit_after_init);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_mmap_file);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_post_init_entity_util_avg);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_uclamp_eff_get);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_util_est_update);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_setscheduler_uclamp);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_bpf_syscall);
+diff --git a/include/trace/hooks/cgroup.h b/include/trace/hooks/cgroup.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/cgroup.h
+@@ -0,0 +1,37 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM cgroup
++#undef TRACE_INCLUDE_PATH
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_CGROUP_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_CGROUP_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++struct task_struct;
++DECLARE_HOOK(android_vh_cgroup_set_task,
++	TP_PROTO(int ret, struct task_struct *task),
++	TP_ARGS(ret, task));
++
++struct cgroup_subsys;
++struct cgroup_taskset;
++DECLARE_HOOK(android_vh_cgroup_attach,
++	TP_PROTO(struct cgroup_subsys *ss, struct cgroup_taskset *tset),
++	TP_ARGS(ss, tset))
++DECLARE_RESTRICTED_HOOK(android_rvh_cgroup_force_kthread_migration,
++	TP_PROTO(struct task_struct *tsk, struct cgroup *dst_cgrp, bool *force_migration),
++	TP_ARGS(tsk, dst_cgrp, force_migration), 1);
++
++struct cgroup_taskset;
++struct cgroup_subsys;
++
++DECLARE_RESTRICTED_HOOK(android_rvh_cpu_cgroup_attach,
++	TP_PROTO(struct cgroup_taskset *tset),
++	TP_ARGS(tset), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_cpu_cgroup_online,
++	TP_PROTO(struct cgroup_subsys_state *css),
++	TP_ARGS(css), 1);
++#endif
++
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/creds.h b/include/trace/hooks/creds.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/creds.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM creds
++
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_CREDS_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_CREDS_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++struct cred;
++struct task_struct;
++DECLARE_RESTRICTED_HOOK(android_rvh_commit_creds,
++	TP_PROTO(const struct task_struct *task, const struct cred *new),
++	TP_ARGS(task, new), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_exit_creds,
++	TP_PROTO(const struct task_struct *task, const struct cred *cred),
++	TP_ARGS(task, cred), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_override_creds,
++	TP_PROTO(const struct task_struct *task, const struct cred *new),
++	TP_ARGS(task, new), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_revert_creds,
++	TP_PROTO(const struct task_struct *task, const struct cred *old),
++	TP_ARGS(task, old), 1);
++
++#endif /* _TRACE_HOOK_CREDS_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/epoch.h b/include/trace/hooks/epoch.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/epoch.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM epoch
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_EPOCH_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_EPOCH_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++DECLARE_HOOK(android_vh_show_suspend_epoch_val,
++	TP_PROTO(u64 suspend_ns, u64 suspend_cycles),
++	TP_ARGS(suspend_ns, suspend_cycles));
++
++DECLARE_HOOK(android_vh_show_resume_epoch_val,
++	TP_PROTO(u64 resume_cycles),
++	TP_ARGS(resume_cycles));
++
++#endif /* _TRACE_HOOK_EPOCH_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/module.h b/include/trace/hooks/module.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/module.h
+@@ -0,0 +1,32 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM module
++
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_MODULE_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_MODULE_H
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++struct module;
++DECLARE_RESTRICTED_HOOK(android_rvh_set_module_permit_before_init,
++	TP_PROTO(const struct module *mod),
++	TP_ARGS(mod), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_module_permit_after_init,
++	TP_PROTO(const struct module *mod),
++	TP_ARGS(mod), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_module_core_rw_nx,
++	TP_PROTO(const struct module *mod),
++	TP_ARGS(mod), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_module_init_rw_nx,
++	TP_PROTO(const struct module *mod),
++	TP_ARGS(mod), 1);
++
++#endif /* _TRACE_HOOK_MODULE_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/preemptirq.h b/include/trace/hooks/preemptirq.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/preemptirq.h
+@@ -0,0 +1,32 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM preemptirq
++
++#undef TRACE_INCLUDE_PATH
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_PREEMPTIRQ_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_PREEMPTIRQ_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++DECLARE_RESTRICTED_HOOK(android_rvh_preempt_disable,
++	TP_PROTO(unsigned long ip, unsigned long parent_ip),
++	TP_ARGS(ip, parent_ip), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_preempt_enable,
++	TP_PROTO(unsigned long ip, unsigned long parent_ip),
++	TP_ARGS(ip, parent_ip), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_irqs_disable,
++	TP_PROTO(unsigned long ip, unsigned long parent_ip),
++	TP_ARGS(ip, parent_ip), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_irqs_enable,
++	TP_PROTO(unsigned long ip, unsigned long parent_ip),
++	TP_ARGS(ip, parent_ip), 1);
++
++#endif /* _TRACE_HOOK_PREEMPTIRQ_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/printk.h b/include/trace/hooks/printk.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/printk.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM printk
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_PRINTK_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_PRINTK_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++DECLARE_HOOK(android_vh_printk_hotplug,
++	TP_PROTO(int *flag),
++	TP_ARGS(flag));
++
++#endif /* _TRACE_HOOK_PRINTK_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/sched.h b/include/trace/hooks/sched.h
+--- a/include/trace/hooks/sched.h
++++ b/include/trace/hooks/sched.h
+@@ -87,6 +87,10 @@ DECLARE_HOOK(android_vh_dump_throttled_rt_tasks,
+ 			s64 rt_period_timer_expires),
+ 	TP_ARGS(cpu, clock, rt_period, rt_runtime, rt_period_timer_expires));
+ 
++DECLARE_HOOK(android_vh_jiffies_update,
++	TP_PROTO(void *unused),
++	TP_ARGS(unused));
++
+ struct rq_flags;
+ DECLARE_RESTRICTED_HOOK(android_rvh_sched_newidle_balance,
+ 	TP_PROTO(struct rq *this_rq, struct rq_flags *rf,
+diff --git a/include/trace/hooks/sys.h b/include/trace/hooks/sys.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/sys.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM sys
++#undef TRACE_INCLUDE_PATH
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_SYS_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_SYS_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++struct task_struct;
++DECLARE_HOOK(android_vh_syscall_prctl_finished,
++	TP_PROTO(int option, struct task_struct *task),
++	TP_ARGS(option, task));
++#endif
++
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/syscall_check.h b/include/trace/hooks/syscall_check.h
+--- a/include/trace/hooks/syscall_check.h
++++ b/include/trace/hooks/syscall_check.h
+@@ -12,11 +12,16 @@
+  * mechanism for vendor modules to hook and extend functionality
+  */
+ struct file;
++union bpf_attr;
+ DECLARE_HOOK(android_vh_check_mmap_file,
+ 	TP_PROTO(const struct file *file, unsigned long prot,
+ 		unsigned long flag, unsigned long ret),
+ 	TP_ARGS(file, prot, flag, ret));
+ 
++DECLARE_HOOK(android_vh_check_bpf_syscall,
++	TP_PROTO(int cmd, const union bpf_attr *attr, unsigned int size),
++	TP_ARGS(cmd, attr, size));
++
+ #endif /* _TRACE_HOOK_SYSCALL_CHECK_H */
+ /* This part must be outside protection */
+ #include <trace/define_trace.h>
+diff --git a/include/trace/hooks/wqlockup.h b/include/trace/hooks/wqlockup.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/wqlockup.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM wqlockup
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_WQLOCKUP_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_WQLOCKUP_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++DECLARE_HOOK(android_vh_wq_lockup_pool,
++	TP_PROTO(int cpu, unsigned long pool_ts),
++	TP_ARGS(cpu, pool_ts));
++
++#endif /* _TRACE_HOOK_WQLOCKUP_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/kernel/bpf/syscall.c b/kernel/bpf/syscall.c
+--- a/kernel/bpf/syscall.c
++++ b/kernel/bpf/syscall.c
+@@ -36,6 +36,8 @@
+ #include <linux/memcontrol.h>
+ #include <linux/trace_events.h>
+ 
++#include <trace/hooks/syscall_check.h>
++
+ #define IS_FD_ARRAY(map) ((map)->map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY || \
+ 			  (map)->map_type == BPF_MAP_TYPE_CGROUP_ARRAY || \
+ 			  (map)->map_type == BPF_MAP_TYPE_ARRAY_OF_MAPS)
+@@ -4952,6 +4954,8 @@ static int __sys_bpf(int cmd, bpfptr_t uattr, unsigned int size)
+ 	if (copy_from_bpfptr(&attr, uattr, size) != 0)
+ 		return -EFAULT;
+ 
++	trace_android_vh_check_bpf_syscall(cmd, &attr, size);
++
+ 	err = security_bpf(cmd, &attr, size);
+ 	if (err < 0)
+ 		return err;
+diff --git a/kernel/cgroup/cgroup-v1.c b/kernel/cgroup/cgroup-v1.c
+--- a/kernel/cgroup/cgroup-v1.c
++++ b/kernel/cgroup/cgroup-v1.c
+@@ -17,6 +17,7 @@
+ #include <linux/fs_parser.h>
+ 
+ #include <trace/events/cgroup.h>
++#include <trace/hooks/cgroup.h>
+ 
+ /*
+  * pidlists linger the following amount before being destroyed.  The goal
+@@ -522,6 +523,7 @@ static ssize_t __cgroup1_procs_write(struct kernfs_open_file *of,
+ 		goto out_finish;
+ 
+ 	ret = cgroup_attach_task(cgrp, task, threadgroup);
++	trace_android_vh_cgroup_set_task(ret, task);
+ 
+ out_finish:
+ 	cgroup_procs_write_finish(task, locked);
+diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
+--- a/kernel/cgroup/cgroup.c
++++ b/kernel/cgroup/cgroup.c
+@@ -62,6 +62,9 @@
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/cgroup.h>
++#undef CREATE_TRACE_POINTS
++
++#include <trace/hooks/cgroup.h>
+ 
+ #define CGROUP_FILE_NAME_MAX		(MAX_CGROUP_TYPE_NAMELEN +	\
+ 					 MAX_CFTYPE_NAME + 2)
+@@ -2618,6 +2621,7 @@ static int cgroup_migrate_execute(struct cgroup_mgctx *mgctx)
+ 		do_each_subsys_mask(ss, ssid, mgctx->ss_mask) {
+ 			if (ss->attach) {
+ 				tset->ssid = ssid;
++				trace_android_vh_cgroup_attach(ss, tset);
+ 				ss->attach(tset);
+ 			}
+ 		} while_each_subsys_mask();
+diff --git a/kernel/cred.c b/kernel/cred.c
+--- a/kernel/cred.c
++++ b/kernel/cred.c
+@@ -17,6 +17,8 @@
+ #include <linux/cn_proc.h>
+ #include <linux/uidgid.h>
+ 
++#include <trace/hooks/creds.h>
++
+ #if 0
+ #define kdebug(FMT, ...)						\
+ 	printk("[%-5.5s%5u] " FMT "\n",					\
+@@ -181,6 +183,7 @@ void exit_creds(struct task_struct *tsk)
+ 	key_put(tsk->cached_requested_key);
+ 	tsk->cached_requested_key = NULL;
+ #endif
++	trace_android_rvh_exit_creds(tsk, cred);
+ }
+ 
+ /**
+@@ -499,6 +502,7 @@ int commit_creds(struct cred *new)
+ 		inc_rlimit_ucounts(new->ucounts, UCOUNT_RLIMIT_NPROC, 1);
+ 	rcu_assign_pointer(task->real_cred, new);
+ 	rcu_assign_pointer(task->cred, new);
++	trace_android_rvh_commit_creds(task, new);
+ 	if (new->user != old->user || new->user_ns != old->user_ns)
+ 		dec_rlimit_ucounts(old->ucounts, UCOUNT_RLIMIT_NPROC, 1);
+ 	alter_cred_subscribers(old, -2);
+@@ -576,6 +580,7 @@ const struct cred *override_creds(const struct cred *new)
+ 	get_new_cred((struct cred *)new);
+ 	alter_cred_subscribers(new, 1);
+ 	rcu_assign_pointer(current->cred, new);
++	trace_android_rvh_override_creds(current, new);
+ 	alter_cred_subscribers(old, -1);
+ 
+ 	kdebug("override_creds() = %p{%d,%d}", old,
+@@ -604,6 +609,7 @@ void revert_creds(const struct cred *old)
+ 	validate_creds(override);
+ 	alter_cred_subscribers(old, 1);
+ 	rcu_assign_pointer(current->cred, old);
++	trace_android_rvh_revert_creds(current, old);
+ 	alter_cred_subscribers(override, -1);
+ 	put_cred(override);
+ }
+diff --git a/kernel/module/main.c b/kernel/module/main.c
+--- a/kernel/module/main.c
++++ b/kernel/module/main.c
+@@ -60,6 +60,9 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/module.h>
+ 
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/module.h>
++
+ /*
+  * Mutex protects:
+  * 1) List of modules (also safely readable with preempt_disable),
+@@ -1203,6 +1206,7 @@ static void free_module(struct module *mod)
+ 
+ 	/* This may be empty, but that's OK */
+ 	module_arch_freeing_init(mod);
++	trace_android_rvh_set_module_init_rw_nx(mod);
+ 	module_memfree(mod->init_layout.base);
+ 	kfree(mod->args);
+ 	percpu_modfree(mod);
+@@ -1211,6 +1215,7 @@ static void free_module(struct module *mod)
+ 	lockdep_free_key_range(mod->data_layout.base, mod->data_layout.size);
+ 
+ 	/* Finally, free the core (containing the module structure) */
++	trace_android_rvh_set_module_core_rw_nx(mod);
+ 	module_memfree(mod->core_layout.base);
+ #ifdef CONFIG_ARCH_WANTS_MODULES_DATA_IN_VMALLOC
+ 	vfree(mod->data_layout.base);
+@@ -2368,7 +2373,9 @@ static void module_deallocate(struct module *mod, struct load_info *info)
+ {
+ 	percpu_modfree(mod);
+ 	module_arch_freeing_init(mod);
++	trace_android_rvh_set_module_init_rw_nx(mod);
+ 	module_memfree(mod->init_layout.base);
++	trace_android_rvh_set_module_core_rw_nx(mod);
+ 	module_memfree(mod->core_layout.base);
+ #ifdef CONFIG_ARCH_WANTS_MODULES_DATA_IN_VMALLOC
+ 	vfree(mod->data_layout.base);
+@@ -2520,8 +2527,10 @@ static noinline int do_init_module(struct module *mod)
+ 	rcu_assign_pointer(mod->kallsyms, &mod->core_kallsyms);
+ #endif
+ 	module_enable_ro(mod, true);
++	trace_android_rvh_set_module_permit_after_init(mod);
+ 	mod_tree_remove_init(mod);
+ 	module_arch_freeing_init(mod);
++	trace_android_rvh_set_module_init_rw_nx(mod);
+ 	mod->init_layout.base = NULL;
+ 	mod->init_layout.size = 0;
+ 	mod->init_layout.ro_size = 0;
+@@ -2636,6 +2645,7 @@ static int complete_formation(struct module *mod, struct load_info *info)
+ 	module_enable_ro(mod, false);
+ 	module_enable_nx(mod);
+ 	module_enable_x(mod);
++	trace_android_rvh_set_module_permit_before_init(mod);
+ 
+ 	/*
+ 	 * Mark state as coming so strong_try_module_get() ignores us,
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -54,6 +54,8 @@
+ #include <trace/events/initcall.h>
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/printk.h>
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/printk.h>
+ 
+ #include "printk_ringbuffer.h"
+ #include "console_cmdline.h"
+@@ -2633,6 +2635,12 @@ void resume_console(void)
+  */
+ static int console_cpu_notify(unsigned int cpu)
+ {
++	int flag = 0;
++
++	trace_android_vh_printk_hotplug(&flag);
++	if (flag)
++		return 0;
++
+ 	if (!cpuhp_tasks_frozen) {
+ 		/* If trylock fails, someone else is doing the printing */
+ 		if (console_trylock())
+diff --git a/kernel/sched/vendor_hooks.c b/kernel/sched/vendor_hooks.c
+--- a/kernel/sched/vendor_hooks.c
++++ b/kernel/sched/vendor_hooks.c
+@@ -35,7 +35,6 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_busiest_queue);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_migrate_queued_task);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_overutilized);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_setaffinity);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_update_cpus_allowed);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_build_sched_domains);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_tick);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup_ignore);
+diff --git a/kernel/sys.c b/kernel/sys.c
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -76,6 +76,8 @@
+ 
+ #include "uid16.h"
+ 
++#include <trace/hooks/sys.h>
++
+ #ifndef SET_UNALIGN_CTL
+ # define SET_UNALIGN_CTL(a, b)	(-EINVAL)
+ #endif
+@@ -2630,6 +2632,7 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 		error = -EINVAL;
+ 		break;
+ 	}
++	trace_android_vh_syscall_prctl_finished(option, me);
+ 	return error;
+ }
+ 
+diff --git a/kernel/time/sched_clock.c b/kernel/time/sched_clock.c
+--- a/kernel/time/sched_clock.c
++++ b/kernel/time/sched_clock.c
+@@ -17,6 +17,7 @@
+ #include <linux/sched_clock.h>
+ #include <linux/seqlock.h>
+ #include <linux/bitops.h>
++#include <trace/hooks/epoch.h>
+ 
+ #include "timekeeping.h"
+ 
+@@ -269,6 +270,7 @@ int sched_clock_suspend(void)
+ 	update_sched_clock();
+ 	hrtimer_cancel(&sched_clock_timer);
+ 	rd->read_sched_clock = suspended_sched_clock_read;
++	trace_android_vh_show_suspend_epoch_val(rd->epoch_ns, rd->epoch_cyc);
+ 
+ 	return 0;
+ }
+@@ -280,6 +282,7 @@ void sched_clock_resume(void)
+ 	rd->epoch_cyc = cd.actual_read_sched_clock();
+ 	hrtimer_start(&sched_clock_timer, cd.wrap_kt, HRTIMER_MODE_REL_HARD);
+ 	rd->read_sched_clock = cd.actual_read_sched_clock;
++	trace_android_vh_show_resume_epoch_val(rd->epoch_cyc);
+ }
+ 
+ static struct syscore_ops sched_clock_ops = {
+diff --git a/kernel/time/tick-common.c b/kernel/time/tick-common.c
+--- a/kernel/time/tick-common.c
++++ b/kernel/time/tick-common.c
+@@ -17,6 +17,7 @@
+ #include <linux/sched.h>
+ #include <linux/module.h>
+ #include <trace/events/power.h>
++#include <trace/hooks/sched.h>
+ 
+ #include <asm/irq_regs.h>
+ 
+@@ -95,6 +96,7 @@ static void tick_periodic(int cpu)
+ 		write_seqcount_end(&jiffies_seq);
+ 		raw_spin_unlock(&jiffies_lock);
+ 		update_wall_time();
++		trace_android_vh_jiffies_update(NULL);
+ 	}
+ 
+ 	update_process_times(user_mode(get_irq_regs()));
+diff --git a/kernel/time/tick-sched.c b/kernel/time/tick-sched.c
+--- a/kernel/time/tick-sched.c
++++ b/kernel/time/tick-sched.c
+@@ -26,6 +26,7 @@
+ #include <linux/posix-timers.h>
+ #include <linux/context_tracking.h>
+ #include <linux/mm.h>
++#include <trace/hooks/sched.h>
+ 
+ #include <asm/irq_regs.h>
+ 
+@@ -195,8 +196,10 @@ static void tick_sched_do_timer(struct tick_sched *ts, ktime_t now)
+ #endif
+ 
+ 	/* Check, if the jiffies need an update */
+-	if (tick_do_timer_cpu == cpu)
++	if (tick_do_timer_cpu == cpu) {
+ 		tick_do_update_jiffies64(now);
++		trace_android_vh_jiffies_update(NULL);
++	}
+ 
+ 	/*
+ 	 * If jiffies update stalled for too long (timekeeper in stop_machine()
+diff --git a/kernel/trace/trace_preemptirq.c b/kernel/trace/trace_preemptirq.c
+--- a/kernel/trace/trace_preemptirq.c
++++ b/kernel/trace/trace_preemptirq.c
+@@ -14,6 +14,8 @@
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/preemptirq.h>
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/preemptirq.h>
+ 
+ #ifdef CONFIG_TRACE_IRQFLAGS
+ /* Per-cpu variable to prevent redundant calls when IRQs already off */
+@@ -28,8 +30,11 @@ static DEFINE_PER_CPU(int, tracing_irq_cpu);
+ void trace_hardirqs_on_prepare(void)
+ {
+ 	if (this_cpu_read(tracing_irq_cpu)) {
+-		if (!in_nmi())
++		if (!in_nmi()) {
+ 			trace_irq_enable(CALLER_ADDR0, CALLER_ADDR1);
++			trace_android_rvh_irqs_enable(CALLER_ADDR0,
++						      CALLER_ADDR1);
++		}
+ 		tracer_hardirqs_on(CALLER_ADDR0, CALLER_ADDR1);
+ 		this_cpu_write(tracing_irq_cpu, 0);
+ 	}
+@@ -40,8 +45,11 @@ NOKPROBE_SYMBOL(trace_hardirqs_on_prepare);
+ void trace_hardirqs_on(void)
+ {
+ 	if (this_cpu_read(tracing_irq_cpu)) {
+-		if (!in_nmi())
++		if (!in_nmi()) {
+ 			trace_irq_enable_rcuidle(CALLER_ADDR0, CALLER_ADDR1);
++			trace_android_rvh_irqs_enable(CALLER_ADDR0,
++						      CALLER_ADDR1);
++		}
+ 		tracer_hardirqs_on(CALLER_ADDR0, CALLER_ADDR1);
+ 		this_cpu_write(tracing_irq_cpu, 0);
+ 	}
+@@ -63,8 +71,11 @@ void trace_hardirqs_off_finish(void)
+ 	if (!this_cpu_read(tracing_irq_cpu)) {
+ 		this_cpu_write(tracing_irq_cpu, 1);
+ 		tracer_hardirqs_off(CALLER_ADDR0, CALLER_ADDR1);
+-		if (!in_nmi())
++		if (!in_nmi()) {
+ 			trace_irq_disable(CALLER_ADDR0, CALLER_ADDR1);
++			trace_android_rvh_irqs_disable(CALLER_ADDR0,
++						       CALLER_ADDR1);
++		}
+ 	}
+ 
+ }
+@@ -78,8 +89,11 @@ void trace_hardirqs_off(void)
+ 	if (!this_cpu_read(tracing_irq_cpu)) {
+ 		this_cpu_write(tracing_irq_cpu, 1);
+ 		tracer_hardirqs_off(CALLER_ADDR0, CALLER_ADDR1);
+-		if (!in_nmi())
++		if (!in_nmi()) {
+ 			trace_irq_disable_rcuidle(CALLER_ADDR0, CALLER_ADDR1);
++			trace_android_rvh_irqs_disable(CALLER_ADDR0,
++						       CALLER_ADDR1);
++		}
+ 	}
+ }
+ EXPORT_SYMBOL(trace_hardirqs_off);
+@@ -88,8 +102,11 @@ NOKPROBE_SYMBOL(trace_hardirqs_off);
+ __visible void trace_hardirqs_on_caller(unsigned long caller_addr)
+ {
+ 	if (this_cpu_read(tracing_irq_cpu)) {
+-		if (!in_nmi())
++		if (!in_nmi()) {
+ 			trace_irq_enable_rcuidle(CALLER_ADDR0, caller_addr);
++			trace_android_rvh_irqs_enable(CALLER_ADDR0,
++						      caller_addr);
++		}
+ 		tracer_hardirqs_on(CALLER_ADDR0, caller_addr);
+ 		this_cpu_write(tracing_irq_cpu, 0);
+ 	}
+@@ -107,8 +124,11 @@ __visible void trace_hardirqs_off_caller(unsigned long caller_addr)
+ 	if (!this_cpu_read(tracing_irq_cpu)) {
+ 		this_cpu_write(tracing_irq_cpu, 1);
+ 		tracer_hardirqs_off(CALLER_ADDR0, caller_addr);
+-		if (!in_nmi())
++		if (!in_nmi()) {
+ 			trace_irq_disable_rcuidle(CALLER_ADDR0, caller_addr);
++			trace_android_rvh_irqs_enable(CALLER_ADDR0,
++						      caller_addr);
++		}
+ 	}
+ }
+ EXPORT_SYMBOL(trace_hardirqs_off_caller);
+@@ -119,15 +139,19 @@ NOKPROBE_SYMBOL(trace_hardirqs_off_caller);
+ 
+ void trace_preempt_on(unsigned long a0, unsigned long a1)
+ {
+-	if (!in_nmi())
++	if (!in_nmi()) {
+ 		trace_preempt_enable_rcuidle(a0, a1);
++		trace_android_rvh_preempt_enable(a0, a1);
++	}
+ 	tracer_preempt_on(a0, a1);
+ }
+ 
+ void trace_preempt_off(unsigned long a0, unsigned long a1)
+ {
+-	if (!in_nmi())
++	if (!in_nmi()) {
+ 		trace_preempt_disable_rcuidle(a0, a1);
++		trace_android_rvh_preempt_disable(a0, a1);
++	}
+ 	tracer_preempt_off(a0, a1);
+ }
+ #endif
+diff --git a/kernel/workqueue.c b/kernel/workqueue.c
+--- a/kernel/workqueue.c
++++ b/kernel/workqueue.c
+@@ -54,6 +54,10 @@
+ 
+ #include "workqueue_internal.h"
+ 
++#include <trace/hooks/wqlockup.h>
++/* events/workqueue.h uses default TRACE_INCLUDE_PATH */
++#undef TRACE_INCLUDE_PATH
++
+ enum {
+ 	/*
+ 	 * worker_pool flags
+@@ -5871,6 +5875,7 @@ static void wq_watchdog_timer_fn(struct timer_list *unused)
+ 			pr_cont_pool_info(pool);
+ 			pr_cont(" stuck for %us!\n",
+ 				jiffies_to_msecs(now - pool_ts) / 1000);
++			trace_android_vh_wq_lockup_pool(pool->cpu, pool_ts);
+ 		}
+ 	}
+ 

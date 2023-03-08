@@ -26,12 +26,63 @@ KernelEnvInfo = provider(
     doc = """Describe a generic environment setup with some dependencies and a setup script.
 
 `KernelEnvInfo` is a legacy name; it is not only provided by `kernel_env`, but
-other rules like `kernel_config` and `kernel_build`. Hence, the `KernelEnvInfo`
+other rules like `kernel_build`. Hence, the `KernelEnvInfo`
 is in its own extension instead of `kernel_env.bzl`.
     """,
     fields = {
         "dependencies": "dependencies required to use this environment setup",
         "setup": "setup script to initialize the environment",
+        "run_env": """Optional `KernelEnvInfo` to initialize the environment in
+[execution phase](https://docs.bazel.build/versions/main/skylark/concepts.html#evaluation-model).
+
+For `kernel_env`, the script only provides a bare-minimum environment after `source build.config`,
+without actually modifying any variables suitable for a proper kernel build.
+""",
+    },
+)
+
+KernelEnvAndOutputsInfo = provider(
+    doc = """Like `KernelEnvInfo` but also restores artifacts.
+
+It is expected to use these infos in the following way:
+
+```
+command = ctx.attr.dep[KernelEnvAndOutputsInfo].get_setup_script(
+    data = ctx.attr.dep[KernelEnvAndOutputsInfo].data,
+    restore_out_dir_cmd = cache_dir_step.cmd, # or utils.get_check_sandbox_cmd(),
+)
+```
+    """,
+    fields = {
+        "get_setup_script": """A function.
+
+The function should have the following signature:
+
+```
+def get_setup_script(data, restore_out_dir_cmd):
+```
+
+where:
+
+* `data`: the `data` field of this info.
+* `restore_out_dir_cmd`: A string that contains command to adjust the value of `OUT_DIR`.
+
+The function should return a string that contains the setup script.
+""",
+        "data": "Additional data consumed by `get_setup_script`.",
+        "inputs": """A [depset](https://bazel.build/extending/depsets) containing inputs used
+                   by `get_setup_script`. Note that dependencies of `restore_out_dir_cmd` is not
+                   included. `inputs` are compiled against the target platform.""",
+        "tools": """A [depset](https://bazel.build/extending/depsets) containing tools used
+                   by `get_setup_script`. Note that dependencies of `restore_out_dir_cmd` is not
+                   included. `tools` are compiled against the execution platform.""",
+    },
+)
+
+KernelBuildOriginalEnvInfo = provider(
+    doc = """For `kernel_build` to expose `KernelEnvInfo` from `kernel_env`.""",
+    fields = {
+        "env_info": "`KernelEnvInfo` from `kernel_env`",
     },
 )
 
@@ -41,6 +92,7 @@ KernelEnvAttrInfo = provider(
         "kbuild_symtypes": "`KBUILD_SYMTYPES`, after resolving `--kbuild_symtypes` and the static value.",
         "progress_message_note": """A note in the progress message that differentiates multiple
             instances of the same action due to different configs.""",
+        "common_config_tags": "A dict denoting the configurations that are useful to isolate `OUT_DIR`.",
     },
 )
 
@@ -53,6 +105,8 @@ KernelBuildInfo = provider(
             [Default outputs](https://docs.bazel.build/versions/main/skylark/rules.html#default-outputs)
             of the rule specified by `base_kernel`""",
         "interceptor_output": "`interceptor` log. See [`interceptor`](https://android.googlesource.com/kernel/tools/interceptor/) project.",
+        "compile_commands_with_vars": "A file that can be transformed into `compile_commands.json`.",
+        "compile_commands_out_dir": "A subset of `$OUT_DIR` for `compile_commands.json`.",
         "kernel_release": "The file `kernel.release`.",
     },
 )
@@ -64,8 +118,8 @@ KernelBuildExtModuleInfo = provider(
                                    "Does not contain the lib/modules/* suffix.",
         "module_hdrs": "A [depset](https://bazel.build/extending/depsets) containing headers for this `kernel_build` for building external modules",
         "module_scripts": "A [depset](https://bazel.build/extending/depsets) containing scripts for this `kernel_build` for building external modules",
-        "modules_prepare_setup": "A command that is equivalent to running `make modules_prepare`. Requires env setup.",
-        "modules_prepare_deps": "A list of deps to run `modules_prepare_cmd`.",
+        "modules_env_and_outputs_info": "`KernelEnvAndOutputsInfo` for building external modules.",
+        "modules_install_env_and_outputs_info": "`KernelEnvAndOutputsInfo` for running modules_install.",
         "collect_unstripped_modules": "Whether an external [`kernel_module`](#kernel_module) building against this [`kernel_build`](#kernel_build) should provide unstripped ones for debugging.",
         "strip_modules": "Whether debug information for distributed modules is stripped",
     },
@@ -93,6 +147,8 @@ KernelBuildAbiInfo = provider(
         "base_modules_staging_archive": "Archive containing staging kernel modules of the base kernel",
         "src_kmi_symbol_list": """Source file for `kmi_symbol_list` that points to the symbol list
                                   to be updated by `--update_symbol_list`""",
+        "src_protected_exports_list": """Source file for protected symbols which are restricted from being exported by unsigned modules to be updated by `--update_protected_exports`""",
+        "src_protected_modules_list": """Source file with list of protected modules whose exports are being protected and needs to be updated by `--update_protected_exports`""",
     },
 )
 
@@ -110,6 +166,13 @@ KernelBuildMixedTreeInfo = provider(
     fields = {
         "files": """A [depset](https://bazel.build/extending/depsets) containing the list of
 files required to build `KBUILD_MIXED_TREE` for the device kernel.""",
+    },
+)
+
+GcovInfo = provider(
+    doc = """A provider providing information about --gcov.""",
+    fields = {
+        "gcno_mapping": "`gcno_mapping.json`",
     },
 )
 
@@ -164,5 +227,23 @@ KernelImagesInfo = provider(
     doc = "A provider that represents the expectation of [`kernel_images`](#kernel_images) to [`kernel_build`](#kernel_build)",
     fields = {
         "base_kernel": "the `base_kernel` target, if exists",
+    },
+)
+
+DdkSubmoduleInfo = provider(
+    doc = "A provider that describes information about a DDK submodule or module.",
+    fields = {
+        "outs": """A [depset](https://bazel.build/extending/depsets) containing a struct with
+            these keys:
+
+            - `out` is the name of an output file
+            - `src` is a label containing the label of the target declaring the output
+             file.""",
+        "srcs": """A [depset](https://bazel.build/extending/depsets) of source files to build the
+            submodule.""",
+        # TODO(b/247622808): Clean up Target in providers
+        "kernel_module_deps": """A [depset](https://bazel.build/extending/depsets) of dependent
+            [Target](https://bazel.build/rules/lib/Target)s of this submodules that are
+            kernel_module's.""",
     },
 )

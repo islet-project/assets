@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Biggers <ebiggers@google.com>
+Date: Wed, 12 Aug 2020 13:59:51 -0700
+Subject: _____ANNOTATION: Incremental filesystem_____
+
+Signed-off-by: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+Change-Id: I7d0fa7bc25a9fa37fe7f5f7d201f4af2c5028db8
+---
+ ANNOTATIONS | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/ANNOTATIONS b/ANNOTATIONS
+--- a/ANNOTATIONS
++++ b/ANNOTATIONS
+@@ -18,3 +18,4 @@ UFS driver changes
+ block changes
+ device-mapper changes
+ filesystem changes
++Incremental filesystem

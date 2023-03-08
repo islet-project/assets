@@ -1,0 +1,113 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gokul krishna Krishnakumar <quic_gokukris@quicinc.com>
+Date: Mon, 17 May 2021 18:58:25 -0700
+Subject: ANDROID: rproc: Add vendor hook for recovery
+
+Add vendor hook for rproc recovery to allow vendor enhancements.
+
+Bug: 215224270
+Change-Id: If6f0846c141a4ad40748d552002f65b94d9c52d5
+Signed-off-by: Siddharth Gupta <quic_sidgup@quicinc.com>
+Signed-off-by: Gokul krishna Krishnakumar <quic_gokukris@quicinc.com>
+[quic_gurus: Merge conflicts, added headers]
+Signed-off-by: Guru Das Srinagesh <quic_gurus@quicinc.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/vendor_hooks.c        |  3 +++
+ drivers/remoteproc/remoteproc_core.c  |  3 +++
+ drivers/remoteproc/remoteproc_sysfs.c |  3 +++
+ include/trace/hooks/remoteproc.h      | 26 ++++++++++++++++++++++++++
+ 4 files changed, 35 insertions(+)
+ create mode 100644 include/trace/hooks/remoteproc.h
+
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -33,6 +33,7 @@
+ #include <trace/hooks/module.h>
+ #include <trace/hooks/selinux.h>
+ #include <trace/hooks/syscall_check.h>
++#include <trace/hooks/remoteproc.h>
+ 
+ /*
+  * Export tracepoints that act as a bare tracehook (ie: have no trace event
+@@ -97,3 +98,5 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_selinux_is_initialized);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_mmap_file);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_file_open);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_bpf_syscall);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_rproc_recovery);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_rproc_recovery_set);
+diff --git a/drivers/remoteproc/remoteproc_core.c b/drivers/remoteproc/remoteproc_core.c
+--- a/drivers/remoteproc/remoteproc_core.c
++++ b/drivers/remoteproc/remoteproc_core.c
+@@ -38,6 +38,7 @@
+ #include <linux/virtio_ring.h>
+ #include <asm/byteorder.h>
+ #include <linux/platform_device.h>
++#include <trace/hooks/remoteproc.h>
+ 
+ #include "remoteproc_internal.h"
+ 
+@@ -1877,6 +1878,8 @@ static void rproc_crash_handler_work(struct work_struct *work)
+ 	if (!rproc->recovery_disabled)
+ 		rproc_trigger_recovery(rproc);
+ 
++	trace_android_vh_rproc_recovery(rproc);
++
+ 	pm_relax(rproc->dev.parent);
+ }
+ 
+diff --git a/drivers/remoteproc/remoteproc_sysfs.c b/drivers/remoteproc/remoteproc_sysfs.c
+--- a/drivers/remoteproc/remoteproc_sysfs.c
++++ b/drivers/remoteproc/remoteproc_sysfs.c
+@@ -5,6 +5,7 @@
+ 
+ #include <linux/remoteproc.h>
+ #include <linux/slab.h>
++#include <trace/hooks/remoteproc.h>
+ 
+ #include "remoteproc_internal.h"
+ 
+@@ -51,9 +52,11 @@ static ssize_t recovery_store(struct device *dev,
+ 	if (sysfs_streq(buf, "enabled")) {
+ 		/* change the flag and begin the recovery process if needed */
+ 		rproc->recovery_disabled = false;
++		trace_android_vh_rproc_recovery_set(rproc);
+ 		rproc_trigger_recovery(rproc);
+ 	} else if (sysfs_streq(buf, "disabled")) {
+ 		rproc->recovery_disabled = true;
++		trace_android_vh_rproc_recovery_set(rproc);
+ 	} else if (sysfs_streq(buf, "recover")) {
+ 		/* begin the recovery process without changing the flag */
+ 		rproc_trigger_recovery(rproc);
+diff --git a/include/trace/hooks/remoteproc.h b/include/trace/hooks/remoteproc.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/remoteproc.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM remoteproc
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_RPROC_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_RPROC_H
++
++#include <trace/hooks/vendor_hooks.h>
++
++struct rproc;
++
++/* When recovery succeeds */
++DECLARE_HOOK(android_vh_rproc_recovery,
++	TP_PROTO(struct rproc *rproc),
++	TP_ARGS(rproc));
++
++/* When recovery mode is enabled or disabled by sysfs */
++DECLARE_HOOK(android_vh_rproc_recovery_set,
++	TP_PROTO(struct rproc *rproc),
++	TP_ARGS(rproc));
++
++#endif /* _TRACE_HOOK_RPROC_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>

@@ -1,0 +1,12 @@
+#include "bullseye-cuttlefish.list"
+aapt
+bzip2
+eject
+gcc
+gdisk
+libglvnd0
+make
+screen
+software-properties-common
+unzip
+xz-utils

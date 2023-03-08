@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mark Salyzyn <salyzyn@google.com>
+Date: Wed, 19 Aug 2020 05:29:01 -0700
+Subject: NOUPSTREAM: ANDROID: base: Drivers Base related exports
+
+[CPNOTE: 17/06/21] Lee: Vendor related code - maintain forever
+
+Squash:
+  ANDROID: arch_topology: Export thermal pressure symbol
+
+Bug: 175847109
+Signed-off-by: Mark Salyzyn <salyzyn@google.com>
+Fixes: 27dbc542f651ed09de910f274b32634904103774 ("PM / devfreq: Use PM QoS for sysfs min/max_freq")
+Bug: 165523817
+Change-Id: I6837f8d75a61faf8bf18d1b9a37419632e5c7134
+(cherry picked from commit dc32196ca1bf69f0040e0a8732179dd9cc3d8f30)
+Signed-off-by: Will McVicker <willmcvicker@google.com>
+(cherry picked from commit d13ee33d477989a1171194e8df94711546a565c8)
+Signed-off-by: Will McVicker <willmcvicker@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/base/arch_topology.c  | 4 ++++
+ drivers/base/power/qos.c      | 1 +
+ include/linux/arch_topology.h | 1 +
+ 3 files changed, 6 insertions(+)
+
+diff --git a/drivers/base/arch_topology.c b/drivers/base/arch_topology.c
+--- a/drivers/base/arch_topology.c
++++ b/drivers/base/arch_topology.c
+@@ -162,6 +162,7 @@ void topology_set_cpu_scale(unsigned int cpu, unsigned long capacity)
+ }
+ 
+ DEFINE_PER_CPU(unsigned long, thermal_pressure);
++EXPORT_PER_CPU_SYMBOL_GPL(thermal_pressure);
+ 
+ /**
+  * topology_update_thermal_pressure() - Update thermal pressure for CPUs
+@@ -246,6 +247,8 @@ static int register_cpu_capacity_sysctl(void)
+ subsys_initcall(register_cpu_capacity_sysctl);
+ 
+ static int update_topology;
++bool topology_update_done;
++EXPORT_SYMBOL_GPL(topology_update_done);
+ 
+ int topology_update_cpu_topology(void)
+ {
+@@ -260,6 +263,7 @@ static void update_topology_flags_workfn(struct work_struct *work)
+ {
+ 	update_topology = 1;
+ 	rebuild_sched_domains();
++	topology_update_done = true;
+ 	trace_android_vh_update_topology_flags_workfn(NULL);
+ 	pr_debug("sched_domain hierarchy rebuilt, flags updated\n");
+ 	update_topology = 0;
+diff --git a/drivers/base/power/qos.c b/drivers/base/power/qos.c
+--- a/drivers/base/power/qos.c
++++ b/drivers/base/power/qos.c
+@@ -137,6 +137,7 @@ s32 dev_pm_qos_read_value(struct device *dev, enum dev_pm_qos_req_type type)
+ 
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(dev_pm_qos_read_value);
+ 
+ /**
+  * apply_constraint - Add/modify/remove device PM QoS request.
+diff --git a/include/linux/arch_topology.h b/include/linux/arch_topology.h
+--- a/include/linux/arch_topology.h
++++ b/include/linux/arch_topology.h
+@@ -93,5 +93,6 @@ void remove_cpu_topology(unsigned int cpuid);
+ void reset_cpu_topology(void);
+ int parse_acpi_topology(void);
+ #endif
++extern bool topology_update_done;
+ 
+ #endif /* _LINUX_ARCH_TOPOLOGY_H_ */

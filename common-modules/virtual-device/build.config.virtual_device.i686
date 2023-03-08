@@ -5,6 +5,6 @@
 ARCH=i386
 CLANG_TRIPLE=i686-linux-gnu-
 DEFCONFIG=vd_i686_gki_defconfig
-PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/x86/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/x86/configs/gki_defconfig ${ROOT_DIR}/common-modules/virtual-device/virtual_device.fragment ${ROOT_DIR}/common-modules/virtual-device/i686.fragment"
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/x86/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/x86/configs/gki_defconfig ${ROOT_DIR}/common-modules/virtual-device/virtual_device_core.fragment ${ROOT_DIR}/common-modules/virtual-device/virtual_device.fragment ${ROOT_DIR}/common-modules/virtual-device/i686.fragment"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/x86/configs/${DEFCONFIG}"
-BUILD_GOLDFISH_DRIVERS=m
+EXT_MODULES="common-modules/virtual-device"

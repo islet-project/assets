@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Biggers <ebiggers@google.com>
+Date: Thu, 8 Oct 2020 17:14:09 -0700
+Subject: ONHOLD: ANDROID: scsi: ufs: add UFSHCD_QUIRK_BROKEN_CRYPTO_ENABLE
+
+Add UFSHCD_QUIRK_BROKEN_CRYPTO_ENABLE which tells ufshcd-core that the
+host controller supports inline encryption, but the
+CRYPTO_GENERAL_ENABLE bit is not implemented and breaks the HCE sequence
+if used.
+
+This is needed for FMP support.
+
+[CPNOTE: 19/07/21] Lee: Requested status from Eric via the bug
+[CPNOTE: 21/07/21] Lee: Upstream when "hardware key manager" user appears upstream
+
+Bug: 166139333
+Bug: 162257402
+Change-Id: I1757cdc480cc790767396f7cecd97c3b9d632096
+Signed-off-by: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/ufs/core/ufshcd-crypto.c | 4 ++++
+ include/ufs/ufshcd.h             | 7 +++++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/drivers/ufs/core/ufshcd-crypto.c b/drivers/ufs/core/ufshcd-crypto.c
+--- a/drivers/ufs/core/ufshcd-crypto.c
++++ b/drivers/ufs/core/ufshcd-crypto.c
+@@ -123,6 +123,10 @@ bool ufshcd_crypto_enable(struct ufs_hba *hba)
+ 
+ 	/* Reset might clear all keys, so reprogram all the keys. */
+ 	blk_crypto_reprogram_all_keys(&hba->crypto_profile);
++
++	if (hba->quirks & UFSHCD_QUIRK_BROKEN_CRYPTO_ENABLE)
++		return false;
++
+ 	return true;
+ }
+ 
+diff --git a/include/ufs/ufshcd.h b/include/ufs/ufshcd.h
+--- a/include/ufs/ufshcd.h
++++ b/include/ufs/ufshcd.h
+@@ -593,6 +593,13 @@ enum ufshcd_quirks {
+ 	 * auto-hibernate capability but it's FASTAUTO only.
+ 	 */
+ 	UFSHCD_QUIRK_HIBERN_FASTAUTO			= 1 << 18,
++
++	/*
++	 * This quirk needs to be enabled if the host controller supports inline
++	 * encryption, but the CRYPTO_GENERAL_ENABLE bit is not implemented and
++	 * breaks the HCE sequence if used.
++	 */
++	UFSHCD_QUIRK_BROKEN_CRYPTO_ENABLE		= 1 << 21,
+ };
+ 
+ enum ufshcd_caps {

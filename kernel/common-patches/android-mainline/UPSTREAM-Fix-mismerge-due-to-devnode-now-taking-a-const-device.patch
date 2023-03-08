@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 16 Dec 2022 13:04:15 -0600
+Subject: UPSTREAM: Fix mismerge due to devnode now taking a 'const *' device
+
+This was a mismerge of a semantic conflict in my merge of the driver
+core updates, where commit ff62b8e6588f ("driver core: make struct
+class.devnode() take a const *") changed the devnode function pointer
+type.  In the meantime, the drm tree I merged earlier had introduced a
+new use of that in commit 8bf4889762a8 ("drivers/accel: define kconfig
+and register a new major").
+
+And of course this happens when I'm traveling with my laptop, and thus
+didn't do a full allmodconfig build between every pull and before
+pushing my work out.
+
+So I only noticed later as I was doing my full build.
+
+Brown-paper-bag-by: Linus Torvalds <torvalds@linux-foundation.org>
+Fixes: 71a7507afbc3 Merge tag 'driver-core-6.2-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/driver-core
+Change-Id: I598794daa1e8c72503e2fd93e40bd5c0674b7f45
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+(cherry picked from commit dcde56bb37a9f900c11eec56b0ecaca5653cc829)
+Signed-off-by: Greg Kroah-Hartman <gregkh@google.com>
+---
+ drivers/accel/drm_accel.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/accel/drm_accel.c b/drivers/accel/drm_accel.c
+--- a/drivers/accel/drm_accel.c
++++ b/drivers/accel/drm_accel.c
+@@ -27,7 +27,7 @@ static struct device_type accel_sysfs_device_minor = {
+ 	.name = "accel_minor"
+ };
+ 
+-static char *accel_devnode(struct device *dev, umode_t *mode)
++static char *accel_devnode(const struct device *dev, umode_t *mode)
+ {
+ 	return kasprintf(GFP_KERNEL, "accel/%s", dev_name(dev));
+ }

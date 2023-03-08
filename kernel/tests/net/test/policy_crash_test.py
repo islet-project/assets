@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright 2019 The Android Open Source Project
 #
@@ -70,6 +70,7 @@
 
 # ----------------------------------------------------------------------
 
+import binascii
 import os
 import socket
 import unittest
@@ -107,7 +108,7 @@ class RemovedFeatureTest(net_test.NetworkTest):
     dst = ip6loopback
 
     # 8 byte IPv6 fragmentation header
-    frag_nexthdr = '00'
+    frag_nexthdr = '3b'
     frag_reserved = '00'
     # 13-bit offset, 2-bit reserved, 1-bit M[ore] flag
     pkt1_frag_offset = '0001'
@@ -126,8 +127,8 @@ class RemovedFeatureTest(net_test.NetworkTest):
          + pkt2_frag_payload)
 
     s = socket.socket(socket.AF_INET6, socket.SOCK_RAW, socket.IPPROTO_RAW)
-    s.sendto(pkt1.decode('hex'), ('::1', 0))
-    s.sendto(pkt2.decode('hex'), ('::1', 0))
+    s.sendto(binascii.unhexlify(pkt1), ('::1', 0))
+    s.sendto(binascii.unhexlify(pkt2), ('::1', 0))
     s.close()
 
 

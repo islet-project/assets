@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Biggers <ebiggers@google.com>
+Date: Wed, 12 Aug 2020 16:11:53 -0700
+Subject: _____ANNOTATION: kbuild changes_____
+
+Signed-off-by: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+Change-Id: If01e2f09d681f3a36e69a701a46f02bb5ccace52
+---
+ ANNOTATIONS | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/ANNOTATIONS b/ANNOTATIONS
+--- a/ANNOTATIONS
++++ b/ANNOTATIONS
+@@ -1,2 +1,3 @@
+ pending upstream
+ binder changes
++kbuild changes

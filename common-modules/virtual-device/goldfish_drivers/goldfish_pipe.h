@@ -16,7 +16,12 @@
 #ifndef GOLDFISH_PIPE_H
 #define GOLDFISH_PIPE_H
 
-#define DEVICE_NAME "goldfish_pipe"
+/* The goldfish_pipe driver is deprecated. It is being replaced by virtio-gpu
+ * for graphics and virtio-vsock for verything else. Please replace references
+ * to /dev/goldfish_pipe with
+ * https://android.googlesource.com/device/generic/goldfish-opengl/+/refs/heads/master/shared/qemupipe/include/qemu_pipe_bp.h
+ */
+#define DEVICE_NAME "goldfish_pipe_dprctd"
 
 struct goldfish_pipe_dev_base {
 	/* the destructor, the pointer is set in init */

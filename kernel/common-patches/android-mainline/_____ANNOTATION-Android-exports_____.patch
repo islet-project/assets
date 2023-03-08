@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lee Jones <lee.jones@linaro.org>
+Date: Mon, 4 Oct 2021 11:55:16 +0100
+Subject: _____ANNOTATION: Android exports_____
+
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Change-Id: Id4ad2ec7962daa7736806cce0a93b5b9eec5e04e
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ ANNOTATIONS | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/ANNOTATIONS b/ANNOTATIONS
+--- a/ANNOTATIONS
++++ b/ANNOTATIONS
+@@ -22,3 +22,4 @@ Incremental filesystem
+ networking changes
+ hardware-wrapped key support
+ Android vendor hooks
++Android exports

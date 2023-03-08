@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Biggers <ebiggers@google.com>
+Date: Wed, 22 Jan 2020 12:32:33 -0800
+Subject: NOUPSTREAM: ANDROID: block: export symbols needed for modules to use
+ inline crypto
+
+Export the blk-crypto symbols needed for modules to use inline crypto.
+
+This is needed for dm-default-key.
+
+These would have already been exported, except that so far they've only
+been used by fs/crypto/, which is no longer modular.
+
+[CPNOTE: 20/07/21] Lee: Required until 'dm-default-key' is upstream
+
+Bug: 137270441
+Bug: 147814592
+Bug: 160885805
+Change-Id: I64bf98aecabe891c188b30dd50124aacb1e008ca
+Signed-off-by: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ block/blk-crypto.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/block/blk-crypto.c b/block/blk-crypto.c
+--- a/block/blk-crypto.c
++++ b/block/blk-crypto.c
+@@ -114,6 +114,7 @@ void bio_crypt_set_ctx(struct bio *bio, const struct blk_crypto_key *key,
+ 
+ 	bio->bi_crypt_context = bc;
+ }
++EXPORT_SYMBOL_GPL(bio_crypt_set_ctx);
+ 
+ void __bio_crypt_free_ctx(struct bio *bio)
+ {
+@@ -379,6 +380,7 @@ int blk_crypto_init_key(struct blk_crypto_key *blk_key,
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(blk_crypto_init_key);
+ 
+ bool blk_crypto_config_supported_natively(struct block_device *bdev,
+ 					  const struct blk_crypto_config *cfg)
+@@ -427,6 +429,7 @@ int blk_crypto_start_using_key(struct block_device *bdev,
+ 	}
+ 	return blk_crypto_fallback_start_using_mode(key->crypto_cfg.crypto_mode);
+ }
++EXPORT_SYMBOL_GPL(blk_crypto_start_using_key);
+ 
+ /**
+  * blk_crypto_evict_key() - Evict a key from any inline encryption hardware

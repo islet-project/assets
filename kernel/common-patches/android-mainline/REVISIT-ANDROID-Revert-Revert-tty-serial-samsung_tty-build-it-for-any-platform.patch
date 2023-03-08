@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Will McVicker <willmcvicker@google.com>
+Date: Wed, 13 Oct 2021 13:48:09 -0700
+Subject: REVISIT: ANDROID: Revert "Revert "tty: serial: samsung_tty: build it
+ for any platform""
+
+This reverts commit 7e13d0a6b189169d9339a6ef96383cd6f0e00b2c. We want to
+include these earlycon drivers for GKI.
+
+[CPNOTE: 20/10/21] Lee: Tried reverting this - ARCH_EXYNOS brings in too many deps currently
+
+Bug: 142159113
+Bug: 145560197
+Change-Id: I81443b7a743f4155f114d197c7f7299c9f348dad
+Signed-off-by: Will McVicker <willmcvicker@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/tty/serial/Kconfig | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -238,7 +238,6 @@ config SERIAL_CLPS711X_CONSOLE
+ 
+ config SERIAL_SAMSUNG
+ 	tristate "Samsung SoC serial support"
+-	depends on PLAT_SAMSUNG || ARCH_S5PV210 || ARCH_EXYNOS || ARCH_APPLE || ARCH_ARTPEC || COMPILE_TEST
+ 	select SERIAL_CORE
+ 	help
+ 	  Support for the on-chip UARTs on the Samsung

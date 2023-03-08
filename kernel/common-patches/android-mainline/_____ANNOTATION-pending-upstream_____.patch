@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Biggers <ebiggers@google.com>
+Date: Fri, 14 Aug 2020 10:19:48 -0700
+Subject: _____ANNOTATION: pending upstream_____
+
+Patches that are very likely to be upstreamed soon.
+
+Signed-off-by: Lee Jones <joneslee@google.com>
+Change-Id: I5cc8ed102c6347ec592d200863e13a6d8405d531
+---
+ ANNOTATIONS | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 ANNOTATIONS
+
+diff --git a/ANNOTATIONS b/ANNOTATIONS
+new file mode 100644
+--- /dev/null
++++ b/ANNOTATIONS
+@@ -0,0 +1 @@
++pending upstream

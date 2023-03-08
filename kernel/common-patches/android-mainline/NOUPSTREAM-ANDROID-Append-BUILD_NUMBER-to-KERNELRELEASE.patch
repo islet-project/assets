@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alistair Delva <adelva@google.com>
+Date: Tue, 20 Jul 2021 12:16:00 -0700
+Subject: NOUPSTREAM: ANDROID: Append BUILD_NUMBER to KERNELRELEASE
+
+If building on Android infrastructure, the BUILD_NUMBER variable will be
+set to indicate a unique build ID for this build. Add it to the kernel
+version, which is used by UTS_RELEASE and various other build steps.
+
+[CPNOTE: 21/07/21] Lee: Androidness
+
+Bug: 137521202
+Bug: 159842160
+Bug: 194209519
+Signed-off-by: Alistair Delva <adelva@google.com>
+Change-Id: I44ab12ad16439c7e518b878af03153822447a4b2
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ scripts/setlocalversion | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/scripts/setlocalversion b/scripts/setlocalversion
+--- a/scripts/setlocalversion
++++ b/scripts/setlocalversion
+@@ -165,4 +165,9 @@ elif [ "${LOCALVERSION+set}" != "set" ]; then
+ 	res="$res${scm:++}"
+ fi
+ 
++# finally, add the abXXX number if BUILD_NUMBER is set
++if test -n "${BUILD_NUMBER}"; then
++	res="$res-ab${BUILD_NUMBER}"
++fi
++
+ echo "$res"

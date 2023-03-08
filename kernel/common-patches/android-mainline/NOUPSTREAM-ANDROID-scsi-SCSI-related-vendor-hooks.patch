@@ -1,0 +1,243 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Biggers <ebiggers@google.com>
+Date: Sat, 22 Aug 2020 10:47:33 -0700
+Subject: NOUPSTREAM: ANDROID: scsi: SCSI related vendor hooks
+
+Add a 'fill_prdt' Android vendor hook so that UFS platform drivers can
+initialize variant-specific PRDT fields.
+
+This is needed for FMP support.
+
+[CPNOTE: 03/06/21] Lee: Vendor related code - maintain forever
+
+Squash:
+  NOUPSTREAM: ANDROID: scsi: ufs: add a hook to prepare command
+  NOUPSTREAM: ANDROID: scsi: ufs: add a hook to add sysfs entries
+  NOUPSTREAM: ANDROID: scsi: ufs: add hooks to monitor stats of UFS traffic
+  NOUPSTREAM: ANDROID: scsi: ufs: add hooks to track ufs commands
+
+Bug: 166139333
+Bug: 162257402
+Bug: 181359082
+Bug: 158050260
+Bug: 172874931
+Bug: 172305874
+Bug: 176940922
+Change-Id: Icd07b5e475555ef3eaa0ae9e18a1ae9a4b981679
+Signed-off-by: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/vendor_hooks.c |  3 ++
+ drivers/ufs/core/ufs-sysfs.c   |  6 +++-
+ drivers/ufs/core/ufshcd.c      | 28 +++++++++++++++--
+ include/trace/hooks/ufshcd.h   | 55 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 89 insertions(+), 3 deletions(-)
+ create mode 100644 include/trace/hooks/ufshcd.h
+
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -63,6 +63,9 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_command);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_compl_command);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cgroup_set_task);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_syscall_prctl_finished);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_uic_command);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_tm_command);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_check_int_errors);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cgroup_attach);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_iommu_setup_dma_ops);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ptype_head);
+diff --git a/drivers/ufs/core/ufs-sysfs.c b/drivers/ufs/core/ufs-sysfs.c
+--- a/drivers/ufs/core/ufs-sysfs.c
++++ b/drivers/ufs/core/ufs-sysfs.c
+@@ -10,6 +10,8 @@
+ #include "ufs-sysfs.h"
+ #include "ufshcd-priv.h"
+ 
++#include <trace/hooks/ufshcd.h>
++
+ static const char *ufshcd_uic_link_state_to_string(
+ 			enum uic_link_state state)
+ {
+@@ -1354,10 +1356,12 @@ void ufs_sysfs_add_nodes(struct device *dev)
+ 	int ret;
+ 
+ 	ret = sysfs_create_groups(&dev->kobj, ufs_sysfs_groups);
+-	if (ret)
++	if (ret) {
+ 		dev_err(dev,
+ 			"%s: sysfs groups creation failed (err = %d)\n",
+ 			__func__, ret);
++		return;
++	}
+ }
+ 
+ void ufs_sysfs_remove_nodes(struct device *dev)
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -40,6 +40,9 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/ufs.h>
+ 
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/ufshcd.h>
++
+ #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
+ 				 UTP_TASK_REQ_COMPL |\
+ 				 UFSHCD_ERROR_MASK)
+@@ -346,6 +349,8 @@ static void ufshcd_add_tm_upiu_trace(struct ufs_hba *hba, unsigned int tag,
+ {
+ 	struct utp_task_req_desc *descp = &hba->utmrdl_base_addr[tag];
+ 
++	trace_android_vh_ufs_send_tm_command(hba, tag, (int)str_t);
++
+ 	if (!trace_ufshcd_upiu_enabled())
+ 		return;
+ 
+@@ -367,6 +372,8 @@ static void ufshcd_add_uic_command_trace(struct ufs_hba *hba,
+ {
+ 	u32 cmd;
+ 
++	trace_android_vh_ufs_send_uic_command(hba, ucmd, (int)str_t);
++
+ 	if (!trace_ufshcd_uic_command_enabled())
+ 		return;
+ 
+@@ -2149,6 +2156,7 @@ void ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
+ 	lrbp->issue_time_stamp_local_clock = local_clock();
+ 	lrbp->compl_time_stamp = ktime_set(0, 0);
+ 	lrbp->compl_time_stamp_local_clock = 0;
++	trace_android_vh_ufs_send_command(hba, lrbp);
+ 	ufshcd_add_command_trace(hba, task_tag, UFS_CMD_SEND);
+ 	ufshcd_clk_scaling_start_busy(hba);
+ 	if (unlikely(ufshcd_should_inform_monitor(hba, lrbp)))
+@@ -2412,6 +2420,7 @@ static int ufshcd_map_sg(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
+ 	struct scsi_cmnd *cmd;
+ 	int sg_segments;
+ 	int i;
++	int err;
+ 
+ 	cmd = lrbp->cmd;
+ 	sg_segments = scsi_dma_map(cmd);
+@@ -2450,7 +2459,9 @@ static int ufshcd_map_sg(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
+ 		lrbp->utr_descriptor_ptr->prd_table_length = 0;
+ 	}
+ 
+-	return 0;
++	err = 0;
++	trace_android_vh_ufs_fill_prdt(hba, lrbp, sg_segments, &err);
++	return err;
+ }
+ 
+ /**
+@@ -2838,6 +2849,14 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
+ 
+ 	ufshcd_prepare_lrbp_crypto(scsi_cmd_to_rq(cmd), lrbp);
+ 
++	trace_android_vh_ufs_prepare_command(hba, scsi_cmd_to_rq(cmd), lrbp,
++					     &err);
++	if (err) {
++		lrbp->cmd = NULL;
++		ufshcd_release(hba);
++		goto out;
++	}
++
+ 	lrbp->req_abort_skip = false;
+ 
+ 	ufshpb_prep(hba, lrbp);
+@@ -5327,6 +5346,7 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
+ 		lrbp->compl_time_stamp_local_clock = local_clock();
+ 		cmd = lrbp->cmd;
+ 		if (cmd) {
++			trace_android_vh_ufs_compl_command(hba, lrbp);
+ 			if (unlikely(ufshcd_should_inform_monitor(hba, lrbp)))
+ 				ufshcd_update_monitor(hba, lrbp);
+ 			ufshcd_add_command_trace(hba, index, UFS_CMD_COMP);
+@@ -5337,6 +5357,7 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
+ 		} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
+ 			lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
+ 			if (hba->dev_cmd.complete) {
++				trace_android_vh_ufs_compl_command(hba, lrbp);
+ 				ufshcd_add_command_trace(hba, index,
+ 							 UFS_DEV_COMP);
+ 				complete(hba->dev_cmd.complete);
+@@ -6533,6 +6554,8 @@ static irqreturn_t ufshcd_check_errors(struct ufs_hba *hba, u32 intr_status)
+ 		queue_eh_work = true;
+ 	}
+ 
++	trace_android_vh_ufs_check_int_errors(hba, queue_eh_work);
++
+ 	if (queue_eh_work) {
+ 		/*
+ 		 * update the transfer error masks to sticky bits, let's do this
+@@ -9873,7 +9896,8 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
+ 	ufshcd_set_ufs_dev_active(hba);
+ 
+ 	async_schedule(ufshcd_async_scan, hba);
+-	ufs_sysfs_add_nodes(hba->dev);
++	ufs_sysfs_add_nodes(dev);
++	trace_android_vh_ufs_update_sysfs(hba);
+ 
+ 	device_enable_async_suspend(dev);
+ 	return 0;
+diff --git a/include/trace/hooks/ufshcd.h b/include/trace/hooks/ufshcd.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/ufshcd.h
+@@ -0,0 +1,55 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM ufshcd
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_UFSHCD_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_UFSHCD_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++struct ufs_hba;
++struct request;
++struct ufshcd_lrb;
++
++DECLARE_HOOK(android_vh_ufs_fill_prdt,
++	TP_PROTO(struct ufs_hba *hba, struct ufshcd_lrb *lrbp,
++		 unsigned int segments, int *err),
++	TP_ARGS(hba, lrbp, segments, err));
++
++DECLARE_HOOK(android_vh_ufs_prepare_command,
++	TP_PROTO(struct ufs_hba *hba, struct request *rq,
++		 struct ufshcd_lrb *lrbp, int *err),
++	TP_ARGS(hba, rq, lrbp, err));
++
++DECLARE_HOOK(android_vh_ufs_update_sysfs,
++	TP_PROTO(struct ufs_hba *hba),
++	TP_ARGS(hba));
++
++DECLARE_HOOK(android_vh_ufs_send_command,
++	TP_PROTO(struct ufs_hba *hba, struct ufshcd_lrb *lrbp),
++	TP_ARGS(hba, lrbp));
++
++DECLARE_HOOK(android_vh_ufs_compl_command,
++	TP_PROTO(struct ufs_hba *hba, struct ufshcd_lrb *lrbp),
++	TP_ARGS(hba, lrbp));
++
++struct uic_command;
++DECLARE_HOOK(android_vh_ufs_send_uic_command,
++	TP_PROTO(struct ufs_hba *hba, const struct uic_command *ucmd,
++		 int str_t),
++	TP_ARGS(hba, ucmd, str_t));
++
++DECLARE_HOOK(android_vh_ufs_send_tm_command,
++	TP_PROTO(struct ufs_hba *hba, int tag, int str_t),
++	TP_ARGS(hba, tag, str_t));
++
++DECLARE_HOOK(android_vh_ufs_check_int_errors,
++	TP_PROTO(struct ufs_hba *hba, bool queue_eh_work),
++	TP_ARGS(hba, queue_eh_work));
++
++#endif /* _TRACE_HOOK_UFSHCD_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>

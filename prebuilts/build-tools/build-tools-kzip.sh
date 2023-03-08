@@ -28,7 +28,7 @@ printf '{"Allow_missing_dependencies": true, "HostArch":"x86_64" }\n' >"${OUT_DI
 
 # Some of targets will fail because of the missing references, but there
 # will be sufficient number of successfully compiled modules.
-XREF_CORPUS="${corpus}" build/soong/soong_ui.bash --make-mode --skip-make -k xref_java xref_cxx || echo Ignoring errors
+XREF_CORPUS="${corpus}" build/soong/soong_ui.bash --make-mode --skip-config --soong-only -k xref_java xref_cxx || echo Ignoring errors
 
 # Package it all into a single .kzip, ignoring duplicates.
 allkzip=$(realpath "${OUT_DIR}/all.kzip")

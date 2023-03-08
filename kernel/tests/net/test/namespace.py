@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright 2020 The Android Open Source Project
 #
@@ -18,6 +18,7 @@
 
 import ctypes
 import ctypes.util
+import errno
 import os
 import socket
 import sys
@@ -71,13 +72,14 @@ libc = ctypes.CDLL(ctypes.util.find_library('c'), use_errno=True)
 #   https://docs.python.org/3/library/ctypes.html#fundamental-data-types
 libc.mount.argtypes = (ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
                        ctypes.c_ulong, ctypes.c_void_p)
-libc.sethostname.argtype = (ctypes.c_char_p, ctypes.c_size_t)
+libc.sethostname.argtypes = (ctypes.c_char_p, ctypes.c_size_t)
 libc.umount2.argtypes = (ctypes.c_char_p, ctypes.c_int)
 libc.unshare.argtypes = (ctypes.c_int,)
 
 
 def Mount(src, tgt, fs, flags=MS_NODEV|MS_NOEXEC|MS_NOSUID|MS_RELATIME):
-  ret = libc.mount(src, tgt, fs, flags, None)
+  ret = libc.mount(src.encode(), tgt.encode(), fs.encode() if fs else None,
+                   flags, None)
   if ret < 0:
     errno = ctypes.get_errno()
     raise OSError(errno, '%s mounting %s on %s (fs=%s flags=0x%x)'
@@ -85,21 +87,27 @@ def Mount(src, tgt, fs, flags=MS_NODEV|MS_NOEXEC|MS_NOSUID|MS_RELATIME):
 
 
 def ReMountProc():
-  libc.umount2('/proc', MNT_DETACH)  # Ignore failure: might not be mounted
+  libc.umount2(b'/proc', MNT_DETACH)  # Ignore failure: might not be mounted
   Mount('proc', '/proc', 'proc')
 
 
 def ReMountSys():
-  libc.umount2('/sys', MNT_DETACH)  # Ignore failure: might not be mounted
+  libc.umount2(b'/sys/fs/cgroup', MNT_DETACH)  # Ignore failure: might not be mounted
+  libc.umount2(b'/sys/fs/bpf', MNT_DETACH)  # Ignore failure: might not be mounted
+  libc.umount2(b'/sys', MNT_DETACH)  # Ignore failure: might not be mounted
   Mount('sysfs', '/sys', 'sysfs')
+  Mount('bpf', '/sys/fs/bpf', 'bpf')
+  Mount('cgroup2', '/sys/fs/cgroup', 'cgroup2')
 
 
 def SetFileContents(f, s):
-  open(f, 'w').write(s)
+  with open(f, 'w') as set_file:
+    set_file.write(s)
 
 
 def SetHostname(s):
-  ret = libc.sethostname(s, len(s))
+  hostname = s.encode()
+  ret = libc.sethostname(hostname, len(hostname))
   if ret < 0:
     errno = ctypes.get_errno()
     raise OSError(errno, '%s while sethostname(%s)' % (os.strerror(errno), s))
@@ -115,7 +123,8 @@ def UnShare(flags):
 def DumpMounts(hdr):
   print('')
   print(hdr)
-  sys.stdout.write(open('/proc/mounts', 'r').read())
+  with open('/proc/mounts', 'r') as mounts:
+    sys.stdout.write(mounts.read())
   print('---')
 
 
@@ -123,16 +132,22 @@ def DumpMounts(hdr):
 #   CONFIG_NAMESPACES=y
 #   CONFIG_NET_NS=y
 #   CONFIG_UTS_NS=y
-def IfPossibleEnterNewNetworkNamespace():
-  """Instantiate and transition into a fresh new network namespace if possible."""
+def EnterNewNetworkNamespace():
+  """Instantiate and transition into a fresh new network namespace."""
 
   sys.stdout.write('Creating clean namespace... ')
+
+  # sysctl only present on 4.14 and earlier Android kernels
+  if net_test.LINUX_VERSION < (4, 15, 0):
+    TCP_DEFAULT_INIT_RWND = "/proc/sys/net/ipv4/tcp_default_init_rwnd"
+    # In root netns this will succeed
+    init_rwnd_sysctl = open(TCP_DEFAULT_INIT_RWND, "w")
 
   try:
     UnShare(CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWNET)
   except OSError as err:
     print('failed: %s (likely: no privs or lack of kernel support).' % err)
-    return False
+    raise
 
   try:
     # DumpMounts('Before:')
@@ -148,8 +163,27 @@ def IfPossibleEnterNewNetworkNamespace():
     # We've already transitioned into the new netns -- it's too late to recover.
     raise
 
+  if net_test.LINUX_VERSION < (4, 15, 0):
+    # In non-root netns this open might fail due to non-namespace-ified sysctl
+    # ie. lack of kernel commit:
+    #    https://android-review.googlesource.com/c/kernel/common/+/1312623
+    #    ANDROID: namespace'ify tcp_default_init_rwnd implementation
+    try:
+      init_rwnd_sysctl = open(TCP_DEFAULT_INIT_RWND, "w")
+    except IOError as e:
+      if e.errno != errno.ENOENT:
+        raise
+      # Note! if the netns open above succeeded (and thus we don't reach here)
+      # then we don't need to actually update the sysctl, since we'll be able to do
+      # that in the sock_diag_test.py TcpRcvWindowTest test case setUp() call instead.
+      #
+      # As such this write here is *still* to the root netns sysctl
+      # (because we obtained a file descriptor *prior* to unshare/etc...)
+      # and handles the case where the sysctl is not namespace aware and thus
+      # affects the entire system.
+      init_rwnd_sysctl.write("60");
+
   print('succeeded.')
-  return True
 
 
 def HasEstablishedTcpSessionOnPort(port):
@@ -160,7 +194,7 @@ def HasEstablishedTcpSessionOnPort(port):
 
   states = 1 << tcp_test.TCP_ESTABLISHED
 
-  matches = sd.DumpAllInetSockets(socket.IPPROTO_TCP, "",
+  matches = sd.DumpAllInetSockets(socket.IPPROTO_TCP, b"",
                                   sock_id=sock_id, states=states)
 
   return len(matches) > 0

@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Pavankumar Kondeti <quic_pkondeti@quicinc.com>
+Date: Mon, 8 Mar 2021 11:22:18 +0530
+Subject: ANDROID: cpufreq: Export cpu_frequency_limits tracepoint
+
+Export cpu_frequency_limits trace point so that vendor modules
+can register callbacks.
+
+Bug: 182088677
+Change-Id: I169c4c906ee3c760839c0757b5699f9e7b9e7646
+Signed-off-by: Pavankumar Kondeti <quic_pkondeti@quicinc.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/cpufreq/cpufreq.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/cpufreq/cpufreq.c b/drivers/cpufreq/cpufreq.c
+--- a/drivers/cpufreq/cpufreq.c
++++ b/drivers/cpufreq/cpufreq.c
+@@ -2634,6 +2634,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
+ 
+ 	return ret;
+ }
++EXPORT_TRACEPOINT_SYMBOL_GPL(cpu_frequency_limits);
+ 
+ /**
+  * cpufreq_update_policy - Re-evaluate an existing cpufreq policy.

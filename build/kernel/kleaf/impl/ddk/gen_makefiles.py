@@ -34,9 +34,35 @@ _SOURCE_SUFFIXES = (
 )
 
 
+class DieException(SystemExit):
+    def __init__(self, *args, **kwargs):
+        super().__init__(1)
+        self.args = args
+        self.kwargs = kwargs
+
+    @property
+    def msg(self):
+        return self.args[0] % tuple(self.args[1:])
+
+    @staticmethod
+    def handle(die_exception: Optional["DieException"], msg: Optional[str]):
+        if msg:
+            if die_exception is None:
+                logging.error(f"Expect build failure %s, but there's no failure", msg)
+                sys.exit(1)
+            if die_exception.msg != msg:
+                logging.error(*die_exception.args, **die_exception.kwargs)
+                logging.error(f"Expect build failure %s, but got a different failure", msg)
+                sys.exit(1)
+            return
+
+        if die_exception is not None:
+            logging.error(*die_exception.args, **die_exception.kwargs)
+            sys.exit(1)
+
+
 def die(*args, **kwargs):
-    logging.error(*args, **kwargs)
-    sys.exit(1)
+    raise DieException(*args, **kwargs)
 
 
 def _gen_makefile(
@@ -72,17 +98,36 @@ def _write_ccflag(out_file, object_file, ccflag):
         """))
 
 
+def _merge_directories(output_makefiles: pathlib.Path, submodule_makefile_dir: pathlib.Path):
+    """Merges the content of submodule_makefile_dir into output_makefiles.
+
+    File of the same relative path are concatenated.
+    """
+
+    if not submodule_makefile_dir.is_dir():
+        die("Can't find directory %s", submodule_makefile_dir)
+
+    for root, dirs, files in os.walk(submodule_makefile_dir):
+        for file in files:
+            submodule_file = pathlib.Path(root) / file
+            file_rel = submodule_file.relative_to(submodule_makefile_dir)
+            dst_path = output_makefiles / file_rel
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(dst_path, "a") as dst, \
+                    open(submodule_file, "r") as src:
+                dst.write(f"# {submodule_file}\n")
+                dst.write(src.read())
+                dst.write("\n")
+
+
 def gen_ddk_makefile(
         output_makefiles: pathlib.Path,
-        kernel_module_out: pathlib.Path,
-        kernel_module_srcs: list[pathlib.Path],
-        include_dirs: list[pathlib.Path],
-        linux_include_dirs: list[pathlib.Path],
         module_symvers_list: list[pathlib.Path],
         package: pathlib.Path,
-        local_defines: list[str],
-        copt_file: Optional[TextIO],
         produce_top_level_makefile: Optional[bool],
+        submodule_makefiles: list[pathlib.Path],
+        kernel_module_out: Optional[pathlib.Path],
+        **kwargs
 ):
     if produce_top_level_makefile:
         _gen_makefile(
@@ -91,10 +136,37 @@ def gen_ddk_makefile(
             output_makefile=output_makefiles / "Makefile",
         )
 
+    if kernel_module_out:
+        _gen_ddk_makefile_for_module(
+            output_makefiles=output_makefiles,
+            package=package,
+            kernel_module_out=kernel_module_out,
+            **kwargs
+        )
+
+    for submodule_makefile_dir in submodule_makefiles:
+        _merge_directories(output_makefiles, submodule_makefile_dir)
+
+
+def _gen_ddk_makefile_for_module(
+        output_makefiles: pathlib.Path,
+        package: pathlib.Path,
+        kernel_module_out: pathlib.Path,
+        kernel_module_srcs_json: TextIO,
+        include_dirs: list[pathlib.Path],
+        linux_include_dirs: list[pathlib.Path],
+        local_defines: list[str],
+        copt_file: Optional[TextIO],
+        **unused_kwargs
+):
+    kernel_module_srcs_json_content = json.load(kernel_module_srcs_json)
     rel_srcs = []
-    for src in kernel_module_srcs:
-        if src.is_relative_to(package):
-            rel_srcs.append(src.relative_to(package))
+    for kernel_module_srcs_json_item in kernel_module_srcs_json_content:
+        rel_item = dict(kernel_module_srcs_json_item)
+        rel_item["files"] = [pathlib.Path(src).relative_to(package)
+                             for src in rel_item["files"]
+                             if pathlib.Path(src).is_relative_to(package)]
+        rel_srcs.append(rel_item)
 
     if kernel_module_out.suffix != ".ko":
         die("Invalid output: %s; must end with .ko", kernel_module_out)
@@ -118,36 +190,30 @@ def gen_ddk_makefile(
 
         _handle_linux_includes(out_file, linux_include_dirs, rel_root)
 
-        for src in rel_srcs:
-            # Ignore non-exported headers specified in srcs
-            if src.suffix.lower() in (".h"):
-                continue
-            if src.suffix.lower() not in _SOURCE_SUFFIXES:
-                die("Invalid source %s", src)
-            # Ignore self (don't omit obj-foo += foo.o)
-            if src.with_suffix(".ko") == kernel_module_out:
+        for src_item in rel_srcs:
+            config = src_item.get("config")
+            value = src_item.get("value")
+
+            if config is not None:
+                conditional = f"ifeq ($({config}),{value})"
+                out_file.write(f"{conditional}\n")
+
+            for src in src_item["files"]:
+                _handle_src(
+                    src=src,
+                    out_file=out_file,
+                    kernel_module_out=kernel_module_out,
+                    package=package,
+                    local_defines=local_defines,
+                    include_dirs=include_dirs,
+                    rel_root=rel_root,
+                    copts=copts,
+                )
+
+            if config is not None:
                 out_file.write(textwrap.dedent(f"""\
-                    # The module {kernel_module_out} has a source file {src}
+                    endif # {conditional}
                 """))
-                continue
-            if not src.is_relative_to(kernel_module_out.parent):
-                die("%s is not a valid source because it is not under %s",
-                    src, kernel_module_out.parent)
-            out = src.with_suffix(".o").relative_to(kernel_module_out.parent)
-            out_file.write(textwrap.dedent(f"""\
-                # Source: {package / src}
-                {kernel_module_out.with_suffix('').name}-y += {out}
-            """))
-
-            out_file.write("\n")
-
-            # At this time of writing (2022-11-01), this is the order how cc_library
-            # constructs arguments to the compiler.
-            _handle_defines(out_file, out, local_defines)
-            _handle_includes(out_file, out, include_dirs, rel_root)
-            _handle_copts(out_file, out, copts, rel_root)
-
-            out_file.write("\n")
 
     top_kbuild = output_makefiles / "Kbuild"
     if top_kbuild != kbuild:
@@ -157,6 +223,48 @@ def gen_ddk_makefile(
                 # Build {package / kernel_module_out}
                 obj-y += {kernel_module_out.parent}/
                 """))
+
+
+def _handle_src(
+        src: pathlib.Path,
+        out_file: TextIO,
+        kernel_module_out: pathlib.Path,
+        package: pathlib.Path,
+        local_defines: list[str],
+        include_dirs: list[pathlib.Path],
+        rel_root: pathlib.Path,
+        copts: Optional[list[dict[str, str | bool]]],
+):
+    # Ignore non-exported headers specified in srcs
+    if src.suffix.lower() in (".h",):
+        return
+    if src.suffix.lower() not in _SOURCE_SUFFIXES:
+        die("Invalid source %s", src)
+    if not src.is_relative_to(kernel_module_out.parent):
+        die("%s is not a valid source because it is not under %s",
+            src, kernel_module_out.parent)
+
+    out = src.with_suffix(".o").relative_to(kernel_module_out.parent)
+    # Ignore self (don't omit obj-foo += foo.o)
+    if src.with_suffix(".ko") == kernel_module_out:
+        out_file.write(textwrap.dedent(f"""\
+                        # The module {kernel_module_out} has a source file {src}
+                    """))
+    else:
+        out_file.write(textwrap.dedent(f"""\
+                        # Source: {package / src}
+                        {kernel_module_out.with_suffix('').name}-y += {out}
+                    """))
+
+        out_file.write("\n")
+
+    # At this time of writing (2022-11-01), this is the order how cc_library
+    # constructs arguments to the compiler.
+    _handle_defines(out_file, out, local_defines)
+    _handle_includes(out_file, out, include_dirs, rel_root)
+    _handle_copts(out_file, out, copts, rel_root)
+
+    out_file.write("\n")
 
 
 def _handle_linux_includes(out_file: TextIO,
@@ -232,7 +340,7 @@ if __name__ == "__main__":
     parser = absl.flags.argparse_flags.ArgumentParser(description=__doc__)
     parser.add_argument("--package", type=pathlib.Path)
     parser.add_argument("--kernel-module-out", type=pathlib.Path)
-    parser.add_argument("--kernel-module-srcs", type=pathlib.Path, nargs="*", default=[])
+    parser.add_argument("--kernel-module-srcs-json", type=argparse.FileType("r"), required=True)
     parser.add_argument("--output-makefiles", type=pathlib.Path)
     parser.add_argument("--linux-include-dirs", type=pathlib.Path, nargs="*", default=[])
     parser.add_argument("--include-dirs", type=pathlib.Path, nargs="*", default=[])
@@ -240,5 +348,15 @@ if __name__ == "__main__":
     parser.add_argument("--local-defines", nargs="*", default=[])
     parser.add_argument("--copt-file", type=argparse.FileType("r"))
     parser.add_argument("--produce-top-level-makefile", action="store_true")
+    parser.add_argument("--submodule-makefiles", type=pathlib.Path, nargs="*", default=[])
+    parser.add_argument("--internal-target-fail-message", default=None)
 
-    gen_ddk_makefile(**vars(parser.parse_args()))
+    args = parser.parse_args()
+
+    die_exception = None
+    try:
+        gen_ddk_makefile(**vars(args))
+    except DieException as exc:
+        die_exception = exc
+    finally:
+        DieException.handle(die_exception, args.internal_target_fail_message)

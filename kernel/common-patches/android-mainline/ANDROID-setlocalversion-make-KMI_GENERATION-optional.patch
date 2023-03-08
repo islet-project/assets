@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alistair Delva <adelva@google.com>
+Date: Wed, 17 Nov 2021 09:58:10 -0800
+Subject: ANDROID: setlocalversion: make KMI_GENERATION optional
+
+GKI required the KMI_GENERATION to be added to the kernel version
+string, but this only makes sense for GKI kernels, for non-GKI kernels
+we don't need it. Leave all the other stuff we added, though, as it
+seems useful.
+
+Bug: 205897686
+Change-Id: I2e7b3cb7ed5529f1e5e7c9d79a1f7ce4a1b6ee1f
+Signed-off-by: Alistair Delva <adelva@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ scripts/setlocalversion | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/setlocalversion b/scripts/setlocalversion
+--- a/scripts/setlocalversion
++++ b/scripts/setlocalversion
+@@ -41,8 +41,6 @@ if test $# -gt 0; then
+ 		kmi_generation=$1
+ 		[ $(expr $kmi_generation : '^[0-9]\+$') -eq 0 ] && usage
+ 		shift
+-	else
+-		usage
+ 	fi
+ fi
+ if test $# -gt 0 -o ! -d "$srctree"; then
+@@ -68,6 +66,8 @@ scm_version()
+ 
+ 		if [ -n "$android_release" ] && [ -n "$kmi_generation" ]; then
+ 			printf '%s' "-$android_release-$kmi_generation"
++		elif [ -n "$android_release" ]; then
++			printf '%s' "-$android_release"
+ 		fi
+ 
+ 		# If we are at a tagged commit (like "v2.6.30-rc6"), we ignore

@@ -15,6 +15,8 @@
 load("@bazel_skylib//lib:shell.bzl", "shell")
 load(":exec_aspect.bzl", "ExecAspectInfo", "exec_aspect")
 
+_DEFAULT_HASHBANG = "/bin/bash -e"
+
 def _impl(ctx):
     out_file = ctx.actions.declare_file(ctx.label.name)
 
@@ -54,7 +56,7 @@ Executables in `data` must not have the `args` and `env` attribute. Use
 [`embedded_exec`](#embedded_exec) to wrap the depended target so its env and args
 are preserved.
 """),
-        "hashbang": attr.string(default = "/bin/bash -e", doc = "Hashbang of the script."),
+        "hashbang": attr.string(default = _DEFAULT_HASHBANG, doc = "Hashbang of the script."),
         "script": attr.string(doc = """The script.
 
 Use `$(rootpath <label>)` to refer to the path of a target specified in `data`. See
@@ -81,7 +83,7 @@ Executables in `data` must not have the `args` and `env` attribute. Use
 [`embedded_exec`](#embedded_exec) to wrap the depended target so its env and args
 are preserved.
 """),
-        "hashbang": attr.string(default = "/bin/bash -e", doc = "Hashbang of the script."),
+        "hashbang": attr.string(default = _DEFAULT_HASHBANG, doc = "Hashbang of the script."),
         "script": attr.string(doc = """The script.
 
 Use `$(rootpath <label>)` to refer to the path of a target specified in `data`. See
@@ -94,3 +96,33 @@ See `build/bazel_common_rules/exec/tests/BUILD` for examples.
     },
     test = True,
 )
+
+def exec_rule(
+        cfg = None,
+        attrs = None):
+    """Returns a rule() that is similar to `exec`, but with the given incoming transition.
+
+    Args:
+        cfg: [Incoming edge transition](https://bazel.build/extending/config#incoming-edge-transitions)
+            on the rule
+        attrs: Additional attributes to be added to the rule.
+
+            Specify `_allowlist_function_transition` if you need a transition.
+    """
+
+    fixed_attrs = {
+        "data": attr.label_list(aspects = [exec_aspect], allow_files = True),
+        "hashbang": attr.string(default = _DEFAULT_HASHBANG),
+        "script": attr.string(),
+    }
+
+    if attrs == None:
+        attrs = {}
+    attrs = attrs | fixed_attrs
+
+    return rule(
+        implementation = _impl,
+        attrs = attrs,
+        cfg = cfg,
+        executable = True,
+    )

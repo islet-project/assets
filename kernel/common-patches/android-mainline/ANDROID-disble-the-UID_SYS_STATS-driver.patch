@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Greg Kroah-Hartman <gregkh@google.com>
+Date: Thu, 17 Feb 2022 10:29:19 +0000
+Subject: ANDROID: disble the UID_SYS_STATS driver
+
+Commit 2d4bcf886e42 ("exit: Remove profile_task_exit & profile_munmap")
+removed the infrastructure that the drivers/misc/uid_sysfs_stats.c
+driver used to get information, so disable it until someone comes along
+and fixes it up to use the correct api.
+
+Fixes: 2d4bcf886e42 ("exit: Remove profile_task_exit & profile_munmap")
+Cc: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Greg Kroah-Hartman <gregkh@google.com>
+Change-Id: I8d8a0caf6d4e5b5933f3f2d37dcdfb8fbca52ecb
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/misc/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -486,6 +486,7 @@ config MISC_RTSX
+ config UID_SYS_STATS
+ 	bool "Per-UID statistics"
+ 	depends on PROFILING && TASK_XACCT && TASK_IO_ACCOUNTING
++	depends on BROKEN
+ 	help
+ 	  Per UID based cpu time statistics exported to /proc/uid_cputime
+ 	  Per UID based io statistics exported to /proc/uid_io

@@ -2,7 +2,7 @@
 
 # Builds mysteriously fail if stdout is non-blocking.
 fixup_ptys() {
-  python << 'EOF'
+  python3 << 'EOF'
 import fcntl, os, sys
 fd = sys.stdout.fileno()
 flags = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -12,7 +12,8 @@ EOF
 }
 
 # Common kernel options
-OPTIONS=" ANDROID DEBUG_SPINLOCK DEBUG_ATOMIC_SLEEP DEBUG_MUTEXES DEBUG_RT_MUTEXES"
+OPTIONS=" ANDROID GKI_NET_XFRM_HACKS"
+OPTIONS="$OPTIONS DEBUG_SPINLOCK DEBUG_ATOMIC_SLEEP DEBUG_MUTEXES DEBUG_RT_MUTEXES"
 OPTIONS="$OPTIONS WARN_ALL_UNSEEDED_RANDOM IKCONFIG IKCONFIG_PROC"
 OPTIONS="$OPTIONS DEVTMPFS DEVTMPFS_MOUNT FHANDLE"
 OPTIONS="$OPTIONS IPV6 IPV6_ROUTER_PREF IPV6_MULTIPLE_TABLES IPV6_ROUTE_INFO"
@@ -64,12 +65,31 @@ OPTIONS="$OPTIONS BLK_DEV_UBD HOSTFS"
 # QEMU specific options
 OPTIONS="$OPTIONS PCI VIRTIO VIRTIO_PCI VIRTIO_BLK NET_9P NET_9P_VIRTIO 9P_FS"
 OPTIONS="$OPTIONS CRYPTO_DEV_VIRTIO SERIAL_8250 SERIAL_8250_PCI"
+OPTIONS="$OPTIONS SERIAL_8250_CONSOLE PCI_HOST_GENERIC SERIAL_AMBA_PL011"
+OPTIONS="$OPTIONS SERIAL_AMBA_PL011_CONSOLE"
 
 # Obsolete options present at some time in Android kernels
 OPTIONS="$OPTIONS IP_NF_TARGET_REJECT_SKERR IP6_NF_TARGET_REJECT_SKERR"
 
+# b/262323440 - UML *sometimes* seems to have issues with:
+#   UPSTREAM: hardening: Clarify Kconfig text for auto-var-init
+# which is in 4.14.~299/4.19.~266 LTS and which does:
+#   prompt "Initialize kernel stack variables at function entry"
+#   default GCC_PLUGIN_STRUCTLEAK_BYREF_ALL if COMPILE_TEST && GCC_PLUGINS
+#   default INIT_STACK_ALL_PATTERN if COMPILE_TEST && CC_HAS_AUTO_VAR_INIT_PATTERN
+# + default INIT_STACK_ALL_ZERO if CC_HAS_AUTO_VAR_INIT_PATTERN
+#   default INIT_STACK_NONE
+# and thus presumably switches from INIT_STACK_NONE to INIT_STACK_ALL_ZERO
+#
+# My guess it that this is triggering some sort of UML and/or compiler bug...
+# Let's just turn it off... we don't care that much.
+OPTIONS="$OPTIONS INIT_STACK_NONE"
+
 # These two break the flo kernel due to differences in -Werror on recent GCC.
 DISABLE_OPTIONS=" REISERFS_FS ANDROID_PMEM"
+
+# Disable frame size warning on arm64. GCC 10 generates >1k stack frames.
+DISABLE_OPTIONS="$DISABLE_OPTIONS FRAME_WARN"
 
 # How many TAP interfaces to create to provide the VM with real network access
 # via the host. This requires privileges (e.g., root access) on the host.
@@ -84,7 +104,7 @@ DISABLE_OPTIONS=" REISERFS_FS ANDROID_PMEM"
 NUMTAPINTERFACES=0
 
 # The root filesystem disk image we'll use.
-ROOTFS=${ROOTFS:-net_test.rootfs.20150203}
+ROOTFS=${ROOTFS:-net_test.rootfs.20221014}
 COMPRESSED_ROOTFS=$ROOTFS.xz
 URL=https://dl.google.com/dl/android/$COMPRESSED_ROOTFS
 
@@ -108,7 +128,13 @@ nowrite=1
 nobuild=0
 norun=0
 
-if [[ -z "${DEFCONFIG}" ]]; then
+KVER_MAJOR="$(sed -rn 's@^ *VERSION *= *([0-9]+)$@\1@p'    < "${KERNEL_DIR}/Makefile")"
+KVER_MINOR="$(sed -rn 's@^ *PATCHLEVEL *= *([0-9]+)$@\1@p' < "${KERNEL_DIR}/Makefile")"
+KVER_LEVEL="$(sed -rn 's@^ *SUBLEVEL *= *([0-9]+)$@\1@p'   < "${KERNEL_DIR}/Makefile")"
+KVER="${KVER_MAJOR}.${KVER_MINOR}.${KVER_LEVEL}"
+echo "Detected kernel version ${KVER}"
+
+if [[ -z "${DEFCONFIG:-}" ]]; then
   case "${ARCH}" in
     um)
       export DEFCONFIG=defconfig
@@ -245,7 +271,7 @@ if (( $NUMTAPINTERFACES > 0 )); then
   done
 fi
 
-if [ -n "$KERNEL_BINARY" ]; then
+if [[ -n "${KERNEL_BINARY:-}" ]]; then
   nobuild=1
 else
   # Set default KERNEL_BINARY location if it was not provided.
@@ -265,7 +291,7 @@ if ((nobuild == 0)); then
     # "sometimes" (?) results in a 32-bit kernel.
     make_flags="$make_flags ARCH=$ARCH SUBARCH=${SUBARCH:-x86_64} CROSS_COMPILE= "
   fi
-  if [ -n "$CC" ]; then
+  if [[ -n "${CC:-}" ]]; then
     # The CC flag is *not* inherited from the environment, so it must be
     # passed in on the command line.
     make_flags="$make_flags CC=$CC"
@@ -280,12 +306,15 @@ if ((nobuild == 0)); then
   # Disable the kernel config options listed in $DISABLE_OPTIONS.
   $CONFIG_SCRIPT --file $CONFIG_FILE ${DISABLE_OPTIONS// / -d }
 
+  echo "Running: $MAKE $make_flags olddefconfig"
   $MAKE $make_flags olddefconfig
 
   # Compile the kernel.
   if [ "$ARCH" == "um" ]; then
+    echo "Running: $MAKE -j$J $make_flags linux"
     $MAKE -j$J $make_flags linux
   else
+    echo "Running: $MAKE -j$J $make_flags"
     $MAKE -j$J $make_flags
   fi
 fi
@@ -327,7 +356,7 @@ if [ "$ARCH" == "um" ]; then
   # We'd use UML's /proc/exitcode feature to communicate errors on test failure,
   # if not for UML having a tendency to crash during shutdown,
   # so instead use an extra serial line we'll redirect to an open fd...
-  cmdline="$cmdline net_test_exitcode=/dev/ttyS3"
+  cmdline="$cmdline exitcode=/dev/ttyS3"
 
   # Map the --readonly flag to UML block device names
   if ((nowrite == 0)); then
@@ -343,6 +372,11 @@ if [ "$ARCH" == "um" ]; then
   $KERNEL_BINARY >&2 3>"${SSL3}" umid=net_test mem=512M \
     $blockdevice=$ROOTFS $netconfig $consolemode ssl3=null,fd:3 $cmdline \
   || exitcode=$?
+
+  # Return to beginning of line (via carriage return) after the above newline moved us down.
+  echo -en '\r'
+  # re-enable: 'postprocess output' and 'translate newline to carriage return-newline'
+  stty opost onlcr || :
 
   if [[ "${exitcode}" == 134 && -s "${SSL3}" && "$(tr -d '\r' < "${SSL3}")" == 0 ]]; then
     # Sometimes the tests all pass, but UML crashes during the shutdown process itself.
@@ -392,7 +426,7 @@ else
 
   # Map the --readonly flag to a QEMU block device flag
   if ((nowrite > 0)); then
-    blockdevice=",readonly"
+    blockdevice=",readonly=on"
   else
     blockdevice=
   fi
@@ -422,7 +456,7 @@ else
 
     # The assignment of 'ttyS1' here is magical; we know ttyS0 was used up
     # by '-serial mon:stdio', and so this second serial port will be 'ttyS1'
-    cmdline="$cmdline net_test_exitcode=/dev/ttyS1"
+    cmdline="$cmdline exitcode=/dev/ttyS1"
   elif [ "$ARCH" == "arm64" ]; then
     # This uses a software model CPU, based on cortex-a57
     qemu="qemu-system-aarch64 -machine virt -cpu cortex-a57"
@@ -434,7 +468,7 @@ else
     # The kernel will print messages via a virtual ARM serial port (ttyAMA0),
     # but for command line consistency with x86, we put the exitcode serial
     # port on the PCI bus, and it will be the only one.
-    cmdline="$cmdline net_test_exitcode=/dev/ttyS0"
+    cmdline="$cmdline exitcode=/dev/ttyS0"
   fi
 
   $qemu >&2 -name net_test -m 512 \

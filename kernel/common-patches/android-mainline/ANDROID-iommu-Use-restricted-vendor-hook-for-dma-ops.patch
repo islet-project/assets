@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Georgi Djakov <quic_c_gdjako@quicinc.com>
+Date: Wed, 26 Jan 2022 11:06:36 -0800
+Subject: ANDROID: iommu: Use restricted vendor hook for dma ops
+
+Use rvh instead of vh for the iommu_setup_dma_ops to prevent
+sleeping while atomic bugs as mutexes are used to serialize
+access to iova regions, as well GFP_KERNEL allocations are used.
+
+Bug: 214353193
+Change-Id: I45f8f0404a247b67fd07a6831ff813bbc50fbca2
+Signed-off-by: Georgi Djakov <quic_c_gdjako@quicinc.com>
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ arch/arm64/mm/dma-mapping.c    | 2 +-
+ drivers/android/vendor_hooks.c | 2 +-
+ include/trace/hooks/iommu.h    | 4 ++--
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+--- a/arch/arm64/mm/dma-mapping.c
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -76,7 +76,7 @@ void arch_setup_dma_ops(struct device *dev, u64 dma_base, u64 size,
+ 	dev->dma_coherent = coherent;
+ 	if (iommu) {
+ 		iommu_setup_dma_ops(dev, dma_base, dma_base + size - 1);
+-		trace_android_vh_iommu_setup_dma_ops(dev, dma_base, dma_base + size - 1);
++		trace_android_rvh_iommu_setup_dma_ops(dev, dma_base, dma_base + size - 1);
+ 	}
+ 
+ 	xen_setup_dma_ops(dev);
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -19,4 +19,4 @@
+  */
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mpam_set);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ipi_stop);
+-EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_iommu_setup_dma_ops);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_iommu_setup_dma_ops);
+diff --git a/include/trace/hooks/iommu.h b/include/trace/hooks/iommu.h
+--- a/include/trace/hooks/iommu.h
++++ b/include/trace/hooks/iommu.h
+@@ -12,9 +12,9 @@
+ 
+ #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_ANDROID_VENDOR_HOOKS)
+ 
+-DECLARE_HOOK(android_vh_iommu_setup_dma_ops,
++DECLARE_RESTRICTED_HOOK(android_rvh_iommu_setup_dma_ops,
+ 	TP_PROTO(struct device *dev, u64 dma_base, u64 dma_limit),
+-	TP_ARGS(dev, dma_base, dma_limit));
++	TP_ARGS(dev, dma_base, dma_limit), 1);
+ 
+ #else
+ 

@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yun Hsiang <yun.hsiang@mediatek.com>
+Date: Thu, 13 Aug 2020 14:41:46 +0800
+Subject: NOUPSTREAM: ANDROID: base: Base related vendor hooks
+
+Current CPU capacity is scaled by frequency
+but it will sometime overestimate.
+Add vendor hook to adjust cpu capacity.
+
+android_vh_arch_set_freq_scale
+	Adjust cpu freq scale for each opp.
+
+[CPNOTE: 27/05/21] Lee: Vendor related code - maintain forever
+
+Squash
+  NOUPSTREAM: ANDROID: PM / Domains: add vendor_hook to disallow domain idle state
+  ANDROID: topology: Add flag to indicate topology has been updated
+
+Bug: 163935827
+Bug: 200103201
+Bug: 175718935
+Bug: 195914333
+Bug: 187234873
+
+Signed-off-by: Yun Hsiang <yun.hsiang@mediatek.com>
+Change-Id: I054740a7f60301d5a3b085bfa540d52853f5eec5
+[ebiggers: Folded in the following commit:
+           d6d9bb4ff41b ("ANDROID: fix kernelci build break")]
+Signed-off-by: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/base/power/domain_governor.c |  7 +++++++
+ include/trace/hooks/pm_domain.h      | 21 +++++++++++++++++++++
+ 2 files changed, 28 insertions(+)
+ create mode 100644 include/trace/hooks/pm_domain.h
+
+diff --git a/drivers/base/power/domain_governor.c b/drivers/base/power/domain_governor.c
+--- a/drivers/base/power/domain_governor.c
++++ b/drivers/base/power/domain_governor.c
+@@ -12,6 +12,8 @@
+ #include <linux/cpumask.h>
+ #include <linux/ktime.h>
+ 
++#include <trace/hooks/pm_domain.h>
++
+ static int dev_update_qos_constraint(struct device *dev, void *data)
+ {
+ 	s64 *constraint_ns_p = data;
+@@ -179,6 +181,11 @@ static bool __default_power_down_ok(struct dev_pm_domain *pd,
+ 	struct pm_domain_data *pdd;
+ 	s64 min_off_time_ns;
+ 	s64 off_on_time_ns;
++	bool allow = true;
++
++	trace_android_vh_allow_domain_state(genpd, state, &allow);
++	if (!allow)
++		return false;
+ 
+ 	off_on_time_ns = genpd->states[state].power_off_latency_ns +
+ 		genpd->states[state].power_on_latency_ns;
+diff --git a/include/trace/hooks/pm_domain.h b/include/trace/hooks/pm_domain.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/pm_domain.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM pm_domain
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_PM_DOMAIN_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_PM_DOMAIN_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++struct generic_pm_domain;
++DECLARE_HOOK(android_vh_allow_domain_state,
++	TP_PROTO(struct generic_pm_domain *genpd, uint32_t idx, bool *allow),
++	TP_ARGS(genpd, idx, allow))
++
++#endif /* _TRACE_HOOK_PM_DOMAIN_H */
++
++#include <trace/define_trace.h>

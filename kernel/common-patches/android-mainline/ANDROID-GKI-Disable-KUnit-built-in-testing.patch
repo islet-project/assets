@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Joe Fradley <joefradley@google.com>
+Date: Wed, 4 May 2022 23:00:45 +0000
+Subject: ANDROID: GKI: Disable KUnit built-in testing
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Permanently disable running built-in KUnit tests.
+
+Squash:
+  ANDROID: GKI: Add ‘kunit.enable’ module parameter
+
+Bug: 231160059
+Bug: 231160619
+Signed-off-by: Joe Fradley <joefradley@google.com>
+Change-Id: Ic0610b14b8b84fbedbe5ae813555f0856941e1a3
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ Documentation/admin-guide/kernel-parameters.txt | 4 ++++
+ Documentation/dev-tools/kunit/index.rst         | 9 +++++++++
+ init/main.c                                     | 4 ----
+ 3 files changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -1792,6 +1792,10 @@
+ 			between unregistering the boot console and initializing
+ 			the real console.
+ 
++	kunit.enable=	[KUNIT] Enable executing KUnit tests in modules on load.
++			Requires CONFIG_KUNIT to be enabled.
++			Default is 0 (disabled)
++
+ 	i2c_bus=	[HW]	Override the default board specific I2C bus speed
+ 				or register an additional I2C bus that is not
+ 				registered from board initialization code.
+diff --git a/Documentation/dev-tools/kunit/index.rst b/Documentation/dev-tools/kunit/index.rst
+--- a/Documentation/dev-tools/kunit/index.rst
++++ b/Documentation/dev-tools/kunit/index.rst
+@@ -18,6 +18,15 @@ KUnit - Linux Kernel Unit Testing
+ 	faq
+ 	running_tips
+ 
++.. warning::
++	AOSP only supports running tests loaded with modules. Built-in
++	test execution support has been disabled. In addition, in order
++	to fully enable running module loaded tests both CONFIG_KUNIT
++	needs to be enabled and kernel command line  argument
++	`kunit.enable` needs to be set to 1.
++
++	The remaining KUnit documentation has been left as-is.
++
+ This section details the kernel unit testing framework.
+ 
+ Introduction
+diff --git a/init/main.c b/init/main.c
+--- a/init/main.c
++++ b/init/main.c
+@@ -112,8 +112,6 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/initcall.h>
+ 
+-#include <kunit/test.h>
+-
+ static int kernel_init(void *);
+ 
+ extern void init_IRQ(void);
+@@ -1633,8 +1631,6 @@ static noinline void __init kernel_init_freeable(void)
+ 
+ 	do_basic_setup();
+ 
+-	kunit_run_all_tests();
+-
+ 	wait_for_initramfs();
+ 	console_on_rootfs();
+ 

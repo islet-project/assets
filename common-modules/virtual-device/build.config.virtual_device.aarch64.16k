@@ -1,0 +1,5 @@
+. ${ROOT_DIR}/common-modules/virtual-device/build.config.virtual_device.aarch64
+
+DEFCONFIG=vd_aarch_64_16k_gki_defconfig
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/16k_gki.fragment ${ROOT_DIR}/common-modules/virtual-device/virtual_device_core.fragment ${ROOT_DIR}/common-modules/virtual-device/virtual_device.fragment ${ROOT_DIR}/common-modules/virtual-device/aarch64.fragment"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"

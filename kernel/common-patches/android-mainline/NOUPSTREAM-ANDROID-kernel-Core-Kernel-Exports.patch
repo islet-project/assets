@@ -1,0 +1,725 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Elliot Berman <quic_eberman@quicinc.com>
+Date: Tue, 28 Sep 2021 08:48:55 -0700
+Subject: NOUPSTREAM: ANDROID: kernel: Core Kernel Exports
+
+[CPNOTE: 30/09/21] Lee: GKI vendor exports
+
+Squash:
+  NOUPSTREAM: ANDROID: GKI: time: Export for nsec_to_clock_t
+  NOUPSTREAM: ANDROID: tick/nohz: export tick_nohz_get_sleep_length()
+  NOUPSTREAM: ANDROID: GKI: pid: Export for find_task_by_vpid
+  NOUPSTREAM: ANDROID: Export perf_event_read_local function
+  NOUPSTREAM: ANDROID: PM: sleep: export device_pm_callback_start/end trace event
+  NOUPSTREAM: ANDROID: perf: Export clock_set_rate tracepoint
+  NOUPSTREAM: Revert "sched: Remove sched_setscheduler*() EXPORTs"
+  NOUPSTREAM: ANDROID: Export some scheduler APIs for vendor modules
+  NOUPSTREAM: ANDROID: GKI: core: Export for runqueues
+  NOUPSTREAM: ANDROID: GKI: cputime: Export for thread_group_cputime_adjusted
+  NOUPSTREAM: ANDROID: sched: export wake_up_if_idle()
+  NOUPSTREAM: ANDROID: softirq: Export irq_handler_entry tracepoint
+  NOUPSTREAM: ANDROID: sched: Export few scheduler symbols for vendor modules
+  NOUPSTREAM: ANDROID: Sched: Export sched_feat_keys symbol needed by vendor modules
+  NOUPSTREAM: ANDROID: sched/core: Export symbols needed by modules
+  NOUPSTREAM: ANDROID: sched: Export symbols for vendor EAS wakup path function
+  NOUPSTREAM: ANDROID: Sched: Export scheduler symbols needed by vendor modules
+  NOUPSTREAM: ANDROID: cgroup: Export functions used by modules
+  NOUPSTREAM: ANDROID: sched: Export key used by module
+  NOUPSTREAM: ANDROID: sched: Export sched_switch tracepoint symbol
+  NOUPSTREAM: ANDROID: sched: time: Export symbols needed for schedutil module
+  NOUPSTREAM: ANDROID: dma: Rework so dev_get_cma_area() can be called from a module
+  NOUPSTREAM: ANDROID: irqdesc: Export symbol for vendor modules
+  ANDROID: sched: Export set_next_entity
+  ANDROID: sched/fair: export sysctl_sched_latency symbol
+  ANDROID: sched: Add export symbol resched_curr
+  ANDROID: sched: Add export symbols for sched features
+  ANDROID: sched: Export max_load_balance_interval
+  ANDROID: printk: Export symbol for scheduler vendor hook
+  ANDROID: sched: Export rq lock symbols
+  ANDROID: sched: Export symbol for scheduler vendor module
+  ANDROID: sched: Add parameter to android_rvh_set_iowait
+  ANDROID: sched: export task_rq_lock
+
+Bug: 143964928
+Bug: 158067689
+Bug: 169136276
+Bug: 158067689
+Bug: 151972133
+Bug: 158528747
+Bug: 167449286
+Bug: 166776693
+Bug: 163613349
+Bug: 155241766
+Bug: 158067689
+Bug: 158067689
+Bug: 169136276
+Bug: 175806230
+Bug: 173468448
+Bug: 173559623
+Bug: 174219212
+Bug: 170507310
+Bug: 173725277
+Bug: 192873984
+Bug: 175045928
+Bug: 175448875
+Bug: 175806230
+Bug: 170511085
+Bug: 155218010
+Bug: 177393442
+Bug: 199823932
+Bug: 183674818
+Bug: 175448877
+Bug: 176077958
+Bug: 177050087
+Bug: 180125905
+Bug: 203530090
+Bug: 203580415
+Bug: 171598214
+Bug: 178340230
+Change-Id: I9667d55296a0c73115a7a55d27e406b1291104ef
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ kernel/cgroup/cgroup.c      |  3 +++
+ kernel/cgroup/cpuset.c      |  1 +
+ kernel/dma/contiguous.c     |  1 +
+ kernel/events/core.c        |  1 +
+ kernel/fork.c               |  3 +++
+ kernel/irq/irqdesc.c        |  4 ++--
+ kernel/irq_work.c           |  1 +
+ kernel/kthread.c            |  1 +
+ kernel/pid.c                |  1 +
+ kernel/printk/printk.c      |  1 +
+ kernel/reboot.c             |  1 +
+ kernel/sched/core.c         | 30 +++++++++++++++++++++++++++---
+ kernel/sched/cpufreq.c      |  1 +
+ kernel/sched/cpupri.c       |  1 +
+ kernel/sched/cputime.c      |  4 ++++
+ kernel/sched/debug.c        |  4 +++-
+ kernel/sched/fair.c         |  7 +++++--
+ kernel/sched/pelt.c         |  1 +
+ kernel/sched/sched.h        |  8 ++++++--
+ kernel/softirq.c            |  3 +++
+ kernel/stacktrace.c         |  2 ++
+ kernel/stop_machine.c       |  1 +
+ kernel/time/tick-sched.c    |  2 ++
+ kernel/time/time.c          |  1 +
+ kernel/trace/power-traces.c |  4 +++-
+ 25 files changed, 76 insertions(+), 11 deletions(-)
+
+diff --git a/kernel/cgroup/cgroup.c b/kernel/cgroup/cgroup.c
+--- a/kernel/cgroup/cgroup.c
++++ b/kernel/cgroup/cgroup.c
+@@ -2505,6 +2505,7 @@ struct task_struct *cgroup_taskset_first(struct cgroup_taskset *tset,
+ 
+ 	return cgroup_taskset_next(tset, dst_cssp);
+ }
++EXPORT_SYMBOL_GPL(cgroup_taskset_first);
+ 
+ /**
+  * cgroup_taskset_next - iterate to the next task in taskset
+@@ -2551,6 +2552,7 @@ struct task_struct *cgroup_taskset_next(struct cgroup_taskset *tset,
+ 
+ 	return NULL;
+ }
++EXPORT_SYMBOL_GPL(cgroup_taskset_next);
+ 
+ /**
+  * cgroup_migrate_execute - migrate a taskset
+@@ -4565,6 +4567,7 @@ struct cgroup_subsys_state *css_next_child(struct cgroup_subsys_state *pos,
+ 		return next;
+ 	return NULL;
+ }
++EXPORT_SYMBOL_GPL(css_next_child);
+ 
+ /**
+  * css_next_descendant_pre - find the next descendant for pre-order walk
+diff --git a/kernel/cgroup/cpuset.c b/kernel/cgroup/cpuset.c
+--- a/kernel/cgroup/cpuset.c
++++ b/kernel/cgroup/cpuset.c
+@@ -1190,6 +1190,7 @@ void rebuild_sched_domains(void)
+ 	percpu_up_write(&cpuset_rwsem);
+ 	cpus_read_unlock();
+ }
++EXPORT_SYMBOL_GPL(rebuild_sched_domains);
+ 
+ /**
+  * update_tasks_cpumask - Update the cpumasks of tasks in the cpuset.
+diff --git a/kernel/dma/contiguous.c b/kernel/dma/contiguous.c
+--- a/kernel/dma/contiguous.c
++++ b/kernel/dma/contiguous.c
+@@ -58,6 +58,7 @@
+ #endif
+ 
+ struct cma *dma_contiguous_default_area;
++EXPORT_SYMBOL_GPL(dma_contiguous_default_area);
+ 
+ /*
+  * Default global CMA area size can be defined in kernel's .config.
+diff --git a/kernel/events/core.c b/kernel/events/core.c
+--- a/kernel/events/core.c
++++ b/kernel/events/core.c
+@@ -4583,6 +4583,7 @@ int perf_event_read_local(struct perf_event *event, u64 *value,
+ 
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(perf_event_read_local);
+ 
+ static int perf_event_read(struct perf_event *event, bool group)
+ {
+diff --git a/kernel/fork.c b/kernel/fork.c
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -122,6 +122,8 @@
+  */
+ #define MAX_THREADS FUTEX_TID_MASK
+ 
++EXPORT_TRACEPOINT_SYMBOL_GPL(task_newtask);
++
+ /*
+  * Protected counters by write_lock_irq(&tasklist_lock)
+  */
+@@ -142,6 +144,7 @@ static const char * const resident_page_types[] = {
+ DEFINE_PER_CPU(unsigned long, process_counts) = 0;
+ 
+ __cacheline_aligned DEFINE_RWLOCK(tasklist_lock);  /* outer */
++EXPORT_SYMBOL_GPL(tasklist_lock);
+ 
+ #ifdef CONFIG_PROVE_RCU
+ int lockdep_tasklist_lock_is_held(void)
+diff --git a/kernel/irq/irqdesc.c b/kernel/irq/irqdesc.c
+--- a/kernel/irq/irqdesc.c
++++ b/kernel/irq/irqdesc.c
+@@ -355,9 +355,7 @@ struct irq_desc *irq_to_desc(unsigned int irq)
+ {
+ 	return radix_tree_lookup(&irq_desc_tree, irq);
+ }
+-#ifdef CONFIG_KVM_BOOK3S_64_HV_MODULE
+ EXPORT_SYMBOL_GPL(irq_to_desc);
+-#endif
+ 
+ static void delete_irq_desc(unsigned int irq)
+ {
+@@ -936,6 +934,7 @@ unsigned int kstat_irqs_cpu(unsigned int irq, int cpu)
+ 	return desc && desc->kstat_irqs ?
+ 			*per_cpu_ptr(desc->kstat_irqs, cpu) : 0;
+ }
++EXPORT_SYMBOL_GPL(kstat_irqs_cpu);
+ 
+ static bool irq_is_nmi(struct irq_desc *desc)
+ {
+@@ -993,3 +992,4 @@ void __irq_set_lockdep_class(unsigned int irq, struct lock_class_key *lock_class
+ }
+ EXPORT_SYMBOL_GPL(__irq_set_lockdep_class);
+ #endif
++EXPORT_SYMBOL_GPL(kstat_irqs_usr);
+diff --git a/kernel/irq_work.c b/kernel/irq_work.c
+--- a/kernel/irq_work.c
++++ b/kernel/irq_work.c
+@@ -170,6 +170,7 @@ bool irq_work_queue_on(struct irq_work *work, int cpu)
+ 	return true;
+ #endif /* CONFIG_SMP */
+ }
++EXPORT_SYMBOL_GPL(irq_work_queue_on);
+ 
+ bool irq_work_needs_cpu(void)
+ {
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -541,6 +541,7 @@ void kthread_bind_mask(struct task_struct *p, const struct cpumask *mask)
+ {
+ 	__kthread_bind_mask(p, mask, TASK_UNINTERRUPTIBLE);
+ }
++EXPORT_SYMBOL_GPL(kthread_bind_mask);
+ 
+ /**
+  * kthread_bind - bind a just-created kthread to a cpu.
+diff --git a/kernel/pid.c b/kernel/pid.c
+--- a/kernel/pid.c
++++ b/kernel/pid.c
+@@ -421,6 +421,7 @@ struct task_struct *find_task_by_vpid(pid_t vnr)
+ {
+ 	return find_task_by_pid_ns(vnr, task_active_pid_ns(current));
+ }
++EXPORT_SYMBOL_GPL(find_task_by_vpid);
+ 
+ struct task_struct *find_get_task_by_vpid(pid_t nr)
+ {
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -3803,6 +3803,7 @@ int _printk_deferred(const char *fmt, ...)
+ 
+ 	return r;
+ }
++EXPORT_SYMBOL_GPL(_printk_deferred);
+ 
+ /*
+  * printk rate limiting, lifted from the networking subsystem.
+diff --git a/kernel/reboot.c b/kernel/reboot.c
+--- a/kernel/reboot.c
++++ b/kernel/reboot.c
+@@ -35,6 +35,7 @@ EXPORT_SYMBOL(cad_pid);
+ enum reboot_mode reboot_mode DEFAULT_REBOOT_MODE;
+ EXPORT_SYMBOL_GPL(reboot_mode);
+ enum reboot_mode panic_reboot_mode = REBOOT_UNDEFINED;
++EXPORT_SYMBOL_GPL(panic_reboot_mode);
+ 
+ /*
+  * This variable is used privately to keep track of whether or not
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -113,8 +113,10 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(sched_overutilized_tp);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(sched_util_est_cfs_tp);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(sched_util_est_se_tp);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(sched_update_nr_running_tp);
++EXPORT_TRACEPOINT_SYMBOL_GPL(sched_switch);
+ 
+ DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
++EXPORT_SYMBOL_GPL(runqueues);
+ 
+ #ifdef CONFIG_SCHED_DEBUG
+ /*
+@@ -129,6 +131,7 @@ DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
+ const_debug unsigned int sysctl_sched_features =
+ #include "features.h"
+ 	0;
++EXPORT_SYMBOL_GPL(sysctl_sched_features);
+ #undef SCHED_FEAT
+ 
+ /*
+@@ -554,6 +557,7 @@ void raw_spin_rq_lock_nested(struct rq *rq, int subclass)
+ 		raw_spin_unlock(lock);
+ 	}
+ }
++EXPORT_SYMBOL_GPL(raw_spin_rq_lock_nested);
+ 
+ bool raw_spin_rq_trylock(struct rq *rq)
+ {
+@@ -583,6 +587,7 @@ void raw_spin_rq_unlock(struct rq *rq)
+ {
+ 	raw_spin_unlock(rq_lockp(rq));
+ }
++EXPORT_SYMBOL_GPL(raw_spin_rq_unlock);
+ 
+ #ifdef CONFIG_SMP
+ /*
+@@ -601,6 +606,7 @@ void double_rq_lock(struct rq *rq1, struct rq *rq2)
+ 
+ 	double_rq_clock_clear_update(rq1, rq2);
+ }
++EXPORT_SYMBOL_GPL(double_rq_lock);
+ #endif
+ 
+ /*
+@@ -626,6 +632,7 @@ struct rq *__task_rq_lock(struct task_struct *p, struct rq_flags *rf)
+ 			cpu_relax();
+ 	}
+ }
++EXPORT_SYMBOL_GPL(__task_rq_lock);
+ 
+ /*
+  * task_rq_lock - lock p->pi_lock and lock the rq @p resides on.
+@@ -668,6 +675,7 @@ struct rq *task_rq_lock(struct task_struct *p, struct rq_flags *rf)
+ 			cpu_relax();
+ 	}
+ }
++EXPORT_SYMBOL_GPL(task_rq_lock);
+ 
+ /*
+  * RQ-clock updating methods:
+@@ -749,6 +757,7 @@ void update_rq_clock(struct rq *rq)
+ 	rq->clock += delta;
+ 	update_rq_clock_task(rq, delta);
+ }
++EXPORT_SYMBOL_GPL(update_rq_clock);
+ 
+ #ifdef CONFIG_SCHED_HRTICK
+ /*
+@@ -1045,6 +1054,7 @@ void resched_curr(struct rq *rq)
+ 	else
+ 		trace_sched_wake_idle_without_ipi(cpu);
+ }
++EXPORT_SYMBOL_GPL(resched_curr);
+ 
+ void resched_cpu(int cpu)
+ {
+@@ -1352,6 +1362,7 @@ static struct uclamp_se uclamp_default[UCLAMP_CNT];
+  *   * An admin modifying the cgroup cpu.uclamp.{min, max}
+  */
+ DEFINE_STATIC_KEY_FALSE(sched_uclamp_used);
++EXPORT_SYMBOL_GPL(sched_uclamp_used);
+ 
+ /* Integer rounded range for each bucket */
+ #define UCLAMP_BUCKET_DELTA DIV_ROUND_CLOSEST(SCHED_CAPACITY_SCALE, UCLAMP_BUCKETS)
+@@ -1524,6 +1535,7 @@ unsigned long uclamp_eff_value(struct task_struct *p, enum uclamp_id clamp_id)
+ 
+ 	return (unsigned long)uc_eff.value;
+ }
++EXPORT_SYMBOL_GPL(uclamp_eff_value);
+ 
+ /*
+  * When a task is enqueued on a rq, the clamp bucket currently defined by the
+@@ -2109,6 +2121,7 @@ void activate_task(struct rq *rq, struct task_struct *p, int flags)
+ 
+ 	p->on_rq = TASK_ON_RQ_QUEUED;
+ }
++EXPORT_SYMBOL_GPL(activate_task);
+ 
+ void deactivate_task(struct rq *rq, struct task_struct *p, int flags)
+ {
+@@ -2116,6 +2129,7 @@ void deactivate_task(struct rq *rq, struct task_struct *p, int flags)
+ 
+ 	dequeue_task(rq, p, flags);
+ }
++EXPORT_SYMBOL_GPL(deactivate_task);
+ 
+ static inline int __normal_prio(int policy, int rt_prio, int nice)
+ {
+@@ -2208,6 +2222,7 @@ void check_preempt_curr(struct rq *rq, struct task_struct *p, int flags)
+ 	if (task_on_rq_queued(rq->curr) && test_tsk_need_resched(rq->curr))
+ 		rq_clock_skip_update(rq);
+ }
++EXPORT_SYMBOL_GPL(check_preempt_curr);
+ 
+ #ifdef CONFIG_SMP
+ 
+@@ -3194,8 +3209,8 @@ void set_task_cpu(struct task_struct *p, unsigned int new_cpu)
+ 
+ 	__set_task_cpu(p, new_cpu);
+ }
++EXPORT_SYMBOL_GPL(set_task_cpu);
+ 
+-#ifdef CONFIG_NUMA_BALANCING
+ static void __migrate_swap_task(struct task_struct *p, int cpu)
+ {
+ 	if (task_on_rq_queued(p)) {
+@@ -3310,7 +3325,7 @@ int migrate_swap(struct task_struct *cur, struct task_struct *p,
+ out:
+ 	return ret;
+ }
+-#endif /* CONFIG_NUMA_BALANCING */
++EXPORT_SYMBOL_GPL(migrate_swap);
+ 
+ /*
+  * wait_task_inactive - wait for a thread to unschedule.
+@@ -3865,6 +3880,7 @@ void wake_up_if_idle(int cpu)
+ out:
+ 	rcu_read_unlock();
+ }
++EXPORT_SYMBOL_GPL(wake_up_if_idle);
+ 
+ bool cpus_share_cache(int this_cpu, int that_cpu)
+ {
+@@ -4985,6 +5001,7 @@ struct balance_callback balance_push_callback = {
+ 	.next = NULL,
+ 	.func = balance_push,
+ };
++EXPORT_SYMBOL_GPL(balance_push_callback);
+ 
+ static inline struct balance_callback *
+ __splice_balance_callbacks(struct rq *rq, bool split)
+@@ -5016,10 +5033,11 @@ static inline struct balance_callback *splice_balance_callbacks(struct rq *rq)
+ 	return __splice_balance_callbacks(rq, true);
+ }
+ 
+-static void __balance_callbacks(struct rq *rq)
++void __balance_callbacks(struct rq *rq)
+ {
+ 	do_balance_callbacks(rq, __splice_balance_callbacks(rq, false));
+ }
++EXPORT_SYMBOL_GPL(__balance_callbacks);
+ 
+ static inline void balance_callbacks(struct rq *rq, struct balance_callback *head)
+ {
+@@ -7307,6 +7325,7 @@ int available_idle_cpu(int cpu)
+ 
+ 	return 1;
+ }
++EXPORT_SYMBOL_GPL(available_idle_cpu);
+ 
+ /**
+  * idle_task - return the idle task for a given CPU.
+@@ -7804,11 +7823,13 @@ int sched_setscheduler(struct task_struct *p, int policy,
+ {
+ 	return _sched_setscheduler(p, policy, param, true);
+ }
++EXPORT_SYMBOL_GPL(sched_setscheduler);
+ 
+ int sched_setattr(struct task_struct *p, const struct sched_attr *attr)
+ {
+ 	return __sched_setscheduler(p, attr, true, true);
+ }
++EXPORT_SYMBOL_GPL(sched_setattr);
+ 
+ int sched_setattr_nocheck(struct task_struct *p, const struct sched_attr *attr)
+ {
+@@ -7834,6 +7855,7 @@ int sched_setscheduler_nocheck(struct task_struct *p, int policy,
+ {
+ 	return _sched_setscheduler(p, policy, param, false);
+ }
++EXPORT_SYMBOL_GPL(sched_setscheduler_nocheck);
+ 
+ /*
+  * SCHED_FIFO is a broken scheduler model; that is, it is fundamentally
+@@ -9800,7 +9822,9 @@ int in_sched_functions(unsigned long addr)
+  * Every task in system belongs to this group at bootup.
+  */
+ struct task_group root_task_group;
++EXPORT_SYMBOL_GPL(root_task_group);
+ LIST_HEAD(task_groups);
++EXPORT_SYMBOL_GPL(task_groups);
+ 
+ /* Cacheline aligned slab cache for task_group */
+ static struct kmem_cache *task_group_cache __read_mostly;
+diff --git a/kernel/sched/cpufreq.c b/kernel/sched/cpufreq.c
+--- a/kernel/sched/cpufreq.c
++++ b/kernel/sched/cpufreq.c
+@@ -72,3 +72,4 @@ bool cpufreq_this_cpu_can_update(struct cpufreq_policy *policy)
+ 		(policy->dvfs_possible_from_any_cpu &&
+ 		 rcu_dereference_sched(*this_cpu_ptr(&cpufreq_update_util_data)));
+ }
++EXPORT_SYMBOL_GPL(cpufreq_this_cpu_can_update);
+diff --git a/kernel/sched/cpupri.c b/kernel/sched/cpupri.c
+--- a/kernel/sched/cpupri.c
++++ b/kernel/sched/cpupri.c
+@@ -195,6 +195,7 @@ int cpupri_find_fitness(struct cpupri *cp, struct task_struct *p,
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(cpupri_find_fitness);
+ 
+ /**
+  * cpupri_set - update the CPU priority setting
+diff --git a/kernel/sched/cputime.c b/kernel/sched/cputime.c
+--- a/kernel/sched/cputime.c
++++ b/kernel/sched/cputime.c
+@@ -19,6 +19,7 @@
+  * compromise in place of having locks on each irq in account_system_time.
+  */
+ DEFINE_PER_CPU(struct irqtime, cpu_irqtime);
++EXPORT_PER_CPU_SYMBOL_GPL(cpu_irqtime);
+ 
+ static int sched_clock_irqtime;
+ 
+@@ -486,6 +487,7 @@ void thread_group_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
+ 	*ut = cputime.utime;
+ 	*st = cputime.stime;
+ }
++EXPORT_SYMBOL_GPL(thread_group_cputime_adjusted);
+ 
+ #else /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE: */
+ 
+@@ -656,6 +658,8 @@ void thread_group_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
+ 	thread_group_cputime(p, &cputime);
+ 	cputime_adjust(&cputime, &p->signal->prev_cputime, ut, st);
+ }
++EXPORT_SYMBOL_GPL(thread_group_cputime_adjusted);
++
+ #endif /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
+ 
+ #ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
+diff --git a/kernel/sched/debug.c b/kernel/sched/debug.c
+--- a/kernel/sched/debug.c
++++ b/kernel/sched/debug.c
+@@ -47,9 +47,10 @@ static unsigned long nsec_low(unsigned long long nsec)
+ #define SCHED_FEAT(name, enabled)	\
+ 	#name ,
+ 
+-static const char * const sched_feat_names[] = {
++const char * const sched_feat_names[] = {
+ #include "features.h"
+ };
++EXPORT_SYMBOL_GPL(sched_feat_names);
+ 
+ #undef SCHED_FEAT
+ 
+@@ -78,6 +79,7 @@ static int sched_feat_show(struct seq_file *m, void *v)
+ struct static_key sched_feat_keys[__SCHED_FEAT_NR] = {
+ #include "features.h"
+ };
++EXPORT_SYMBOL_GPL(sched_feat_keys);
+ 
+ #undef SCHED_FEAT
+ 
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -72,6 +72,7 @@
+  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
+  */
+ unsigned int sysctl_sched_latency			= 6000000ULL;
++EXPORT_SYMBOL_GPL(sysctl_sched_latency);
+ static unsigned int normalized_sysctl_sched_latency	= 6000000ULL;
+ 
+ /*
+@@ -4944,7 +4945,7 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+ 		resched_curr(rq_of(cfs_rq));
+ }
+ 
+-static void set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
++void set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+ {
+ 	clear_buddies(cfs_rq, se);
+ 
+@@ -4980,6 +4981,7 @@ static void set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+ 
+ 	se->prev_sum_exec_runtime = se->sum_exec_runtime;
+ }
++EXPORT_SYMBOL_GPL(set_next_entity);
+ 
+ static int
+ wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se);
+@@ -8099,7 +8101,8 @@ static bool yield_to_task_fair(struct rq *rq, struct task_struct *p)
+  *      rewrite all of this once again.]
+  */
+ 
+-static unsigned long __read_mostly max_load_balance_interval = HZ/10;
++unsigned long __read_mostly max_load_balance_interval = HZ/10;
++EXPORT_SYMBOL_GPL(max_load_balance_interval);
+ 
+ enum fbq_type { regular, remote, all };
+ 
+diff --git a/kernel/sched/pelt.c b/kernel/sched/pelt.c
+--- a/kernel/sched/pelt.c
++++ b/kernel/sched/pelt.c
+@@ -302,6 +302,7 @@ int __update_load_avg_blocked_se(u64 now, struct sched_entity *se)
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(__update_load_avg_blocked_se);
+ 
+ int __update_load_avg_se(u64 now, struct cfs_rq *cfs_rq, struct sched_entity *se)
+ {
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -1732,8 +1732,6 @@ enum numa_faults_stats {
+ };
+ extern void sched_setnuma(struct task_struct *p, int node);
+ extern int migrate_task_to(struct task_struct *p, int cpu);
+-extern int migrate_swap(struct task_struct *p, struct task_struct *t,
+-			int cpu, int scpu);
+ extern void init_numa_balancing(unsigned long clone_flags, struct task_struct *p);
+ #else
+ static inline void
+@@ -1744,6 +1742,9 @@ init_numa_balancing(unsigned long clone_flags, struct task_struct *p)
+ 
+ #ifdef CONFIG_SMP
+ 
++extern int migrate_swap(struct task_struct *p, struct task_struct *t,
++			int cpu, int scpu);
++
+ static inline void
+ queue_balance_callback(struct rq *rq,
+ 		       struct balance_callback *head,
+@@ -2033,6 +2034,8 @@ static __always_inline bool static_branch_##name(struct static_key *key) \
+ #undef SCHED_FEAT
+ 
+ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
++extern const char * const sched_feat_names[__SCHED_FEAT_NR];
++
+ #define sched_feat(x) (static_branch_##x(&sched_feat_keys[__SCHED_FEAT_##x]))
+ 
+ #else /* !CONFIG_JUMP_LABEL */
+@@ -2337,6 +2340,7 @@ static inline struct task_struct *get_push_task(struct rq *rq)
+ 
+ extern int push_cpu_stop(void *arg);
+ 
++extern unsigned long __read_mostly max_load_balance_interval;
+ #endif
+ 
+ #ifdef CONFIG_CPU_IDLE
+diff --git a/kernel/softirq.c b/kernel/softirq.c
+--- a/kernel/softirq.c
++++ b/kernel/softirq.c
+@@ -33,6 +33,8 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/irq.h>
+ 
++EXPORT_TRACEPOINT_SYMBOL_GPL(irq_handler_entry);
++
+ /*
+    - No shared variables, all the data are CPU local.
+    - If a softirq needs serialization, let it serialize itself
+@@ -59,6 +61,7 @@ EXPORT_PER_CPU_SYMBOL(irq_stat);
+ static struct softirq_action softirq_vec[NR_SOFTIRQS] __cacheline_aligned_in_smp;
+ 
+ DEFINE_PER_CPU(struct task_struct *, ksoftirqd);
++EXPORT_PER_CPU_SYMBOL_GPL(ksoftirqd);
+ 
+ const char * const softirq_to_name[NR_SOFTIRQS] = {
+ 	"HI", "TIMER", "NET_TX", "NET_RX", "BLOCK", "IRQ_POLL",
+diff --git a/kernel/stacktrace.c b/kernel/stacktrace.c
+--- a/kernel/stacktrace.c
++++ b/kernel/stacktrace.c
+@@ -151,6 +151,7 @@ unsigned int stack_trace_save_tsk(struct task_struct *tsk, unsigned long *store,
+ 	put_task_stack(tsk);
+ 	return c.len;
+ }
++EXPORT_SYMBOL_GPL(stack_trace_save_tsk);
+ 
+ /**
+  * stack_trace_save_regs - Save a stack trace based on pt_regs into a storage array
+@@ -174,6 +175,7 @@ unsigned int stack_trace_save_regs(struct pt_regs *regs, unsigned long *store,
+ 	arch_stack_walk(consume_entry, &c, current, regs);
+ 	return c.len;
+ }
++EXPORT_SYMBOL_GPL(stack_trace_save_regs);
+ 
+ #ifdef CONFIG_HAVE_RELIABLE_STACKTRACE
+ /**
+diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
+--- a/kernel/stop_machine.c
++++ b/kernel/stop_machine.c
+@@ -388,6 +388,7 @@ bool stop_one_cpu_nowait(unsigned int cpu, cpu_stop_fn_t fn, void *arg,
+ 	*work_buf = (struct cpu_stop_work){ .fn = fn, .arg = arg, .caller = _RET_IP_, };
+ 	return cpu_stop_queue_work(cpu, work_buf);
+ }
++EXPORT_SYMBOL_GPL(stop_one_cpu_nowait);
+ 
+ static bool queue_stop_cpus_work(const struct cpumask *cpumask,
+ 				 cpu_stop_fn_t fn, void *arg,
+diff --git a/kernel/time/tick-sched.c b/kernel/time/tick-sched.c
+--- a/kernel/time/tick-sched.c
++++ b/kernel/time/tick-sched.c
+@@ -1251,6 +1251,7 @@ ktime_t tick_nohz_get_sleep_length(ktime_t *delta_next)
+ 
+ 	return ktime_sub(next_event, now);
+ }
++EXPORT_SYMBOL_GPL(tick_nohz_get_sleep_length);
+ 
+ /**
+  * tick_nohz_get_idle_calls_cpu - return the current idle calls counter value
+@@ -1264,6 +1265,7 @@ unsigned long tick_nohz_get_idle_calls_cpu(int cpu)
+ 
+ 	return ts->idle_calls;
+ }
++EXPORT_SYMBOL_GPL(tick_nohz_get_idle_calls_cpu);
+ 
+ /**
+  * tick_nohz_get_idle_calls - return the current idle calls counter value
+diff --git a/kernel/time/time.c b/kernel/time/time.c
+--- a/kernel/time/time.c
++++ b/kernel/time/time.c
+@@ -686,6 +686,7 @@ u64 nsec_to_clock_t(u64 x)
+ 	return div_u64(x * 9, (9ull * NSEC_PER_SEC + (USER_HZ / 2)) / USER_HZ);
+ #endif
+ }
++EXPORT_SYMBOL_GPL(nsec_to_clock_t);
+ 
+ u64 jiffies64_to_nsecs(u64 j)
+ {
+diff --git a/kernel/trace/power-traces.c b/kernel/trace/power-traces.c
+--- a/kernel/trace/power-traces.c
++++ b/kernel/trace/power-traces.c
+@@ -18,4 +18,6 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(suspend_resume);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(cpu_idle);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(cpu_frequency);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(powernv_throttle);
+-
++EXPORT_TRACEPOINT_SYMBOL_GPL(device_pm_callback_start);
++EXPORT_TRACEPOINT_SYMBOL_GPL(device_pm_callback_end);
++EXPORT_TRACEPOINT_SYMBOL_GPL(clock_set_rate);

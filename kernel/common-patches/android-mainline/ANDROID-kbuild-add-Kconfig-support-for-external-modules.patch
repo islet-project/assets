@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Will McVicker <willmcvicker@google.com>
+Date: Tue, 7 Dec 2021 10:01:14 -0800
+Subject: ANDROID: kbuild: add Kconfig support for external modules
+
+Kbuild has supported external modules for quite some time now, but
+unfortunately it doesn't support Kconfig for external modules. This
+significantly restricts the flexibility of using external modules. For
+example, we can't define Kconfig dependencies to conditionally include
+external modules based on a given SoC or Architecture.
+
+To support Kconfig for external modules, we can hook in an external
+Kconfig into the base Kconfig so that the external Kconfig gets looped
+into kbuild.
+
+This patch defines the new build variable KCONFIG_EXT_PREFIX which can
+be used to point kbuild to the directory that includes a file named
+Kconfig.ext. Just like all Kconfigs, the path needs to be relative to
+KERNEL_SRC. That applies to all Kconfigs that Kconfig.ext sources.
+
+Additionally, since the kconfig parser doesn't support conditional
+statements, we need to add a Kconfig.ext placeholder for when
+KCONFIG_EXT_PREFIX isn't defined.
+
+Bug: 210148006
+Signed-off-by: Will McVicker <willmcvicker@google.com>
+Change-Id: I84790211b6c87b50bd20208d5b0f7bf228ce694b
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ Kconfig     | 3 +++
+ Kconfig.ext | 3 +++
+ 2 files changed, 6 insertions(+)
+ create mode 100644 Kconfig.ext
+
+diff --git a/Kconfig b/Kconfig
+--- a/Kconfig
++++ b/Kconfig
+@@ -30,3 +30,6 @@ source "lib/Kconfig"
+ source "lib/Kconfig.debug"
+ 
+ source "Documentation/Kconfig"
++
++# ANDROID: Set KCONFIG_EXT_PREFIX to decend into an external project.
++source "$(KCONFIG_EXT_PREFIX)Kconfig.ext"
+diff --git a/Kconfig.ext b/Kconfig.ext
+new file mode 100644
+--- /dev/null
++++ b/Kconfig.ext
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: GPL-2.0
++# This file is intentionally empty. It's used as a placeholder for when
++# KCONFIG_EXT_PREFIX isn't defined.

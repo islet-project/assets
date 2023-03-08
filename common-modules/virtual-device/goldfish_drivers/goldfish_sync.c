@@ -35,6 +35,7 @@
 #include <linux/syscalls.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
+#include <linux/fdtable.h>
 
 #include <goldfish/goldfish_sync.h>
 
@@ -133,8 +134,7 @@ enum sync_reg_id {
 	SYNC_REG_INIT				= 0x18,
 };
 
-#define GOLDFISH_SYNC_MAX_CMDS 256
-#define GOLDFISH_SYNC_MAX_CMDS_STACK 32
+#define GOLDFISH_SYNC_MAX_CMDS 32
 
 /* The driver state: */
 struct goldfish_sync_state {
@@ -153,9 +153,8 @@ struct goldfish_sync_state {
 
 	/* Buffer holding commands issued from host. */
 	struct goldfish_sync_hostcmd to_do[GOLDFISH_SYNC_MAX_CMDS];
-	u16 to_do_begin;
-	u16 to_do_end;
-	/* Protects the to_do fields */
+	u32 to_do_end;
+	/* Protects to_do and to_do_end */
 	spinlock_t to_do_lock;
 
 	/* Buffers for the reading or writing
@@ -324,7 +323,7 @@ goldfish_sync_timeline_fence_enable_signaling(struct dma_fence *fence)
 static void goldfish_sync_timeline_fence_value_str(struct dma_fence *fence,
 						   char *str, int size)
 {
-	snprintf(str, size, "%d", fence->seqno);
+	snprintf(str, size, "%llu", fence->seqno);
 }
 
 static void goldfish_sync_timeline_fence_timeline_value_str(
@@ -397,44 +396,25 @@ static void goldfish_sync_fence_destroy(const struct fence_data *fence)
 	goldfish_sync_pt_destroy(fence->pt);
 }
 
-static inline bool
+static inline void
 goldfish_sync_cmd_queue(struct goldfish_sync_state *sync_state,
 			u32 cmd,
 			u64 handle,
 			u32 time_arg,
 			u64 hostcmd_handle)
 {
-	unsigned to_do_end = sync_state->to_do_end;
-	struct goldfish_sync_hostcmd *to_do = sync_state->to_do;
 	struct goldfish_sync_hostcmd *to_add;
 
-	if (to_do_end >= GOLDFISH_SYNC_MAX_CMDS) {
-		const unsigned to_do_begin = sync_state->to_do_begin;
-		const unsigned to_do_size = to_do_end - to_do_begin;
+	WARN_ON(sync_state->to_do_end == GOLDFISH_SYNC_MAX_CMDS);
 
-		/*
-		 * this memmove should not run often if
-		 * goldfish_sync_work_item_fn grabs commands faster than they
-		 * arrive.
-		 */
-		memmove(&to_do[0], &to_do[to_do_begin],
-			sizeof(*to_do) * to_do_size);
-		to_do_end = to_do_size;
-		sync_state->to_do_begin = 0;
-
-		if (to_do_end >= GOLDFISH_SYNC_MAX_CMDS)
-			return false;
-	}
-
-	to_add = &to_do[to_do_end];
+	to_add = &sync_state->to_do[sync_state->to_do_end];
 
 	to_add->cmd = cmd;
 	to_add->handle = handle;
 	to_add->time_arg = time_arg;
 	to_add->hostcmd_handle = hostcmd_handle;
 
-	sync_state->to_do_end = to_do_end + 1;
-	return true;
+	++sync_state->to_do_end;
 }
 
 static inline void
@@ -517,11 +497,11 @@ goldfish_sync_interrupt_impl(struct goldfish_sync_state *sync_state)
 		time_r = batch_hostcmd->time_arg;
 		hostcmd_handle_rw = batch_hostcmd->hostcmd_handle;
 
-		BUG_ON(!goldfish_sync_cmd_queue(sync_state,
-						command_r,
-						handle_rw,
-						time_r,
-						hostcmd_handle_rw));
+		goldfish_sync_cmd_queue(sync_state,
+					command_r,
+					handle_rw,
+					time_r,
+					hostcmd_handle_rw);
 	}
 	spin_unlock(&sync_state->to_do_lock);
 
@@ -561,37 +541,22 @@ static irqreturn_t goldfish_sync_interrupt(int irq, void *dev_id)
  */
 static u32 __must_check
 goldfish_sync_grab_commands(struct goldfish_sync_state *sync_state,
-			    struct goldfish_sync_hostcmd *dst,
-			    const u32 dst_size)
+			    struct goldfish_sync_hostcmd *dst)
 {
-	u32 result;
-	unsigned to_do_begin;
-	unsigned to_do_end;
-	unsigned to_do_size;
-	struct goldfish_sync_hostcmd *to_do;
+	u32 to_do_end;
+	u32 i;
 	unsigned long irq_flags;
 
 	spin_lock_irqsave(&sync_state->to_do_lock, irq_flags);
 
-	to_do = sync_state->to_do;
-	to_do_begin = sync_state->to_do_begin;
 	to_do_end = sync_state->to_do_end;
-	to_do_size = to_do_end - to_do_begin;
-
-	if (to_do_size > dst_size) {
-		memcpy(dst, &to_do[to_do_begin], sizeof(*to_do) * dst_size);
-		sync_state->to_do_begin = to_do_begin + dst_size;
-		result = dst_size;
-	} else {
-		memcpy(dst, &to_do[to_do_begin], sizeof(*to_do) * to_do_size);
-		sync_state->to_do_begin = 0;
-		sync_state->to_do_end = 0;
-		result = to_do_size;
-	}
+	for (i = 0; i < to_do_end; i++)
+		dst[i] = sync_state->to_do[i];
+	sync_state->to_do_end = 0;
 
 	spin_unlock_irqrestore(&sync_state->to_do_lock, irq_flags);
 
-	return result;
+	return to_do_end;
 }
 
 void goldfish_sync_run_hostcmd(struct goldfish_sync_state *sync_state,
@@ -652,22 +617,16 @@ static void goldfish_sync_work_item_fn(struct work_struct *input)
 	struct goldfish_sync_state *sync_state =
 		container_of(input, struct goldfish_sync_state, work_item);
 
-	struct goldfish_sync_hostcmd to_run[GOLDFISH_SYNC_MAX_CMDS_STACK];
+	struct goldfish_sync_hostcmd to_run[GOLDFISH_SYNC_MAX_CMDS];
+	u32 to_do_end;
+	u32 i;
 
 	mutex_lock(&sync_state->mutex_lock);
 
-	while (true) {
-		u32 i;
-		u32 to_do_end =
-			goldfish_sync_grab_commands(sync_state, to_run,
-						    ARRAY_SIZE(to_run));
+	to_do_end = goldfish_sync_grab_commands(sync_state, to_run);
 
-		for (i = 0; i < to_do_end; i++)
-			goldfish_sync_run_hostcmd(sync_state, &to_run[i]);
-
-		if (to_do_end < ARRAY_SIZE(to_run))
-			break;
-	}
+	for (i = 0; i < to_do_end; i++)
+		goldfish_sync_run_hostcmd(sync_state, &to_run[i]);
 
 	mutex_unlock(&sync_state->mutex_lock);
 }

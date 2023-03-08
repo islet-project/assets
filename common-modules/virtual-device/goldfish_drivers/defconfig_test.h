@@ -9,7 +9,7 @@
 #endif
 
 #ifdef CONFIG_CFG80211
-#error CONFIG_BLK_DEV_MD is a module in virtual_device.fragment
+#error CONFIG_CFG80211 is a module in virtual_device.fragment
 #endif
 
 #ifndef CONFIG_NAMESPACES
@@ -24,8 +24,11 @@
 #error CONFIG_COMPAT or CONFIG_COMPAT_32 is required
 #endif
 
+/* b/241785095 */
+#ifndef CONFIG_ARM64_16K_PAGES
 #ifndef CONFIG_INCREMENTAL_FS
 #error CONFIG_INCREMENTAL_FS is required
+#endif
 #endif
 
 #ifdef CONFIG_BLK_DEV_MD
@@ -66,6 +69,10 @@
 
 #ifdef CONFIG_TEST_MEMINIT
 #error CONFIG_TEST_MEMINIT is a module in virtual_device.fragment
+#endif
+
+#ifdef CONFIG_USB_DUMMY_HCD
+#error CONFIG_USB_DUMMY_HCD is a module in virtual_device.fragment
 #endif
 
 #ifdef CONFIG_VIRTIO_BLK

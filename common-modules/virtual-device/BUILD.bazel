@@ -1,0 +1,880 @@
+# Copyright (C) 2021 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_skylib//lib:sets.bzl", "sets")
+load(
+    "//build/kernel/kleaf:kernel.bzl",
+    "ddk_headers",
+    "ddk_module",
+    "kernel_build",
+    "kernel_dtstree",
+    "kernel_images",
+    "kernel_module_group",
+    "kernel_modules_install",
+    "merged_kernel_uapi_headers",
+)
+load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
+load("//build/bazel_common_rules/test_mappings:test_mappings.bzl", "test_mappings_dist")
+load("//build/bazel_common_rules/exec:exec.bzl", "exec")
+load("//common:modules.bzl", "COMMON_GKI_MODULES_LIST")
+
+filegroup(
+    name = "common_sources",
+    srcs = glob(
+        [
+            "*",
+            "configs/*",
+        ],
+        exclude = [
+            "Makefile",
+            "BUILD.bazel",
+        ],
+    ),
+)
+
+filegroup(
+    name = "arm_fragment",
+    srcs = glob(
+        [
+            "arm.fragment",
+        ],
+    ),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "goldfish_address_space_sources",
+    srcs = [
+        "goldfish_drivers/defconfig_test.h",
+        "goldfish_drivers/goldfish_address_space.c",
+    ],
+)
+
+filegroup(
+    name = "goldfish_pipe_sources",
+    srcs = [
+        "goldfish_drivers/defconfig_test.h",
+        "goldfish_drivers/goldfish_pipe.h",
+        "goldfish_drivers/goldfish_pipe_base.c",
+        "goldfish_drivers/goldfish_pipe_qemu.h",
+        "goldfish_drivers/goldfish_pipe_v1.c",
+        "goldfish_drivers/goldfish_pipe_v2.c",
+    ],
+)
+
+filegroup(
+    name = "goldfish_sync_sources",
+    srcs = [
+        "goldfish_drivers/defconfig_test.h",
+        "goldfish_drivers/goldfish_sync.c",
+    ],
+)
+
+filegroup(
+    name = "virtual_device_aarch64_common_sources",
+    srcs = [
+        ":common_sources",
+        "//common:kernel_aarch64_sources",
+    ],
+)
+
+filegroup(
+    name = "virtual_device_arm_common_sources",
+    srcs = [
+        ":common_sources",
+        # We don't have an arm-specific source list, so use the common one.
+        "//common:common_kernel_sources",
+    ],
+)
+
+filegroup(
+    name = "virtual_device_riscv64_common_sources",
+    srcs = [
+        ":common_sources",
+        "//common:kernel_riscv64_sources",
+    ],
+)
+
+filegroup(
+    name = "virtual_device_x86_64_common_sources",
+    srcs = [
+        ":common_sources",
+        "//common:kernel_x86_64_sources",
+    ],
+)
+
+ddk_headers(
+    name = "common_headers",
+    hdrs = glob(["uapi/**/*.h"]),
+    includes = ["."],
+    linux_includes = ["uapi"],
+)
+
+ddk_headers(
+    name = "common_headers_aarch64",
+    hdrs = [
+        # uapi/ has highest priority
+        # do not sort
+        ":common_headers",
+        "//common:all_headers_aarch64",
+    ],
+)
+
+ddk_headers(
+    name = "common_headers_arm",
+    hdrs = [
+        # uapi/ has highest priority
+        # do not sort
+        ":common_headers",
+        "//common:all_headers_arm",
+    ],
+)
+
+ddk_headers(
+    name = "common_headers_riscv64",
+    hdrs = [
+        # uapi/ has highest priority
+        # do not sort
+        ":common_headers",
+        "//common:all_headers_riscv64",
+    ],
+)
+
+ddk_headers(
+    name = "common_headers_x86_64",
+    hdrs = [
+        # uapi/ has highest priority
+        # do not sort
+        ":common_headers",
+        "//common:all_headers_x86_64",
+    ],
+)
+
+_VIRT_COMMON_MODULES = [
+    # keep sorted
+    "btintel.ko",
+    "btrtl.ko",
+    "btusb.ko",
+    "dummy-cpufreq.ko",
+    "dummy_hcd.ko",
+    "failover.ko",
+    "goldfish_battery.ko",
+    "gs_usb.ko",
+    "hci_vhci.ko",
+    "mac80211_hwsim.ko",
+    "mt76.ko",
+    "mt76-usb.ko",
+    "mt76x0-common.ko",
+    "mt76x02-lib.ko",
+    "mt76x02-usb.ko",
+    "mt76x0u.ko",
+    "mt76x2-common.ko",
+    "mt76x2u.ko",
+    "net_failover.ko",
+    "pulse8-cec.ko",
+    "rtc-test.ko",
+    "system_heap.ko",
+    "usbip-core.ko",
+    "vhci-hcd.ko",
+    "virt_wifi.ko",
+    "virtio-gpu.ko",
+    "virtio-rng.ko",
+    "virtio_balloon.ko",
+    "virtio_blk.ko",
+    "virtio_console.ko",
+    "virtio_dma_buf.ko",
+    "virtio_input.ko",
+    "virtio_net.ko",
+    "virtio_pci.ko",
+    "virtio_pci_legacy_dev.ko",
+    "virtio_pci_modern_dev.ko",
+    "virtio_snd.ko",
+    "vkms.ko",
+    "vmw_vsock_virtio_transport.ko",
+]
+
+_VIRT_AARCH64_MODULES = [
+    # keep sorted
+    "ambakmi.ko",
+    "armmmci.ko",
+    "clk-vexpress-osc.ko",
+    "drm_dma_helper.ko",
+    "nd_virtio.ko",
+    "pl111_drm.ko",
+    "psmouse.ko",
+    "vexpress-config.ko",
+    "vexpress-sysreg.ko",
+    "virtio_mmio.ko",
+    "virtio_pmem.ko",
+]
+
+_VIRT_RISCV64_MODULES = [
+    # keep sorted
+    "nd_virtio.ko",
+    "virtio_pmem.ko",
+]
+
+_GKI_MODULES_BASENAMES = [
+    paths.basename(module)
+    for module in COMMON_GKI_MODULES_LIST
+]
+
+kernel_build(
+    name = "virtual_device_x86_64",
+    srcs = [":virtual_device_x86_64_common_sources"],
+    outs = [],
+    base_kernel = "//common:kernel_x86_64",
+    build_config = "build.config.virtual_device.x86_64",
+    module_outs = _VIRT_COMMON_MODULES + [
+        # keep sorted
+        "nd_virtio.ko",
+        "test_meminit.ko",
+        "virtio_pmem.ko",
+    ],
+    strip_modules = True,
+)
+
+ddk_module(
+    name = "x86_64/goldfish_drivers/goldfish_address_space",
+    srcs = [":goldfish_address_space_sources"],
+    out = "goldfish_drivers/goldfish_address_space.ko",
+    kernel_build = ":virtual_device_x86_64",
+    deps = [":common_headers_x86_64"],
+)
+
+ddk_module(
+    name = "x86_64/goldfish_drivers/goldfish_pipe",
+    srcs = [":goldfish_pipe_sources"],
+    out = "goldfish_drivers/goldfish_pipe.ko",
+    kernel_build = ":virtual_device_x86_64",
+    deps = [":common_headers_x86_64"],
+)
+
+ddk_module(
+    name = "x86_64/goldfish_drivers/goldfish_sync",
+    srcs = [":goldfish_sync_sources"],
+    out = "goldfish_drivers/goldfish_sync.ko",
+    kernel_build = ":virtual_device_x86_64",
+    deps = [":common_headers_x86_64"],
+)
+
+kernel_module_group(
+    name = "virtual_device_x86_64_external_modules",
+    srcs = [
+        ":x86_64/goldfish_drivers/goldfish_address_space",
+        ":x86_64/goldfish_drivers/goldfish_pipe",
+        ":x86_64/goldfish_drivers/goldfish_sync",
+    ],
+)
+
+kernel_modules_install(
+    name = "virtual_device_x86_64_modules_install",
+    kernel_build = ":virtual_device_x86_64",
+    kernel_modules = [
+        ":virtual_device_x86_64_external_modules",
+    ],
+)
+
+merged_kernel_uapi_headers(
+    name = "virtual_device_x86_64_merged_kernel_uapi_headers",
+    kernel_build = ":virtual_device_x86_64",
+    kernel_modules = [
+        ":virtual_device_x86_64_external_modules",
+    ],
+)
+
+kernel_images(
+    name = "virtual_device_x86_64_images",
+    build_initramfs = True,
+    kernel_build = ":virtual_device_x86_64",
+    kernel_modules_install = ":virtual_device_x86_64_modules_install",
+    modules_blocklist = "modules.blocklist",
+)
+
+# Workaround for b/201687176.
+# TODO(b/201687176): Clean up when we have a better solution for TEST_MAPPING.
+test_mappings_dist(
+    name = "virtual_device_x86_64_test_mappings_dist",
+    dist_dir = "out/virtual_device_x86_64/dist",
+)
+
+copy_to_dist_dir(
+    name = "virtual_device_x86_64_copy_to_dist_dir",
+    data = [
+        ":virtual_device_x86_64",
+        ":virtual_device_x86_64_images",
+        ":virtual_device_x86_64_merged_kernel_uapi_headers",
+        ":virtual_device_x86_64_modules_install",
+        "//common:kernel_x86_64",
+        "//common:kernel_x86_64_additional_artifacts",
+    ],
+    dist_dir = "out/virtual_device_x86_64/dist",
+    flat = True,
+)
+
+exec(
+    name = "virtual_device_x86_64_dist",
+    data = [
+        ":virtual_device_x86_64_copy_to_dist_dir",
+        ":virtual_device_x86_64_test_mappings_dist",
+    ],
+    script = """
+        $(rootpath :virtual_device_x86_64_test_mappings_dist) $@
+        $(rootpath :virtual_device_x86_64_copy_to_dist_dir) $@
+    """,
+)
+
+kernel_build(
+    name = "virtual_device_aarch64",
+    srcs = [":virtual_device_aarch64_common_sources"],
+    outs = [
+        "arch/arm64/boot/dts/arm/fvp-base-revc.dtb",
+    ],
+    base_kernel = "//common:kernel_aarch64",
+    build_config = "build.config.virtual_device.aarch64",
+    module_outs = _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES,
+    strip_modules = True,
+)
+
+ddk_module(
+    name = "aarch64/goldfish_drivers/goldfish_address_space",
+    srcs = [":goldfish_address_space_sources"],
+    out = "goldfish_drivers/goldfish_address_space.ko",
+    kernel_build = ":virtual_device_aarch64",
+    deps = [":common_headers_aarch64"],
+)
+
+ddk_module(
+    name = "aarch64/goldfish_drivers/goldfish_pipe",
+    srcs = [":goldfish_pipe_sources"],
+    out = "goldfish_drivers/goldfish_pipe.ko",
+    kernel_build = ":virtual_device_aarch64",
+    deps = [":common_headers_aarch64"],
+)
+
+ddk_module(
+    name = "aarch64/goldfish_drivers/goldfish_sync",
+    srcs = [":goldfish_sync_sources"],
+    out = "goldfish_drivers/goldfish_sync.ko",
+    kernel_build = ":virtual_device_aarch64",
+    deps = [":common_headers_aarch64"],
+)
+
+kernel_module_group(
+    name = "virtual_device_aarch64_external_modules",
+    srcs = [
+        ":aarch64/goldfish_drivers/goldfish_address_space",
+        ":aarch64/goldfish_drivers/goldfish_pipe",
+        ":aarch64/goldfish_drivers/goldfish_sync",
+    ],
+)
+
+kernel_modules_install(
+    name = "virtual_device_aarch64_modules_install",
+    kernel_build = ":virtual_device_aarch64",
+    kernel_modules = [
+        ":virtual_device_aarch64_external_modules",
+    ],
+)
+
+merged_kernel_uapi_headers(
+    name = "virtual_device_aarch64_merged_kernel_uapi_headers",
+    kernel_build = ":virtual_device_aarch64",
+    kernel_modules = [
+        ":virtual_device_aarch64_external_modules",
+    ],
+)
+
+kernel_images(
+    name = "virtual_device_aarch64_images",
+    build_initramfs = True,
+    kernel_build = ":virtual_device_aarch64",
+    kernel_modules_install = ":virtual_device_aarch64_modules_install",
+    modules_blocklist = "modules.blocklist",
+)
+
+# Workaround for b/201687176.
+# TODO(b/201687176): Clean up when we have a better solution for TEST_MAPPING.
+test_mappings_dist(
+    name = "virtual_device_aarch64_test_mappings_dist",
+    dist_dir = "out/virtual_device_aarch64/dist",
+)
+
+copy_to_dist_dir(
+    name = "virtual_device_aarch64_copy_to_dist_dir",
+    data = [
+        ":virtual_device_aarch64",
+        ":virtual_device_aarch64_images",
+        ":virtual_device_aarch64_merged_kernel_uapi_headers",
+        ":virtual_device_aarch64_modules_install",
+        "//common:kernel_aarch64",
+        "//common:kernel_aarch64_additional_artifacts",
+    ],
+    dist_dir = "out/virtual_device_aarch64/dist",
+    flat = True,
+)
+
+exec(
+    name = "virtual_device_aarch64_dist",
+    data = [
+        ":virtual_device_aarch64_copy_to_dist_dir",
+        ":virtual_device_aarch64_test_mappings_dist",
+    ],
+    script = """
+        $(rootpath :virtual_device_aarch64_test_mappings_dist) $@
+        $(rootpath :virtual_device_aarch64_copy_to_dist_dir) $@
+    """,
+)
+
+kernel_build(
+    name = "virtual_device_aarch64_16k",
+    srcs = [":virtual_device_aarch64_common_sources"],
+    outs = [
+        "arch/arm64/boot/dts/arm/fvp-base-revc.dtb",
+    ],
+    base_kernel = "//common:kernel_aarch64_16k",
+    build_config = "build.config.virtual_device.aarch64.16k",
+    module_outs = _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES,
+    strip_modules = True,
+)
+
+ddk_module(
+    name = "aarch64_16k/goldfish_drivers/goldfish_address_space",
+    srcs = [":goldfish_address_space_sources"],
+    out = "goldfish_drivers/goldfish_address_space.ko",
+    kernel_build = ":virtual_device_aarch64_16k",
+    deps = [":common_headers_aarch64"],
+)
+
+ddk_module(
+    name = "aarch64_16k/goldfish_drivers/goldfish_pipe",
+    srcs = [":goldfish_pipe_sources"],
+    out = "goldfish_drivers/goldfish_pipe.ko",
+    kernel_build = ":virtual_device_aarch64_16k",
+    deps = [":common_headers_aarch64"],
+)
+
+ddk_module(
+    name = "aarch64_16k/goldfish_drivers/goldfish_sync",
+    srcs = [":goldfish_sync_sources"],
+    out = "goldfish_drivers/goldfish_sync.ko",
+    kernel_build = ":virtual_device_aarch64_16k",
+    deps = [":common_headers_aarch64"],
+)
+
+kernel_module_group(
+    name = "virtual_device_aarch64_16k_external_modules",
+    srcs = [
+        ":aarch64_16k/goldfish_drivers/goldfish_address_space",
+        ":aarch64_16k/goldfish_drivers/goldfish_pipe",
+        ":aarch64_16k/goldfish_drivers/goldfish_sync",
+    ],
+)
+
+kernel_modules_install(
+    name = "virtual_device_aarch64_16k_modules_install",
+    kernel_build = ":virtual_device_aarch64_16k",
+    kernel_modules = [
+        ":virtual_device_aarch64_16k_external_modules",
+    ],
+)
+
+kernel_images(
+    name = "virtual_device_aarch64_16k_images",
+    build_initramfs = True,
+    kernel_build = ":virtual_device_aarch64_16k",
+    kernel_modules_install = ":virtual_device_aarch64_16k_modules_install",
+    modules_blocklist = "modules.blocklist",
+)
+
+# Workaround for b/201687176.
+# TODO(b/201687176): Clean up when we have a better solution for TEST_MAPPING.
+test_mappings_dist(
+    name = "virtual_device_aarch64_16k_test_mappings_dist",
+    dist_dir = "out/virtual_device_aarch64_16k/dist",
+)
+
+copy_to_dist_dir(
+    name = "virtual_device_aarch64_16k_copy_to_dist_dir",
+    data = [
+        ":virtual_device_aarch64_16k",
+        ":virtual_device_aarch64_16k_images",
+        ":virtual_device_aarch64_16k_modules_install",
+        "//common:kernel_aarch64_16k",
+        "//common:kernel_aarch64_16k_images",
+    ],
+    dist_dir = "out/virtual_device_aarch64_16k/dist",
+    flat = True,
+)
+
+exec(
+    name = "virtual_device_aarch64_16k_dist",
+    data = [
+        ":virtual_device_aarch64_16k_copy_to_dist_dir",
+        ":virtual_device_aarch64_16k_test_mappings_dist",
+    ],
+    script = """
+        $(rootpath :virtual_device_aarch64_16k_test_mappings_dist) $@
+        $(rootpath :virtual_device_aarch64_16k_copy_to_dist_dir) $@
+    """,
+)
+
+kernel_build(
+    name = "virtual_device_riscv64",
+    srcs = [":virtual_device_riscv64_common_sources"],
+    outs = [],
+    base_kernel = "//common:kernel_riscv64",
+    build_config = "build.config.virtual_device.riscv64",
+    module_outs = _VIRT_COMMON_MODULES + _VIRT_RISCV64_MODULES,
+    strip_modules = True,
+)
+
+ddk_module(
+    name = "riscv64/goldfish_drivers/goldfish_address_space",
+    srcs = [":goldfish_address_space_sources"],
+    out = "goldfish_drivers/goldfish_address_space.ko",
+    kernel_build = ":virtual_device_riscv64",
+    deps = [":common_headers_riscv64"],
+)
+
+ddk_module(
+    name = "riscv64/goldfish_drivers/goldfish_pipe",
+    srcs = [":goldfish_pipe_sources"],
+    out = "goldfish_drivers/goldfish_pipe.ko",
+    kernel_build = ":virtual_device_riscv64",
+    deps = [":common_headers_riscv64"],
+)
+
+ddk_module(
+    name = "riscv64/goldfish_drivers/goldfish_sync",
+    srcs = [":goldfish_sync_sources"],
+    out = "goldfish_drivers/goldfish_sync.ko",
+    kernel_build = ":virtual_device_riscv64",
+    deps = [":common_headers_riscv64"],
+)
+
+kernel_module_group(
+    name = "virtual_device_riscv64_external_modules",
+    srcs = [
+        ":riscv64/goldfish_drivers/goldfish_address_space",
+        ":riscv64/goldfish_drivers/goldfish_pipe",
+        ":riscv64/goldfish_drivers/goldfish_sync",
+    ],
+)
+
+kernel_modules_install(
+    name = "virtual_device_riscv64_modules_install",
+    kernel_build = ":virtual_device_riscv64",
+    kernel_modules = [
+        ":virtual_device_riscv64_external_modules",
+    ],
+)
+
+kernel_images(
+    name = "virtual_device_riscv64_images",
+    build_initramfs = True,
+    kernel_build = ":virtual_device_riscv64",
+    kernel_modules_install = ":virtual_device_riscv64_modules_install",
+    modules_blocklist = "modules.blocklist",
+)
+
+copy_to_dist_dir(
+    name = "virtual_device_riscv64_dist",
+    data = [
+        ":virtual_device_riscv64",
+        ":virtual_device_riscv64_images",
+        ":virtual_device_riscv64_modules_install",
+        "//common:kernel_riscv64",
+        "//common:kernel_riscv64_images",
+    ],
+    dist_dir = "out/virtual_device_riscv64/dist",
+    flat = True,
+)
+
+kernel_build(
+    name = "virtual_device_arm",
+    srcs = [":virtual_device_arm_common_sources"],
+    outs = [
+        "System.map",
+        "vmlinux",
+        "zImage",
+    ],
+    base_kernel = None,  # We don't have arm GKI builds, so not using mixed build
+    build_config = "build.config.virtual_device.arm",
+    module_outs = sets.to_list(sets.make(
+        _VIRT_COMMON_MODULES + _GKI_MODULES_BASENAMES + [
+            "test_meminit.ko",
+        ],
+    )),
+)
+
+ddk_module(
+    name = "arm/goldfish_drivers/goldfish_address_space",
+    srcs = [":goldfish_address_space_sources"],
+    out = "goldfish_drivers/goldfish_address_space.ko",
+    kernel_build = ":virtual_device_arm",
+    deps = [":common_headers_arm"],
+)
+
+ddk_module(
+    name = "arm/goldfish_drivers/goldfish_pipe",
+    srcs = [":goldfish_pipe_sources"],
+    out = "goldfish_drivers/goldfish_pipe.ko",
+    kernel_build = ":virtual_device_arm",
+    deps = [":common_headers_arm"],
+)
+
+ddk_module(
+    name = "arm/goldfish_drivers/goldfish_sync",
+    srcs = [":goldfish_sync_sources"],
+    out = "goldfish_drivers/goldfish_sync.ko",
+    kernel_build = ":virtual_device_arm",
+    deps = [":common_headers_arm"],
+)
+
+kernel_module_group(
+    name = "virtual_device_arm_external_modules",
+    srcs = [
+        ":arm/goldfish_drivers/goldfish_address_space",
+        ":arm/goldfish_drivers/goldfish_pipe",
+        ":arm/goldfish_drivers/goldfish_sync",
+    ],
+)
+
+kernel_modules_install(
+    name = "virtual_device_arm_modules_install",
+    kernel_build = "//common-modules/virtual-device:virtual_device_arm",
+    kernel_modules = [":virtual_device_arm_external_modules"],
+)
+
+kernel_images(
+    name = "virtual_device_arm_images",
+    build_initramfs = True,
+    kernel_build = "//common-modules/virtual-device:virtual_device_arm",
+    kernel_modules_install = "//common-modules/virtual-device:virtual_device_arm_modules_install",
+    modules_blocklist = "modules.blocklist",
+)
+
+copy_to_dist_dir(
+    name = "virtual_device_arm_dist",
+    data = [
+        ":virtual_device_arm",
+        ":virtual_device_arm_images",
+    ],
+    dist_dir = "out/virtual_device_arm/dist",
+    flat = True,
+)
+
+kernel_build(
+    name = "virtual_device_i686",
+    srcs = [":virtual_device_x86_64_common_sources"],
+    outs = [
+        "System.map",
+        "arch/x86/boot/bzImage",
+        "modules.builtin",
+        "modules.builtin.modinfo",
+        "vmlinux",
+        "vmlinux.symvers",
+    ],
+    base_kernel = None,  # We don't have i686 GKI builds, so not using mixed build
+    build_config = "build.config.virtual_device.i686",
+    module_outs = sets.to_list(sets.make(
+        _VIRT_COMMON_MODULES + _GKI_MODULES_BASENAMES + [
+            # keep sorted
+            "nd_virtio.ko",
+            "test_meminit.ko",
+            "virtio_pmem.ko",
+        ],
+    )),
+    strip_modules = False,
+)
+
+ddk_module(
+    name = "i686/goldfish_drivers/goldfish_address_space",
+    srcs = [":goldfish_address_space_sources"],
+    out = "goldfish_drivers/goldfish_address_space.ko",
+    kernel_build = ":virtual_device_i686",
+    deps = [":common_headers_x86_64"],
+)
+
+ddk_module(
+    name = "i686/goldfish_drivers/goldfish_pipe",
+    srcs = [":goldfish_pipe_sources"],
+    out = "goldfish_drivers/goldfish_pipe.ko",
+    kernel_build = ":virtual_device_i686",
+    deps = [":common_headers_x86_64"],
+)
+
+ddk_module(
+    name = "i686/goldfish_drivers/goldfish_sync",
+    srcs = [":goldfish_sync_sources"],
+    out = "goldfish_drivers/goldfish_sync.ko",
+    kernel_build = ":virtual_device_i686",
+    deps = [":common_headers_x86_64"],
+)
+
+kernel_module_group(
+    name = "virtual_device_i686_external_modules",
+    srcs = [
+        ":i686/goldfish_drivers/goldfish_address_space",
+        ":i686/goldfish_drivers/goldfish_pipe",
+        ":i686/goldfish_drivers/goldfish_sync",
+    ],
+)
+
+kernel_modules_install(
+    name = "virtual_device_i686_modules_install",
+    kernel_build = "//common-modules/virtual-device:virtual_device_i686",
+    kernel_modules = ["virtual_device_i686_external_modules"],
+)
+
+kernel_images(
+    name = "virtual_device_i686_images",
+    build_initramfs = True,
+    kernel_build = "//common-modules/virtual-device:virtual_device_i686",
+    kernel_modules_install = "//common-modules/virtual-device:virtual_device_i686_modules_install",
+    modules_blocklist = "modules.blocklist",
+)
+
+copy_to_dist_dir(
+    name = "virtual_device_i686_dist",
+    data = [
+        ":virtual_device_i686",
+        ":virtual_device_i686_images",
+    ],
+    dist_dir = "out/virtual_device_i686/dist",
+    flat = True,
+)
+
+kernel_build(
+    name = "server_aarch64",
+    srcs = [":virtual_device_aarch64_common_sources"],
+    outs = [
+        "System.map",
+        "arch/arm64/boot/Image",
+        "modules.builtin",
+        "modules.builtin.modinfo",
+        "vmlinux",
+        "vmlinux.symvers",
+    ],
+    base_kernel = None,
+    build_config = "build.config.server.aarch64",
+    module_outs = sets.to_list(sets.make(
+        _GKI_MODULES_BASENAMES + [
+            # keep sorted
+            "failover.ko",
+            "net_failover.ko",
+            "virtio-gpu.ko",
+            "virtio-rng.ko",
+            "virtio_blk.ko",
+            "virtio_console.ko",
+            "virtio_dma_buf.ko",
+            "virtio_input.ko",
+            "virtio_net.ko",
+            "virtio_pci.ko",
+            "virtio_pci_legacy_dev.ko",
+            "virtio_pci_modern_dev.ko",
+            "virtio_snd.ko",
+            "vmw_vsock_virtio_transport.ko",
+        ],
+    )),
+    strip_modules = False,
+)
+
+kernel_images(
+    name = "server_aarch64_images",
+    build_initramfs = True,
+    kernel_build = "//common-modules/virtual-device:server_aarch64",
+    kernel_modules_install = "//common-modules/virtual-device:server_aarch64_modules_install",
+)
+
+kernel_modules_install(
+    name = "server_aarch64_modules_install",
+    kernel_build = "//common-modules/virtual-device:server_aarch64",
+)
+
+copy_to_dist_dir(
+    name = "server_aarch64_dist",
+    data = [
+        ":server_aarch64",
+        ":server_aarch64_images",
+        ":server_aarch64_modules_install",
+    ],
+    dist_dir = "out/server_aarch64/dist",
+    flat = True,
+)
+
+kernel_build(
+    name = "server_x86_64",
+    srcs = [":virtual_device_x86_64_common_sources"],
+    outs = [
+        "System.map",
+        "arch/x86/boot/bzImage",
+        "modules.builtin",
+        "modules.builtin.modinfo",
+        "vmlinux",
+        "vmlinux.symvers",
+    ],
+    base_kernel = None,
+    build_config = "build.config.server.x86_64",
+    module_outs = sets.to_list(sets.make(
+        _GKI_MODULES_BASENAMES + [
+            # keep sorted
+            "failover.ko",
+            "net_failover.ko",
+            "virtio-gpu.ko",
+            "virtio-rng.ko",
+            "virtio_blk.ko",
+            "virtio_console.ko",
+            "virtio_dma_buf.ko",
+            "virtio_input.ko",
+            "virtio_net.ko",
+            "virtio_pci.ko",
+            "virtio_pci_legacy_dev.ko",
+            "virtio_pci_modern_dev.ko",
+            "virtio_snd.ko",
+            "vmw_vsock_virtio_transport.ko",
+        ],
+    )),
+    strip_modules = False,
+)
+
+kernel_images(
+    name = "server_x86_64_images",
+    build_initramfs = True,
+    kernel_build = "//common-modules/virtual-device:server_x86_64",
+    kernel_modules_install = "//common-modules/virtual-device:server_x86_64_modules_install",
+)
+
+kernel_modules_install(
+    name = "server_x86_64_modules_install",
+    kernel_build = "//common-modules/virtual-device:server_x86_64",
+)
+
+copy_to_dist_dir(
+    name = "server_x86_64_dist",
+    data = [
+        ":server_x86_64",
+        ":server_x86_64_images",
+        ":server_x86_64_modules_install",
+    ],
+    dist_dir = "out/server_x86_64/dist",
+    flat = True,
+)
+
+kernel_dtstree(
+    name = "rockpi4_dts",
+    visibility = ["//common:__pkg__"],
+)

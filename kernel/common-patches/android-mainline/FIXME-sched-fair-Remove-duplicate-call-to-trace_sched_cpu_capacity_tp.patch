@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lee Jones <joneslee@google.com>
+Date: Fri, 27 Jan 2023 14:30:24 +0000
+Subject: FIXME: sched: fair: Remove duplicate call to
+ trace_sched_cpu_capacity_tp()
+
+Signed-off-by: Lee Jones <joneslee@google.com>
+Change-Id: Ia1624609848655f86c758860adcfea26e90ef525
+---
+ kernel/sched/fair.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -8940,6 +8940,7 @@ static void update_cpu_capacity(struct sched_domain *sd, int cpu)
+ 
+ 	trace_android_rvh_update_cpu_capacity(cpu, &capacity);
+ 	rq->cpu_capacity = capacity;
++	trace_sched_cpu_capacity_tp(rq);
+ 
+ 	/*
+ 	 * Detect if the performance domain is in capacity inversion state.

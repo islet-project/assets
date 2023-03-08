@@ -21,6 +21,7 @@ load("@bazel_skylib//lib:sets.bzl", "sets")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load(
     ":common_providers.bzl",
+    "DdkSubmoduleInfo",
     "KernelEnvInfo",
     "KernelModuleInfo",
     "ModuleSymversInfo",
@@ -137,7 +138,41 @@ def _compare_file_names(files, expected_file_names, what):
 def _sanitize_label_as_filename(label):
     """Sanitize a Bazel label so it is safe to be used as a filename."""
     label_text = str(label)
-    return "".join([c if c.isalnum() else "_" for c in label_text.elems()])
+    return _normalize(label_text)
+
+def _normalize(s):
+    """Returns a normalized string by replacing non-letters / non-numbers as underscores."""
+    return "".join([c if c.isalnum() else "_" for c in s.elems()])
+
+def _kwargs_to_def(**kwargs):
+    """Turns d into text that can be copied to BUILD files. May be inaccurate."""
+    for key, value in list(kwargs.items()):
+        if value == None:
+            kwargs.pop(key)
+
+    return ",\n    ".join(sorted(["{key} = {value_repr}".format(
+        key = key,
+        value_repr = repr(value),
+    ) for key, value in kwargs.items()]))
+
+def _hash_hex(x):
+    """Returns `hash(x)` in hex format."""
+    ret = "%x" % hash(x)
+    if len(ret) < 8:
+        ret = "0" * (8 - len(ret)) + ret
+    return ret
+
+def _get_check_sandbox_cmd():
+    """Returns a script that tries to check if we are running in a sandbox.
+
+    Note: This is not always accurate."""
+
+    return """
+           if [[ $PWD != */sandbox/* ]]; then
+             echo "FATAL: this action must be executed in a sandbox!" >&2
+             exit 1
+           fi
+    """
 
 # Utilities that applies to all Bazel stuff in general. These functions are
 # not Kleaf specific.
@@ -149,6 +184,10 @@ utils = struct(
     find_files = find_files,
     compare_file_names = _compare_file_names,
     sanitize_label_as_filename = _sanitize_label_as_filename,
+    normalize = _normalize,
+    kwargs_to_def = _kwargs_to_def,
+    hash_hex = _hash_hex,
+    get_check_sandbox_cmd = _get_check_sandbox_cmd,
 )
 
 def _filter_module_srcs(files):
@@ -159,6 +198,8 @@ def _filter_module_srcs(files):
         if file.path.endswith(".h"):
             hdrs.append(file)
         elif "Makefile" in file.path or "scripts/" in file.path:
+            scripts.append(file)
+        elif file.basename == "module.lds.S":
             scripts.append(file)
     return struct(
         module_scripts = depset(scripts),
@@ -212,14 +253,15 @@ def _check_kernel_build(kernel_modules, kernel_build, this_label):
                 dep_kernel_build = kernel_module[KernelModuleInfo].kernel_build.label,
             ))
 
-def _local_mnemonic_suffix(ctx):
-    """Returns a suffix for the mnemonic if `--config=local`.
+def _local_exec_requirements(ctx):
+    """Returns the execution requirement for `--config=local`.
 
-    This should only be used on the actions specified in `local.bazelrc`.
+    This should only be used on the actions that are proven to be safe to be
+    built outside of the sandbox.
     """
     if ctx.attr._config_is_local[BuildSettingInfo].value:
-        return "Local"
-    return ""
+        return {"local": "1"}
+    return None
 
 def _split_kernel_module_deps(deps, this_label):
     """Splits `deps` for a `kernel_module` or `ddk_module`.
@@ -231,6 +273,8 @@ def _split_kernel_module_deps(deps, this_label):
 
     kernel_module_deps = []
     hdr_deps = []
+    submodule_deps = []
+    module_symvers_deps = []
     for dep in deps:
         is_valid_dep = False
         if DdkHeadersInfo in dep:
@@ -239,17 +283,25 @@ def _split_kernel_module_deps(deps, this_label):
         if all([info in dep for info in [KernelEnvInfo, KernelModuleInfo, ModuleSymversInfo]]):
             kernel_module_deps.append(dep)
             is_valid_dep = True
+        if all([info in dep for info in [DdkHeadersInfo, DdkSubmoduleInfo]]):
+            submodule_deps.append(dep)
+            is_valid_dep = True
+        if ModuleSymversInfo in dep:
+            module_symvers_deps.append(dep)
+            is_valid_dep = True
         if not is_valid_dep:
-            fail("{}: {} is not a valid item in deps. Only kernel_module, ddk_module, ddk_headers are accepted.".format(this_label, dep.label))
+            fail("{}: {} is not a valid item in deps. Only kernel_module, ddk_module, ddk_headers, ddk_submodule are accepted.".format(this_label, dep.label))
     return struct(
         kernel_modules = kernel_module_deps,
         hdrs = hdr_deps,
+        submodules = submodule_deps,
+        module_symvers_deps = module_symvers_deps,
     )
 
 kernel_utils = struct(
     filter_module_srcs = _filter_module_srcs,
     transform_kernel_build_outs = _transform_kernel_build_outs,
     check_kernel_build = _check_kernel_build,
-    local_mnemonic_suffix = _local_mnemonic_suffix,
+    local_exec_requirements = _local_exec_requirements,
     split_kernel_module_deps = _split_kernel_module_deps,
 )

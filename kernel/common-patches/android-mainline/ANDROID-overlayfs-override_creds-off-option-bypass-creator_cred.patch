@@ -1,0 +1,605 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: David Anderson <dvander@google.com>
+Date: Mon, 15 Nov 2021 22:03:30 -0800
+Subject: ANDROID: overlayfs: override_creds=off option bypass creator_cred
+
+By default, all access to the upper, lower and work directories is the
+recorded mounter's MAC and DAC credentials.  The incoming accesses are
+checked against the caller's credentials.
+
+If the principles of least privilege are applied, the mounter's
+credentials might not overlap the credentials of the caller's when
+accessing the overlayfs filesystem.  For example, a file that a lower
+DAC privileged caller can execute, is MAC denied to the generally
+higher DAC privileged mounter, to prevent an attack vector.
+
+We add the option to turn off override_creds in the mount options; all
+subsequent operations after mount on the filesystem will be only the
+caller's credentials.  The module boolean parameter and mount option
+override_creds is also added as a presence check for this "feature",
+existence of /sys/module/overlay/parameters/override_creds.
+
+It was not always this way.  Circa 4.6 there was no recorded mounter's
+credentials, instead privileged access to upper or work directories
+were temporarily increased to perform the operations.  The MAC
+(selinux) policies were caller's in all cases.  override_creds=off
+partially returns us to this older access model minus the insecure
+temporary credential increases.  This is to permit use in a system
+with non-overlapping security models for each executable including
+the agent that mounts the overlayfs filesystem.  In Android
+this is the case since init, which performs the mount operations,
+has a minimal MAC set of privileges to reduce any attack surface,
+and services that use the content have a different set of MAC
+privileges (eg: read, for vendor labelled configuration, execute for
+vendor libraries and modules).  The caveats are not a problem in
+the Android usage model, however they should be fixed for
+completeness and for general use in time.
+
+Bug: 231996550
+Link: https://lore.kernel.org/lkml/20211117015806.2192263-4-dvander@google.com
+Signed-off-by: David Anderson <dvander@google.com>
+Signed-off-by: Mark Salyzyn <salyzyn@android.com>
+Change-Id: I21516b3af483790fb0a7bfdeabf4770c486dbcbc
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ Documentation/filesystems/overlayfs.rst | 26 ++++++++++++++++++++++++-
+ fs/overlayfs/copy_up.c                  |  2 +-
+ fs/overlayfs/dir.c                      | 17 +++++++++-------
+ fs/overlayfs/file.c                     | 25 ++++++++++++------------
+ fs/overlayfs/inode.c                    | 24 +++++++++++------------
+ fs/overlayfs/namei.c                    |  6 +++---
+ fs/overlayfs/overlayfs.h                |  1 +
+ fs/overlayfs/ovl_entry.h                |  1 +
+ fs/overlayfs/readdir.c                  |  8 ++++----
+ fs/overlayfs/super.c                    | 22 ++++++++++++++++++++-
+ fs/overlayfs/util.c                     | 13 +++++++++++--
+ 11 files changed, 102 insertions(+), 43 deletions(-)
+
+diff --git a/Documentation/filesystems/overlayfs.rst b/Documentation/filesystems/overlayfs.rst
+--- a/Documentation/filesystems/overlayfs.rst
++++ b/Documentation/filesystems/overlayfs.rst
+@@ -195,7 +195,7 @@ handle it in two different ways:
+ 
+ 1. return EXDEV error: this error is returned by rename(2) when trying to
+    move a file or directory across filesystem boundaries.  Hence
+-   applications are usually prepared to hande this error (mv(1) for example
++   applications are usually prepared to handle this error (mv(1) for example
+    recursively copies the directory tree).  This is the default behavior.
+ 
+ 2. If the "redirect_dir" feature is enabled, then the directory will be
+@@ -324,6 +324,30 @@ and
+ The resulting access permissions should be the same.  The difference is in
+ the time of copy (on-demand vs. up-front).
+ 
++### Non overlapping credentials
++
++As noted above, all access to the upper, lower and work directories is the
++recorded mounter's MAC and DAC credentials.  The incoming accesses are
++checked against the caller's credentials.
++
++In the case where caller MAC or DAC credentials do not overlap the mounter, a
++use case available in older versions of the driver, the override_creds mount
++flag can be turned off.  For when the use pattern has caller with legitimate
++credentials where the mounter does not.  For example init may have been the
++mounter, but the caller would have execute or read MAC permissions where
++init would not.  override_creds off means all access, incoming, upper, lower
++or working, will be tested against the caller.
++
++Several unintended side effects will occur though.  The caller without certain
++key capabilities or lower privilege will not always be able to delete files or
++directories, create nodes, or search some restricted directories.  The ability
++to search and read a directory entry is spotty as a result of the cache
++mechanism not re-testing the credentials because of the assumption, a
++privileged caller can fill cache, then a lower privilege can read the directory
++cache.  The uneven security model where cache, upperdir and workdir are opened
++at privilege, but accessed without creating a form of privilege escalation,
++should only be used with strict understanding of the side effects and of the
++security policies.
+ 
+ Multiple lower layers
+ ---------------------
+diff --git a/fs/overlayfs/copy_up.c b/fs/overlayfs/copy_up.c
+--- a/fs/overlayfs/copy_up.c
++++ b/fs/overlayfs/copy_up.c
+@@ -1093,7 +1093,7 @@ static int ovl_copy_up_flags(struct dentry *dentry, int flags)
+ 		dput(parent);
+ 		dput(next);
+ 	}
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 
+ 	return err;
+ }
+diff --git a/fs/overlayfs/dir.c b/fs/overlayfs/dir.c
+--- a/fs/overlayfs/dir.c
++++ b/fs/overlayfs/dir.c
+@@ -556,7 +556,7 @@ static int ovl_create_or_link(struct dentry *dentry, struct inode *inode,
+ 			      struct ovl_cattr *attr, bool origin)
+ {
+ 	int err;
+-	const struct cred *old_cred;
++	const struct cred *old_cred, *hold_cred = NULL;
+ 	struct cred *override_cred;
+ 	struct dentry *parent = dentry->d_parent;
+ 
+@@ -597,13 +597,14 @@ static int ovl_create_or_link(struct dentry *dentry, struct inode *inode,
+ 		override_cred->fsuid = inode->i_uid;
+ 		override_cred->fsgid = inode->i_gid;
+ 		err = security_dentry_create_files_as(dentry,
+-				attr->mode, &dentry->d_name, old_cred,
++				attr->mode, &dentry->d_name,
++				old_cred ? old_cred : current_cred(),
+ 				override_cred);
+ 		if (err) {
+ 			put_cred(override_cred);
+ 			goto out_revert_creds;
+ 		}
+-		put_cred(override_creds(override_cred));
++		hold_cred = override_creds(override_cred);
+ 		put_cred(override_cred);
+ 	}
+ 
+@@ -613,7 +614,9 @@ static int ovl_create_or_link(struct dentry *dentry, struct inode *inode,
+ 		err = ovl_create_over_whiteout(dentry, inode, attr);
+ 
+ out_revert_creds:
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred ?: hold_cred);
++	if (old_cred && hold_cred)
++		put_cred(hold_cred);
+ 	return err;
+ }
+ 
+@@ -690,7 +693,7 @@ static int ovl_set_link_redirect(struct dentry *dentry)
+ 
+ 	old_cred = ovl_override_creds(dentry->d_sb);
+ 	err = ovl_set_redirect(dentry, false);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 
+ 	return err;
+ }
+@@ -909,7 +912,7 @@ static int ovl_do_remove(struct dentry *dentry, bool is_dir)
+ 		err = ovl_remove_upper(dentry, is_dir, &list);
+ 	else
+ 		err = ovl_remove_and_whiteout(dentry, &list);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	if (!err) {
+ 		if (is_dir)
+ 			clear_nlink(dentry->d_inode);
+@@ -1284,7 +1287,7 @@ static int ovl_rename(struct user_namespace *mnt_userns, struct inode *olddir,
+ out_unlock:
+ 	unlock_rename(new_upperdir, old_upperdir);
+ out_revert_creds:
+-	revert_creds(old_cred);
++	ovl_revert_creds(old->d_sb, old_cred);
+ 	if (update_nlink)
+ 		ovl_nlink_end(new);
+ out_drop_write:
+diff --git a/fs/overlayfs/file.c b/fs/overlayfs/file.c
+--- a/fs/overlayfs/file.c
++++ b/fs/overlayfs/file.c
+@@ -60,13 +60,14 @@ static struct file *ovl_open_realfile(const struct file *file,
+ 	if (err) {
+ 		realfile = ERR_PTR(err);
+ 	} else {
+-		if (!inode_owner_or_capable(real_mnt_userns, realinode))
++		if (old_cred && !inode_owner_or_capable(real_mnt_userns,
++							realinode))
+ 			flags &= ~O_NOATIME;
+ 
+ 		realfile = open_with_fake_path(&file->f_path, flags, realinode,
+ 					       current_cred());
+ 	}
+-	revert_creds(old_cred);
++	ovl_revert_creds(inode->i_sb, old_cred);
+ 
+ 	pr_debug("open(%p[%pD2/%c], 0%o) -> (%p, 0%o)\n",
+ 		 file, file, ovl_whatisit(inode, realinode), file->f_flags,
+@@ -211,7 +212,7 @@ static loff_t ovl_llseek(struct file *file, loff_t offset, int whence)
+ 
+ 	old_cred = ovl_override_creds(inode->i_sb);
+ 	ret = vfs_llseek(real.file, offset, whence);
+-	revert_creds(old_cred);
++	ovl_revert_creds(inode->i_sb, old_cred);
+ 
+ 	file->f_pos = real.file->f_pos;
+ 	ovl_inode_unlock(inode);
+@@ -324,7 +325,7 @@ static ssize_t ovl_read_iter(struct kiocb *iocb, struct iov_iter *iter)
+ 			ovl_aio_cleanup_handler(aio_req);
+ 	}
+ out:
+-	revert_creds(old_cred);
++	ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ 	ovl_file_accessed(file);
+ out_fdput:
+ 	fdput(real);
+@@ -396,7 +397,7 @@ static ssize_t ovl_write_iter(struct kiocb *iocb, struct iov_iter *iter)
+ 			ovl_aio_cleanup_handler(aio_req);
+ 	}
+ out:
+-	revert_creds(old_cred);
++	ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ out_fdput:
+ 	fdput(real);
+ 
+@@ -441,7 +442,7 @@ static ssize_t ovl_splice_write(struct pipe_inode_info *pipe, struct file *out,
+ 	file_end_write(real.file);
+ 	/* Update size */
+ 	ovl_copyattr(inode);
+-	revert_creds(old_cred);
++	ovl_revert_creds(inode->i_sb, old_cred);
+ 	fdput(real);
+ 
+ out_unlock:
+@@ -468,7 +469,7 @@ static int ovl_fsync(struct file *file, loff_t start, loff_t end, int datasync)
+ 	if (file_inode(real.file) == ovl_inode_upper(file_inode(file))) {
+ 		old_cred = ovl_override_creds(file_inode(file)->i_sb);
+ 		ret = vfs_fsync_range(real.file, start, end, datasync);
+-		revert_creds(old_cred);
++		ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ 	}
+ 
+ 	fdput(real);
+@@ -492,7 +493,7 @@ static int ovl_mmap(struct file *file, struct vm_area_struct *vma)
+ 
+ 	old_cred = ovl_override_creds(file_inode(file)->i_sb);
+ 	ret = call_mmap(vma->vm_file, vma);
+-	revert_creds(old_cred);
++	ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ 	ovl_file_accessed(file);
+ 
+ 	return ret;
+@@ -518,7 +519,7 @@ static long ovl_fallocate(struct file *file, int mode, loff_t offset, loff_t len
+ 
+ 	old_cred = ovl_override_creds(file_inode(file)->i_sb);
+ 	ret = vfs_fallocate(real.file, mode, offset, len);
+-	revert_creds(old_cred);
++	ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ 
+ 	/* Update size */
+ 	ovl_copyattr(inode);
+@@ -543,7 +544,7 @@ static int ovl_fadvise(struct file *file, loff_t offset, loff_t len, int advice)
+ 
+ 	old_cred = ovl_override_creds(file_inode(file)->i_sb);
+ 	ret = vfs_fadvise(real.file, offset, len, advice);
+-	revert_creds(old_cred);
++	ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ 
+ 	fdput(real);
+ 
+@@ -602,7 +603,7 @@ static loff_t ovl_copyfile(struct file *file_in, loff_t pos_in,
+ 						flags);
+ 		break;
+ 	}
+-	revert_creds(old_cred);
++	ovl_revert_creds(file_inode(file_out)->i_sb, old_cred);
+ 
+ 	/* Update size */
+ 	ovl_copyattr(inode_out);
+@@ -664,7 +665,7 @@ static int ovl_flush(struct file *file, fl_owner_t id)
+ 	if (real.file->f_op->flush) {
+ 		old_cred = ovl_override_creds(file_inode(file)->i_sb);
+ 		err = real.file->f_op->flush(real.file, id);
+-		revert_creds(old_cred);
++		ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ 	}
+ 	fdput(real);
+ 
+diff --git a/fs/overlayfs/inode.c b/fs/overlayfs/inode.c
+--- a/fs/overlayfs/inode.c
++++ b/fs/overlayfs/inode.c
+@@ -81,7 +81,7 @@ int ovl_setattr(struct user_namespace *mnt_userns, struct dentry *dentry,
+ 		inode_lock(upperdentry->d_inode);
+ 		old_cred = ovl_override_creds(dentry->d_sb);
+ 		err = ovl_do_notify_change(ofs, upperdentry, attr);
+-		revert_creds(old_cred);
++		ovl_revert_creds(dentry->d_sb, old_cred);
+ 		if (!err)
+ 			ovl_copyattr(dentry->d_inode);
+ 		inode_unlock(upperdentry->d_inode);
+@@ -273,7 +273,7 @@ int ovl_getattr(struct user_namespace *mnt_userns, const struct path *path,
+ 		stat->nlink = dentry->d_inode->i_nlink;
+ 
+ out:
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 
+ 	return err;
+ }
+@@ -311,7 +311,7 @@ int ovl_permission(struct user_namespace *mnt_userns,
+ 		mask |= MAY_READ;
+ 	}
+ 	err = inode_permission(mnt_user_ns(realpath.mnt), realinode, mask);
+-	revert_creds(old_cred);
++	ovl_revert_creds(inode->i_sb, old_cred);
+ 
+ 	return err;
+ }
+@@ -328,7 +328,7 @@ static const char *ovl_get_link(struct dentry *dentry,
+ 
+ 	old_cred = ovl_override_creds(dentry->d_sb);
+ 	p = vfs_get_link(ovl_dentry_real(dentry), done);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	return p;
+ }
+ 
+@@ -362,7 +362,7 @@ int ovl_xattr_set(struct dentry *dentry, struct inode *inode, const char *name,
+ 		ovl_path_lower(dentry, &realpath);
+ 		old_cred = ovl_override_creds(dentry->d_sb);
+ 		err = vfs_getxattr(mnt_user_ns(realpath.mnt), realdentry, name, NULL, 0);
+-		revert_creds(old_cred);
++		ovl_revert_creds(dentry->d_sb, old_cred);
+ 		if (err < 0)
+ 			goto out_drop_write;
+ 	}
+@@ -383,7 +383,7 @@ int ovl_xattr_set(struct dentry *dentry, struct inode *inode, const char *name,
+ 		WARN_ON(flags != XATTR_REPLACE);
+ 		err = ovl_do_removexattr(ofs, realdentry, name);
+ 	}
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 
+ 	/* copy c/mtime */
+ 	ovl_copyattr(inode);
+@@ -404,7 +404,7 @@ int ovl_xattr_get(struct dentry *dentry, struct inode *inode, const char *name,
+ 	ovl_i_path_real(inode, &realpath);
+ 	old_cred = ovl_override_creds(dentry->d_sb);
+ 	res = vfs_getxattr(mnt_user_ns(realpath.mnt), realpath.dentry, name, value, size);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	return res;
+ }
+ 
+@@ -432,7 +432,7 @@ ssize_t ovl_listxattr(struct dentry *dentry, char *list, size_t size)
+ 
+ 	old_cred = ovl_override_creds(dentry->d_sb);
+ 	res = vfs_listxattr(realdentry, list, size);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	if (res <= 0 || size == 0)
+ 		return res;
+ 
+@@ -587,7 +587,7 @@ struct posix_acl *do_ovl_get_acl(struct user_namespace *mnt_userns,
+ 
+ 		old_cred = ovl_override_creds(inode->i_sb);
+ 		acl = ovl_get_acl_path(&realpath, posix_acl_xattr_name(type), noperm);
+-		revert_creds(old_cred);
++		ovl_revert_creds(inode->i_sb, old_cred);
+ 	}
+ 
+ 	return acl;
+@@ -715,7 +715,7 @@ static int ovl_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+ 
+ 	old_cred = ovl_override_creds(inode->i_sb);
+ 	err = realinode->i_op->fiemap(realinode, fieinfo, start, len);
+-	revert_creds(old_cred);
++	ovl_revert_creds(inode->i_sb, old_cred);
+ 
+ 	return err;
+ }
+@@ -786,7 +786,7 @@ int ovl_fileattr_set(struct user_namespace *mnt_userns,
+ 		err = ovl_set_protattr(inode, upperpath.dentry, fa);
+ 		if (!err)
+ 			err = ovl_real_fileattr_set(&upperpath, fa);
+-		revert_creds(old_cred);
++		ovl_revert_creds(inode->i_sb, old_cred);
+ 
+ 		/*
+ 		 * Merge real inode flags with inode flags read from
+@@ -848,7 +848,7 @@ int ovl_fileattr_get(struct dentry *dentry, struct fileattr *fa)
+ 	old_cred = ovl_override_creds(inode->i_sb);
+ 	err = ovl_real_fileattr_get(&realpath, fa);
+ 	ovl_fileattr_prot_flags(inode, fa);
+-	revert_creds(old_cred);
++	ovl_revert_creds(inode->i_sb, old_cred);
+ 
+ 	return err;
+ }
+diff --git a/fs/overlayfs/namei.c b/fs/overlayfs/namei.c
+--- a/fs/overlayfs/namei.c
++++ b/fs/overlayfs/namei.c
+@@ -1125,7 +1125,7 @@ struct dentry *ovl_lookup(struct inode *dir, struct dentry *dentry,
+ 	ovl_dentry_update_reval(dentry, upperdentry,
+ 			DCACHE_OP_REVALIDATE | DCACHE_OP_WEAK_REVALIDATE);
+ 
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	if (origin_path) {
+ 		dput(origin_path->dentry);
+ 		kfree(origin_path);
+@@ -1152,7 +1152,7 @@ struct dentry *ovl_lookup(struct inode *dir, struct dentry *dentry,
+ 	kfree(upperredirect);
+ out:
+ 	kfree(d.redirect);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	return ERR_PTR(err);
+ }
+ 
+@@ -1204,7 +1204,7 @@ bool ovl_lower_positive(struct dentry *dentry)
+ 			dput(this);
+ 		}
+ 	}
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 
+ 	return positive;
+ }
+diff --git a/fs/overlayfs/overlayfs.h b/fs/overlayfs/overlayfs.h
+--- a/fs/overlayfs/overlayfs.h
++++ b/fs/overlayfs/overlayfs.h
+@@ -368,6 +368,7 @@ int ovl_want_write(struct dentry *dentry);
+ void ovl_drop_write(struct dentry *dentry);
+ struct dentry *ovl_workdir(struct dentry *dentry);
+ const struct cred *ovl_override_creds(struct super_block *sb);
++void ovl_revert_creds(struct super_block *sb, const struct cred *oldcred);
+ int ovl_can_decode_fh(struct super_block *sb);
+ struct dentry *ovl_indexdir(struct super_block *sb);
+ bool ovl_index_all(struct super_block *sb);
+diff --git a/fs/overlayfs/ovl_entry.h b/fs/overlayfs/ovl_entry.h
+--- a/fs/overlayfs/ovl_entry.h
++++ b/fs/overlayfs/ovl_entry.h
+@@ -20,6 +20,7 @@ struct ovl_config {
+ 	bool metacopy;
+ 	bool userxattr;
+ 	bool ovl_volatile;
++	bool override_creds;
+ };
+ 
+ struct ovl_sb {
+diff --git a/fs/overlayfs/readdir.c b/fs/overlayfs/readdir.c
+--- a/fs/overlayfs/readdir.c
++++ b/fs/overlayfs/readdir.c
+@@ -286,7 +286,7 @@ static int ovl_check_whiteouts(const struct path *path, struct ovl_readdir_data
+ 		}
+ 		inode_unlock(dir->d_inode);
+ 	}
+-	revert_creds(old_cred);
++	ovl_revert_creds(rdd->dentry->d_sb, old_cred);
+ 
+ 	return err;
+ }
+@@ -791,7 +791,7 @@ static int ovl_iterate(struct file *file, struct dir_context *ctx)
+ 	}
+ 	err = 0;
+ out:
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	return err;
+ }
+ 
+@@ -843,7 +843,7 @@ static struct file *ovl_dir_open_realfile(const struct file *file,
+ 
+ 	old_cred = ovl_override_creds(file_inode(file)->i_sb);
+ 	res = ovl_path_open(realpath, O_RDONLY | (file->f_flags & O_LARGEFILE));
+-	revert_creds(old_cred);
++	ovl_revert_creds(file_inode(file)->i_sb, old_cred);
+ 
+ 	return res;
+ }
+@@ -969,7 +969,7 @@ int ovl_check_empty_dir(struct dentry *dentry, struct list_head *list)
+ 
+ 	old_cred = ovl_override_creds(dentry->d_sb);
+ 	err = ovl_dir_read_merged(dentry, list, &root);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 	if (err)
+ 		return err;
+ 
+diff --git a/fs/overlayfs/super.c b/fs/overlayfs/super.c
+--- a/fs/overlayfs/super.c
++++ b/fs/overlayfs/super.c
+@@ -54,6 +54,11 @@ module_param_named(xino_auto, ovl_xino_auto_def, bool, 0644);
+ MODULE_PARM_DESC(xino_auto,
+ 		 "Auto enable xino feature");
+ 
++static bool __read_mostly ovl_override_creds_def = true;
++module_param_named(override_creds, ovl_override_creds_def, bool, 0644);
++MODULE_PARM_DESC(ovl_override_creds_def,
++		 "Use mounter's credentials for accesses");
++
+ static void ovl_entry_stack_free(struct ovl_entry *oe)
+ {
+ 	unsigned int i;
+@@ -391,6 +396,9 @@ static int ovl_show_options(struct seq_file *m, struct dentry *dentry)
+ 		seq_puts(m, ",volatile");
+ 	if (ofs->config.userxattr)
+ 		seq_puts(m, ",userxattr");
++	if (ofs->config.override_creds != ovl_override_creds_def)
++		seq_show_option(m, "override_creds",
++				ofs->config.override_creds ? "on" : "off");
+ 	return 0;
+ }
+ 
+@@ -446,6 +454,8 @@ enum {
+ 	OPT_METACOPY_ON,
+ 	OPT_METACOPY_OFF,
+ 	OPT_VOLATILE,
++	OPT_OVERRIDE_CREDS_ON,
++	OPT_OVERRIDE_CREDS_OFF,
+ 	OPT_ERR,
+ };
+ 
+@@ -468,6 +478,8 @@ static const match_table_t ovl_tokens = {
+ 	{OPT_METACOPY_ON,		"metacopy=on"},
+ 	{OPT_METACOPY_OFF,		"metacopy=off"},
+ 	{OPT_VOLATILE,			"volatile"},
++	{OPT_OVERRIDE_CREDS_ON,		"override_creds=on"},
++	{OPT_OVERRIDE_CREDS_OFF,	"override_creds=off"},
+ 	{OPT_ERR,			NULL}
+ };
+ 
+@@ -527,6 +539,7 @@ static int ovl_parse_opt(char *opt, struct ovl_config *config)
+ 	config->redirect_mode = kstrdup(ovl_redirect_mode_def(), GFP_KERNEL);
+ 	if (!config->redirect_mode)
+ 		return -ENOMEM;
++	config->override_creds = ovl_override_creds_def;
+ 
+ 	while ((p = ovl_next_opt(&opt)) != NULL) {
+ 		int token;
+@@ -628,6 +641,14 @@ static int ovl_parse_opt(char *opt, struct ovl_config *config)
+ 			config->userxattr = true;
+ 			break;
+ 
++		case OPT_OVERRIDE_CREDS_ON:
++			config->override_creds = true;
++			break;
++
++		case OPT_OVERRIDE_CREDS_OFF:
++			config->override_creds = false;
++			break;
++
+ 		default:
+ 			pr_err("unrecognized mount option \"%s\" or missing value\n",
+ 					p);
+@@ -2071,7 +2092,6 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
+ 	kfree(splitlower);
+ 
+ 	sb->s_root = root_dentry;
+-
+ 	return 0;
+ 
+ out_free_oe:
+diff --git a/fs/overlayfs/util.c b/fs/overlayfs/util.c
+--- a/fs/overlayfs/util.c
++++ b/fs/overlayfs/util.c
+@@ -38,9 +38,18 @@ const struct cred *ovl_override_creds(struct super_block *sb)
+ {
+ 	struct ovl_fs *ofs = sb->s_fs_info;
+ 
++	if (!ofs->config.override_creds)
++		return NULL;
+ 	return override_creds(ofs->creator_cred);
+ }
+ 
++void ovl_revert_creds(struct super_block *sb, const struct cred *old_cred)
++{
++	if (old_cred)
++		revert_creds(old_cred);
++}
++
++
+ /*
+  * Check if underlying fs supports file handles and try to determine encoding
+  * type, in order to deduce maximum inode number used by fs.
+@@ -925,7 +934,7 @@ int ovl_nlink_start(struct dentry *dentry)
+ 	 * value relative to the upper inode nlink in an upper inode xattr.
+ 	 */
+ 	err = ovl_set_nlink_upper(dentry);
+-	revert_creds(old_cred);
++	ovl_revert_creds(dentry->d_sb, old_cred);
+ 
+ out:
+ 	if (err)
+@@ -943,7 +952,7 @@ void ovl_nlink_end(struct dentry *dentry)
+ 
+ 		old_cred = ovl_override_creds(dentry->d_sb);
+ 		ovl_cleanup_index(dentry);
+-		revert_creds(old_cred);
++		ovl_revert_creds(dentry->d_sb, old_cred);
+ 	}
+ 
+ 	ovl_inode_unlock(inode);

@@ -1,0 +1,121 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alistair Delva <adelva@google.com>
+Date: Mon, 29 Mar 2021 11:15:56 -0700
+Subject: NOUPSTREAM: ANDROID: GKI: Supply RockPi 4 Config Fragment
+
+Add support for the Rock Pi 4 board downstream of GKI. This removes a
+bitrotting custom defconfig and replaces it with a fragment based on
+the GKI. Add the build.config for build automation purposes.
+
+This configuration is not yet GKI compatible. Some options must be set
+that are not GKI compliant:
+
+CONFIG_ARCH_ROCKCHIP=y
+CONFIG_COMMON_CLK_ROCKCHIP=y
+CONFIG_DEVTMPFS=y
+CONFIG_ROCKCHIP_GRF=y
+CONFIG_ROCKCHIP_IOMMU=y
+CONFIG_ROCKCHIP_MBOX=y
+CONFIG_ROCKCHIP_PM_DOMAINS=y
+CONFIG_ROCKCHIP_TIMER=y
+
+[CPNOTE: 21/07/21] Lee: GKI code
+
+Bug: 183963484
+Change-Id: Id7376d6d377f453a3fe2c215d10d0424550de1bc
+Signed-off-by: Alistair Delva <adelva@google.com>
+[Lee: Squash all subsequent changes to rockpi4_gki.fragment into here]
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ arch/arm64/configs/rockpi4_gki.fragment | 82 +++++++++++++++++++++++++
+ 1 file changed, 82 insertions(+)
+ create mode 100644 arch/arm64/configs/rockpi4_gki.fragment
+
+diff --git a/arch/arm64/configs/rockpi4_gki.fragment b/arch/arm64/configs/rockpi4_gki.fragment
+new file mode 100644
+--- /dev/null
++++ b/arch/arm64/configs/rockpi4_gki.fragment
+@@ -0,0 +1,82 @@
++# Core features
++CONFIG_ARCH_ROCKCHIP=y
++# CONFIG_CLK_PX30 is not set
++# CONFIG_CLK_RV110X is not set
++# CONFIG_CLK_RK3036 is not set
++# CONFIG_CLK_RK312X is not set
++# CONFIG_CLK_RK3188 is not set
++# CONFIG_CLK_RK322X is not set
++# CONFIG_CLK_RK3288 is not set
++# CONFIG_CLK_RK3308 is not set
++# CONFIG_CLK_RK3328 is not set
++# CONFIG_CLK_RK3368 is not set
++CONFIG_COMMON_CLK_RK808=m
++CONFIG_CPUFREQ_DT=m
++CONFIG_MFD_RK808=m
++CONFIG_PCIE_ROCKCHIP_HOST=m
++CONFIG_PHY_ROCKCHIP_PCIE=m
++CONFIG_PL330_DMA=m
++CONFIG_PWM_ROCKCHIP=m
++CONFIG_PWRSEQ_SIMPLE=m
++CONFIG_REGULATOR_FAN53555=m
++CONFIG_REGULATOR_PWM=m
++CONFIG_REGULATOR_RK808=m
++CONFIG_ROCKCHIP_EFUSE=m
++CONFIG_ROCKCHIP_IOMMU=y
++CONFIG_ROCKCHIP_IODOMAIN=m
++CONFIG_ROCKCHIP_MBOX=y
++CONFIG_ROCKCHIP_PM_DOMAINS=y
++CONFIG_ROCKCHIP_THERMAL=m
++
++# Ethernet
++CONFIG_STMMAC_ETH=m
++# CONFIG_DWMAC_GENERIC is not set
++# CONFIG_DWMAC_IPQ806X is not set
++# CONFIG_DWMAC_QCOM_ETHQOS is not set
++# CONFIG_DWMAC_SUNXI is not set
++# CONFIG_DWMAC_SUN8I is not set
++
++# I2C
++CONFIG_I2C_RK3X=m
++
++# Watchdog
++CONFIG_DW_WATCHDOG=m
++
++# Display
++CONFIG_DRM_ROCKCHIP=m
++CONFIG_ROCKCHIP_ANALOGIX_DP=y
++CONFIG_ROCKCHIP_DW_HDMI=y
++CONFIG_ROCKCHIP_DW_MIPI_DSI=y
++
++# USB 2.x
++CONFIG_PHY_ROCKCHIP_INNO_USB2=m
++CONFIG_USB_OHCI_HCD=m
++# CONFIG_USB_OHCI_HCD_PCI is not set
++CONFIG_USB_OHCI_HCD_PLATFORM=m
++
++# eMMC / SD-Card
++CONFIG_MMC_SDHCI_OF_ARASAN=m
++CONFIG_MMC_DW=m
++CONFIG_MMC_DW_ROCKCHIP=m
++CONFIG_PHY_ROCKCHIP_EMMC=m
++
++# Real-time clock
++CONFIG_RTC_DRV_RK808=m
++
++# Type-C
++CONFIG_PHY_ROCKCHIP_TYPEC=m
++
++# SAR ADC
++CONFIG_ROCKCHIP_SARADC=m
++
++# Audio
++CONFIG_SND_SOC_ROCKCHIP_I2S=m
++
++# To boot Linux distributions like Debian
++CONFIG_DEVTMPFS=y
++
++# To bootstrap rootfs with QEMU
++CONFIG_HW_RANDOM_VIRTIO=m
++CONFIG_VIRTIO_PCI=m
++CONFIG_VIRTIO_BLK=m
++CONFIG_VIRTIO_NET=m

@@ -64,10 +64,10 @@ echo "Generating ${OUTPUT_FILE}"
 
 trap 'rm -f "$TMPFILE"' EXIT
 TEST_MAPPING_FILES=$(mktemp)
-find ${ROOT_DIR} -name TEST_MAPPING \
+find ${ROOT_DIR} -path "${ROOT_DIR}/out*" -prune -o \
+  -name TEST_MAPPING -type f \
   -not -path "${ROOT_DIR}/\.git*" \
   -not -path "${ROOT_DIR}/\.repo*" \
-  -not -path "${ROOT_DIR}/out*" \
-  > ${TEST_MAPPING_FILES}
+  -print > ${TEST_MAPPING_FILES}
 soong_zip -o ${OUTPUT_FILE} -C ${ROOT_DIR} -l ${TEST_MAPPING_FILES}
 rm -f ${TEST_MAPPING_FILES}

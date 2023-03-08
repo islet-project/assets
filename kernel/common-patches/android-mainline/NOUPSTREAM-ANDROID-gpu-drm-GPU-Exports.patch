@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Shashank Babu Chinta Venkata <sbchin@codeaurora.org>
+Date: Wed, 11 Dec 2019 16:34:37 -0800
+Subject: NOUPSTREAM: ANDROID: gpu: drm: GPU Exports
+
+[CPNOTE: 19/07/21] Lee: Vendor GKI export
+
+Squash:
+
+  NOUPSTREAM: ANDROID: drm: expose drm_mode_convert_to_umode to display module
+
+Bug: 139653858
+Bug: 139367592
+Change-Id: I5d4c15a5edb28616a2ff01d5acdf498bad6973d8
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/gpu/drm/drm_modes.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/gpu/drm/drm_modes.c b/drivers/gpu/drm/drm_modes.c
+--- a/drivers/gpu/drm/drm_modes.c
++++ b/drivers/gpu/drm/drm_modes.c
+@@ -2084,6 +2084,7 @@ void drm_mode_convert_to_umode(struct drm_mode_modeinfo *out,
+ 	strncpy(out->name, in->name, DRM_DISPLAY_MODE_LEN);
+ 	out->name[DRM_DISPLAY_MODE_LEN-1] = 0;
+ }
++EXPORT_SYMBOL_GPL(drm_mode_convert_to_umode);
+ 
+ /**
+  * drm_mode_convert_umode - convert a modeinfo into a drm_display_mode
+@@ -2160,6 +2161,7 @@ int drm_mode_convert_umode(struct drm_device *dev,
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(drm_mode_convert_umode);
+ 
+ /**
+  * drm_mode_is_420_only - if a given videomode can be only supported in YCBCR420

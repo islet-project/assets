@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Will McVicker <willmcvicker@google.com>
+Date: Thu, 11 Feb 2021 11:33:42 -0800
+Subject: NOUPSTREAM: ANDROID: scripts/setlocalversion: allow running in a
+ subdir
+
+Getting the scmversion using scripts/setlocalversion currently only
+works when run at the root of a git or mecurial project. This was
+introduced in commit 8558f59edf93 ("setlocalversion: Ignote SCMs above
+the linux source tree") so that if one is building within a subdir of
+a git tree that isn't the kernel git project, then the vermagic wouldn't
+include that git sha1.
+
+For Android purposes, this isn't a concern. So let's bring back this
+functionality so that we can use scripts/setlocalversion to capture the SCM
+version of external modules that reside within subdirectories of an SCM
+project.
+
+[CPNOTE: 03/06/21] Lee: Previously NACKed on the MLs
+
+Bug: 180027765
+Link: https://lore.kernel.org/lkml/20201125010541.309848-2-willmcvicker@google.com
+Signed-off-by: Will McVicker <willmcvicker@google.com>
+Change-Id: If12ea75c6be0c0167f29f69b7cf13d1d85b7331c
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ scripts/setlocalversion | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/scripts/setlocalversion b/scripts/setlocalversion
+--- a/scripts/setlocalversion
++++ b/scripts/setlocalversion
+@@ -64,8 +64,7 @@ scm_version()
+ 	fi
+ 
+ 	# Check for git and a git repo.
+-	if test -z "$(git rev-parse --show-cdup 2>/dev/null)" &&
+-	   head=$(git rev-parse --verify HEAD 2>/dev/null); then
++	if head=$(git rev-parse --verify HEAD 2>/dev/null); then
+ 
+ 		if [ -n "$android_release" ] && [ -n "$kmi_generation" ]; then
+ 			printf '%s' "-$android_release-$kmi_generation"

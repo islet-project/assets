@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lina Iyer <ilina@codeaurora.org>
+Date: Tue, 30 Jun 2020 13:13:08 -0600
+Subject: NOUPSTREAM: ANDROID: cpuidle: governor: export cpuidle governor
+ functions
+
+Commit 83788c0caed3 ("cpuidle: remove unused exports") removed
+capability of registering cpuidle governors, which was unused at that
+time. By exporting the symbol, let's allow platform specific modules to
+register cpuidle governors and use cpuidle_governor_latency_req() to get
+the QoS for the CPU.
+
+[CPNOTE: 20/05/21] Lee: This was rejected by Rafael, as there are no Mainline users
+[CPNOTE: 26/05/21] Lee: Requested clarification from Todd
+[CPNOTE: 08/09/21] Lee: Converting to ANDROID:
+
+Bug: 169136276
+Link: https://lore.kernel.org/linux-pm/010101746fc98add-45e77496-d2d6-4bc1-a1ce-0692599a9a7a-000000@us-west-2.amazonses.com/
+Signed-off-by: Lina Iyer <ilina@codeaurora.org>
+Change-Id: Ifa91576af0a3ae92ce9b216cb67728f037546c5b
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/cpuidle/governor.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/cpuidle/governor.c b/drivers/cpuidle/governor.c
+--- a/drivers/cpuidle/governor.c
++++ b/drivers/cpuidle/governor.c
+@@ -101,6 +101,7 @@ int cpuidle_register_governor(struct cpuidle_governor *gov)
+ 
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(cpuidle_register_governor);
+ 
+ /**
+  * cpuidle_governor_latency_req - Compute a latency constraint for CPU
+@@ -117,3 +118,4 @@ s64 cpuidle_governor_latency_req(unsigned int cpu)
+ 
+ 	return (s64)device_req * NSEC_PER_USEC;
+ }
++EXPORT_SYMBOL_GPL(cpuidle_governor_latency_req);

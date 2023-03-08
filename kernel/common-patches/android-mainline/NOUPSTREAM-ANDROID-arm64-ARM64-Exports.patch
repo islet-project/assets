@@ -1,0 +1,138 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Greg Kroah-Hartman <gregkh@google.com>
+Date: Tue, 20 Oct 2020 19:46:17 +0200
+Subject: NOUPSTREAM: ANDROID: arm64: ARM64 Exports
+
+Export dump_backtrace symbol for modules to reference.
+
+[added again as it moved around in 5.10-rc1]
+
+[CPNOTE: 03/06/21] Lee: Pinged Greg for status
+[CPNOTE: 05/08/21] Lee: GKI export
+
+Squash:
+  NOUPSTREAM: ANDROID: arm64: debug-monitors: export break hook APIs
+  NOUPSTREAM: ANDROID: arm64: allow hooks into ipi
+  NOUPSTREAM: ANDROID: arm64: Export show_regs for vendor module usage
+  NOUPSTREAM: ANDROID: ipi: Add function to return nr_ipi and ipi_desc
+
+Bug: 169899018
+Bug: 172588415
+Bug: 177348820
+Bug: 177393446
+Bug: 169899018
+Change-Id: I8448584ed8af204deaa991c5a60b04a39b47ac2f
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ arch/arm64/include/asm/smp.h       |  2 ++
+ arch/arm64/kernel/cpufeature.c     |  1 +
+ arch/arm64/kernel/debug-monitors.c |  4 ++++
+ arch/arm64/kernel/process.c        |  1 +
+ arch/arm64/kernel/smp.c            | 15 +++++++++++++++
+ arch/arm64/kernel/stacktrace.c     |  1 +
+ 6 files changed, 24 insertions(+)
+
+diff --git a/arch/arm64/include/asm/smp.h b/arch/arm64/include/asm/smp.h
+--- a/arch/arm64/include/asm/smp.h
++++ b/arch/arm64/include/asm/smp.h
+@@ -87,6 +87,8 @@ extern void secondary_entry(void);
+ 
+ extern void arch_send_call_function_single_ipi(int cpu);
+ extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
++extern int nr_ipi_get(void);
++extern struct irq_desc **ipi_desc_get(void);
+ 
+ #ifdef CONFIG_ARM64_ACPI_PARKING_PROTOCOL
+ extern void arch_send_wakeup_ipi_mask(const struct cpumask *mask);
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -1460,6 +1460,7 @@ const struct cpumask *system_32bit_el0_cpumask(void)
+ 
+ 	return cpu_possible_mask;
+ }
++EXPORT_SYMBOL_GPL(system_32bit_el0_cpumask);
+ 
+ static int __init parse_32bit_el0_param(char *str)
+ {
+diff --git a/arch/arm64/kernel/debug-monitors.c b/arch/arm64/kernel/debug-monitors.c
+--- a/arch/arm64/kernel/debug-monitors.c
++++ b/arch/arm64/kernel/debug-monitors.c
+@@ -283,21 +283,25 @@ void register_user_break_hook(struct break_hook *hook)
+ {
+ 	register_debug_hook(&hook->node, &user_break_hook);
+ }
++EXPORT_SYMBOL_GPL(register_user_break_hook);
+ 
+ void unregister_user_break_hook(struct break_hook *hook)
+ {
+ 	unregister_debug_hook(&hook->node);
+ }
++EXPORT_SYMBOL_GPL(unregister_user_break_hook);
+ 
+ void register_kernel_break_hook(struct break_hook *hook)
+ {
+ 	register_debug_hook(&hook->node, &kernel_break_hook);
+ }
++EXPORT_SYMBOL_GPL(register_kernel_break_hook);
+ 
+ void unregister_kernel_break_hook(struct break_hook *hook)
+ {
+ 	unregister_debug_hook(&hook->node);
+ }
++EXPORT_SYMBOL_GPL(unregister_kernel_break_hook);
+ 
+ static int call_break_hook(struct pt_regs *regs, unsigned long esr)
+ {
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -246,6 +246,7 @@ void show_regs(struct pt_regs *regs)
+ 	__show_regs(regs);
+ 	dump_backtrace(regs, NULL, KERN_DEFAULT);
+ }
++EXPORT_SYMBOL_GPL(show_regs);
+ 
+ static void tls_thread_flush(void)
+ {
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -58,6 +58,9 @@
+ 
+ DEFINE_PER_CPU_READ_MOSTLY(int, cpu_number);
+ EXPORT_PER_CPU_SYMBOL(cpu_number);
++EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_raise);
++EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_entry);
++EXPORT_TRACEPOINT_SYMBOL_GPL(ipi_exit);
+ 
+ /*
+  * as from 2.5, kernels no longer have an init_tasks structure
+@@ -1100,3 +1103,15 @@ bool cpus_are_stuck_in_kernel(void)
+ 	return !!cpus_stuck_in_kernel || smp_spin_tables ||
+ 		is_protected_kvm_enabled();
+ }
++
++int nr_ipi_get(void)
++{
++	return nr_ipi;
++}
++EXPORT_SYMBOL_GPL(nr_ipi_get);
++
++struct irq_desc **ipi_desc_get(void)
++{
++	return ipi_desc;
++}
++EXPORT_SYMBOL_GPL(ipi_desc_get);
+diff --git a/arch/arm64/kernel/stacktrace.c b/arch/arm64/kernel/stacktrace.c
+--- a/arch/arm64/kernel/stacktrace.c
++++ b/arch/arm64/kernel/stacktrace.c
+@@ -157,6 +157,7 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk,
+ 
+ 	put_task_stack(tsk);
+ }
++EXPORT_SYMBOL_GPL(dump_backtrace);
+ 
+ void show_stack(struct task_struct *tsk, unsigned long *sp, const char *loglvl)
+ {

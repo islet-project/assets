@@ -1,0 +1,262 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Greg Kroah-Hartman <gregkh@google.com>
+Date: Wed, 11 Mar 2020 14:31:53 +0100
+Subject: ANDROID: GKI: Android KABI and Android Vendor
+
+This header file is to be used for various macros to help make keeping
+the kernel ABI "stable" during an "ABI Freeze" period.
+
+They are to be used both before the freeze (to anticipate places where
+there will be changes), and after the freeze (to keep the abi stable for
+structures where there were changes due to LTS or other changes to the
+kernel tree.)
+
+Strongly based on rh_kabi.h from Red Hat's RHEL kernel tree.
+
+This adds support for "real" padding and the ability to replace fields
+with other fields.
+
+But, note that ABI changes will still be caught by libabigail at this
+point in time, work on that is still ongoing.  When that is completed,
+all that will be needed is to modify the _ANDROID_KABI_RESERVE() macro
+in this file.  No other file changes should be needed.
+
+Squash:
+  ANDROID: Configure out the macros in android_kabi and android_vendor
+
+Bug: 151154716
+Signed-off-by: Greg Kroah-Hartman <gregkh@google.com>
+Change-Id: I77038cc251c819c3ed22a9cb8843b185416b6727
+(cherry picked from commit d2eb8b0028ecf947ba2fe64bb7a46b6284e0fa99)
+Signed-off-by: Jaskaran Singh <quic_jasksing@quicinc.com>
+---
+ drivers/android/Kconfig        |  35 ++++++++++
+ include/linux/android_kabi.h   | 117 +++++++++++++++++++++++++++++++++
+ include/linux/android_vendor.h |  15 +++++
+ init/init_task.c               |   2 +
+ kernel/fork.c                  |   4 +-
+ 5 files changed, 171 insertions(+), 2 deletions(-)
+ create mode 100644 include/linux/android_kabi.h
+
+diff --git a/drivers/android/Kconfig b/drivers/android/Kconfig
+--- a/drivers/android/Kconfig
++++ b/drivers/android/Kconfig
+@@ -67,4 +67,39 @@ config ANDROID_DEBUG_KINFO
+ 	   - UTS_RELEASE
+ 	   - BUILD_INFO(ro.build.fingerprint)
+ 
++config ANDROID_KABI_RESERVE
++	bool "Android KABI reserve padding"
++	default y
++	help
++	  This option enables the padding that the Android GKI kernel adds
++	  to many different kernel structures to support an in-kernel stable ABI
++	  over the lifespan of support for the kernel.
++
++	  Only disable this option if you have a system that needs the Android
++	  kernel drivers, but is NOT an Android GKI kernel image. If disabled
++	  it has the possibility to make the kernel static and runtime image
++	  slightly smaller but will NOT be supported by the Google Android
++	  kernel team.
++
++	  If even slightly unsure, say Y.
++
++config ANDROID_VENDOR_OEM_DATA
++	bool "Android vendor and OEM data padding"
++	default y
++	help
++	  This option enables the padding that the Android GKI kernel adds
++	  to many different kernel structures to support an in-kernel stable ABI
++	  over the lifespan of support for the kernel as well as OEM additional
++	  fields that are needed by some of the Android kernel tracepoints. The
++	  macros enabled by this option are used to enable padding in vendor modules
++	  used for the above specified purposes.
++
++	  Only disable this option if you have a system that needs the Android
++	  kernel drivers, but is NOT an Android GKI kernel image and you do NOT
++	  use the Android kernel tracepoints. If disabled it has the possibility
++	  to make the kernel static and runtime image slightly smaller but will
++	  NOT be supported by the Google Android kernel team.
++
++	  If even slightly unsure, say Y.
++
+ endmenu
+diff --git a/include/linux/android_kabi.h b/include/linux/android_kabi.h
+new file mode 100644
+--- /dev/null
++++ b/include/linux/android_kabi.h
+@@ -0,0 +1,117 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * android_kabi.h - Android kernel abi abstraction header
++ *
++ * Copyright (C) 2020 Google, Inc.
++ *
++ * Heavily influenced by rh_kabi.h which came from the RHEL/CENTOS kernel and
++ * was:
++ *	Copyright (c) 2014 Don Zickus
++ *	Copyright (c) 2015-2018 Jiri Benc
++ *	Copyright (c) 2015 Sabrina Dubroca, Hannes Frederic Sowa
++ *	Copyright (c) 2016-2018 Prarit Bhargava
++ *	Copyright (c) 2017 Paolo Abeni, Larry Woodman
++ *
++ * These macros are to be used to try to help alleviate future kernel abi
++ * changes that will occur as LTS and other kernel patches are merged into the
++ * tree during a period in which the kernel abi is wishing to not be disturbed.
++ *
++ * There are two times these macros should be used:
++ *  - Before the kernel abi is "frozen"
++ *    Padding can be added to various kernel structures that have in the past
++ *    been known to change over time.  That will give "room" in the structure
++ *    that can then be used when fields are added so that the structure size
++ *    will not change.
++ *
++ *  - After the kernel abi is "frozen"
++ *    If a structure's field is changed to a type that is identical in size to
++ *    the previous type, it can be changed with a union macro
++ *    If a field is added to a structure, the padding fields can be used to add
++ *    the new field in a "safe" way.
++ */
++#ifndef _ANDROID_KABI_H
++#define _ANDROID_KABI_H
++
++#include <linux/compiler.h>
++
++/*
++ * Worker macros, don't use these, use the ones without a leading '_'
++ */
++
++#define __ANDROID_KABI_CHECK_SIZE_ALIGN(_orig, _new)				\
++	union {									\
++		_Static_assert(sizeof(struct{_new;}) <= sizeof(struct{_orig;}),	\
++			       __FILE__ ":" __stringify(__LINE__) ": "		\
++			       __stringify(_new)				\
++			       " is larger than "				\
++			       __stringify(_orig) );				\
++		_Static_assert(__alignof__(struct{_new;}) <= __alignof__(struct{_orig;}),	\
++			       __FILE__ ":" __stringify(__LINE__) ": "		\
++			       __stringify(_orig)				\
++			       " is not aligned the same as "			\
++			       __stringify(_new) );				\
++	}
++
++#ifdef __GENKSYMS__
++
++#define _ANDROID_KABI_REPLACE(_orig, _new)		_orig
++
++#else
++
++#define _ANDROID_KABI_REPLACE(_orig, _new)			\
++	union {							\
++		_new;						\
++		struct {					\
++			_orig;					\
++		};						\
++		__ANDROID_KABI_CHECK_SIZE_ALIGN(_orig, _new);	\
++	}
++
++#endif /* __GENKSYMS__ */
++
++#define _ANDROID_KABI_RESERVE(n)		u64 android_kabi_reserved##n
++
++
++/*
++ * Macros to use _before_ the ABI is frozen
++ */
++
++/*
++ * ANDROID_KABI_RESERVE
++ *   Reserve some "padding" in a structure for potential future use.
++ *   This normally placed at the end of a structure.
++ *   number: the "number" of the padding variable in the structure.  Start with
++ *   1 and go up.
++ */
++#ifdef CONFIG_ANDROID_KABI_RESERVE
++#define ANDROID_KABI_RESERVE(number)	_ANDROID_KABI_RESERVE(number)
++#else
++#define ANDROID_KABI_RESERVE(number)
++#endif
++
++
++/*
++ * Macros to use _after_ the ABI is frozen
++ */
++
++/*
++ * ANDROID_KABI_USE(number, _new)
++ *   Use a previous padding entry that was defined with ANDROID_KABI_RESERVE
++ *   number: the previous "number" of the padding variable
++ *   _new: the variable to use now instead of the padding variable
++ */
++#define ANDROID_KABI_USE(number, _new)		\
++	_ANDROID_KABI_REPLACE(_ANDROID_KABI_RESERVE(number), _new)
++
++/*
++ * ANDROID_KABI_USE2(number, _new1, _new2)
++ *   Use a previous padding entry that was defined with ANDROID_KABI_RESERVE for
++ *   two new variables that fit into 64 bits.  This is good for when you do not
++ *   want to "burn" a 64bit padding variable for a smaller variable size if not
++ *   needed.
++ */
++#define ANDROID_KABI_USE2(number, _new1, _new2)			\
++	_ANDROID_KABI_REPLACE(_ANDROID_KABI_RESERVE(number), struct{ _new1; _new2; })
++
++
++#endif /* _ANDROID_KABI_H */
+diff --git a/include/linux/android_vendor.h b/include/linux/android_vendor.h
+--- a/include/linux/android_vendor.h
++++ b/include/linux/android_vendor.h
+@@ -26,10 +26,25 @@
+  *   Same as ANDROID_VENDOR_DATA but allocates an array of u64 with
+  *   the specified size
+  */
++#ifdef CONFIG_ANDROID_VENDOR_OEM_DATA
+ #define ANDROID_VENDOR_DATA(n)		u64 android_vendor_data##n
+ #define ANDROID_VENDOR_DATA_ARRAY(n, s)	u64 android_vendor_data##n[s]
+ 
+ #define ANDROID_OEM_DATA(n)		u64 android_oem_data##n
+ #define ANDROID_OEM_DATA_ARRAY(n, s)	u64 android_oem_data##n[s]
+ 
++#define android_init_vendor_data(p, n) \
++	memset(&p->android_vendor_data##n, 0, sizeof(p->android_vendor_data##n))
++#define android_init_oem_data(p, n) \
++	memset(&p->android_oem_data##n, 0, sizeof(p->android_oem_data##n))
++#else
++#define ANDROID_VENDOR_DATA(n)
++#define ANDROID_VENDOR_DATA_ARRAY(n, s)
++#define ANDROID_OEM_DATA(n)
++#define ANDROID_OEM_DATA_ARRAY(n, s)
++
++#define android_init_vendor_data(p, n)
++#define android_init_oem_data(p, n)
++#endif
++
+ #endif /* _ANDROID_VENDOR_H */
+diff --git a/init/init_task.c b/init/init_task.c
+--- a/init/init_task.c
++++ b/init/init_task.c
+@@ -210,8 +210,10 @@ struct task_struct init_task
+ #ifdef CONFIG_SECCOMP_FILTER
+ 	.seccomp	= { .filter_count = ATOMIC_INIT(0) },
+ #endif
++#ifdef CONFIG_ANDROID_VENDOR_OEM_DATA
+ 	.android_vendor_data1 = {0, },
+ 	.android_oem_data1 = {0, },
++#endif
+ };
+ EXPORT_SYMBOL(init_task);
+ 
+diff --git a/kernel/fork.c b/kernel/fork.c
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1068,8 +1068,8 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+ 	tsk->reported_split_lock = 0;
+ #endif
+ 
+-	memset(&tsk->android_vendor_data1, 0, sizeof(tsk->android_vendor_data1));
+-	memset(&tsk->android_oem_data1, 0, sizeof(tsk->android_oem_data1));
++	android_init_vendor_data(tsk, 1);
++	android_init_oem_data(tsk, 1);
+ 
+ 	return tsk;
+ 

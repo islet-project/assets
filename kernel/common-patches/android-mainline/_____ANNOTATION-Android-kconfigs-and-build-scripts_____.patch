@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eric Biggers <ebiggers@google.com>
+Date: Wed, 12 Aug 2020 13:59:24 -0700
+Subject: _____ANNOTATION: Android kconfigs and build scripts_____
+
+Everything else, mainly Android-specific kernel configuration and build
+scripts, e.g. gki_defconfig, build.*, Kconfig.gki.  Avoid putting
+changes to upstream files in this category.
+
+Signed-off-by: Eric Biggers <ebiggers@google.com>
+Signed-off-by: Lee Jones <joneslee@google.com>
+Change-Id: I088def2072fa0e3e1c579610bc7c9d97d52fb06e
+---
+ ANNOTATIONS | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/ANNOTATIONS b/ANNOTATIONS
+--- a/ANNOTATIONS
++++ b/ANNOTATIONS
+@@ -23,3 +23,4 @@ networking changes
+ hardware-wrapped key support
+ Android vendor hooks
+ Android exports
++Android kconfigs and build scripts

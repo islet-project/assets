@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Kocialkowski <paul.kocialkowski@bootlin.com>
+Date: Thu, 8 Dec 2022 15:20:04 +0100
+Subject: UPSTREAM: media: sun6i-isp: capture: Fix uninitialized variable use
+
+While the stride_chroma variable was previously initialized to zero,
+it's actually stride_chroma_div4 that is set to hardware registers.
+
+Initialize it to zero instead to avoid an uninitialized variable use
+and get rid of the associated smatch warning.
+
+Change-Id: I7fc0365eac3e71d93d620bb7f087f36a52310850
+Signed-off-by: Paul Kocialkowski <paul.kocialkowski@bootlin.com>
+Fixes: e3185e1d7c14 ("media: staging: media: Add support for the Allwinner A31 ISP")
+Signed-off-by: Sakari Ailus <sakari.ailus@linux.intel.com>
+Signed-off-by: Hans Verkuil <hverkuil-cisco@xs4all.nl>
+(cherry picked from commit 7266eb7c5a52efe8dc19a34c45c0fc8e3c0e4137)
+Signed-off-by: Greg Kroah-Hartman <gregkh@google.com>
+---
+ drivers/staging/media/sunxi/sun6i-isp/sun6i_isp_capture.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/sun6i-isp/sun6i_isp_capture.c b/drivers/staging/media/sunxi/sun6i-isp/sun6i_isp_capture.c
+--- a/drivers/staging/media/sunxi/sun6i-isp/sun6i_isp_capture.c
++++ b/drivers/staging/media/sunxi/sun6i-isp/sun6i_isp_capture.c
+@@ -108,8 +108,8 @@ sun6i_isp_capture_buffer_configure(struct sun6i_isp_device *isp_dev,
+ void sun6i_isp_capture_configure(struct sun6i_isp_device *isp_dev)
+ {
+ 	unsigned int width, height;
+-	unsigned int stride_luma, stride_chroma = 0;
+-	unsigned int stride_luma_div4, stride_chroma_div4;
++	unsigned int stride_luma, stride_chroma;
++	unsigned int stride_luma_div4, stride_chroma_div4 = 0;
+ 	const struct sun6i_isp_capture_format *format;
+ 	const struct v4l2_format_info *info;
+ 	u32 pixelformat;

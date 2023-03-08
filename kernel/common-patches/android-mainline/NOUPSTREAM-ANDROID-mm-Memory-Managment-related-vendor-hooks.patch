@@ -1,0 +1,208 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chris Goldsworthy <cgoldswo@codeaurora.org>
+Date: Mon, 9 Nov 2020 22:26:47 -0800
+Subject: NOUPSTREAM: ANDROID: mm: Memory Managment related vendor hooks
+
+Create a vendor hook inside of gfp_zone() to modify which allocations
+get to enter ZONE_MOVABLE, by zeroing out __GFP_HIGHMEM inside of the
+trace hook based on certain conditions.
+
+Separately, create separate trace hooks in the swap-in and readahead
+paths to affect the behavior of the tracehook in gfp_zone().
+
+[CPNOTE: 03/06/21] Lee: Vendor related code - maintain forever
+
+Squash:
+  ANDROID: mm: vmscan: support equal reclaim for anon and file pages
+  ANDROID: syscall_check: add vendor hook for mmap syscall
+
+Bug: 175415908
+Bug: 158645321
+Bug: 191291287
+Change-Id: I4a4f0b724267ee120a1e5661f6da5d43d7ef6fc6
+Signed-off-by: Chris Goldsworthy <cgoldswo@codeaurora.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/vendor_hooks.c      |  4 ++++
+ include/trace/hooks/mm.h            | 28 ++++++++++++++++++++++++++++
+ include/trace/hooks/syscall_check.h | 22 ++++++++++++++++++++++
+ include/trace/hooks/vmscan.h        | 18 ++++++++++++++++++
+ mm/util.c                           |  5 +++++
+ mm/vmscan.c                         | 12 ++++++++++--
+ 6 files changed, 87 insertions(+), 2 deletions(-)
+ create mode 100644 include/trace/hooks/mm.h
+ create mode 100644 include/trace/hooks/syscall_check.h
+ create mode 100644 include/trace/hooks/vmscan.h
+
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -13,6 +13,8 @@
+ #include <trace/hooks/mpam.h>
+ #include <trace/hooks/debug.h>
+ #include <trace/hooks/iommu.h>
++#include <trace/hooks/vmscan.h>
++#include <trace/hooks/syscall_check.h>
+ 
+ /*
+  * Export tracepoints that act as a bare tracehook (ie: have no trace event
+@@ -51,6 +53,7 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_build_sched_domains);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_balance_rt);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_pick_next_entity);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_balance_anon_file_reclaim);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_free_task);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_enqueue_task);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_dequeue_task);
+@@ -60,6 +63,7 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_entity_tick);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task_fair);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task_fair);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_cpus_allowed_by_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_mmap_file);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_post_init_entity_util_avg);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_uclamp_eff_get);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_util_est_update);
+diff --git a/include/trace/hooks/mm.h b/include/trace/hooks/mm.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/mm.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM mm
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_MM_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_MM_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_skip_swapcache_flags,
++			TP_PROTO(gfp_t *flags),
++			TP_ARGS(flags), 1);
++DECLARE_RESTRICTED_HOOK(android_rvh_set_gfp_zone_flags,
++			TP_PROTO(gfp_t *flags),
++			TP_ARGS(flags), 1);
++DECLARE_RESTRICTED_HOOK(android_rvh_set_readahead_gfp_mask,
++			TP_PROTO(gfp_t *flags),
++			TP_ARGS(flags), 1);
++
++*/
++#endif /* _TRACE_HOOK_MM_H */
++
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/syscall_check.h b/include/trace/hooks/syscall_check.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/syscall_check.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM syscall_check
++
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_SYSCALL_CHECK_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_SYSCALL_CHECK_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++struct file;
++DECLARE_HOOK(android_vh_check_mmap_file,
++	TP_PROTO(const struct file *file, unsigned long prot,
++		unsigned long flag, unsigned long ret),
++	TP_ARGS(file, prot, flag, ret));
++
++#endif /* _TRACE_HOOK_SYSCALL_CHECK_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/vmscan.h b/include/trace/hooks/vmscan.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/vmscan.h
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM vmscan
++
++#define TRACE_INCLUDE_PATH trace/hooks
++
++#if !defined(_TRACE_HOOK_VMSCAN_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_VMSCAN_H
++
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_balance_anon_file_reclaim,
++			TP_PROTO(bool *balance_anon_file_reclaim),
++			TP_ARGS(balance_anon_file_reclaim), 1);
++#endif /* _TRACE_HOOK_VMSCAN_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/mm/util.c b/mm/util.c
+--- a/mm/util.c
++++ b/mm/util.c
+@@ -29,6 +29,10 @@
+ #include "internal.h"
+ #include "swap.h"
+ 
++#ifndef __GENSYMS__
++#include <trace/hooks/syscall_check.h>
++#endif
++
+ /**
+  * kfree_const - conditionally free memory
+  * @x: pointer to the memory
+@@ -524,6 +528,7 @@ unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
+ 		if (populate)
+ 			mm_populate(ret, populate);
+ 	}
++	trace_android_vh_check_mmap_file(file, prot, flag, ret);
+ 	return ret;
+ }
+ 
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -69,6 +69,9 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/vmscan.h>
+ 
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/vmscan.h>
++
+ struct scan_control {
+ 	/* How many pages shrink_list() should reclaim */
+ 	unsigned long nr_to_reclaim;
+@@ -2946,6 +2949,7 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
+ 	enum scan_balance scan_balance;
+ 	unsigned long ap, fp;
+ 	enum lru_list lru;
++	bool balance_anon_file_reclaim = false;
+ 
+ 	/* If we have no swap space, do not bother scanning anon folios. */
+ 	if (!sc->may_swap || !can_reclaim_anon_pages(memcg, pgdat->node_id, sc)) {
+@@ -2983,11 +2987,15 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
+ 		goto out;
+ 	}
+ 
++	trace_android_rvh_set_balance_anon_file_reclaim(&balance_anon_file_reclaim);
++
+ 	/*
+ 	 * If there is enough inactive page cache, we do not reclaim
+-	 * anything from the anonymous working right now.
++	 * anything from the anonymous working right now. But when balancing
++	 * anon and page cache files for reclaim, allow swapping of anon pages
++	 * even if there are a number of inactive file cache pages.
+ 	 */
+-	if (sc->cache_trim_mode) {
++	if (!balance_anon_file_reclaim && sc->cache_trim_mode) {
+ 		scan_balance = SCAN_FILE;
+ 		goto out;
+ 	}

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright 2014 The Android Open Source Project
 #
@@ -40,15 +40,6 @@ IPV6_FLOWINFO = 11
 
 SYNCOOKIES_SYSCTL = "/proc/sys/net/ipv4/tcp_syncookies"
 TCP_MARK_ACCEPT_SYSCTL = "/proc/sys/net/ipv4/tcp_fwmark_accept"
-
-# The IP[V6]UNICAST_IF socket option was added between 3.1 and 3.4.
-HAVE_UNICAST_IF = net_test.LINUX_VERSION >= (3, 4, 0)
-
-# RTPROT_RA is working properly with 4.14
-HAVE_RTPROT_RA = net_test.LINUX_VERSION >= (4, 14, 0)
-
-class ConfigurationError(AssertionError):
-  pass
 
 
 class OutgoingTest(multinetwork_base.MultiNetworkBaseTest):
@@ -119,7 +110,7 @@ class OutgoingTest(multinetwork_base.MultiNetworkBaseTest):
     inner_version = {4: 6, 6: 4}[version]
     inner_src = self.MyAddress(inner_version, netid)
     inner_dst = self.GetRemoteAddress(inner_version)
-    inner = str(packets.UDP(inner_version, inner_src, inner_dst, sport=None)[1])
+    inner = bytes(packets.UDP(inner_version, inner_src, inner_dst, sport=None)[1])
 
     ethertype = {4: net_test.ETH_P_IP, 6: net_test.ETH_P_IPV6}[inner_version]
     # A GRE header can be as simple as two zero bytes and the ethertype.
@@ -171,7 +162,6 @@ class OutgoingTest(multinetwork_base.MultiNetworkBaseTest):
     """Checks that oif routing selects the right outgoing interface."""
     self.CheckOutgoingPackets("oif")
 
-  @unittest.skipUnless(HAVE_UNICAST_IF, "no support for UNICAST_IF")
   def testUcastOifRouting(self):
     """Checks that ucast oif routing selects the right outgoing interface."""
     self.CheckOutgoingPackets("ucast_oif")
@@ -179,7 +169,7 @@ class OutgoingTest(multinetwork_base.MultiNetworkBaseTest):
   def CheckRemarking(self, version, use_connect):
     modes = ["mark", "oif", "uid"]
     # Setting UNICAST_IF on connected sockets does not work.
-    if not use_connect and HAVE_UNICAST_IF:
+    if not use_connect:
       modes += ["ucast_oif"]
 
     for mode in modes:
@@ -279,11 +269,11 @@ class OutgoingTest(multinetwork_base.MultiNetworkBaseTest):
         s.setsockopt(net_test.SOL_IPV6, net_test.IPV6_FLOWINFO_SEND, 1)
 
         # Set some destination options.
-        nonce = "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c"
-        dstopts = "".join([
-            "\x11\x02",              # Next header=UDP, 24 bytes of options.
-            "\x01\x06", "\x00" * 6,  # PadN, 6 bytes of padding.
-            "\x8b\x0c",              # ILNP nonce, 12 bytes.
+        nonce = b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c"
+        dstopts = b"".join([
+            b"\x11\x02",               # Next header=UDP, 24 bytes of options.
+            b"\x01\x06", b"\x00" * 6,  # PadN, 6 bytes of padding.
+            b"\x8b\x0c",               # ILNP nonce, 12 bytes.
             nonce
         ])
         s.setsockopt(net_test.SOL_IPV6, IPV6_DSTOPTS, dstopts)
@@ -660,13 +650,7 @@ class RIOTest(multinetwork_base.MultiNetworkBaseTest):
     table = self._TableForNetid(netid)
     router = self._RouterAddress(netid, version)
     ifindex = self.ifindices[netid]
-    # We actually want to specify RTPROT_RA, however an upstream
-    # kernel bug causes RAs to be installed with RTPROT_BOOT.
-    if HAVE_RTPROT_RA:
-       rtprot = iproute.RTPROT_RA
-    else:
-       rtprot = iproute.RTPROT_BOOT
-    self.iproute._Route(version, rtprot, iproute.RTM_DELROUTE,
+    self.iproute._Route(version, iproute.RTPROT_RA, iproute.RTM_DELROUTE,
                         table, prefix, plen, router, ifindex, None, None)
 
   def testSetAcceptRaRtInfoMinPlen(self):
@@ -871,7 +855,8 @@ class RATest(multinetwork_base.MultiNetworkBaseTest):
                        "no support for per-table autoconf")
   def testLeftoverRoutes(self):
     def GetNumRoutes():
-      return len(open("/proc/net/ipv6_route").readlines())
+      with open("/proc/net/ipv6_route") as ipv6_route:
+        return len(ipv6_route.readlines())
 
     num_routes = GetNumRoutes()
     for i in range(10, 20):
@@ -893,7 +878,6 @@ class RATest(multinetwork_base.MultiNetworkBaseTest):
     lft_plc = (lifetime & 0xfff8) | 0  # 96-bit prefix length
     return self.Pref64Option((self.ND_OPT_PREF64, 2, lft_plc, prefix))
 
-  @unittest.skipUnless(net_test.LINUX_VERSION >= (4, 9, 0), "not backported")
   def testPref64UserOption(self):
     # Open a netlink socket to receive RTM_NEWNDUSEROPT messages.
     s = netlink.NetlinkSocket(netlink.NETLINK_ROUTE, iproute.RTMGRP_ND_USEROPT)
@@ -981,7 +965,7 @@ class PMTUTest(multinetwork_base.InboundMarkingTest):
         if use_connect:
           s.connect((dstaddr, 1234))
 
-        payload = self.PAYLOAD_SIZE * "a"
+        payload = self.PAYLOAD_SIZE * b"a"
 
         # Send a packet and receive a packet too big.
         SendBigPacket(version, s, dstaddr, netid, payload)
@@ -999,7 +983,7 @@ class PMTUTest(multinetwork_base.InboundMarkingTest):
 
         # If this is a connected socket, make sure the socket MTU was set.
         # Note that in IPv4 this only started working in Linux 3.6!
-        if use_connect and (version == 6 or net_test.LINUX_VERSION >= (3, 6)):
+        if use_connect:
           self.assertEqual(packets.PTB_MTU, self.GetSocketMTU(version, s))
 
         s.close()
@@ -1178,29 +1162,27 @@ class UidRoutingTest(multinetwork_base.MultiNetworkBaseTest):
     finally:
       self.iproute.FwmarkRule(version, False, 300, fwmask, 301, priority + 1)
 
-    # Test that EEXIST worksfor UID range rules too. This behaviour was only
-    # added in 4.8.
-    if net_test.LINUX_VERSION >= (4, 8, 0):
-      ranges = [(100, 101), (100, 102), (99, 101), (1234, 5678)]
-      dup = ranges[0]
-      try:
-        # Check that otherwise identical rules with different UID ranges can be
-        # created without EEXIST.
-        for start, end in ranges:
-          self.iproute.UidRangeRule(version, True, start, end, table, priority)
-        # ... but EEXIST is returned if the UID range is identical.
-        self.assertRaisesErrno(
-          errno.EEXIST,
-          self.iproute.UidRangeRule, version, True, dup[0], dup[1], table,
-          priority)
-      finally:
-        # Clean up.
-        for start, end in ranges + [dup]:
-          try:
-            self.iproute.UidRangeRule(version, False, start, end, table,
-                                      priority)
-          except IOError:
-            pass
+    # Test that EEXIST worksfor UID range rules too.
+    ranges = [(100, 101), (100, 102), (99, 101), (1234, 5678)]
+    dup = ranges[0]
+    try:
+      # Check that otherwise identical rules with different UID ranges can be
+      # created without EEXIST.
+      for start, end in ranges:
+        self.iproute.UidRangeRule(version, True, start, end, table, priority)
+      # ... but EEXIST is returned if the UID range is identical.
+      self.assertRaisesErrno(
+        errno.EEXIST,
+        self.iproute.UidRangeRule, version, True, dup[0], dup[1], table,
+        priority)
+    finally:
+      # Clean up.
+      for start, end in ranges + [dup]:
+        try:
+          self.iproute.UidRangeRule(version, False, start, end, table,
+                                    priority)
+        except IOError:
+          pass
 
   def testIPv4GetAndSetRules(self):
     self.CheckGetAndSetRules(4)
@@ -1208,7 +1190,6 @@ class UidRoutingTest(multinetwork_base.MultiNetworkBaseTest):
   def testIPv6GetAndSetRules(self):
     self.CheckGetAndSetRules(6)
 
-  @unittest.skipUnless(net_test.LINUX_VERSION >= (4, 9, 0), "not backported")
   def testDeleteErrno(self):
     for version in [4, 6]:
       table = self._Random()
@@ -1255,9 +1236,9 @@ class UidRoutingTest(multinetwork_base.MultiNetworkBaseTest):
 
     def CheckSendFails():
       self.assertRaisesErrno(errno.ENETUNREACH,
-                             s.sendto, "foo", (remoteaddr, 53))
+                             s.sendto, b"foo", (remoteaddr, 53))
     def CheckSendSucceeds():
-      self.assertEqual(len("foo"), s.sendto("foo", (remoteaddr, 53)))
+      self.assertEqual(len(b"foo"), s.sendto(b"foo", (remoteaddr, 53)))
 
     CheckSendFails()
     self.iproute.UidRangeRule(6, True, uid, uid, table, self.PRIORITY_UID)

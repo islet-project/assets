@@ -1,0 +1,603 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Amit Pundir <amit.pundir@linaro.org>
+Date: Tue, 1 Oct 2019 12:39:08 +0530
+Subject: NOUPSTREAM: ANDROID: build.config.* file hierarchy
+
+This is a squashed commit containing all build.config.* files.
+
+They are not going upstream so history is unimportant in 'common-patches' context.
+
+[CPNOTE: 21/07/21] Lee: Androidness
+
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Change-Id: I273c3968b70daaf60fd01106fb388475a8645c97
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ android/gki_system_dlkm_modules   | 49 +++++++++++++++++++++++++++++++
+ build.config.aarch64              | 16 ++++++++++
+ build.config.allmodconfig         | 16 ++++++++++
+ build.config.allmodconfig.aarch64 |  4 +++
+ build.config.allmodconfig.arm     |  4 +++
+ build.config.allmodconfig.x86_64  |  4 +++
+ build.config.amlogic              | 34 +++++++++++++++++++++
+ build.config.arm                  | 13 ++++++++
+ build.config.common               | 17 +++++++++++
+ build.config.constants            |  2 ++
+ build.config.db845c               | 21 +++++++++++++
+ build.config.gki                  |  2 ++
+ build.config.gki-debug.aarch64    |  3 ++
+ build.config.gki-debug.x86_64     |  3 ++
+ build.config.gki.aarch64          | 27 +++++++++++++++++
+ build.config.gki.aarch64.16k      |  5 ++++
+ build.config.gki.riscv64          | 30 +++++++++++++++++++
+ build.config.gki.x86_64           | 15 ++++++++++
+ build.config.gki_kasan            | 22 ++++++++++++++
+ build.config.gki_kasan.aarch64    |  3 ++
+ build.config.gki_kasan.x86_64     |  4 +++
+ build.config.gki_kprobes          | 20 +++++++++++++
+ build.config.gki_kprobes.aarch64  |  4 +++
+ build.config.gki_kprobes.x86_64   |  4 +++
+ build.config.khwasan              | 17 +++++++++++
+ build.config.riscv64              | 14 +++++++++
+ build.config.rockpi4              | 21 +++++++++++++
+ build.config.x86_64               | 16 ++++++++++
+ 28 files changed, 390 insertions(+)
+ create mode 100644 android/gki_system_dlkm_modules
+ create mode 100644 build.config.aarch64
+ create mode 100644 build.config.allmodconfig
+ create mode 100644 build.config.allmodconfig.aarch64
+ create mode 100644 build.config.allmodconfig.arm
+ create mode 100644 build.config.allmodconfig.x86_64
+ create mode 100644 build.config.amlogic
+ create mode 100644 build.config.arm
+ create mode 100644 build.config.common
+ create mode 100644 build.config.constants
+ create mode 100644 build.config.db845c
+ create mode 100644 build.config.gki
+ create mode 100644 build.config.gki-debug.aarch64
+ create mode 100644 build.config.gki-debug.x86_64
+ create mode 100644 build.config.gki.aarch64
+ create mode 100644 build.config.gki.aarch64.16k
+ create mode 100644 build.config.gki.riscv64
+ create mode 100644 build.config.gki.x86_64
+ create mode 100644 build.config.gki_kasan
+ create mode 100644 build.config.gki_kasan.aarch64
+ create mode 100644 build.config.gki_kasan.x86_64
+ create mode 100644 build.config.gki_kprobes
+ create mode 100644 build.config.gki_kprobes.aarch64
+ create mode 100644 build.config.gki_kprobes.x86_64
+ create mode 100644 build.config.khwasan
+ create mode 100644 build.config.riscv64
+ create mode 100644 build.config.rockpi4
+ create mode 100644 build.config.x86_64
+
+diff --git a/android/gki_system_dlkm_modules b/android/gki_system_dlkm_modules
+new file mode 100644
+--- /dev/null
++++ b/android/gki_system_dlkm_modules
+@@ -0,0 +1,49 @@
++drivers/block/zram/zram.ko
++drivers/bluetooth/btbcm.ko
++drivers/bluetooth/btqca.ko
++drivers/bluetooth/btsdio.ko
++drivers/bluetooth/hci_uart.ko
++drivers/net/can/dev/can-dev.ko
++drivers/net/can/slcan/slcan.ko
++drivers/net/can/vcan.ko
++drivers/net/ppp/bsd_comp.ko
++drivers/net/ppp/ppp_deflate.ko
++drivers/net/ppp/ppp_generic.ko
++drivers/net/ppp/ppp_mppe.ko
++drivers/net/ppp/pppox.ko
++drivers/net/ppp/pptp.ko
++drivers/net/slip/slhc.ko
++drivers/usb/class/cdc-acm.ko
++drivers/usb/serial/ftdi_sio.ko
++drivers/usb/serial/usbserial.ko
++lib/crypto/libarc4.ko
++mm/zsmalloc.ko
++net/6lowpan/6lowpan.ko
++net/6lowpan/nhc_dest.ko
++net/6lowpan/nhc_fragment.ko
++net/6lowpan/nhc_hop.ko
++net/6lowpan/nhc_ipv6.ko
++net/6lowpan/nhc_mobility.ko
++net/6lowpan/nhc_routing.ko
++net/6lowpan/nhc_udp.ko
++net/8021q/8021q.ko
++net/bluetooth/bluetooth.ko
++net/bluetooth/hidp/hidp.ko
++net/bluetooth/rfcomm/rfcomm.ko
++net/can/can.ko
++net/can/can-bcm.ko
++net/can/can-gw.ko
++net/can/can-raw.ko
++net/ieee802154/6lowpan/ieee802154_6lowpan.ko
++net/ieee802154/ieee802154.ko
++net/ieee802154/ieee802154_socket.ko
++net/l2tp/l2tp_core.ko
++net/l2tp/l2tp_ppp.ko
++net/mac80211/mac80211.ko
++net/mac802154/mac802154.ko
++net/nfc/nfc.ko
++net/rfkill/rfkill.ko
++net/tipc/diag.ko
++net/tipc/tipc.ko
++net/wireless/cfg80211.ko
++
+diff --git a/build.config.aarch64 b/build.config.aarch64
+new file mode 100644
+--- /dev/null
++++ b/build.config.aarch64
+@@ -0,0 +1,16 @@
++ARCH=arm64
++MAKE_GOALS="
++Image
++modules
++"
++
++FILES="
++arch/arm64/boot/Image
++vmlinux
++System.map
++vmlinux.symvers
++modules.builtin
++modules.builtin.modinfo
++"
++
++NDK_TRIPLE=aarch64-linux-android31
+diff --git a/build.config.allmodconfig b/build.config.allmodconfig
+new file mode 100644
+--- /dev/null
++++ b/build.config.allmodconfig
+@@ -0,0 +1,16 @@
++DEFCONFIG=allmodconfig
++
++POST_DEFCONFIG_CMDS="update_config"
++function update_config() {
++    ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
++         -e UNWINDER_FRAME_POINTER \
++         -d WERROR \
++         -d SAMPLES \
++         -d BPFILTER \
++         -e RANDSTRUCT_NONE \
++         -d RANDSTRUCT_FULL \
++         -d RANDSTRUCT \
++
++    (cd ${OUT_DIR} && \
++     make O=${OUT_DIR} $archsubarch CROSS_COMPILE=${CROSS_COMPILE} ${TOOL_ARGS} ${MAKE_ARGS} olddefconfig)
++}
+diff --git a/build.config.allmodconfig.aarch64 b/build.config.allmodconfig.aarch64
+new file mode 100644
+--- /dev/null
++++ b/build.config.allmodconfig.aarch64
+@@ -0,0 +1,4 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.allmodconfig
++
+diff --git a/build.config.allmodconfig.arm b/build.config.allmodconfig.arm
+new file mode 100644
+--- /dev/null
++++ b/build.config.allmodconfig.arm
+@@ -0,0 +1,4 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.arm
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.allmodconfig
++
+diff --git a/build.config.allmodconfig.x86_64 b/build.config.allmodconfig.x86_64
+new file mode 100644
+--- /dev/null
++++ b/build.config.allmodconfig.x86_64
+@@ -0,0 +1,4 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.x86_64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.allmodconfig
++
+diff --git a/build.config.amlogic b/build.config.amlogic
+new file mode 100644
+--- /dev/null
++++ b/build.config.amlogic
+@@ -0,0 +1,34 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
++
++DEFCONFIG=amlogic_gki_defconfig
++FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/amlogic_gki.fragment
++
++PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/${FRAGMENT_CONFIG}"
++POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
++
++# needed for DT overlay support
++DTC_FLAGS="-@"
++
++MAKE_GOALS="${MAKE_GOALS}
++dtbs
++"
++
++FILES="${FILES}
++arch/arm64/boot/Image.lz4
++arch/arm64/boot/dts/amlogic/meson-g12a-sei510*.dtb
++arch/arm64/boot/dts/amlogic/meson-sm1-sei610*.dtb
++arch/arm64/boot/dts/amlogic/meson-sm1-khadas-vim3l*.dtb
++arch/arm64/boot/dts/amlogic/meson-g12b-a311d-khadas-vim3*.dtb
++"
++
++#
++# NOTE: Using Image.lz4 in MAKE_GOALS does not work because
++#   kernel build passes legacy option (-l) to lz4 command
++#   and u-boot fails to decompress.  Instead, add custom
++#   command to lz4 compress same options as kernel, but
++#   without the -l.
++#
++EXTRA_CMDS="lz4_compress"
++function lz4_compress() {
++        lz4 -f -12 --favor-decSpeed ${OUT_DIR}/arch/arm64/boot/Image ${OUT_DIR}/arch/arm64/boot/Image.lz4
++}
+diff --git a/build.config.arm b/build.config.arm
+new file mode 100644
+--- /dev/null
++++ b/build.config.arm
+@@ -0,0 +1,13 @@
++ARCH=arm
++MAKE_GOALS="
++zImage
++modules
++"
++
++FILES="
++arch/arm/boot/zImage
++vmlinux
++System.map
++"
++
++NDK_TRIPLE=arm-linux-androideabi31
+diff --git a/build.config.common b/build.config.common
+new file mode 100644
+--- /dev/null
++++ b/build.config.common
+@@ -0,0 +1,17 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.constants
++
++KMI_GENERATION=0
++
++LLVM=1
++DEPMOD=depmod
++CLANG_PREBUILT_BIN=prebuilts/clang/host/linux-x86/clang-${CLANG_VERSION}/bin
++BUILDTOOLS_PREBUILT_BIN=build/kernel/build-tools/path/linux-x86
++DTC=${ROOT_DIR}/${BUILDTOOLS_PREBUILT_BIN}/dtc
++
++KCFLAGS="${KCFLAGS} -D__ANDROID_COMMON_KERNEL__"
++EXTRA_CMDS=''
++STOP_SHIP_TRACEPRINTK=1
++IN_KERNEL_MODULES=1
++DO_NOT_STRIP_MODULES=1
++
++HERMETIC_TOOLCHAIN=${HERMETIC_TOOLCHAIN:-1}
+diff --git a/build.config.constants b/build.config.constants
+new file mode 100644
+--- /dev/null
++++ b/build.config.constants
+@@ -0,0 +1,2 @@
++BRANCH=android-mainline
++CLANG_VERSION=r475365b
+diff --git a/build.config.db845c b/build.config.db845c
+new file mode 100644
+--- /dev/null
++++ b/build.config.db845c
+@@ -0,0 +1,21 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
++
++BUILD_INITRAMFS=1
++DEFCONFIG=db845c_gki_defconfig
++FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/db845c_gki.fragment
++PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/${FRAGMENT_CONFIG}"
++POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
++
++MAKE_GOALS="
++modules
++qcom/sdm845-db845c.dtb
++qcom/qrb5165-rb5.dtb
++qcom/sm8450-qrd.dtb
++"
++
++FILES="
++arch/arm64/boot/dts/qcom/sdm845-db845c.dtb
++arch/arm64/boot/dts/qcom/qrb5165-rb5.dtb
++arch/arm64/boot/dts/qcom/sm8450-qrd.dtb
++"
+diff --git a/build.config.gki b/build.config.gki
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki
+@@ -0,0 +1,2 @@
++DEFCONFIG=gki_defconfig
++POST_DEFCONFIG_CMDS="check_defconfig"
+diff --git a/build.config.gki-debug.aarch64 b/build.config.gki-debug.aarch64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki-debug.aarch64
+@@ -0,0 +1,3 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
++TRIM_NONLISTED_KMI=""
++KMI_SYMBOL_LIST_STRICT_MODE=""
+diff --git a/build.config.gki-debug.x86_64 b/build.config.gki-debug.x86_64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki-debug.x86_64
+@@ -0,0 +1,3 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.x86_64
++TRIM_NONLISTED_KMI=""
++KMI_SYMBOL_LIST_STRICT_MODE=""
+diff --git a/build.config.gki.aarch64 b/build.config.gki.aarch64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki.aarch64
+@@ -0,0 +1,27 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki
++
++MAKE_GOALS="${MAKE_GOALS}
++Image.lz4
++Image.gz
++"
++
++FILES="${FILES}
++arch/arm64/boot/Image.lz4
++arch/arm64/boot/Image.gz
++"
++
++BUILD_SYSTEM_DLKM=1
++MODULES_LIST=${ROOT_DIR}/${KERNEL_DIR}/android/gki_system_dlkm_modules
++
++BUILD_GKI_CERTIFICATION_TOOLS=1
++
++BUILD_GKI_ARTIFACTS=1
++BUILD_GKI_BOOT_IMG_SIZE=67108864
++BUILD_GKI_BOOT_IMG_GZ_SIZE=47185920
++BUILD_GKI_BOOT_IMG_LZ4_SIZE=53477376
++
++if [ -n "${GKI_BUILD_CONFIG_FRAGMENT}" ]; then
++source ${GKI_BUILD_CONFIG_FRAGMENT}
++fi
+diff --git a/build.config.gki.aarch64.16k b/build.config.gki.aarch64.16k
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki.aarch64.16k
+@@ -0,0 +1,5 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
++
++DEFCONFIG=16k_gki_defconfig
++PRE_DEFCONFIG_CMDS="mkdir -p \${OUT_DIR}/arch/arm64/configs/ && cat ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/16k_gki.fragment > \${OUT_DIR}/arch/arm64/configs/${DEFCONFIG};"
++POST_DEFCONFIG_CMDS=""
+diff --git a/build.config.gki.riscv64 b/build.config.gki.riscv64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki.riscv64
+@@ -0,0 +1,30 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.riscv64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki
++
++MAKE_GOALS="${MAKE_GOALS}
++Image.lz4
++Image.gz
++"
++
++FILES="${FILES}
++arch/riscv/boot/Image.lz4
++arch/riscv/boot/Image.gz
++"
++
++BUILD_SYSTEM_DLKM=1
++MODULES_LIST=${ROOT_DIR}/${KERNEL_DIR}/android/gki_system_dlkm_modules
++
++BUILD_GKI_CERTIFICATION_TOOLS=1
++
++BUILD_GKI_ARTIFACTS=1
++BUILD_GKI_BOOT_IMG_SIZE=67108864
++BUILD_GKI_BOOT_IMG_GZ_SIZE=47185920
++BUILD_GKI_BOOT_IMG_LZ4_SIZE=53477376
++
++PRE_DEFCONFIG_CMDS="mkdir -p \${OUT_DIR}/arch/riscv/configs/ && cat ${ROOT_DIR}/${KERNEL_DIR}/arch/riscv/configs/gki_defconfig ${ROOT_DIR}/${KERNEL_DIR}/arch/riscv/configs/64-bit.config ${ROOT_DIR}/${KERNEL_DIR}/arch/riscv/configs/gki.config > \${OUT_DIR}/arch/riscv/configs/${DEFCONFIG};"
++POST_DEFCONFIG_CMDS=""
++
++if [ -n "${GKI_BUILD_CONFIG_FRAGMENT}" ]; then
++source ${GKI_BUILD_CONFIG_FRAGMENT}
++fi
+diff --git a/build.config.gki.x86_64 b/build.config.gki.x86_64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki.x86_64
+@@ -0,0 +1,15 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.x86_64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki
++
++BUILD_SYSTEM_DLKM=1
++MODULES_LIST=${ROOT_DIR}/${KERNEL_DIR}/android/gki_system_dlkm_modules
++
++BUILD_GKI_CERTIFICATION_TOOLS=1
++
++BUILD_GKI_ARTIFACTS=1
++BUILD_GKI_BOOT_IMG_SIZE=67108864
++
++if [ -n "${GKI_BUILD_CONFIG_FRAGMENT}" ]; then
++source ${GKI_BUILD_CONFIG_FRAGMENT}
++fi
+diff --git a/build.config.gki_kasan b/build.config.gki_kasan
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki_kasan
+@@ -0,0 +1,22 @@
++DEFCONFIG=gki_defconfig
++POST_DEFCONFIG_CMDS="check_defconfig && update_kasan_config"
++KERNEL_DIR=common
++LTO=none
++
++function update_kasan_config() {
++    ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
++         -e CONFIG_KASAN \
++         -e CONFIG_KASAN_INLINE \
++         -e CONFIG_KCOV \
++         -e CONFIG_PANIC_ON_WARN_DEFAULT_ENABLE \
++         -d CONFIG_RANDOMIZE_BASE \
++         -d CONFIG_KASAN_OUTLINE \
++         --set-val CONFIG_FRAME_WARN 0 \
++         -d CFI \
++         -d CFI_PERMISSIVE \
++         -d CFI_CLANG \
++         -d SHADOW_CALL_STACK
++    (cd ${OUT_DIR} && \
++     make ${TOOL_ARGS} O=${OUT_DIR} olddefconfig)
++}
++
+diff --git a/build.config.gki_kasan.aarch64 b/build.config.gki_kasan.aarch64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki_kasan.aarch64
+@@ -0,0 +1,3 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki_kasan
+diff --git a/build.config.gki_kasan.x86_64 b/build.config.gki_kasan.x86_64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki_kasan.x86_64
+@@ -0,0 +1,4 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.x86_64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki_kasan
++
+diff --git a/build.config.gki_kprobes b/build.config.gki_kprobes
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki_kprobes
+@@ -0,0 +1,20 @@
++DEFCONFIG=gki_defconfig
++POST_DEFCONFIG_CMDS="check_defconfig && update_kprobes_config"
++function update_kprobes_config() {
++    ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
++         -d LTO \
++         -d LTO_CLANG_THIN \
++         -d CFI \
++         -d CFI_PERMISSIVE \
++         -d CFI_CLANG \
++         -e CONFIG_DYNAMIC_FTRACE \
++         -e CONFIG_FUNCTION_TRACER \
++         -e CONFIG_IRQSOFF_TRACER \
++         -e CONFIG_FUNCTION_PROFILER \
++         -e CONFIG_PREEMPT_TRACER \
++         -e CONFIG_CHECKPOINT_RESTORE \
++         -d CONFIG_RANDOMIZE_BASE
++    (cd ${OUT_DIR} && \
++     make ${TOOL_ARGS} O=${OUT_DIR} olddefconfig)
++}
++
+diff --git a/build.config.gki_kprobes.aarch64 b/build.config.gki_kprobes.aarch64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki_kprobes.aarch64
+@@ -0,0 +1,4 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki_kprobes
++
+diff --git a/build.config.gki_kprobes.x86_64 b/build.config.gki_kprobes.x86_64
+new file mode 100644
+--- /dev/null
++++ b/build.config.gki_kprobes.x86_64
+@@ -0,0 +1,4 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.x86_64
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki_kprobes
++
+diff --git a/build.config.khwasan b/build.config.khwasan
+new file mode 100644
+--- /dev/null
++++ b/build.config.khwasan
+@@ -0,0 +1,17 @@
++append_cmd POST_DEFCONFIG_CMDS update_khwasan_config
++
++function update_khwasan_config() {
++  ${KERNEL_DIR}/scripts/config --file ${OUT_DIR}/.config \
++    -e CONFIG_KASAN \
++    -d CONFIG_KASAN_HW_TAGS \
++    -e CONFIG_KASAN_SW_TAGS \
++    -e CONFIG_KASAN_OUTLINE \
++    -e CONFIG_KASAN_PANIC_ON_WARN \
++    -e CONFIG_KCOV \
++    -e CONFIG_PANIC_ON_WARN_DEFAULT_ENABLE \
++    -d CONFIG_RANDOMIZE_BASE \
++    --set-val CONFIG_FRAME_WARN 0 \
++    -d SHADOW_CALL_STACK
++  (cd ${OUT_DIR} && \
++   make O=${OUT_DIR} "${TOOL_ARGS[@]}" ${MAKE_ARGS} olddefconfig)
++}
+diff --git a/build.config.riscv64 b/build.config.riscv64
+new file mode 100644
+--- /dev/null
++++ b/build.config.riscv64
+@@ -0,0 +1,14 @@
++ARCH=riscv
++MAKE_GOALS="
++Image
++modules
++"
++
++FILES="
++arch/riscv/boot/Image
++vmlinux
++System.map
++vmlinux.symvers
++modules.builtin
++modules.builtin.modinfo
++"
+diff --git a/build.config.rockpi4 b/build.config.rockpi4
+new file mode 100644
+--- /dev/null
++++ b/build.config.rockpi4
+@@ -0,0 +1,21 @@
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
++. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
++TRIM_NONLISTED_KMI=""
++KMI_SYMBOL_LIST_STRICT_MODE=""
++
++BUILD_INITRAMFS=1
++LZ4_RAMDISK=1
++DEFCONFIG=rockpi4_gki_defconfig
++FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/rockpi4_gki.fragment
++PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/${FRAGMENT_CONFIG}"
++POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
++
++DTS_EXT_DIR=common-modules/virtual-device
++DTC_INCLUDE=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/boot/dts/rockchip
++MAKE_GOALS="${MAKE_GOALS}
++rk3399-rock-pi-4b.dtb
++"
++
++FILES="${FILES}
++../common-modules/virtual-device/rk3399-rock-pi-4b.dtb
++"
+diff --git a/build.config.x86_64 b/build.config.x86_64
+new file mode 100644
+--- /dev/null
++++ b/build.config.x86_64
+@@ -0,0 +1,16 @@
++ARCH=x86_64
++MAKE_GOALS="
++bzImage
++modules
++"
++
++FILES="
++arch/x86/boot/bzImage
++vmlinux
++System.map
++vmlinux.symvers
++modules.builtin
++modules.builtin.modinfo
++"
++
++NDK_TRIPLE=x86_64-linux-android31

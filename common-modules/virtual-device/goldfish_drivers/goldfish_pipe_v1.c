@@ -287,7 +287,6 @@ static ssize_t goldfish_pipe_read_write(struct file *filp, char __user *buffer,
 		int status;
 		int n_pages;
 		int page_i;
-		int num_contiguous_pages;
 
 		/*
 		 * Attempt to grab multiple physically contiguous pages.
@@ -298,11 +297,11 @@ static ssize_t goldfish_pipe_read_write(struct file *filp, char __user *buffer,
 			min(((last_page - first_page) >> PAGE_SHIFT) + 1,
 			    (long)MAX_PAGES_TO_GRAB);
 
-		ret = get_user_pages_fast(first_page, requested_pages,
-					  !is_write, pages);
+		ret = pin_user_pages_fast(first_page, requested_pages,
+					  (!is_write ? FOLL_WRITE : 0), pages);
 		if (ret < 0) {
 			dev_err(dev->pdev_dev,
-				"%s: get_user_pages_fast failed: %d\n",
+				"%s: pin_user_pages_fast failed: %d\n",
 				__func__, ret);
 			break;
 		} else if (!ret) {
@@ -315,7 +314,6 @@ static ssize_t goldfish_pipe_read_write(struct file *filp, char __user *buffer,
 		n_pages = ret;
 		xaddr = translate_address(pages[0], address);
 		xaddr_prev = xaddr;
-		num_contiguous_pages = 1;
 		for (page_i = 1; page_i < n_pages; page_i++) {
 			unsigned long xaddr_i;
 
@@ -323,7 +321,6 @@ static ssize_t goldfish_pipe_read_write(struct file *filp, char __user *buffer,
 			if (xaddr_i == xaddr_prev + PAGE_SIZE) {
 				page_end += PAGE_SIZE;
 				xaddr_prev = xaddr_i;
-				num_contiguous_pages++;
 			} else {
 				dev_err(dev->pdev_dev,
 					"%s: discontinuous page boundary: %d "
@@ -336,13 +333,8 @@ static ssize_t goldfish_pipe_read_write(struct file *filp, char __user *buffer,
 
 		status = transfer_pages(dev, pipe, pipe_cmd, xaddr, avail);
 
-		for (page_i = 0; page_i < n_pages; page_i++) {
-			if (status > 0 && !is_write &&
-			    page_i < num_contiguous_pages)
-				set_page_dirty(pages[page_i]);
-
-			put_page(pages[page_i]);
-		}
+		unpin_user_pages_dirty_lock(pages, n_pages,
+					    (status > 0) && !is_write);
 
 		if (status > 0) { /* Correct transfer */
 			count += status;

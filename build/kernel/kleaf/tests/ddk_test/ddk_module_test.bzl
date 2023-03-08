@@ -12,15 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Tests for `ddk_module`."""
+
 load("@bazel_skylib//lib:sets.bzl", "sets")
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("//build/kernel/kleaf/impl:common_providers.bzl", "ModuleSymversInfo")
 load("//build/kernel/kleaf/impl:ddk/ddk_headers.bzl", "ddk_headers")
 load("//build/kernel/kleaf/impl:ddk/ddk_module.bzl", "ddk_module")
 load("//build/kernel/kleaf/impl:kernel_module.bzl", "kernel_module")
 load("//build/kernel/kleaf/impl:kernel_build.bzl", "kernel_build")
 load("//build/kernel/kleaf/tests:failure_test.bzl", "failure_test")
+load("//build/kernel/kleaf/tests/utils:contain_lines_test.bzl", "contain_lines_test")
 load(":ddk_headers_test.bzl", "check_ddk_headers_info")
+load(":makefiles_test.bzl", "get_top_level_file")
 
 def _ddk_module_test_impl(ctx):
     env = analysistest.begin(ctx)
@@ -47,10 +53,14 @@ def _ddk_module_test_impl(ctx):
     expected_inputs = sets.make(ctx.files.expected_inputs)
 
     action = None
+    mnemonic = "KernelModule"
+    if ctx.attr._config_is_local[BuildSettingInfo].value:
+        mnemonic += "ProcessWrapperSandbox"
+
     for a in target_under_test.actions:
-        if a.mnemonic == "KernelModule":
+        if a.mnemonic == mnemonic:
             action = a
-    asserts.true(env, a, "Can't find action with mnemonic KernelModule")
+    asserts.true(env, action, "Can't find action with mnemonic KernelModule")
 
     inputs = sets.make(action.inputs.to_list())
     asserts.true(
@@ -65,12 +75,15 @@ def _ddk_module_test_impl(ctx):
 
     return analysistest.end(env)
 
-_ddk_module_test = analysistest.make(
+ddk_module_test = analysistest.make(
     impl = _ddk_module_test_impl,
     attrs = {
         "expected_inputs": attr.label_list(allow_files = True),
         "expected_includes": attr.string_list(),
         "expected_hdrs": attr.label_list(allow_files = [".h"]),
+        "_config_is_local": attr.label(
+            default = "//build/kernel/kleaf:config_local",
+        ),
     },
 )
 
@@ -82,11 +95,12 @@ def _ddk_module_test_make(
         **kwargs):
     ddk_module(
         name = name + "_module",
+        out = name + ".ko",
         tags = ["manual"],
         **kwargs
     )
 
-    _ddk_module_test(
+    ddk_module_test(
         name = name,
         target_under_test = name + "_module",
         expected_inputs = expected_inputs,
@@ -94,7 +108,53 @@ def _ddk_module_test_make(
         expected_includes = expected_includes,
     )
 
+def _conditional_srcs_test(
+        name,
+        kernel_build):
+    ddk_module(
+        name = name + "_module",
+        kernel_build = kernel_build,
+        out = name + "_module.ko",
+        conditional_srcs = {
+            "CONFIG_A": {
+                True: ["cond_srcs/a_y.c"],
+                False: ["cond_srcs/a_n.c"],
+            },
+        },
+        tags = ["manual"],
+    )
+
+    get_top_level_file(
+        name = name + "_kbuild",
+        filename = "Kbuild",
+        target = name + "_module_makefiles",
+    )
+
+    write_file(
+        name = name + "_expected",
+        out = name + "_expected/Kbuild",
+        content = [
+            "ifeq ($(CONFIG_A),y)",
+            "{}_module-y += cond_srcs/a_y.o".format(name),
+            "endif # ifeq ($(CONFIG_A),y)",
+            "ifeq ($(CONFIG_A),)",
+            "{}_module-y += cond_srcs/a_n.o".format(name),
+            "endif # ifeq ($(CONFIG_A),)",
+        ],
+    )
+
+    contain_lines_test(
+        name = name,
+        expected = name + "_expected",
+        actual = name + "_kbuild",
+        order = True,
+    )
+
 def ddk_module_test_suite(name):
+    """Tests for `ddk_module`.
+
+    Args:
+        name: name of the test suite."""
     kernel_build(
         name = name + "_kernel_build",
         build_config = "build.config.fake",
@@ -116,6 +176,7 @@ def ddk_module_test_suite(name):
 
     ddk_module(
         name = name + "_self",
+        out = name + "_self.ko",
         srcs = ["self.c"],
         kernel_build = name + "_kernel_build",
         tags = ["manual"],
@@ -123,6 +184,7 @@ def ddk_module_test_suite(name):
 
     ddk_module(
         name = name + "_base",
+        out = name + "_base.ko",
         srcs = ["base.c"],
         kernel_build = name + "_kernel_build",
         tags = ["manual"],
@@ -187,6 +249,7 @@ def ddk_module_test_suite(name):
 
     ddk_module(
         name = name + "_depend_on_legacy_modules_in_the_same_package_module",
+        out = name + "_depend_on_legacy_modules_in_the_same_package_module.ko",
         srcs = ["dep.c"],
         kernel_build = name + "_kernel_build",
         deps = [name + "_legacy_module_a", name + "_legacy_module_b"],
@@ -214,6 +277,24 @@ def ddk_module_test_suite(name):
         expected_includes = [native.package_name() + "/include"],
     )
     tests.append(name + "_exported_headers")
+
+    ddk_module(
+        name = name + "_no_out_module",
+        tags = ["manual"],
+        kernel_build = name + "_kernel_build",
+    )
+    failure_test(
+        name = name + "_no_out",
+        target_under_test = name + "_no_out_module",
+        error_message_substrs = ["out is not specified."],
+    )
+    tests.append(name + "_no_out")
+
+    _conditional_srcs_test(
+        name = name + "_conditional_srcs_test",
+        kernel_build = name + "_kernel_build",
+    )
+    tests.append(name + "_conditional_srcs_test")
 
     native.test_suite(
         name = name,

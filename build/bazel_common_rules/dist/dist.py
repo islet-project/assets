@@ -122,6 +122,10 @@ def copy_files_to_dist_dir(files, archives, mode_overrides, dist_dir, flat, pref
             copy_with_modes(src, dst, mode_overrides)
         elif os.path.isdir(src):
             logging.debug("Copying dir: %s" % dst)
+            if os.path.exists(dst):
+                # make the directory temporary writable, then
+                # shutil.copytree will restore correct permissions.
+                os.chmod(dst, 750)
             shutil.copytree(
                 os.path.abspath(src),
                 dst,

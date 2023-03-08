@@ -1,2 +1,0 @@
-virt_wifi_sim-objs := virt_wifi_simulation.o virt_wifi_data.o
-obj-m += virt_wifi_sim.o

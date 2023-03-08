@@ -1,0 +1,1699 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yun Hsiang <yun.hsiang@mediatek.com>
+Date: Wed, 20 May 2020 10:31:35 +0800
+Subject: NOUPSTREAM: ANDROID: Add vendor hooks to the scheduler
+
+Add vendor hooks for vendor-specific scheduling.
+
+  android_rvh_select_task_rq_rt:
+    To perform vendor-specific RT task placement.
+
+  android_rvh_select_fallback_rq:
+    To restrict cpu usage.
+
+  android_rvh_scheduler_tick:
+    To collect periodic scheduling information and to schedule tasks.
+
+  android_rvh_enqueue_tas/android_rvh_dequeue_task:
+    For vendor to be aware of the task schedule in/out.
+
+  android_rvh_can_migrate_task:
+    To limit task migration based on vendor requirements.
+
+  android_rvh_find_lowest_rq:
+    To find the lowest rq for RT task with vendor-specific way.
+
+[CPNOTE: 27/05/21] Lee: Vendor related code - maintain forever
+
+Bug: 155241766
+Bug: 183306209
+Bug: 183543978
+Bug: 200103201
+Bug: 177416721
+Bug: 178572414
+Bug: 180668820
+Bug: 184695001
+Bug: 184575210
+Bug: 183674818
+Bug: 176952463
+Bug: 184219858
+Bug: 190228983
+Bug: 181743516
+Bug: 176722431
+Bug: 170507972
+Bug: 180859906
+Bug: 170508405
+Bug: 191973176
+Bug: 207739506
+
+Change-Id: I926458b0a911d564e5932e200125b12406c2deee
+Signed-off-by: Park Bumgyu <bumgyu.park@samsung.com>
+[Lee: Squash all subsequent Sched based vendor hooks into here]
+    ANDROID: sched: add restrict vendor hook to modify task placement policy in EAS
+    ANDROID: Add vendor hooks to the scheduler
+    ANDROID: sched: add vendor hooks to handle scheduling priority
+    ANDROID: vendor_hooks: add waiting information for blocked tasks
+    ANDROID: sched: Use normal vendor hook in scheduler tick
+    ANDROID: sched: add restrict vendor hook to modify load balance behavior
+    ANDROID: sched: Add restrict vendor hooks for load balance
+    ANDROID: sched: Add env->cpus to android_rvh_sched_nohz_balancer_kick
+    ANDROID: sched: Add vendor hooks for find_energy_efficient_cpu
+    ANDROID: sched: Add vendor hooks for override sugov behavior
+    ANDROID: sched/core: Add vendor hook to change task affinity
+    ANDROID: sched: Add rvh for cpu controller cgroup attach
+    ANDROID: add flags to android_rvh_enqueue_task/dequeue_task parameter
+    ANDROID: sched: Add rvh for cpu controller cgroup can attach
+    ANDROID: sched: add em_cpu_energy vendor hook
+    ANDROID: sched: move vendor hook to check scheduling nice value
+    NOUPSTREAM: ANDROID: simplify vendor hooks for non-GKI builds
+    ANDROID: sched: Add restrict vendor hooks for balance_rt()
+    ANDROID: sched: Add restricted vendor hooks in CFS scheduler
+    ANDROID: sched: Initialize arguments of android_rvh_replace_next_task_fair
+    ANDROID: sched: Update android_rvh_check_preempt_wakeup hook
+    ANDROID: sched: Add vendor hooks for sched.
+    ANDROID: Add a vendor hook that allow a module to modify the wake flag
+    ANDROID: sched: Add vendor hook for cpu_overutilized
+    ANDROID: sched: Add vendor hook for uclamp_eff_get
+    ANDROID: sched: Add vendor hook for util_est_update
+    ANDROID: sched: Add trace for __setscheduler_uclamp
+    ANDROID: init_task: Init android vendor and oem data
+Signed-off-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Lee Jones <joneslee@google.com>
+---
+ drivers/android/vendor_hooks.c     |  44 ++++
+ drivers/base/arch_topology.c       |   9 +-
+ drivers/cpufreq/cpufreq.c          |   8 +
+ include/linux/sched.h              |   3 +
+ include/trace/hooks/sched.h        | 316 +++++++++++++++++++++++++++++
+ include/trace/hooks/vendor_hooks.h |   9 +
+ init/init_task.c                   |   2 +
+ kernel/fork.c                      |   6 +
+ kernel/sched/Makefile              |   1 +
+ kernel/sched/core.c                | 106 +++++++++-
+ kernel/sched/cputime.c             |  11 +-
+ kernel/sched/fair.c                | 122 ++++++++++-
+ kernel/sched/rt.c                  |  35 +++-
+ kernel/sched/sched.h               |   3 +
+ kernel/sched/topology.c            |  12 +-
+ kernel/sched/vendor_hooks.c        |  84 ++++++++
+ 16 files changed, 746 insertions(+), 25 deletions(-)
+ create mode 100644 include/trace/hooks/sched.h
+ create mode 100644 kernel/sched/vendor_hooks.c
+
+diff --git a/drivers/android/vendor_hooks.c b/drivers/android/vendor_hooks.c
+--- a/drivers/android/vendor_hooks.c
++++ b/drivers/android/vendor_hooks.c
+@@ -9,6 +9,7 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/hooks/vendor_hooks.h>
+ #include <linux/tracepoint.h>
++
+ #include <trace/hooks/mpam.h>
+ #include <trace/hooks/debug.h>
+ #include <trace/hooks/iommu.h>
+@@ -17,6 +18,49 @@
+  * Export tracepoints that act as a bare tracehook (ie: have no trace event
+  * associated with them) to allow external modules to probe them.
+  */
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_task_rq_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_task_rq_rt);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_fallback_rq);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_scheduler_tick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_can_migrate_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_lowest_rq);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_rtmutex_prepare_setprio);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_prepare_prio_fork);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_finish_prio_fork);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_user_nice);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_setscheduler);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mpam_set);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ipi_stop);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_dump_throttled_rt_tasks);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_newidle_balance);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_nohz_balancer_kick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_rebalance_domains);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_busiest_queue);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_migrate_queued_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_overutilized);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_setaffinity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_cgroup_attach);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_cgroup_online);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_iommu_setup_dma_ops);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_tick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup_ignore);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_replace_next_task_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_build_sched_domains);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_balance_rt);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_pick_next_entity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_free_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_enqueue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_dequeue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_entity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_entity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_entity_tick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_cpus_allowed_by_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_post_init_entity_util_avg);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_uclamp_eff_get);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_util_est_update);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_setscheduler_uclamp);
+diff --git a/drivers/base/arch_topology.c b/drivers/base/arch_topology.c
+--- a/drivers/base/arch_topology.c
++++ b/drivers/base/arch_topology.c
+@@ -23,6 +23,9 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/thermal_pressure.h>
+ 
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/sched.h>
++
+ static DEFINE_PER_CPU(struct scale_freq_data __rcu *, sft_data);
+ static struct cpumask scale_freq_counters_mask;
+ static bool scale_freq_invariant;
+@@ -201,8 +204,11 @@ void topology_update_thermal_pressure(const struct cpumask *cpus,
+ 
+ 	trace_thermal_pressure_update(cpu, th_pressure);
+ 
+-	for_each_cpu(cpu, cpus)
++	for_each_cpu(cpu, cpus) {
+ 		WRITE_ONCE(per_cpu(thermal_pressure, cpu), th_pressure);
++		trace_android_rvh_update_thermal_stats(cpu);
++	}
++
+ }
+ EXPORT_SYMBOL_GPL(topology_update_thermal_pressure);
+ 
+@@ -254,6 +260,7 @@ static void update_topology_flags_workfn(struct work_struct *work)
+ {
+ 	update_topology = 1;
+ 	rebuild_sched_domains();
++	trace_android_vh_update_topology_flags_workfn(NULL);
+ 	pr_debug("sched_domain hierarchy rebuilt, flags updated\n");
+ 	update_topology = 0;
+ }
+diff --git a/drivers/cpufreq/cpufreq.c b/drivers/cpufreq/cpufreq.c
+--- a/drivers/cpufreq/cpufreq.c
++++ b/drivers/cpufreq/cpufreq.c
+@@ -691,6 +691,14 @@ static ssize_t show_##file_name				\
+ 	return sprintf(buf, "%u\n", policy->object);	\
+ }
+ 
++static ssize_t show_cpuinfo_max_freq(struct cpufreq_policy *policy, char *buf)
++{
++	unsigned int max_freq = policy->cpuinfo.max_freq;
++
++	trace_android_vh_show_max_freq(policy, &max_freq);
++	return sprintf(buf, "%u\n", max_freq);
++}
++
+ show_one(cpuinfo_min_freq, cpuinfo.min_freq);
+ show_one(cpuinfo_max_freq, cpuinfo.max_freq);
+ show_one(cpuinfo_transition_latency, cpuinfo.transition_latency);
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -36,6 +36,7 @@
+ #include <linux/seqlock.h>
+ #include <linux/kcsan.h>
+ #include <linux/rv.h>
++#include <linux/android_vendor.h>
+ #include <asm/kmap_size.h>
+ 
+ /* task_struct member predeclarations (sorted alphabetically): */
+@@ -1501,6 +1502,8 @@ struct task_struct {
+ 	struct callback_head		mce_kill_me;
+ 	int				mce_count;
+ #endif
++	ANDROID_VENDOR_DATA_ARRAY(1, 64);
++	ANDROID_OEM_DATA_ARRAY(1, 6);
+ 
+ #ifdef CONFIG_KRETPROBES
+ 	struct llist_head               kretprobe_instances;
+diff --git a/include/trace/hooks/sched.h b/include/trace/hooks/sched.h
+new file mode 100644
+--- /dev/null
++++ b/include/trace/hooks/sched.h
+@@ -0,0 +1,316 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM sched
++#define TRACE_INCLUDE_PATH trace/hooks
++#if !defined(_TRACE_HOOK_SCHED_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_HOOK_SCHED_H
++#include <linux/tracepoint.h>
++#include <trace/hooks/vendor_hooks.h>
++/*
++ * Following tracepoints are not exported in tracefs and provide a
++ * mechanism for vendor modules to hook and extend functionality
++ */
++struct task_struct;
++DECLARE_RESTRICTED_HOOK(android_rvh_select_task_rq_fair,
++	TP_PROTO(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags, int *new_cpu),
++	TP_ARGS(p, prev_cpu, sd_flag, wake_flags, new_cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_select_task_rq_rt,
++	TP_PROTO(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags, int *new_cpu),
++	TP_ARGS(p, prev_cpu, sd_flag, wake_flags, new_cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_select_fallback_rq,
++	TP_PROTO(int cpu, struct task_struct *p, int *new_cpu),
++	TP_ARGS(cpu, p, new_cpu), 1);
++
++struct rq;
++DECLARE_HOOK(android_vh_scheduler_tick,
++	TP_PROTO(struct rq *rq),
++	TP_ARGS(rq));
++
++DECLARE_RESTRICTED_HOOK(android_rvh_enqueue_task,
++	TP_PROTO(struct rq *rq, struct task_struct *p, int flags),
++	TP_ARGS(rq, p, flags), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_dequeue_task,
++	TP_PROTO(struct rq *rq, struct task_struct *p, int flags),
++	TP_ARGS(rq, p, flags), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_can_migrate_task,
++	TP_PROTO(struct task_struct *p, int dst_cpu, int *can_migrate),
++	TP_ARGS(p, dst_cpu, can_migrate), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_find_lowest_rq,
++	TP_PROTO(struct task_struct *p, struct cpumask *local_cpu_mask,
++			int ret, int *lowest_cpu),
++	TP_ARGS(p, local_cpu_mask, ret, lowest_cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_prepare_prio_fork,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_finish_prio_fork,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_rtmutex_prepare_setprio,
++	TP_PROTO(struct task_struct *p, struct task_struct *pi_task),
++	TP_ARGS(p, pi_task), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_rto_next_cpu,
++	TP_PROTO(int rto_cpu, struct cpumask *rto_mask, int *cpu),
++	TP_ARGS(rto_cpu, rto_mask, cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_is_cpu_allowed,
++	TP_PROTO(struct task_struct *p, int cpu, bool *allowed),
++	TP_ARGS(p, cpu, allowed), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_get_nohz_timer_target,
++	TP_PROTO(int *cpu, bool *done),
++	TP_ARGS(cpu, done), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_user_nice,
++	TP_PROTO(struct task_struct *p, long *nice, bool *allowed),
++	TP_ARGS(p, nice, allowed), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_setscheduler,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++struct sched_group;
++DECLARE_RESTRICTED_HOOK(android_rvh_find_busiest_group,
++	TP_PROTO(struct sched_group *busiest, struct rq *dst_rq, int *out_balance),
++		TP_ARGS(busiest, dst_rq, out_balance), 1);
++
++DECLARE_HOOK(android_vh_dump_throttled_rt_tasks,
++	TP_PROTO(int cpu, u64 clock, ktime_t rt_period, u64 rt_runtime,
++			s64 rt_period_timer_expires),
++	TP_ARGS(cpu, clock, rt_period, rt_runtime, rt_period_timer_expires));
++
++struct rq_flags;
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_newidle_balance,
++	TP_PROTO(struct rq *this_rq, struct rq_flags *rf,
++		 int *pulled_task, int *done),
++	TP_ARGS(this_rq, rf, pulled_task, done), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_nohz_balancer_kick,
++	TP_PROTO(struct rq *rq, unsigned int *flags, int *done),
++	TP_ARGS(rq, flags, done), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_rebalance_domains,
++	TP_PROTO(struct rq *rq, int *continue_balancing),
++	TP_ARGS(rq, continue_balancing), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_find_busiest_queue,
++	TP_PROTO(int dst_cpu, struct sched_group *group,
++		 struct cpumask *env_cpus, struct rq **busiest,
++		 int *done),
++	TP_ARGS(dst_cpu, group, env_cpus, busiest, done), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_migrate_queued_task,
++	TP_PROTO(struct rq *rq, struct rq_flags *rf,
++		 struct task_struct *p, int new_cpu,
++		 int *detached),
++	TP_ARGS(rq, rf, p, new_cpu, detached), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_cpu_overutilized,
++	TP_PROTO(int cpu, int *overutilized),
++	TP_ARGS(cpu, overutilized), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_setaffinity,
++	TP_PROTO(struct task_struct *p, const struct cpumask *in_mask, int *retval),
++	TP_ARGS(p, in_mask, retval), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_getaffinity,
++	TP_PROTO(struct task_struct *p, struct cpumask *in_mask),
++	TP_ARGS(p, in_mask), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_task_cpu,
++	TP_PROTO(struct task_struct *p, unsigned int new_cpu),
++	TP_ARGS(p, new_cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_try_to_wake_up,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_try_to_wake_up_success,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_fork,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_wake_up_new_task,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_new_task_stats,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_flush_task,
++	TP_PROTO(struct task_struct *prev),
++	TP_ARGS(prev), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_tick_entry,
++	TP_PROTO(struct rq *rq),
++	TP_ARGS(rq), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_schedule,
++	TP_PROTO(struct task_struct *prev, struct task_struct *next, struct rq *rq),
++	TP_ARGS(prev, next, rq), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_cpu_starting,
++	TP_PROTO(int cpu),
++	TP_ARGS(cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_cpu_dying,
++	TP_PROTO(int cpu),
++	TP_ARGS(cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_account_irq,
++	TP_PROTO(struct task_struct *curr, int cpu, s64 delta, bool start),
++	TP_ARGS(curr, cpu, delta, start), 1);
++
++struct sched_entity;
++DECLARE_RESTRICTED_HOOK(android_rvh_place_entity,
++	TP_PROTO(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial, u64 *vruntime),
++	TP_ARGS(cfs_rq, se, initial, vruntime), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_build_perf_domains,
++	TP_PROTO(bool *eas_check),
++	TP_ARGS(eas_check), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_update_cpu_capacity,
++	TP_PROTO(int cpu, unsigned long *capacity),
++	TP_ARGS(cpu, capacity), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_update_misfit_status,
++	TP_PROTO(struct task_struct *p, struct rq *rq, bool *need_update),
++	TP_ARGS(p, rq, need_update), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_fork_init,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_ttwu_cond,
++	TP_PROTO(int cpu, bool *cond),
++	TP_ARGS(cpu, cond), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_schedule_bug,
++	TP_PROTO(void *unused),
++	TP_ARGS(unused), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_exec,
++	TP_PROTO(bool *cond),
++	TP_ARGS(cond), 1);
++
++DECLARE_HOOK(android_vh_build_sched_domains,
++	TP_PROTO(bool has_asym),
++	TP_ARGS(has_asym));
++
++DECLARE_RESTRICTED_HOOK(android_rvh_check_preempt_tick,
++	TP_PROTO(struct task_struct *p, unsigned long *ideal_runtime, bool *skip_preempt,
++			unsigned long delta_exec, struct cfs_rq *cfs_rq, struct sched_entity *curr,
++			unsigned int granularity),
++	TP_ARGS(p, ideal_runtime, skip_preempt, delta_exec, cfs_rq, curr, granularity), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_check_preempt_wakeup_ignore,
++	TP_PROTO(struct task_struct *p, bool *ignore),
++	TP_ARGS(p, ignore), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_replace_next_task_fair,
++	TP_PROTO(struct rq *rq, struct task_struct **p, struct sched_entity **se, bool *repick,
++			bool simple, struct task_struct *prev),
++	TP_ARGS(rq, p, se, repick, simple, prev), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_sched_balance_rt,
++	TP_PROTO(struct rq *rq, struct task_struct *p, int *done),
++	TP_ARGS(rq, p, done), 1);
++
++struct cfs_rq;
++DECLARE_RESTRICTED_HOOK(android_rvh_pick_next_entity,
++	TP_PROTO(struct cfs_rq *cfs_rq, struct sched_entity *curr,
++		 struct sched_entity **se),
++	TP_ARGS(cfs_rq, curr, se), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_check_preempt_wakeup,
++	TP_PROTO(struct rq *rq, struct task_struct *p, bool *preempt, bool *nopreempt,
++			int wake_flags, struct sched_entity *se, struct sched_entity *pse,
++			int next_buddy_marked, unsigned int granularity),
++	TP_ARGS(rq, p, preempt, nopreempt, wake_flags, se, pse, next_buddy_marked,
++			granularity), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_set_cpus_allowed_by_task,
++	TP_PROTO(const struct cpumask *cpu_valid_mask, const struct cpumask *new_mask,
++		 struct task_struct *p, unsigned int *dest_cpu),
++	TP_ARGS(cpu_valid_mask, new_mask, p, dest_cpu), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_do_sched_yield,
++	TP_PROTO(struct rq *rq),
++	TP_ARGS(rq), 1);
++
++DECLARE_HOOK(android_vh_free_task,
++	TP_PROTO(struct task_struct *p),
++	TP_ARGS(p));
++
++enum uclamp_id;
++struct uclamp_se;
++DECLARE_RESTRICTED_HOOK(android_rvh_uclamp_eff_get,
++	TP_PROTO(struct task_struct *p, enum uclamp_id clamp_id,
++		 struct uclamp_se *uclamp_max, struct uclamp_se *uclamp_eff, int *ret),
++	TP_ARGS(p, clamp_id, uclamp_max, uclamp_eff, ret), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_after_enqueue_task,
++	TP_PROTO(struct rq *rq, struct task_struct *p, int flags),
++	TP_ARGS(rq, p, flags), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_after_dequeue_task,
++	TP_PROTO(struct rq *rq, struct task_struct *p, int flags),
++	TP_ARGS(rq, p, flags), 1);
++
++struct cfs_rq;
++struct sched_entity;
++struct rq_flags;
++DECLARE_RESTRICTED_HOOK(android_rvh_enqueue_entity,
++	TP_PROTO(struct cfs_rq *cfs, struct sched_entity *se),
++	TP_ARGS(cfs, se), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_dequeue_entity,
++	TP_PROTO(struct cfs_rq *cfs, struct sched_entity *se),
++	TP_ARGS(cfs, se), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_entity_tick,
++	TP_PROTO(struct cfs_rq *cfs_rq, struct sched_entity *se),
++	TP_ARGS(cfs_rq, se), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_enqueue_task_fair,
++	TP_PROTO(struct rq *rq, struct task_struct *p, int flags),
++	TP_ARGS(rq, p, flags), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_dequeue_task_fair,
++	TP_PROTO(struct rq *rq, struct task_struct *p, int flags),
++	TP_ARGS(rq, p, flags), 1);
++
++DECLARE_RESTRICTED_HOOK(android_rvh_util_est_update,
++	TP_PROTO(struct cfs_rq *cfs_rq, struct task_struct *p, bool task_sleep, int *ret),
++	TP_ARGS(cfs_rq, p, task_sleep, ret), 1);
++
++DECLARE_HOOK(android_vh_setscheduler_uclamp,
++	TP_PROTO(struct task_struct *tsk, int clamp_id, unsigned int value),
++	TP_ARGS(tsk, clamp_id, value));
++
++DECLARE_HOOK(android_vh_update_topology_flags_workfn,
++	TP_PROTO(void *unused),
++	TP_ARGS(unused));
++
++DECLARE_RESTRICTED_HOOK(android_rvh_update_thermal_stats,
++		TP_PROTO(int cpu),
++		TP_ARGS(cpu), 1);
++
++/* macro versions of hooks are no longer required */
++
++#endif /* _TRACE_HOOK_SCHED_H */
++/* This part must be outside protection */
++#include <trace/define_trace.h>
+diff --git a/include/trace/hooks/vendor_hooks.h b/include/trace/hooks/vendor_hooks.h
+--- a/include/trace/hooks/vendor_hooks.h
++++ b/include/trace/hooks/vendor_hooks.h
+@@ -9,6 +9,8 @@
+ 
+ #include <linux/tracepoint.h>
+ 
++#if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_ANDROID_VENDOR_HOOKS)
++
+ #define DECLARE_HOOK DECLARE_TRACE
+ 
+ int android_rvh_probe_register(struct tracepoint *tp, void *probe, void *data);
+@@ -109,3 +111,10 @@ int android_rvh_probe_register(struct tracepoint *tp, void *probe, void *data);
+ 			PARAMS(void *__data, proto))
+ 
+ #endif /* TRACE_HEADER_MULTI_READ */
++
++#else /* !CONFIG_TRACEPOINTS || !CONFIG_ANDROID_VENDOR_HOOKS */
++/* suppress trace hooks */
++#define DECLARE_HOOK DECLARE_EVENT_NOP
++#define DECLARE_RESTRICTED_HOOK(name, proto, args, cond)		\
++	DECLARE_EVENT_NOP(name, PARAMS(proto), PARAMS(args))
++#endif
+diff --git a/init/init_task.c b/init/init_task.c
+--- a/init/init_task.c
++++ b/init/init_task.c
+@@ -210,6 +210,8 @@ struct task_struct init_task
+ #ifdef CONFIG_SECCOMP_FILTER
+ 	.seccomp	= { .filter_count = ATOMIC_INIT(0) },
+ #endif
++	.android_vendor_data1 = {0, },
++	.android_oem_data1 = {0, },
+ };
+ EXPORT_SYMBOL(init_task);
+ 
+diff --git a/kernel/fork.c b/kernel/fork.c
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -110,6 +110,8 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/task.h>
+ 
++#undef CREATE_TRACE_POINTS
++#include <trace/hooks/sched.h>
+ /*
+  * Minimum number of threads to boot the kernel
+  */
+@@ -543,6 +545,7 @@ void free_task(struct task_struct *tsk)
+ 	release_user_cpus_ptr(tsk);
+ 	scs_release(tsk);
+ 
++	trace_android_vh_free_task(tsk);
+ #ifndef CONFIG_THREAD_INFO_IN_TASK
+ 	/*
+ 	 * The task is finally done with both the stack and thread_info,
+@@ -1062,6 +1065,9 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+ 	tsk->reported_split_lock = 0;
+ #endif
+ 
++	memset(&tsk->android_vendor_data1, 0, sizeof(tsk->android_vendor_data1));
++	memset(&tsk->android_oem_data1, 0, sizeof(tsk->android_oem_data1));
++
+ 	return tsk;
+ 
+ free_stack:
+diff --git a/kernel/sched/Makefile b/kernel/sched/Makefile
+--- a/kernel/sched/Makefile
++++ b/kernel/sched/Makefile
+@@ -32,3 +32,4 @@ obj-y += core.o
+ obj-y += fair.o
+ obj-y += build_policy.o
+ obj-y += build_utility.o
++obj-$(CONFIG_ANDROID_VENDOR_HOOKS) += vendor_hooks.o
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -95,6 +95,9 @@
+ #include "../../io_uring/io-wq.h"
+ #include "../smpboot.h"
+ 
++#include <trace/hooks/sched.h>
++#include <trace/hooks/cgroup.h>
++
+ /*
+  * Export tracepoints that act as a bare tracehook (ie: have no trace event
+  * associated with them) to allow external modules to probe them.
+@@ -1069,6 +1072,11 @@ int get_nohz_timer_target(void)
+ 	int i, cpu = smp_processor_id(), default_cpu = -1;
+ 	struct sched_domain *sd;
+ 	const struct cpumask *hk_mask;
++	bool done = false;
++
++	trace_android_rvh_get_nohz_timer_target(&cpu, &done);
++	if (done)
++		return cpu;
+ 
+ 	if (housekeeping_cpu(cpu, HK_TYPE_TIMER)) {
+ 		if (!idle_cpu(cpu))
+@@ -1490,6 +1498,12 @@ uclamp_eff_get(struct task_struct *p, enum uclamp_id clamp_id)
+ {
+ 	struct uclamp_se uc_req = uclamp_tg_restrict(p, clamp_id);
+ 	struct uclamp_se uc_max = uclamp_default[clamp_id];
++	struct uclamp_se uc_eff;
++	int ret = 0;
++
++	trace_android_rvh_uclamp_eff_get(p, clamp_id, &uc_max, &uc_eff, &ret);
++	if (ret)
++		return uc_eff;
+ 
+ 	/* System default restrictions always apply */
+ 	if (unlikely(uc_req.value > uc_max.value))
+@@ -1937,12 +1951,14 @@ static void __setscheduler_uclamp(struct task_struct *p,
+ 	    attr->sched_util_min != -1) {
+ 		uclamp_se_set(&p->uclamp_req[UCLAMP_MIN],
+ 			      attr->sched_util_min, true);
++		trace_android_vh_setscheduler_uclamp(p, UCLAMP_MIN, attr->sched_util_min);
+ 	}
+ 
+ 	if (attr->sched_flags & SCHED_FLAG_UTIL_CLAMP_MAX &&
+ 	    attr->sched_util_max != -1) {
+ 		uclamp_se_set(&p->uclamp_req[UCLAMP_MAX],
+ 			      attr->sched_util_max, true);
++		trace_android_vh_setscheduler_uclamp(p, UCLAMP_MAX, attr->sched_util_max);
+ 	}
+ }
+ 
+@@ -2060,7 +2076,9 @@ static inline void enqueue_task(struct rq *rq, struct task_struct *p, int flags)
+ 	}
+ 
+ 	uclamp_rq_inc(rq, p);
++	trace_android_rvh_enqueue_task(rq, p, flags);
+ 	p->sched_class->enqueue_task(rq, p, flags);
++	trace_android_rvh_after_enqueue_task(rq, p, flags);
+ 
+ 	if (sched_core_enabled(rq))
+ 		sched_core_enqueue(rq, p);
+@@ -2080,7 +2098,9 @@ static inline void dequeue_task(struct rq *rq, struct task_struct *p, int flags)
+ 	}
+ 
+ 	uclamp_rq_dec(rq, p);
++	trace_android_rvh_dequeue_task(rq, p, flags);
+ 	p->sched_class->dequeue_task(rq, p, flags);
++	trace_android_rvh_after_dequeue_task(rq, p, flags);
+ }
+ 
+ void activate_task(struct rq *rq, struct task_struct *p, int flags)
+@@ -2278,6 +2298,8 @@ static inline bool rq_has_pinned_tasks(struct rq *rq)
+  */
+ static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
+ {
++	bool allowed = true;
++
+ 	/* When not in the task's cpumask, no point in looking further. */
+ 	if (!cpumask_test_cpu(cpu, p->cpus_ptr))
+ 		return false;
+@@ -2286,14 +2308,20 @@ static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
+ 	if (is_migration_disabled(p))
+ 		return cpu_online(cpu);
+ 
++	/* check for all cases */
++	trace_android_rvh_is_cpu_allowed(p, cpu, &allowed);
++
+ 	/* Non kernel threads are not allowed during either online or offline. */
+ 	if (!(p->flags & PF_KTHREAD))
+-		return cpu_active(cpu) && task_cpu_possible(cpu, p);
++		return cpu_active(cpu) && task_cpu_possible(cpu, p) && allowed;
+ 
+ 	/* KTHREAD_IS_PER_CPU is always allowed. */
+ 	if (kthread_is_per_cpu(p))
+ 		return cpu_online(cpu);
+ 
++	if (!allowed)
++		return false;
++
+ 	/* Regular kernel threads don't get to stay during offline. */
+ 	if (cpu_dying(cpu))
+ 		return false;
+@@ -2324,12 +2352,24 @@ static inline bool is_cpu_allowed(struct task_struct *p, int cpu)
+ static struct rq *move_queued_task(struct rq *rq, struct rq_flags *rf,
+ 				   struct task_struct *p, int new_cpu)
+ {
++	int detached = 0;
++
+ 	lockdep_assert_rq_held(rq);
+ 
++	/*
++	 * The vendor hook may drop the lock temporarily, so
++	 * pass the rq flags to unpin lock. We expect the
++	 * rq lock to be held after return.
++	 */
++	trace_android_rvh_migrate_queued_task(rq, rf, p, new_cpu, &detached);
++	if (detached)
++		goto attach;
++
+ 	deactivate_task(rq, p, DEQUEUE_NOCLOCK);
+ 	set_task_cpu(p, new_cpu);
+-	rq_unlock(rq, rf);
+ 
++attach:
++	rq_unlock(rq, rf);
+ 	rq = cpu_rq(new_cpu);
+ 
+ 	rq_lock(rq, rf);
+@@ -2928,6 +2968,7 @@ static int __set_cpus_allowed_ptr_locked(struct task_struct *p,
+ 	 * immediately required to distribute the tasks within their new mask.
+ 	 */
+ 	dest_cpu = cpumask_any_and_distribute(cpu_valid_mask, ctx->new_mask);
++	trace_android_rvh_set_cpus_allowed_by_task(cpu_valid_mask, ctx->new_mask, p, &dest_cpu);
+ 	if (dest_cpu >= nr_cpu_ids) {
+ 		ret = -EINVAL;
+ 		goto out;
+@@ -3148,6 +3189,7 @@ void set_task_cpu(struct task_struct *p, unsigned int new_cpu)
+ 		p->se.nr_migrations++;
+ 		rseq_migrate(p);
+ 		perf_event_task_migrate(p);
++		trace_android_rvh_set_task_cpu(p, new_cpu);
+ 	}
+ 
+ 	__set_task_cpu(p, new_cpu);
+@@ -3430,7 +3472,11 @@ int select_fallback_rq(int cpu, struct task_struct *p)
+ 	int nid = cpu_to_node(cpu);
+ 	const struct cpumask *nodemask = NULL;
+ 	enum { cpuset, possible, fail } state = cpuset;
+-	int dest_cpu;
++	int dest_cpu = -1;
++
++	trace_android_rvh_select_fallback_rq(cpu, p, &dest_cpu);
++	if (dest_cpu >= 0)
++		return dest_cpu;
+ 
+ 	/*
+ 	 * If the node that the CPU is on has been offlined, cpu_to_node()
+@@ -3870,7 +3916,12 @@ static inline bool ttwu_queue_cond(struct task_struct *p, int cpu)
+ 
+ static bool ttwu_queue_wakelist(struct task_struct *p, int cpu, int wake_flags)
+ {
+-	if (sched_feat(TTWU_QUEUE) && ttwu_queue_cond(p, cpu)) {
++	bool cond = false;
++
++	trace_android_rvh_ttwu_cond(cpu, &cond);
++
++	if ((sched_feat(TTWU_QUEUE) && ttwu_queue_cond(p, cpu)) ||
++			cond) {
+ 		sched_clock_cpu(cpu); /* Sync clocks across CPUs */
+ 		__ttwu_queue_wakelist(p, cpu, wake_flags);
+ 		return true;
+@@ -4209,6 +4260,8 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+ 	 */
+ 	smp_cond_load_acquire(&p->on_cpu, !VAL);
+ 
++	trace_android_rvh_try_to_wake_up(p);
++
+ 	cpu = select_task_rq(p, p->wake_cpu, wake_flags | WF_TTWU);
+ 	if (task_cpu(p) != cpu) {
+ 		if (p->in_iowait) {
+@@ -4228,8 +4281,10 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+ unlock:
+ 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+ out:
+-	if (success)
++	if (success) {
++		trace_android_rvh_try_to_wake_up_success(p);
+ 		ttwu_stat(p, task_cpu(p), wake_flags);
++	}
+ 	preempt_enable();
+ 
+ 	return success;
+@@ -4389,6 +4444,8 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
+ 	p->se.cfs_rq			= NULL;
+ #endif
+ 
++	trace_android_rvh_sched_fork_init(p);
++
+ #ifdef CONFIG_SCHEDSTATS
+ 	/* Even if schedstat is disabled, there should not be garbage */
+ 	memset(&p->stats, 0, sizeof(p->stats));
+@@ -4607,6 +4664,8 @@ late_initcall(sched_core_sysctl_init);
+  */
+ int sched_fork(unsigned long clone_flags, struct task_struct *p)
+ {
++	trace_android_rvh_sched_fork(p);
++
+ 	__sched_fork(clone_flags, p);
+ 	/*
+ 	 * We mark the process as NEW here. This guarantees that
+@@ -4619,6 +4678,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
+ 	 * Make sure we do not leak PI boosting priority to the child.
+ 	 */
+ 	p->prio = current->normal_prio;
++	trace_android_rvh_prepare_prio_fork(p);
+ 
+ 	uclamp_fork(p);
+ 
+@@ -4651,6 +4711,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
+ 		p->sched_class = &fair_sched_class;
+ 
+ 	init_entity_runnable_average(&p->se);
++	trace_android_rvh_finish_prio_fork(p);
+ 
+ 
+ #ifdef CONFIG_SCHED_INFO
+@@ -4730,6 +4791,8 @@ void wake_up_new_task(struct task_struct *p)
+ 	struct rq_flags rf;
+ 	struct rq *rq;
+ 
++	trace_android_rvh_wake_up_new_task(p);
++
+ 	raw_spin_lock_irqsave(&p->pi_lock, rf.flags);
+ 	WRITE_ONCE(p->__state, TASK_RUNNING);
+ #ifdef CONFIG_SMP
+@@ -4748,6 +4811,7 @@ void wake_up_new_task(struct task_struct *p)
+ 	rq = __task_rq_lock(p, &rf);
+ 	update_rq_clock(rq);
+ 	post_init_entity_util_avg(p);
++	trace_android_rvh_new_task_stats(p);
+ 
+ 	activate_task(rq, p, ENQUEUE_NOCLOCK);
+ 	trace_sched_wakeup_new(p);
+@@ -5162,6 +5226,8 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 		if (prev->sched_class->task_dead)
+ 			prev->sched_class->task_dead(prev);
+ 
++		trace_android_rvh_flush_task(prev);
++
+ 		/* Task is done with its stack. */
+ 		put_task_stack(prev);
+ 
+@@ -5367,6 +5433,11 @@ void sched_exec(void)
+ 	struct task_struct *p = current;
+ 	unsigned long flags;
+ 	int dest_cpu;
++	bool cond = false;
++
++	trace_android_rvh_sched_exec(&cond);
++	if (cond)
++		return;
+ 
+ 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+ 	dest_cpu = p->sched_class->select_task_rq(p, task_cpu(p), WF_EXEC);
+@@ -5521,6 +5592,8 @@ void scheduler_tick(void)
+ 	rq_lock(rq, &rf);
+ 
+ 	update_rq_clock(rq);
++	trace_android_rvh_tick_entry(rq);
++
+ 	thermal_pressure = arch_scale_thermal_pressure(cpu_of(rq));
+ 	update_thermal_load_avg(rq_clock_thermal(rq), rq, thermal_pressure);
+ 	curr->sched_class->task_tick(rq, curr, 0);
+@@ -5540,6 +5613,8 @@ void scheduler_tick(void)
+ 	rq->idle_balance = idle_cpu(cpu);
+ 	trigger_load_balance(rq);
+ #endif
++
++	trace_android_vh_scheduler_tick(rq);
+ }
+ 
+ #ifdef CONFIG_NO_HZ_FULL
+@@ -5795,6 +5870,8 @@ static noinline void __schedule_bug(struct task_struct *prev)
+ 	}
+ 	check_panic_on_warn("scheduling while atomic");
+ 
++	trace_android_rvh_schedule_bug(prev);
++
+ 	dump_stack();
+ 	add_taint(TAINT_WARN, LOCKDEP_STILL_OK);
+ }
+@@ -6534,6 +6611,7 @@ static void __sched notrace __schedule(unsigned int sched_mode)
+ 	rq->last_seen_need_resched_ns = 0;
+ #endif
+ 
++	trace_android_rvh_schedule(prev, next, rq);
+ 	if (likely(prev != next)) {
+ 		rq->nr_switches++;
+ 		/*
+@@ -6939,6 +7017,7 @@ void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
+ 	struct rq_flags rf;
+ 	struct rq *rq;
+ 
++	trace_android_rvh_rtmutex_prepare_setprio(p, pi_task);
+ 	/* XXX used to be waiter->prio, not waiter->task->prio */
+ 	prio = __rt_effective_prio(pi_task, p->normal_prio);
+ 
+@@ -7057,12 +7136,13 @@ static inline int rt_effective_prio(struct task_struct *p, int prio)
+ 
+ void set_user_nice(struct task_struct *p, long nice)
+ {
+-	bool queued, running;
++	bool queued, running, allowed = false;
+ 	int old_prio;
+ 	struct rq_flags rf;
+ 	struct rq *rq;
+ 
+-	if (task_nice(p) == nice || nice < MIN_NICE || nice > MAX_NICE)
++	trace_android_rvh_set_user_nice(p, &nice, &allowed);
++	if ((task_nice(p) == nice || nice < MIN_NICE || nice > MAX_NICE) && !allowed)
+ 		return;
+ 	/*
+ 	 * We have to be careful, if called from sys_setpriority(),
+@@ -8249,6 +8329,7 @@ long sched_setaffinity(pid_t pid, const struct cpumask *in_mask)
+ 	};
+ 
+ 	retval = __sched_setaffinity(p, &ac);
++	trace_android_rvh_sched_setaffinity(p, in_mask, &retval);
+ 	kfree(ac.user_mask);
+ 
+ out_put_task:
+@@ -8310,6 +8391,7 @@ long sched_getaffinity(pid_t pid, struct cpumask *mask)
+ 
+ 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+ 	cpumask_and(mask, &p->cpus_mask, cpu_active_mask);
++	trace_android_rvh_sched_getaffinity(p, mask);
+ 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
+ 
+ out_unlock:
+@@ -8365,6 +8447,8 @@ static void do_sched_yield(void)
+ 	schedstat_inc(rq->yld_count);
+ 	current->sched_class->yield_task(rq);
+ 
++	trace_android_rvh_do_sched_yield(rq);
++
+ 	preempt_disable();
+ 	rq_unlock_irq(rq, &rf);
+ 	sched_preempt_enable_no_resched();
+@@ -9580,6 +9664,7 @@ int sched_cpu_starting(unsigned int cpu)
+ 	sched_core_cpu_starting(cpu);
+ 	sched_rq_cpu_starting(cpu);
+ 	sched_tick_start(cpu);
++	trace_android_rvh_sched_cpu_starting(cpu);
+ 	return 0;
+ }
+ 
+@@ -9653,6 +9738,8 @@ int sched_cpu_dying(unsigned int cpu)
+ 	}
+ 	rq_unlock_irqrestore(rq, &rf);
+ 
++	trace_android_rvh_sched_cpu_dying(cpu);
++
+ 	calc_load_migrate(rq);
+ 	update_max_interval();
+ 	hrtick_clear(rq);
+@@ -9997,6 +10084,8 @@ void __might_resched(const char *file, int line, unsigned int offsets)
+ 	print_preempt_disable_ip(offsets & MIGHT_RESCHED_PREEMPT_MASK,
+ 				 preempt_disable_ip);
+ 
++	trace_android_rvh_schedule_bug(NULL);
++
+ 	dump_stack();
+ 	add_taint(TAINT_WARN, LOCKDEP_STILL_OK);
+ }
+@@ -10376,6 +10465,7 @@ static int cpu_cgroup_css_online(struct cgroup_subsys_state *css)
+ 	mutex_unlock(&uclamp_mutex);
+ #endif
+ 
++	trace_android_rvh_cpu_cgroup_online(css);
+ 	return 0;
+ }
+ 
+@@ -10417,6 +10507,8 @@ static void cpu_cgroup_attach(struct cgroup_taskset *tset)
+ 
+ 	cgroup_taskset_for_each(task, css, tset)
+ 		sched_move_task(task);
++
++	trace_android_rvh_cpu_cgroup_attach(tset);
+ }
+ 
+ #ifdef CONFIG_UCLAMP_TASK_GROUP
+diff --git a/kernel/sched/cputime.c b/kernel/sched/cputime.c
+--- a/kernel/sched/cputime.c
++++ b/kernel/sched/cputime.c
+@@ -3,6 +3,7 @@
+  * Simple CPU accounting cgroup controller
+  */
+ #include <linux/cpufreq_times.h>
++#include <trace/hooks/sched.h>
+ 
+ #ifdef CONFIG_IRQ_TIME_ACCOUNTING
+ 
+@@ -53,6 +54,7 @@ void irqtime_account_irq(struct task_struct *curr, unsigned int offset)
+ 	unsigned int pc;
+ 	s64 delta;
+ 	int cpu;
++	bool irq_start = true;
+ 
+ 	if (!sched_clock_irqtime)
+ 		return;
+@@ -68,10 +70,15 @@ void irqtime_account_irq(struct task_struct *curr, unsigned int offset)
+ 	 * in that case, so as not to confuse scheduler with a special task
+ 	 * that do not consume any time, but still wants to run.
+ 	 */
+-	if (pc & HARDIRQ_MASK)
++	if (pc & HARDIRQ_MASK) {
+ 		irqtime_account_delta(irqtime, delta, CPUTIME_IRQ);
+-	else if ((pc & SOFTIRQ_OFFSET) && curr != this_cpu_ksoftirqd())
++		irq_start = false;
++	} else if ((pc & SOFTIRQ_OFFSET) && curr != this_cpu_ksoftirqd()) {
+ 		irqtime_account_delta(irqtime, delta, CPUTIME_SOFTIRQ);
++		irq_start = false;
++	}
++
++	trace_android_rvh_account_irq(curr, cpu, delta, irq_start);
+ }
+ 
+ static u64 irqtime_tick_accounted(u64 maxtime)
+diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
+--- a/kernel/sched/fair.c
++++ b/kernel/sched/fair.c
+@@ -56,6 +56,8 @@
+ #include "stats.h"
+ #include "autogroup.h"
+ 
++#include <trace/hooks/sched.h>
++
+ /*
+  * Targeted preemption latency for CPU-bound tasks:
+  *
+@@ -642,11 +644,13 @@ static inline bool __entity_less(struct rb_node *a, const struct rb_node *b)
+  */
+ static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+ {
++	trace_android_rvh_enqueue_entity(cfs_rq, se);
+ 	rb_add_cached(&se->run_node, &cfs_rq->tasks_timeline, __entity_less);
+ }
+ 
+ static void __dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+ {
++	trace_android_rvh_dequeue_entity(cfs_rq, se);
+ 	rb_erase_cached(&se->run_node, &cfs_rq->tasks_timeline);
+ }
+ 
+@@ -4360,6 +4364,11 @@ static inline void util_est_update(struct cfs_rq *cfs_rq,
+ {
+ 	long last_ewma_diff, last_enqueued_diff;
+ 	struct util_est ue;
++	int ret = 0;
++
++	trace_android_rvh_util_est_update(cfs_rq, p, task_sleep, &ret);
++	if (ret)
++		return;
+ 
+ 	if (!sched_feat(UTIL_EST))
+ 		return;
+@@ -4577,7 +4586,10 @@ static inline int task_fits_cpu(struct task_struct *p, int cpu)
+ 
+ static inline void update_misfit_status(struct task_struct *p, struct rq *rq)
+ {
+-	if (!sched_asym_cpucap_active())
++	bool need_update = true;
++
++	trace_android_rvh_update_misfit_status(p, rq, &need_update);
++	if (!sched_asym_cpucap_active() || !need_update)
+ 		return;
+ 
+ 	if (!p || p->nr_cpus_allowed == 1) {
+@@ -4687,6 +4699,7 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
+ 
+ 	/* ensure we never gain time by being placed backwards. */
+ 	se->vruntime = max_vruntime(se->vruntime, vruntime);
++	trace_android_rvh_place_entity(cfs_rq, se, initial, &vruntime);
+ }
+ 
+ static void check_enqueue_throttle(struct cfs_rq *cfs_rq);
+@@ -4895,9 +4908,14 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+ 	unsigned long ideal_runtime, delta_exec;
+ 	struct sched_entity *se;
+ 	s64 delta;
++	bool skip_preempt = false;
+ 
+ 	ideal_runtime = sched_slice(cfs_rq, curr);
+ 	delta_exec = curr->sum_exec_runtime - curr->prev_sum_exec_runtime;
++	trace_android_rvh_check_preempt_tick(current, &ideal_runtime, &skip_preempt,
++			delta_exec, cfs_rq, curr, sysctl_sched_min_granularity);
++	if (skip_preempt)
++		return;
+ 	if (delta_exec > ideal_runtime) {
+ 		resched_curr(rq_of(cfs_rq));
+ 		/*
+@@ -4926,8 +4944,7 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+ 		resched_curr(rq_of(cfs_rq));
+ }
+ 
+-static void
+-set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
++static void set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+ {
+ 	clear_buddies(cfs_rq, se);
+ 
+@@ -4978,7 +4995,11 @@ static struct sched_entity *
+ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+ {
+ 	struct sched_entity *left = __pick_first_entity(cfs_rq);
+-	struct sched_entity *se;
++	struct sched_entity *se = NULL;
++
++	trace_android_rvh_pick_next_entity(cfs_rq, curr, &se);
++	if (se)
++		goto done;
+ 
+ 	/*
+ 	 * If curr is set we have to see if its left of the leftmost entity
+@@ -5020,6 +5041,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+ 		se = cfs_rq->last;
+ 	}
+ 
++done:
+ 	return se;
+ }
+ 
+@@ -5082,6 +5104,7 @@ entity_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr, int queued)
+ 
+ 	if (cfs_rq->nr_running > 1)
+ 		check_preempt_tick(cfs_rq, curr);
++	trace_android_rvh_entity_tick(cfs_rq, curr);
+ }
+ 
+ 
+@@ -6007,6 +6030,11 @@ static inline bool cpu_overutilized(int cpu)
+ {
+ 	unsigned long rq_util_min = uclamp_rq_get(cpu_rq(cpu), UCLAMP_MIN);
+ 	unsigned long rq_util_max = uclamp_rq_get(cpu_rq(cpu), UCLAMP_MAX);
++	int overutilized = -1;
++
++	trace_android_rvh_cpu_overutilized(cpu, &overutilized);
++	if (overutilized != -1)
++		return overutilized;
+ 
+ 	return !util_fits_cpu(cpu_util_cfs(cpu), rq_util_min, rq_util_max, cpu);
+ }
+@@ -6095,6 +6123,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
+ 		flags = ENQUEUE_WAKEUP;
+ 	}
+ 
++	trace_android_rvh_enqueue_task_fair(rq, p, flags);
+ 	for_each_sched_entity(se) {
+ 		cfs_rq = cfs_rq_of(se);
+ 
+@@ -6185,6 +6214,7 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
+ 		flags |= DEQUEUE_SLEEP;
+ 	}
+ 
++	trace_android_rvh_dequeue_task_fair(rq, p, flags);
+ 	for_each_sched_entity(se) {
+ 		cfs_rq = cfs_rq_of(se);
+ 
+@@ -7205,6 +7235,8 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
+ 	struct perf_domain *pd;
+ 	struct energy_env eenv;
+ 
++	sync_entity_load_avg(&p->se);
++
+ 	rcu_read_lock();
+ 	pd = rcu_dereference(rd->pd);
+ 	if (!pd || READ_ONCE(rd->overutilized))
+@@ -7213,7 +7245,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
+ 	cpu = smp_processor_id();
+ 	if (sync && cpu_rq(cpu)->nr_running == 1 &&
+ 	    cpumask_test_cpu(cpu, p->cpus_ptr) &&
+-	    task_fits_capacity(p, capacity_of(cpu))) {
++	    task_fits_cpu(p, cpu)) {
+ 		rcu_read_unlock();
+ 		return cpu;
+ 	}
+@@ -7378,9 +7410,18 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int wake_flags)
+ 	int cpu = smp_processor_id();
+ 	int new_cpu = prev_cpu;
+ 	int want_affine = 0;
++	int target_cpu = -1;
+ 	/* SD_flags and WF_flags share the first nibble */
+ 	int sd_flag = wake_flags & 0xF;
+ 
++	if (trace_android_rvh_select_task_rq_fair_enabled() &&
++	    !(sd_flag & SD_BALANCE_FORK))
++		sync_entity_load_avg(&p->se);
++	trace_android_rvh_select_task_rq_fair(p, prev_cpu, sd_flag,
++			wake_flags, &target_cpu);
++	if (target_cpu >= 0)
++		return target_cpu;
++
+ 	/*
+ 	 * required for stable ->cpus_allowed
+ 	 */
+@@ -7585,9 +7626,14 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
+ 	int scale = cfs_rq->nr_running >= sched_nr_latency;
+ 	int next_buddy_marked = 0;
+ 	int cse_is_idle, pse_is_idle;
++	bool ignore = false;
++	bool preempt = false;
+ 
+ 	if (unlikely(se == pse))
+ 		return;
++	trace_android_rvh_check_preempt_wakeup_ignore(curr, &ignore);
++	if (ignore)
++		return;
+ 
+ 	/*
+ 	 * This is possible from callers such as attach_tasks(), in which we
+@@ -7644,6 +7690,13 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
+ 		return;
+ 
+ 	update_curr(cfs_rq_of(se));
++	trace_android_rvh_check_preempt_wakeup(rq, p, &preempt, &ignore,
++			wake_flags, se, pse, next_buddy_marked, sysctl_sched_wakeup_granularity);
++	if (preempt)
++		goto preempt;
++	if (ignore)
++		return;
++
+ 	if (wakeup_preempt_entity(se, pse) == 1) {
+ 		/*
+ 		 * Bias pick_next to pick the sched entity that is
+@@ -7711,9 +7764,10 @@ struct task_struct *
+ pick_next_task_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
+ {
+ 	struct cfs_rq *cfs_rq = &rq->cfs;
+-	struct sched_entity *se;
+-	struct task_struct *p;
++	struct sched_entity *se = NULL;
++	struct task_struct *p = NULL;
+ 	int new_tasks;
++	bool repick = false;
+ 
+ again:
+ 	if (!sched_fair_runnable(rq))
+@@ -7767,7 +7821,7 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf
+ 	} while (cfs_rq);
+ 
+ 	p = task_of(se);
+-
++	trace_android_rvh_replace_next_task_fair(rq, &p, &se, &repick, false, prev);
+ 	/*
+ 	 * Since we haven't yet done put_prev_entity and if the selected task
+ 	 * is a different task than we started out with, try and touch the
+@@ -7800,6 +7854,10 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf
+ 	if (prev)
+ 		put_prev_task(rq, prev);
+ 
++	trace_android_rvh_replace_next_task_fair(rq, &p, &se, &repick, true, prev);
++	if (repick)
++		goto done;
++
+ 	do {
+ 		se = pick_next_entity(cfs_rq, NULL);
+ 		set_next_entity(cfs_rq, se);
+@@ -8121,6 +8179,7 @@ struct lb_env {
+ 	enum fbq_type		fbq_type;
+ 	enum migration_type	migration_type;
+ 	struct list_head	tasks;
++	struct rq_flags		*src_rq_rf;
+ };
+ 
+ /*
+@@ -8235,9 +8294,14 @@ static
+ int can_migrate_task(struct task_struct *p, struct lb_env *env)
+ {
+ 	int tsk_cache_hot;
++	int can_migrate = 1;
+ 
+ 	lockdep_assert_rq_held(env->src_rq);
+ 
++	trace_android_rvh_can_migrate_task(p, env->dst_cpu, &can_migrate);
++	if (!can_migrate)
++		return 0;
++
+ 	/*
+ 	 * We do not migrate tasks that are:
+ 	 * 1) throttled_lb_pair, or
+@@ -8325,8 +8389,20 @@ int can_migrate_task(struct task_struct *p, struct lb_env *env)
+  */
+ static void detach_task(struct task_struct *p, struct lb_env *env)
+ {
++	int detached = 0;
++
+ 	lockdep_assert_rq_held(env->src_rq);
+ 
++	/*
++	 * The vendor hook may drop the lock temporarily, so
++	 * pass the rq flags to unpin lock. We expect the
++	 * rq lock to be held after return.
++	 */
++	trace_android_rvh_migrate_queued_task(env->src_rq, env->src_rq_rf, p,
++					      env->dst_cpu, &detached);
++	if (detached)
++		return;
++
+ 	deactivate_task(env->src_rq, p, DEQUEUE_NOCLOCK);
+ 	set_task_cpu(p, env->dst_cpu);
+ }
+@@ -8859,6 +8935,7 @@ static void update_cpu_capacity(struct sched_domain *sd, int cpu)
+ 	if (!capacity)
+ 		capacity = 1;
+ 
++	trace_android_rvh_update_cpu_capacity(cpu, &capacity);
+ 	rq->cpu_capacity = capacity;
+ 
+ 	/*
+@@ -10145,8 +10222,12 @@ static struct sched_group *find_busiest_group(struct lb_env *env)
+ 
+ 	if (sched_energy_enabled()) {
+ 		struct root_domain *rd = env->dst_rq->rd;
++		int out_balance = 1;
+ 
+-		if (rcu_dereference(rd->pd) && !READ_ONCE(rd->overutilized))
++		trace_android_rvh_find_busiest_group(sds.busiest, env->dst_rq,
++					&out_balance);
++		if (rcu_dereference(rd->pd) && !READ_ONCE(rd->overutilized)
++					&& out_balance)
+ 			goto out_balanced;
+ 	}
+ 
+@@ -10265,7 +10346,12 @@ static struct rq *find_busiest_queue(struct lb_env *env,
+ 	struct rq *busiest = NULL, *rq;
+ 	unsigned long busiest_util = 0, busiest_load = 0, busiest_capacity = 1;
+ 	unsigned int busiest_nr = 0;
+-	int i;
++	int i, done = 0;
++
++	trace_android_rvh_find_busiest_queue(env->dst_cpu, group, env->cpus,
++					     &busiest, &done);
++	if (done)
++		return busiest;
+ 
+ 	for_each_cpu_and(i, sched_group_span(group), env->cpus) {
+ 		unsigned long capacity, load, util;
+@@ -10567,6 +10653,7 @@ static int load_balance(int this_cpu, struct rq *this_rq,
+ 
+ more_balance:
+ 		rq_lock_irqsave(busiest, &rf);
++		env.src_rq_rf = &rf;
+ 		update_rq_clock(busiest);
+ 
+ 		/*
+@@ -10862,6 +10949,7 @@ static int active_load_balance_cpu_stop(void *data)
+ 			.src_rq		= busiest_rq,
+ 			.idle		= CPU_IDLE,
+ 			.flags		= LBF_ACTIVE_LB,
++			.src_rq_rf	= &rf,
+ 		};
+ 
+ 		schedstat_inc(sd->alb_count);
+@@ -10943,6 +11031,10 @@ static void rebalance_domains(struct rq *rq, enum cpu_idle_type idle)
+ 	int need_serialize, need_decay = 0;
+ 	u64 max_cost = 0;
+ 
++	trace_android_rvh_sched_rebalance_domains(rq, &continue_balancing);
++	if (!continue_balancing)
++		return;
++
+ 	rcu_read_lock();
+ 	for_each_domain(cpu, sd) {
+ 		/*
+@@ -11093,6 +11185,7 @@ static void nohz_balancer_kick(struct rq *rq)
+ 	struct sched_domain *sd;
+ 	int nr_busy, i, cpu = rq->cpu;
+ 	unsigned int flags = 0;
++	int done = 0;
+ 
+ 	if (unlikely(rq->idle_balance))
+ 		return;
+@@ -11117,6 +11210,10 @@ static void nohz_balancer_kick(struct rq *rq)
+ 	if (time_before(now, nohz.next_balance))
+ 		goto out;
+ 
++	trace_android_rvh_sched_nohz_balancer_kick(rq, &flags, &done);
++	if (done)
++		goto out;
++
+ 	if (rq->nr_running >= 2) {
+ 		flags = NOHZ_STATS_KICK | NOHZ_BALANCE_KICK;
+ 		goto out;
+@@ -11522,6 +11619,11 @@ static int newidle_balance(struct rq *this_rq, struct rq_flags *rf)
+ 	u64 t0, t1, curr_cost = 0;
+ 	struct sched_domain *sd;
+ 	int pulled_task = 0;
++	int done = 0;
++
++	trace_android_rvh_sched_newidle_balance(this_rq, rf, &pulled_task, &done);
++	if (done)
++		return pulled_task;
+ 
+ 	update_misfit_status(NULL, this_rq);
+ 
+diff --git a/kernel/sched/rt.c b/kernel/sched/rt.c
+--- a/kernel/sched/rt.c
++++ b/kernel/sched/rt.c
+@@ -4,6 +4,8 @@
+  * policies)
+  */
+ 
++#include <trace/hooks/sched.h>
++
+ int sched_rr_timeslice = RR_TIMESLICE;
+ /* More than 4 hours if BW_SHIFT equals 20. */
+ static const u64 max_rt_runtime = MAX_BW;
+@@ -1020,6 +1022,13 @@ static int sched_rt_runtime_exceeded(struct rt_rq *rt_rq)
+ 		if (likely(rt_b->rt_runtime)) {
+ 			rt_rq->rt_throttled = 1;
+ 			printk_deferred_once("sched: RT throttling activated\n");
++
++			trace_android_vh_dump_throttled_rt_tasks(
++				raw_smp_processor_id(),
++				rq_clock(rq_of_rt_rq(rt_rq)),
++				sched_rt_period(rt_rq),
++				runtime,
++				hrtimer_get_expires_ns(&rt_b->rt_period_timer));
+ 		} else {
+ 			/*
+ 			 * In case we did anyway, make it go away,
+@@ -1625,9 +1634,15 @@ select_task_rq_rt(struct task_struct *p, int cpu, int flags)
+ 	struct rq *rq;
+ 	struct rq *this_cpu_rq;
+ 	bool test;
++	int target_cpu = -1;
+ 	bool sync = !!(flags & WF_SYNC);
+ 	int this_cpu;
+ 
++	trace_android_rvh_select_task_rq_rt(p, cpu, flags & 0xF,
++					flags, &target_cpu);
++	if (target_cpu >= 0)
++		return target_cpu;
++
+ 	/* For anything but wake ups, just return the task_cpu */
+ 	if (!(flags & (WF_TTWU | WF_FORK)))
+ 		goto out;
+@@ -1734,6 +1749,8 @@ static void check_preempt_equal_prio(struct rq *rq, struct task_struct *p)
+ static int balance_rt(struct rq *rq, struct task_struct *p, struct rq_flags *rf)
+ {
+ 	if (!on_rt_rq(&p->rt) && need_pull_rt_task(rq, p)) {
++		int done = 0;
++
+ 		/*
+ 		 * This is OK, because current is on_cpu, which avoids it being
+ 		 * picked for load-balance and preemption/IRQs are still
+@@ -1741,7 +1758,9 @@ static int balance_rt(struct rq *rq, struct task_struct *p, struct rq_flags *rf)
+ 		 * not yet started the picking loop.
+ 		 */
+ 		rq_unpin_lock(rq, rf);
+-		pull_rt_task(rq);
++		trace_android_rvh_sched_balance_rt(rq, p, &done);
++		if (!done)
++			pull_rt_task(rq);
+ 		rq_repin_lock(rq, rf);
+ 	}
+ 
+@@ -1893,7 +1912,7 @@ static int pick_rt_task(struct rq *rq, struct task_struct *p, int cpu)
+  * Return the highest pushable rq's task, which is suitable to be executed
+  * on the CPU, NULL otherwise
+  */
+-static struct task_struct *pick_highest_pushable_task(struct rq *rq, int cpu)
++struct task_struct *pick_highest_pushable_task(struct rq *rq, int cpu)
+ {
+ 	struct plist_head *head = &rq->rt.pushable_tasks;
+ 	struct task_struct *p;
+@@ -1908,6 +1927,7 @@ static struct task_struct *pick_highest_pushable_task(struct rq *rq, int cpu)
+ 
+ 	return NULL;
+ }
++EXPORT_SYMBOL_GPL(pick_highest_pushable_task);
+ 
+ static DEFINE_PER_CPU(cpumask_var_t, local_cpu_mask);
+ 
+@@ -1916,7 +1936,7 @@ static int find_lowest_rq(struct task_struct *task)
+ 	struct sched_domain *sd;
+ 	struct cpumask *lowest_mask = this_cpu_cpumask_var_ptr(local_cpu_mask);
+ 	int this_cpu = smp_processor_id();
+-	int cpu      = task_cpu(task);
++	int cpu      = -1;
+ 	int ret;
+ 
+ 	/* Make sure the mask is initialized first */
+@@ -1941,9 +1961,15 @@ static int find_lowest_rq(struct task_struct *task)
+ 				  task, lowest_mask);
+ 	}
+ 
++	trace_android_rvh_find_lowest_rq(task, lowest_mask, ret, &cpu);
++	if (cpu >= 0)
++		return cpu;
++
+ 	if (!ret)
+ 		return -1; /* No targets found */
+ 
++	cpu = task_cpu(task);
++
+ 	/*
+ 	 * At this point we have built a mask of CPUs representing the
+ 	 * lowest priority tasks in the system.  Now we want to elect
+@@ -2275,6 +2301,9 @@ static int rto_next_cpu(struct root_domain *rd)
+ 		/* When rto_cpu is -1 this acts like cpumask_first() */
+ 		cpu = cpumask_next(rd->rto_cpu, rd->rto_mask);
+ 
++		/* this will be any CPU in the rd->rto_mask, and can be a halted cpu update it */
++		trace_android_rvh_rto_next_cpu(rd->rto_cpu, rd->rto_mask, &cpu);
++
+ 		rd->rto_cpu = cpu;
+ 
+ 		if (cpu < nr_cpu_ids)
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -420,6 +420,8 @@ struct task_group {
+ 	struct uclamp_se	uclamp[UCLAMP_CNT];
+ 	/* Latency-sensitive flag used for a task group */
+ 	unsigned int		latency_sensitive;
++
++	ANDROID_VENDOR_DATA_ARRAY(1, 4);
+ #endif
+ 
+ };
+@@ -896,6 +898,7 @@ extern void sched_put_rd(struct root_domain *rd);
+ #ifdef HAVE_RT_PUSH_IPI
+ extern void rto_push_irq_work_func(struct irq_work *work);
+ #endif
++extern struct task_struct *pick_highest_pushable_task(struct rq *rq, int cpu);
+ #endif /* CONFIG_SMP */
+ 
+ #ifdef CONFIG_UCLAMP_TASK
+diff --git a/kernel/sched/topology.c b/kernel/sched/topology.c
+--- a/kernel/sched/topology.c
++++ b/kernel/sched/topology.c
+@@ -3,6 +3,8 @@
+  * Scheduler topology setup/handling methods
+  */
+ 
++#include <trace/hooks/sched.h>
++
+ DEFINE_MUTEX(sched_domains_mutex);
+ 
+ /* Protected by sched_domains_mutex: */
+@@ -373,12 +375,17 @@ static bool build_perf_domains(const struct cpumask *cpu_map)
+ 	struct perf_domain *pd = NULL, *tmp;
+ 	int cpu = cpumask_first(cpu_map);
+ 	struct root_domain *rd = cpu_rq(cpu)->rd;
++	bool eas_check = false;
+ 
+ 	if (!sysctl_sched_energy_aware)
+ 		goto free;
+ 
+-	/* EAS is enabled for asymmetric CPU capacity topologies. */
+-	if (!per_cpu(sd_asym_cpucapacity, cpu)) {
++	/*
++	 * EAS is enabled for asymmetric CPU capacity topologies.
++	 * Allow vendor to override if desired.
++	 */
++	trace_android_rvh_build_perf_domains(&eas_check);
++	if (!per_cpu(sd_asym_cpucapacity, cpu) && !eas_check) {
+ 		if (sched_debug()) {
+ 			pr_info("rd %*pbl: CPUs do not have asymmetric capacities\n",
+ 					cpumask_pr_args(cpu_map));
+@@ -2371,6 +2378,7 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
+ 		pr_info("root domain span: %*pbl (max cpu_capacity = %lu)\n",
+ 			cpumask_pr_args(cpu_map), rq->rd->max_cpu_capacity);
+ 	}
++	trace_android_vh_build_sched_domains(has_asym);
+ 
+ 	ret = 0;
+ error:
+diff --git a/kernel/sched/vendor_hooks.c b/kernel/sched/vendor_hooks.c
+new file mode 100644
+--- /dev/null
++++ b/kernel/sched/vendor_hooks.c
+@@ -0,0 +1,84 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* vendor_hook.c
++ *
++ * Copyright 2022 Google LLC
++ */
++#include <linux/sched/cputime.h>
++#include "sched.h"
++#include "pelt.h"
++#include "smp.h"
++
++#define CREATE_TRACE_POINTS
++#include <trace/hooks/vendor_hooks.h>
++#include <linux/tracepoint.h>
++#include <trace/hooks/sched.h>
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_task_rq_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_task_rq_rt);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_select_fallback_rq);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_scheduler_tick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_can_migrate_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_lowest_rq);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_prepare_prio_fork);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_finish_prio_fork);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_rtmutex_prepare_setprio);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_user_nice);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_setscheduler);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_busiest_group);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_dump_throttled_rt_tasks);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_jiffies_update);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_newidle_balance);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_nohz_balancer_kick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_rebalance_domains);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_busiest_queue);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_migrate_queued_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_overutilized);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_setaffinity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_update_cpus_allowed);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_build_sched_domains);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_tick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup_ignore);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_replace_next_task_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_balance_rt);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_pick_next_entity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_cpus_allowed_by_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_free_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_uclamp_eff_get);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_enqueue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_dequeue_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_entity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_entity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_entity_tick);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task_fair);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_util_est_update);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_setscheduler_uclamp);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_task_cpu);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_try_to_wake_up);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_try_to_wake_up_success);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_fork);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_wake_up_new_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_new_task_stats);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_flush_task);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_tick_entry);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_schedule);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_cpu_starting);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_cpu_dying);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_account_irq);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_place_entity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_build_perf_domains);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_update_cpu_capacity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_update_misfit_status);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_rto_next_cpu);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_is_cpu_allowed);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_get_nohz_timer_target);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_getaffinity);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_do_sched_yield);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_fork_init);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_ttwu_cond);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_schedule_bug);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_exec);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_update_topology_flags_workfn);
++EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_update_thermal_stats);

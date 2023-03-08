@@ -60,7 +60,7 @@
 #include <openssl/lhash.h>
 #include <openssl/x509.h>
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -79,23 +79,24 @@ struct v3_ext_ctx;
 
 // Useful typedefs
 
+typedef struct v3_ext_method X509V3_EXT_METHOD;
+
 typedef void *(*X509V3_EXT_NEW)(void);
 typedef void (*X509V3_EXT_FREE)(void *);
 typedef void *(*X509V3_EXT_D2I)(void *, const unsigned char **, long);
 typedef int (*X509V3_EXT_I2D)(void *, unsigned char **);
-typedef STACK_OF(CONF_VALUE) *(*X509V3_EXT_I2V)(
-    const struct v3_ext_method *method, void *ext,
-    STACK_OF(CONF_VALUE) *extlist);
-typedef void *(*X509V3_EXT_V2I)(const struct v3_ext_method *method,
-                                struct v3_ext_ctx *ctx,
-                                STACK_OF(CONF_VALUE) *values);
-typedef char *(*X509V3_EXT_I2S)(const struct v3_ext_method *method, void *ext);
-typedef void *(*X509V3_EXT_S2I)(const struct v3_ext_method *method,
-                                struct v3_ext_ctx *ctx, const char *str);
-typedef int (*X509V3_EXT_I2R)(const struct v3_ext_method *method, void *ext,
+typedef STACK_OF(CONF_VALUE) *(*X509V3_EXT_I2V)(const X509V3_EXT_METHOD *method,
+                                                void *ext,
+                                                STACK_OF(CONF_VALUE) *extlist);
+typedef void *(*X509V3_EXT_V2I)(const X509V3_EXT_METHOD *method,
+                                X509V3_CTX *ctx, STACK_OF(CONF_VALUE) *values);
+typedef char *(*X509V3_EXT_I2S)(const X509V3_EXT_METHOD *method, void *ext);
+typedef void *(*X509V3_EXT_S2I)(const X509V3_EXT_METHOD *method,
+                                X509V3_CTX *ctx, const char *str);
+typedef int (*X509V3_EXT_I2R)(const X509V3_EXT_METHOD *method, void *ext,
                               BIO *out, int indent);
-typedef void *(*X509V3_EXT_R2I)(const struct v3_ext_method *method,
-                                struct v3_ext_ctx *ctx, const char *str);
+typedef void *(*X509V3_EXT_R2I)(const X509V3_EXT_METHOD *method,
+                                X509V3_CTX *ctx, const char *str);
 
 // V3 extension structure
 
@@ -145,16 +146,12 @@ struct v3_ext_ctx {
   // Maybe more here
 };
 
-typedef struct v3_ext_method X509V3_EXT_METHOD;
-
 DEFINE_STACK_OF(X509V3_EXT_METHOD)
 
 // ext_flags values
 #define X509V3_EXT_DYNAMIC 0x1
 #define X509V3_EXT_CTX_DEP 0x2
 #define X509V3_EXT_MULTILINE 0x4
-
-typedef BIT_STRING_BITNAME ENUMERATED_NAMES;
 
 struct BASIC_CONSTRAINTS_st {
   int ca;
@@ -206,7 +203,6 @@ typedef struct GENERAL_NAME_st {
 } GENERAL_NAME;
 
 DEFINE_STACK_OF(GENERAL_NAME)
-DECLARE_ASN1_SET_OF(GENERAL_NAME)
 
 typedef STACK_OF(GENERAL_NAME) GENERAL_NAMES;
 
@@ -218,7 +214,6 @@ typedef struct ACCESS_DESCRIPTION_st {
 } ACCESS_DESCRIPTION;
 
 DEFINE_STACK_OF(ACCESS_DESCRIPTION)
-DECLARE_ASN1_SET_OF(ACCESS_DESCRIPTION)
 
 typedef STACK_OF(ACCESS_DESCRIPTION) AUTHORITY_INFO_ACCESS;
 
@@ -258,7 +253,6 @@ struct DIST_POINT_st {
 typedef STACK_OF(DIST_POINT) CRL_DIST_POINTS;
 
 DEFINE_STACK_OF(DIST_POINT)
-DECLARE_ASN1_SET_OF(DIST_POINT)
 
 struct AUTHORITY_KEYID_st {
   ASN1_OCTET_STRING *keyid;
@@ -286,7 +280,6 @@ typedef struct POLICYQUALINFO_st {
 } POLICYQUALINFO;
 
 DEFINE_STACK_OF(POLICYQUALINFO)
-DECLARE_ASN1_SET_OF(POLICYQUALINFO)
 
 typedef struct POLICYINFO_st {
   ASN1_OBJECT *policyid;
@@ -296,7 +289,6 @@ typedef struct POLICYINFO_st {
 typedef STACK_OF(POLICYINFO) CERTIFICATEPOLICIES;
 
 DEFINE_STACK_OF(POLICYINFO)
-DECLARE_ASN1_SET_OF(POLICYINFO)
 
 typedef struct POLICY_MAPPING_st {
   ASN1_OBJECT *issuerDomainPolicy;
@@ -336,8 +328,8 @@ typedef struct PROXY_CERT_INFO_EXTENSION_st {
   PROXY_POLICY *proxyPolicy;
 } PROXY_CERT_INFO_EXTENSION;
 
-DECLARE_ASN1_FUNCTIONS(PROXY_POLICY)
-DECLARE_ASN1_FUNCTIONS(PROXY_CERT_INFO_EXTENSION)
+DECLARE_ASN1_FUNCTIONS_const(PROXY_POLICY)
+DECLARE_ASN1_FUNCTIONS_const(PROXY_CERT_INFO_EXTENSION)
 
 struct ISSUING_DIST_POINT_st {
   DIST_POINT_NAME *distpoint;
@@ -371,23 +363,6 @@ struct ISSUING_DIST_POINT_st {
 #define X509V3_set_ctx_test(ctx) \
   X509V3_set_ctx(ctx, NULL, NULL, NULL, NULL, CTX_TEST)
 #define X509V3_set_ctx_nodb(ctx) (ctx)->db = NULL;
-
-#define EXT_BITSTRING(nid, table)                                        \
-  {                                                                      \
-    nid, 0, ASN1_ITEM_ref(ASN1_BIT_STRING), 0, 0, 0, 0, 0, 0,            \
-        (X509V3_EXT_I2V)i2v_ASN1_BIT_STRING,                             \
-        (X509V3_EXT_V2I)v2i_ASN1_BIT_STRING, NULL, NULL, (void *)(table) \
-  }
-
-#define EXT_IA5STRING(nid)                                   \
-  {                                                          \
-    nid, 0, ASN1_ITEM_ref(ASN1_IA5STRING), 0, 0, 0, 0,       \
-        (X509V3_EXT_I2S)i2s_ASN1_IA5STRING,                  \
-        (X509V3_EXT_S2I)s2i_ASN1_IA5STRING, 0, 0, 0, 0, NULL \
-  }
-
-#define EXT_END \
-  { -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 
 
 // X509_PURPOSE stuff
@@ -468,10 +443,14 @@ typedef struct x509_purpose_st {
 
 DEFINE_STACK_OF(X509_PURPOSE)
 
-DECLARE_ASN1_FUNCTIONS(BASIC_CONSTRAINTS)
+DECLARE_ASN1_FUNCTIONS_const(BASIC_CONSTRAINTS)
 
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(AUTHORITY_KEYID)
 
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(GENERAL_NAME)
 OPENSSL_EXPORT GENERAL_NAME *GENERAL_NAME_dup(GENERAL_NAME *a);
 
@@ -481,30 +460,42 @@ OPENSSL_EXPORT GENERAL_NAME *GENERAL_NAME_dup(GENERAL_NAME *a);
 OPENSSL_EXPORT int GENERAL_NAME_cmp(const GENERAL_NAME *a,
                                     const GENERAL_NAME *b);
 
-
-
-OPENSSL_EXPORT ASN1_BIT_STRING *v2i_ASN1_BIT_STRING(X509V3_EXT_METHOD *method,
-                                                    X509V3_CTX *ctx,
-                                                    STACK_OF(CONF_VALUE) *nval);
-OPENSSL_EXPORT STACK_OF(CONF_VALUE) *i2v_ASN1_BIT_STRING(
-    X509V3_EXT_METHOD *method, ASN1_BIT_STRING *bits,
-    STACK_OF(CONF_VALUE) *extlist);
-
+// i2v_GENERAL_NAME serializes |gen| as a |CONF_VALUE|. If |ret| is non-NULL, it
+// appends the value to |ret| and returns |ret| on success or NULL on error. If
+// it returns NULL, the caller is still responsible for freeing |ret|. If |ret|
+// is NULL, it returns a newly-allocated |STACK_OF(CONF_VALUE)| containing the
+// result. |method| is ignored.
+//
+// Do not use this function. This is an internal implementation detail of the
+// human-readable print functions. If extracting a SAN list from a certificate,
+// look at |gen| directly.
 OPENSSL_EXPORT STACK_OF(CONF_VALUE) *i2v_GENERAL_NAME(
-    X509V3_EXT_METHOD *method, GENERAL_NAME *gen, STACK_OF(CONF_VALUE) *ret);
+    const X509V3_EXT_METHOD *method, GENERAL_NAME *gen,
+    STACK_OF(CONF_VALUE) *ret);
 OPENSSL_EXPORT int GENERAL_NAME_print(BIO *out, GENERAL_NAME *gen);
 
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(GENERAL_NAMES)
 
+// i2v_GENERAL_NAMES serializes |gen| as a list of |CONF_VALUE|s. If |ret| is
+// non-NULL, it appends the values to |ret| and returns |ret| on success or NULL
+// on error. If it returns NULL, the caller is still responsible for freeing
+// |ret|. If |ret| is NULL, it returns a newly-allocated |STACK_OF(CONF_VALUE)|
+// containing the results. |method| is ignored.
+//
+// Do not use this function. This is an internal implementation detail of the
+// human-readable print functions. If extracting a SAN list from a certificate,
+// look at |gen| directly.
 OPENSSL_EXPORT STACK_OF(CONF_VALUE) *i2v_GENERAL_NAMES(
-    X509V3_EXT_METHOD *method, GENERAL_NAMES *gen,
+    const X509V3_EXT_METHOD *method, GENERAL_NAMES *gen,
     STACK_OF(CONF_VALUE) *extlist);
 OPENSSL_EXPORT GENERAL_NAMES *v2i_GENERAL_NAMES(const X509V3_EXT_METHOD *method,
                                                 X509V3_CTX *ctx,
                                                 STACK_OF(CONF_VALUE) *nval);
 
-DECLARE_ASN1_FUNCTIONS(OTHERNAME)
-DECLARE_ASN1_FUNCTIONS(EDIPARTYNAME)
+DECLARE_ASN1_FUNCTIONS_const(OTHERNAME)
+DECLARE_ASN1_FUNCTIONS_const(EDIPARTYNAME)
 OPENSSL_EXPORT int OTHERNAME_cmp(OTHERNAME *a, OTHERNAME *b);
 OPENSSL_EXPORT void GENERAL_NAME_set0_value(GENERAL_NAME *a, int type,
                                             void *value);
@@ -516,23 +507,31 @@ OPENSSL_EXPORT int GENERAL_NAME_get0_otherName(const GENERAL_NAME *gen,
                                                ASN1_OBJECT **poid,
                                                ASN1_TYPE **pvalue);
 
-OPENSSL_EXPORT char *i2s_ASN1_OCTET_STRING(X509V3_EXT_METHOD *method,
+OPENSSL_EXPORT char *i2s_ASN1_OCTET_STRING(const X509V3_EXT_METHOD *method,
                                            const ASN1_OCTET_STRING *ia5);
 OPENSSL_EXPORT ASN1_OCTET_STRING *s2i_ASN1_OCTET_STRING(
-    X509V3_EXT_METHOD *method, X509V3_CTX *ctx, const char *str);
+    const X509V3_EXT_METHOD *method, X509V3_CTX *ctx, const char *str);
 
-DECLARE_ASN1_FUNCTIONS(EXTENDED_KEY_USAGE)
+DECLARE_ASN1_FUNCTIONS_const(EXTENDED_KEY_USAGE)
 OPENSSL_EXPORT int i2a_ACCESS_DESCRIPTION(BIO *bp, const ACCESS_DESCRIPTION *a);
 
-DECLARE_ASN1_FUNCTIONS(CERTIFICATEPOLICIES)
-DECLARE_ASN1_FUNCTIONS(POLICYINFO)
-DECLARE_ASN1_FUNCTIONS(POLICYQUALINFO)
-DECLARE_ASN1_FUNCTIONS(USERNOTICE)
-DECLARE_ASN1_FUNCTIONS(NOTICEREF)
+DECLARE_ASN1_FUNCTIONS_const(CERTIFICATEPOLICIES)
+DECLARE_ASN1_FUNCTIONS_const(POLICYINFO)
+DECLARE_ASN1_FUNCTIONS_const(POLICYQUALINFO)
+DECLARE_ASN1_FUNCTIONS_const(USERNOTICE)
+DECLARE_ASN1_FUNCTIONS_const(NOTICEREF)
 
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(CRL_DIST_POINTS)
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(DIST_POINT)
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(DIST_POINT_NAME)
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(ISSUING_DIST_POINT)
 
 OPENSSL_EXPORT int DIST_POINT_set_dpname(DIST_POINT_NAME *dpn,
@@ -540,7 +539,11 @@ OPENSSL_EXPORT int DIST_POINT_set_dpname(DIST_POINT_NAME *dpn,
 
 OPENSSL_EXPORT int NAME_CONSTRAINTS_check(X509 *x, NAME_CONSTRAINTS *nc);
 
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(ACCESS_DESCRIPTION)
+// TODO(https://crbug.com/boringssl/407): This is not const because it contains
+// an |X509_NAME|.
 DECLARE_ASN1_FUNCTIONS(AUTHORITY_INFO_ACCESS)
 
 DECLARE_ASN1_ITEM(POLICY_MAPPING)
@@ -609,23 +612,41 @@ OPENSSL_EXPORT void X509V3_section_free(X509V3_CTX *ctx,
 OPENSSL_EXPORT void X509V3_set_ctx(X509V3_CTX *ctx, X509 *issuer, X509 *subject,
                                    X509_REQ *req, X509_CRL *crl, int flags);
 
+// X509V3_add_value appends a |CONF_VALUE| containing |name| and |value| to
+// |*extlist|. It returns one on success and zero on error. If |*extlist| is
+// NULL, it sets |*extlist| to a newly-allocated |STACK_OF(CONF_VALUE)|
+// containing the result. Either |name| or |value| may be NULL to omit the
+// field.
+//
+// On failure, if |*extlist| was NULL, |*extlist| will remain NULL when the
+// function returns.
 OPENSSL_EXPORT int X509V3_add_value(const char *name, const char *value,
                                     STACK_OF(CONF_VALUE) **extlist);
+
+// X509V3_add_value_uchar behaves like |X509V3_add_value| but takes an
+// |unsigned char| pointer.
 OPENSSL_EXPORT int X509V3_add_value_uchar(const char *name,
                                           const unsigned char *value,
                                           STACK_OF(CONF_VALUE) **extlist);
+
+// X509V3_add_value_bool behaves like |X509V3_add_value| but stores the value
+// "TRUE" if |asn1_bool| is non-zero and "FALSE" otherwise.
 OPENSSL_EXPORT int X509V3_add_value_bool(const char *name, int asn1_bool,
                                          STACK_OF(CONF_VALUE) **extlist);
-OPENSSL_EXPORT int X509V3_add_value_int(const char *name, ASN1_INTEGER *aint,
+
+// X509V3_add_value_bool behaves like |X509V3_add_value| but stores a string
+// representation of |aint|. Note this string representation may be decimal or
+// hexadecimal, depending on the size of |aint|.
+OPENSSL_EXPORT int X509V3_add_value_int(const char *name,
+                                        const ASN1_INTEGER *aint,
                                         STACK_OF(CONF_VALUE) **extlist);
-OPENSSL_EXPORT char *i2s_ASN1_INTEGER(X509V3_EXT_METHOD *meth,
+
+OPENSSL_EXPORT char *i2s_ASN1_INTEGER(const X509V3_EXT_METHOD *meth,
                                       const ASN1_INTEGER *aint);
-OPENSSL_EXPORT ASN1_INTEGER *s2i_ASN1_INTEGER(X509V3_EXT_METHOD *meth,
+OPENSSL_EXPORT ASN1_INTEGER *s2i_ASN1_INTEGER(const X509V3_EXT_METHOD *meth,
                                               const char *value);
-OPENSSL_EXPORT char *i2s_ASN1_ENUMERATED(X509V3_EXT_METHOD *meth,
+OPENSSL_EXPORT char *i2s_ASN1_ENUMERATED(const X509V3_EXT_METHOD *meth,
                                          const ASN1_ENUMERATED *aint);
-OPENSSL_EXPORT char *i2s_ASN1_ENUMERATED_TABLE(X509V3_EXT_METHOD *meth,
-                                               const ASN1_ENUMERATED *aint);
 OPENSSL_EXPORT int X509V3_EXT_add(X509V3_EXT_METHOD *ext);
 OPENSSL_EXPORT int X509V3_EXT_add_list(X509V3_EXT_METHOD *extlist);
 OPENSSL_EXPORT int X509V3_EXT_add_alias(int nid_to, int nid_from);
@@ -664,7 +685,7 @@ OPENSSL_EXPORT void *X509V3_EXT_d2i(const X509_EXTENSION *ext);
 // extension, or -1 if not found. If |out_idx| is non-NULL, duplicate extensions
 // are not treated as an error. Callers, however, should not rely on this
 // behavior as it may be removed in the future. Duplicate extensions are
-// forbidden in RFC5280.
+// forbidden in RFC 5280.
 //
 // WARNING: This function is difficult to use correctly. Callers should pass a
 // non-NULL |out_critical| and check both the return value and |*out_critical|
@@ -766,12 +787,13 @@ OPENSSL_EXPORT int X509V3_add1_i2d(STACK_OF(X509_EXTENSION) **x, int nid,
 // hexdump.
 #define X509V3_EXT_DUMP_UNKNOWN (3L << 16)
 
-OPENSSL_EXPORT void X509V3_EXT_val_prn(BIO *out, STACK_OF(CONF_VALUE) *val,
+OPENSSL_EXPORT void X509V3_EXT_val_prn(BIO *out,
+                                       const STACK_OF(CONF_VALUE) *val,
                                        int indent, int ml);
-OPENSSL_EXPORT int X509V3_EXT_print(BIO *out, X509_EXTENSION *ext,
+OPENSSL_EXPORT int X509V3_EXT_print(BIO *out, const X509_EXTENSION *ext,
                                     unsigned long flag, int indent);
-OPENSSL_EXPORT int X509V3_EXT_print_fp(FILE *out, X509_EXTENSION *ext, int flag,
-                                       int indent);
+OPENSSL_EXPORT int X509V3_EXT_print_fp(FILE *out, const X509_EXTENSION *ext,
+                                       int flag, int indent);
 
 // X509V3_extensions_print prints |title|, followed by a human-readable
 // representation of |exts| to |out|. It returns one on success and zero on
@@ -784,7 +806,7 @@ OPENSSL_EXPORT int X509V3_extensions_print(BIO *out, const char *title,
 
 OPENSSL_EXPORT int X509_check_ca(X509 *x);
 OPENSSL_EXPORT int X509_check_purpose(X509 *x, int id, int ca);
-OPENSSL_EXPORT int X509_supported_extension(X509_EXTENSION *ex);
+OPENSSL_EXPORT int X509_supported_extension(const X509_EXTENSION *ex);
 OPENSSL_EXPORT int X509_PURPOSE_set(int *p, int purpose);
 OPENSSL_EXPORT int X509_check_issued(X509 *issuer, X509 *subject);
 OPENSSL_EXPORT int X509_check_akid(X509 *issuer, AUTHORITY_KEYID *akid);
@@ -794,7 +816,7 @@ OPENSSL_EXPORT uint32_t X509_get_key_usage(X509 *x);
 OPENSSL_EXPORT uint32_t X509_get_extended_key_usage(X509 *x);
 
 // X509_get0_subject_key_id returns |x509|'s subject key identifier, if present.
-// (See RFC5280, section 4.2.1.2.) It returns NULL if the extension is not
+// (See RFC 5280, section 4.2.1.2.) It returns NULL if the extension is not
 // present or if some extension in |x509| was invalid.
 //
 // Note that decoding an |X509| object will not check for invalid extensions. To
@@ -803,7 +825,7 @@ OPENSSL_EXPORT uint32_t X509_get_extended_key_usage(X509 *x);
 OPENSSL_EXPORT const ASN1_OCTET_STRING *X509_get0_subject_key_id(X509 *x509);
 
 // X509_get0_authority_key_id returns keyIdentifier of |x509|'s authority key
-// identifier, if the extension and field are present. (See RFC5280,
+// identifier, if the extension and field are present. (See RFC 5280,
 // section 4.2.1.1.) It returns NULL if the extension is not present, if it is
 // present but lacks a keyIdentifier field, or if some extension in |x509| was
 // invalid.
@@ -815,7 +837,7 @@ OPENSSL_EXPORT const ASN1_OCTET_STRING *X509_get0_authority_key_id(X509 *x509);
 
 // X509_get0_authority_issuer returns the authorityCertIssuer of |x509|'s
 // authority key identifier, if the extension and field are present. (See
-// RFC5280, section 4.2.1.1.) It returns NULL if the extension is not present,
+// RFC 5280, section 4.2.1.1.) It returns NULL if the extension is not present,
 // if it is present but lacks a authorityCertIssuer field, or if some extension
 // in |x509| was invalid.
 //
@@ -826,7 +848,7 @@ OPENSSL_EXPORT const GENERAL_NAMES *X509_get0_authority_issuer(X509 *x509);
 
 // X509_get0_authority_serial returns the authorityCertSerialNumber of |x509|'s
 // authority key identifier, if the extension and field are present. (See
-// RFC5280, section 4.2.1.1.) It returns NULL if the extension is not present,
+// RFC 5280, section 4.2.1.1.) It returns NULL if the extension is not present,
 // if it is present but lacks a authorityCertSerialNumber field, or if some
 // extension in |x509| was invalid.
 //
@@ -859,19 +881,16 @@ OPENSSL_EXPORT STACK_OF(OPENSSL_STRING) *X509_get1_ocsp(X509 *x);
 #define X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT 0
 // Disable wildcard matching for dnsName fields and common name.
 #define X509_CHECK_FLAG_NO_WILDCARDS 0x2
-// Wildcards must not match a partial label.
-#define X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS 0x4
-// Allow (non-partial) wildcards to match multiple labels.
-#define X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS 0x8
-// Constraint verifier subdomain patterns to match a single labels.
-#define X509_CHECK_FLAG_SINGLE_LABEL_SUBDOMAINS 0x10
+// X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS does nothing, but is necessary in
+// OpenSSL to enable standard wildcard matching. In BoringSSL, this behavior is
+// always enabled.
+#define X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS 0
+// Deprecated: this flag does nothing
+#define X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS 0
+// Deprecated: this flag does nothing
+#define X509_CHECK_FLAG_SINGLE_LABEL_SUBDOMAINS 0
 // Skip the subject common name fallback if subjectAltNames is missing.
 #define X509_CHECK_FLAG_NEVER_CHECK_SUBJECT 0x20
-//
-// Match reference identifiers starting with "." to any sub-domain.
-// This is a non-public flag, turned on implicitly when the subject
-// reference identity is a DNS name.
-#define _X509_CHECK_FLAG_DOT_SUBDOMAINS 0x8000
 
 OPENSSL_EXPORT int X509_check_host(X509 *x, const char *chk, size_t chklen,
                                    unsigned int flags, char **peername);
@@ -884,22 +903,17 @@ OPENSSL_EXPORT int X509_check_ip_asc(X509 *x, const char *ipasc,
 
 OPENSSL_EXPORT ASN1_OCTET_STRING *a2i_IPADDRESS(const char *ipasc);
 OPENSSL_EXPORT ASN1_OCTET_STRING *a2i_IPADDRESS_NC(const char *ipasc);
-OPENSSL_EXPORT int a2i_ipadd(unsigned char *ipout, const char *ipasc);
 OPENSSL_EXPORT int X509V3_NAME_from_section(X509_NAME *nm,
                                             STACK_OF(CONF_VALUE) *dn_sk,
                                             unsigned long chtype);
-
-OPENSSL_EXPORT void X509_POLICY_NODE_print(BIO *out, X509_POLICY_NODE *node,
-                                           int indent);
-DEFINE_STACK_OF(X509_POLICY_NODE)
 
 // BEGIN ERROR CODES
 // The following lines are auto generated by the script mkerr.pl. Any changes
 // made after this point may be overwritten when the script is next run.
 
 
-#ifdef __cplusplus
-}
+#if defined(__cplusplus)
+}  // extern C
 
 extern "C++" {
 
@@ -908,8 +922,13 @@ BSSL_NAMESPACE_BEGIN
 BORINGSSL_MAKE_DELETER(ACCESS_DESCRIPTION, ACCESS_DESCRIPTION_free)
 BORINGSSL_MAKE_DELETER(AUTHORITY_KEYID, AUTHORITY_KEYID_free)
 BORINGSSL_MAKE_DELETER(BASIC_CONSTRAINTS, BASIC_CONSTRAINTS_free)
+// TODO(davidben): Move this to conf.h and rename to CONF_VALUE_free.
+BORINGSSL_MAKE_DELETER(CONF_VALUE, X509V3_conf_free)
 BORINGSSL_MAKE_DELETER(DIST_POINT, DIST_POINT_free)
 BORINGSSL_MAKE_DELETER(GENERAL_NAME, GENERAL_NAME_free)
+BORINGSSL_MAKE_DELETER(GENERAL_SUBTREE, GENERAL_SUBTREE_free)
+BORINGSSL_MAKE_DELETER(NAME_CONSTRAINTS, NAME_CONSTRAINTS_free)
+BORINGSSL_MAKE_DELETER(POLICY_MAPPING, POLICY_MAPPING_free)
 BORINGSSL_MAKE_DELETER(POLICYINFO, POLICYINFO_free)
 
 BSSL_NAMESPACE_END
@@ -980,5 +999,7 @@ BSSL_NAMESPACE_END
 #define X509V3_R_UNSUPPORTED_OPTION 160
 #define X509V3_R_UNSUPPORTED_TYPE 161
 #define X509V3_R_USER_TOO_LONG 162
+#define X509V3_R_INVALID_VALUE 163
+#define X509V3_R_TRAILING_DATA_IN_EXTENSION 164
 
 #endif

@@ -463,16 +463,18 @@ set -e
 OLD_ENVIRONMENT=$(mktemp)
 export -p > ${OLD_ENVIRONMENT}
 
-export ROOT_DIR=$($(dirname $(readlink -f $0))/gettop.sh)
-source "${ROOT_DIR}/build/build_utils.sh"
-source "${ROOT_DIR}/build/_setup_env.sh"
+# export ROOT_DIR=$($(dirname $(readlink -f $0))/gettop.sh)
+export BASE_DIR=$(readlink -f $(dirname $0)/..)
+
+source "${BASE_DIR}/build/build_utils.sh"
+source "${BASE_DIR}/build/_setup_env.sh"
 
 (
     [[ "$KLEAF_SUPPRESS_BUILD_SH_DEPRECATION_WARNING" == "1" ]] && exit 0 || true
     echo     "Inferring equivalent Bazel command..."
     bazel_command_code=0
     eq_bazel_command=$(
-        ${ROOT_DIR}/build/kernel/kleaf/convert_to_bazel.sh # error messages goes to stderr
+        ${BASE_DIR}/build/kernel/kleaf/convert_to_bazel.sh # error messages goes to stderr
     ) || bazel_command_code=$?
     echo     "*****************************************************************************" >&2
     echo     "* WARNING: build.sh is deprecated for this branch. Please migrate to Bazel.  " >&2
@@ -552,10 +554,10 @@ if [ -n "${KCONFIG_EXT_PREFIX}" ]; then
 
   # KCONFIG_EXT_PREFIX needs to be relative to KERNEL_DIR but we allow one to set
   # it relative to ROOT_DIR for ease of use. So figure out what was used.
-  if [ -f "${ROOT_DIR}/${KCONFIG_EXT_PREFIX}Kconfig.ext" ]; then
+  if [ -f "${BASE_DIR}/${KCONFIG_EXT_PREFIX}Kconfig.ext" ]; then
     # KCONFIG_EXT_PREFIX is currently relative to ROOT_DIR. So recalculate it to be
     # relative to KERNEL_DIR
-    KCONFIG_EXT_PREFIX=$(rel_path ${ROOT_DIR}/${KCONFIG_EXT_PREFIX} ${KERNEL_DIR})
+    KCONFIG_EXT_PREFIX=$(realpath ${BASE_DIR}/${KCONFIG_EXT_PREFIX} --relative-to ${KERNEL_DIR})
   elif [ ! -f "${KERNEL_DIR}/${KCONFIG_EXT_PREFIX}Kconfig.ext" ]; then
     echo "Couldn't find the Kconfig.ext in ${KCONFIG_EXT_PREFIX}" >&2
     exit 1
@@ -572,10 +574,10 @@ if [ -n "${DTS_EXT_DIR}" ]; then
   if [[ "${MAKE_GOALS}" =~ dtbs|\.dtb|\.dtbo ]]; then
     # DTS_EXT_DIR needs to be relative to KERNEL_DIR but we allow one to set
     # it relative to ROOT_DIR for ease of use. So figure out what was used.
-    if [ -d "${ROOT_DIR}/${DTS_EXT_DIR}" ]; then
+    if [ -d "${BASE_DIR}/${DTS_EXT_DIR}" ]; then
       # DTS_EXT_DIR is currently relative to ROOT_DIR. So recalcuate it to be
       # relative to KERNEL_DIR
-      DTS_EXT_DIR=$(rel_path ${ROOT_DIR}/${DTS_EXT_DIR} ${KERNEL_DIR})
+      DTS_EXT_DIR=$(realpath ${BASE_DIR}/${DTS_EXT_DIR} --relative-to ${KERNEL_DIR})
     elif [ ! -d "${KERNEL_DIR}/${DTS_EXT_DIR}" ]; then
       echo "Couldn't find the dtstree -- ${DTS_EXT_DIR}" >&2
       exit 1
@@ -584,7 +586,7 @@ if [ -n "${DTS_EXT_DIR}" ]; then
   fi
 fi
 
-cd ${ROOT_DIR}
+cd ${BASE_DIR}
 
 if [ -n "${SKIP_IF_VERSION_MATCHES}" ]; then
   if [ -f "${DIST_DIR}/vmlinux" ]; then
@@ -727,21 +729,21 @@ fi
 if [ -n "${ABI_DEFINITION}" ]; then
   echo "========================================================"
   echo " Copying abi definition to ${ABI_XML}"
-  pushd $ROOT_DIR/$KERNEL_DIR
+  pushd $KERNEL_DIR
     cp "${ABI_DEFINITION}" ${ABI_XML}
   popd
 fi
 
 # Copy the abi symbol list file from the sources into the dist dir
 if [ -n "${KMI_SYMBOL_LIST}" ]; then
-  ${ROOT_DIR}/build/abi/process_symbols --out-dir="$DIST_DIR" --out-file=abi_symbollist \
-    --report-file=abi_symbollist.report --in-dir="$ROOT_DIR/$KERNEL_DIR" \
+  ${BASE_DIR}/build/abi/process_symbols --out-dir="$DIST_DIR" --out-file=abi_symbollist \
+    --report-file=abi_symbollist.report --in-dir="$KERNEL_DIR" \
     "${KMI_SYMBOL_LIST}" ${ADDITIONAL_KMI_SYMBOL_LISTS} --verbose
-  pushd $ROOT_DIR/$KERNEL_DIR
+  pushd $KERNEL_DIR
   if [ "${TRIM_NONLISTED_KMI}" = "1" ]; then
       # Create the raw symbol list
       cat ${ABI_SL} | \
-              ${ROOT_DIR}/build/abi/flatten_symbol_list > \
+              ${BASE_DIR}/build/abi/flatten_symbol_list > \
               ${OUT_DIR}/abi_symbollist.raw
 
       # Update the kernel configuration
@@ -761,7 +763,7 @@ if [ -n "${KMI_SYMBOL_LIST}" ]; then
       echo "ERROR: KMI_SYMBOL_LIST_STRICT_MODE requires TRIM_NONLISTED_KMI=1" >&2
     exit 1
   fi
-  popd # $ROOT_DIR/$KERNEL_DIR
+  popd # $KERNEL_DIR
 elif [ "${TRIM_NONLISTED_KMI}" = "1" ]; then
   echo "ERROR: TRIM_NONLISTED_KMI requires a KMI_SYMBOL_LIST" >&2
   exit 1
@@ -801,9 +803,9 @@ if [ "${KMI_SYMBOL_LIST_STRICT_MODE}" = "1" ]; then
   echo " Comparing the KMI and the symbol lists:"
   set -x
 
-  gki_modules_list="${ROOT_DIR}/${KERNEL_DIR}/android/gki_system_dlkm_modules"
+  gki_modules_list="${KERNEL_DIR}/android/gki_system_dlkm_modules"
   KMI_STRICT_MODE_OBJECTS="vmlinux $(sed 's/\.ko$//' ${gki_modules_list} | tr '\n' ' ')" \
-    ${ROOT_DIR}/build/abi/compare_to_symbol_list "${OUT_DIR}/Module.symvers"             \
+    ${BASE_DIR}/build/abi/compare_to_symbol_list "${OUT_DIR}/Module.symvers"             \
     "${OUT_DIR}/abi_symbollist.raw"
   set +x
 fi
@@ -828,7 +830,7 @@ if [[ -z "${SKIP_EXT_MODULES}" ]] && [[ -n "${EXT_MODULES_MAKEFILE}" ]]; then
   echo "========================================================"
   echo " Building and installing external modules using ${EXT_MODULES_MAKEFILE}"
 
-  make -f "${EXT_MODULES_MAKEFILE}" KERNEL_SRC=${ROOT_DIR}/${KERNEL_DIR} \
+  make -f "${EXT_MODULES_MAKEFILE}" KERNEL_SRC=${KERNEL_DIR} \
           O=${OUT_DIR} ${TOOL_ARGS} ${MODULE_STRIP_FLAG}                 \
           INSTALL_HDR_PATH="${KERNEL_UAPI_HEADERS_DIR}/usr"              \
           INSTALL_MOD_PATH=${MODULES_STAGING_DIR} "${MAKE_ARGS[@]}"
@@ -845,14 +847,14 @@ if [[ -z "${SKIP_EXT_MODULES}" ]] && [[ -n "${EXT_MODULES}" ]]; then
     # and .ko) files will be stored in ${OUT_DIR}/${EXT_MOD_REL}. If we
     # instead set M to an absolute path, then object (i.e. .o and .ko) files
     # are stored in the module source directory which is not what we want.
-    EXT_MOD_REL=$(rel_path ${ROOT_DIR}/${EXT_MOD} ${KERNEL_DIR})
+    EXT_MOD_REL=$(realpath ${BASE_DIR}/${EXT_MOD} --relative-to ${KERNEL_DIR})
     # The output directory must exist before we invoke make. Otherwise, the
     # build system behaves horribly wrong.
     mkdir -p ${OUT_DIR}/${EXT_MOD_REL}
     set -x
-    make -C ${EXT_MOD} M=${EXT_MOD_REL} KERNEL_SRC=${ROOT_DIR}/${KERNEL_DIR}  \
+    make -C ${EXT_MOD} M=${EXT_MOD_REL} KERNEL_SRC=${KERNEL_DIR}  \
                        O=${OUT_DIR} ${TOOL_ARGS} "${MAKE_ARGS[@]}"
-    make -C ${EXT_MOD} M=${EXT_MOD_REL} KERNEL_SRC=${ROOT_DIR}/${KERNEL_DIR}  \
+    make -C ${EXT_MOD} M=${EXT_MOD_REL} KERNEL_SRC=${KERNEL_DIR}  \
                        O=${OUT_DIR} ${TOOL_ARGS} ${MODULE_STRIP_FLAG}         \
                        INSTALL_MOD_PATH=${MODULES_STAGING_DIR}                \
                        INSTALL_MOD_DIR="extra/${EXT_MOD}"                     \
@@ -868,7 +870,7 @@ if [ "${BUILD_GKI_CERTIFICATION_TOOLS}" = "1"  ]; then
   echo "========================================================"
   echo " Generating ${GKI_CERTIFICATION_TOOLS_TAR}"
   GKI_CERTIFICATION_BINARIES=(avbtool certify_bootimg)
-  GKI_CERTIFICATION_TOOLS_ROOT="${ROOT_DIR}/prebuilts/kernel-build-tools/linux-x86"
+  GKI_CERTIFICATION_TOOLS_ROOT="${BASE_DIR}/prebuilts/kernel-build-tools/linux-x86"
   GKI_CERTIFICATION_FILES="${GKI_CERTIFICATION_BINARIES[@]/#/bin/}"
   tar -czf ${DIST_DIR}/${GKI_CERTIFICATION_TOOLS_TAR} \
     -C ${GKI_CERTIFICATION_TOOLS_ROOT} ${GKI_CERTIFICATION_FILES}
@@ -877,12 +879,12 @@ fi
 echo "========================================================"
 echo " Generating test_mappings.zip"
 TEST_MAPPING_FILES=${OUT_DIR}/test_mapping_files.txt
-find ${ROOT_DIR} -name TEST_MAPPING \
-  -not -path "${ROOT_DIR}/\.git*" \
-  -not -path "${ROOT_DIR}/\.repo*" \
-  -not -path "${ROOT_DIR}/out*" \
+find ${BASE_DIR} -name TEST_MAPPING \
+  -not -path "${BASE_DIR}/\.git*" \
+  -not -path "${BASE_DIR}/\.repo*" \
+  -not -path "${BASE_DIR}/out*" \
   > ${TEST_MAPPING_FILES}
-soong_zip -o ${DIST_DIR}/test_mappings.zip -C ${ROOT_DIR} -l ${TEST_MAPPING_FILES}
+soong_zip -o ${DIST_DIR}/test_mappings.zip -C ${BASE_DIR} -l ${TEST_MAPPING_FILES}
 
 if [ -n "${EXTRA_CMDS}" ]; then
   echo "========================================================"
@@ -894,7 +896,7 @@ fi
 
 OVERLAYS_OUT=""
 for ODM_DIR in ${ODM_DIRS}; do
-  OVERLAY_DIR=${ROOT_DIR}/device/${ODM_DIR}/overlays
+  OVERLAY_DIR=${BASE_DIR}/device/${ODM_DIR}/overlays
 
   if [ -d ${OVERLAY_DIR} ]; then
     OVERLAY_OUT_DIR=${OUT_DIR}/overlays/${ODM_DIR}
@@ -955,7 +957,7 @@ if [ -z "${SKIP_CP_KERNEL_HDR}" ] ; then
   echo "========================================================"
   KERNEL_HEADERS_TAR=${DIST_DIR}/kernel-headers.tar.gz
   echo " Copying kernel headers to ${KERNEL_HEADERS_TAR}"
-  pushd $ROOT_DIR/$KERNEL_DIR
+  pushd $KERNEL_DIR
     find arch include $OUT_DIR -name *.h -print0               \
             | tar -czf $KERNEL_HEADERS_TAR                     \
               --absolute-names                                 \
@@ -1050,7 +1052,7 @@ if [ -n "${UNSTRIPPED_MODULES}" ]; then
   fi
 fi
 
-[ -n "${GKI_MODULES_LIST}" ] && cp ${ROOT_DIR}/${KERNEL_DIR}/${GKI_MODULES_LIST} ${DIST_DIR}/
+[ -n "${GKI_MODULES_LIST}" ] && cp ${KERNEL_DIR}/${GKI_MODULES_LIST} ${DIST_DIR}/
 
 echo "========================================================"
 echo " Files copied to ${DIST_DIR}"

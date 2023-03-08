@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright 2016 The Android Open Source Project
 #
@@ -46,6 +46,7 @@ __NR_bpf = {  # pylint: disable=invalid-name
     "i686-64bit": 321,
     "x86_64-32bit": 357,
     "x86_64-64bit": 321,
+    "riscv64-64bit": 280,
 }[os.uname()[4] + "-" + platform.architecture()[0]]
 
 LOG_LEVEL = 1
@@ -191,9 +192,6 @@ BpfInsn = cstruct.Struct("bpf_insn", "=BBhi", "code dst_src_reg off imm")
 # pylint: enable=invalid-name
 
 libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
-HAVE_EBPF_SUPPORT = net_test.LINUX_VERSION >= (4, 4, 0)
-HAVE_EBPF_4_9 = net_test.LINUX_VERSION >= (4, 9, 0)
-HAVE_EBPF_4_14 = net_test.LINUX_VERSION >= (4, 14, 0)
 HAVE_EBPF_4_19 = net_test.LINUX_VERSION >= (4, 19, 0)
 HAVE_EBPF_5_4 = net_test.LINUX_VERSION >= (5, 4, 0)
 
@@ -257,11 +255,11 @@ def DeleteMap(map_fd, key):
 
 
 def BpfProgLoad(prog_type, instructions, prog_license=b"GPL"):
-  bpf_prog = "".join(instructions)
+  bpf_prog = b"".join(instructions)
   insn_buff = ctypes.create_string_buffer(bpf_prog)
   gpl_license = ctypes.create_string_buffer(prog_license)
   log_buf = ctypes.create_string_buffer(b"", LOG_SIZE)
-  attr = BpfAttrProgLoad((prog_type, len(insn_buff) / len(BpfInsn),
+  attr = BpfAttrProgLoad((prog_type, len(insn_buff) // len(BpfInsn),
                           ctypes.addressof(insn_buff),
                           ctypes.addressof(gpl_license), LOG_LEVEL,
                           LOG_SIZE, ctypes.addressof(log_buf), 0))
