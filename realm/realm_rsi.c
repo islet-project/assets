@@ -45,3 +45,10 @@ void rsi_exit_to_host(enum host_call_cmd exit_code)
 	tftf_smc(&(smc_args) {RSI_HOST_CALL, (u_register_t)&host_cal,
 		0UL, 0UL, 0UL, 0UL, 0UL, 0UL});
 }
+
+bool check_host_call_arg0(unsigned long val) {
+	if (val == host_cal.gprs[0]) {
+		return true;
+	}
+	return false;
+}

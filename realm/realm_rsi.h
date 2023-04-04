@@ -114,4 +114,6 @@ u_register_t rsi_get_ns_buffer(void);
 /* This function call Host and request to exit Realm with proper exit code */
 void rsi_exit_to_host(enum host_call_cmd exit_code);
 
+bool check_host_call_arg0(unsigned long val);
+
 #endif /* REALM_RSI_H */

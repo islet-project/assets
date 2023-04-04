@@ -60,6 +60,12 @@ void realm_payload_main(void)
 	bool test_succeed = false;
 
 	realm_set_shared_structure((host_shared_data_t *)rsi_get_ns_buffer());
+	unsigned long ns_buf_ipa = 0x800088e00000;
+	// islet-rmm cannot read ns region memeory now.
+	if (check_host_call_arg0(ns_buf_ipa)) {
+		rsi_exit_to_host(HOST_CALL_EXIT_SUCCESS_CMD);
+	}
+
 	if (realm_get_shared_structure() != NULL) {
 		cmd = realm_shared_data_get_realm_cmd();
 		switch (cmd) {
