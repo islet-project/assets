@@ -241,7 +241,7 @@ boot-img: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	mformat -i $(BOOT_IMG) -n 64 -h 2 -T 65536 -v "BOOT IMG" -C ::
 	mkdir -p $(OUT_PATH)/rootfs
 	fakeroot bash -c " \
-		tar xfj $(ROOT)/assets/prebuilt/rootfs.tar.bz2 -C $(OUT_PATH)/rootfs; \
+		tar xfj $(ROOT)/assets/rootfs/rootfs-linux.tar.bz2 -C $(OUT_PATH)/rootfs; \
 		cd $(OUT_PATH)/rootfs; \
 		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
 	gzip $(OUT_PATH)/rootfs.cpio
