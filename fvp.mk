@@ -254,6 +254,31 @@ boot-img: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
 	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
 
+.PHONY: boot-img-net  # static address setting for a tap networking
+boot-img-net: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
+	mformat -i $(BOOT_IMG) -n 64 -h 2 -T 655360 -v "BOOT IMG" -C ::
+	mkdir -p $(OUT_PATH)/rootfs
+	fakeroot bash -c " \
+		tar xfj $(ROOT)/assets/rootfs/rootfs-linux.tar.bz2 -C $(OUT_PATH)/rootfs; \
+		echo \"\" >> $(OUT_PATH)/rootfs/etc/network/interfaces; \
+		echo \"auto eth0\" >> $(OUT_PATH)/rootfs/etc/network/interfaces; \
+		echo \"iface eth0 inet static\" >> $(OUT_PATH)/rootfs/etc/network/interfaces; \
+		echo \"address $(FVP_IP)\" >> $(OUT_PATH)/rootfs/etc/network/interfaces; \
+		echo \"netmask 255.255.255.0\" >> $(OUT_PATH)/rootfs/etc/network/interfaces; \
+		echo \"gateway $(HOST_IP)\" >> $(OUT_PATH)/rootfs/etc/network/interfaces; \
+		rm -f $(OUT_PATH)/rootfs/etc/network/if-up.d/dhcp; \
+		cd $(OUT_PATH)/rootfs; \
+		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
+	gzip $(OUT_PATH)/rootfs.cpio
+	mv $(OUT_PATH)/rootfs.cpio.gz $(OUT_PATH)/initrd.img
+	mcopy -i $(BOOT_IMG) $(LINUX_BIN) ::
+	mcopy -i $(BOOT_IMG) $(LINUX_DTB_BIN) ::
+	mmd -i $(BOOT_IMG) ::/EFI
+	mmd -i $(BOOT_IMG) ::/EFI/BOOT
+	mcopy -i $(BOOT_IMG) $(OUT_PATH)/initrd.img ::/initrd.img
+	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
+	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
+
 .PHONY: boot-img-clean
 boot-img-clean:
 	rm -f $(BOOT_IMG)
