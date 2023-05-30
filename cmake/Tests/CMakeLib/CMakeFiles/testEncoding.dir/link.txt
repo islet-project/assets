@@ -1,0 +1,1 @@
+/usr/bin/g++ -O3 -DNDEBUG CMakeFiles/testEncoding.dir/testEncoding.cxx.o -o testEncoding   -L/usr/lib/gcc/x86_64-linux-gnu/10  ../../Source/kwsys/libcmsys.a -ldl 

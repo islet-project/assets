@@ -1,0 +1,1 @@
+/usr/bin/g++ -O3 -DNDEBUG -rdynamic CMakeFiles/testConsoleBufChild.dir/testConsoleBufChild.cxx.o -o testConsoleBufChild   -L/usr/lib/gcc/x86_64-linux-gnu/10  libcmsys.a -ldl 

@@ -1,0 +1,18 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/sangwan/dev/cmake-3.19.2/Source/Checks/Curses/CheckCurses.c
+ncurses.h
+-
+ncurses/ncurses.h
+-
+ncurses/curses.h
+-
+curses.h
+-
+

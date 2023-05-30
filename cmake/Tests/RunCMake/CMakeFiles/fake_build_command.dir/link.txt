@@ -1,0 +1,1 @@
+/usr/bin/gcc -O3 -DNDEBUG CMakeFiles/fake_build_command.dir/fake_build_command.c.o -o fake_build_command 

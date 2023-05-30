@@ -1,0 +1,11 @@
+include(RunCMake)
+
+run_cmake(Created)
+run_cmake(FromPrefixPath)
+run_cmake(FromPATHEnv)
+if(UNIX AND NOT CYGWIN)
+  run_cmake(LibArchLink)
+  run_cmake(LibSymLink)
+endif()
+run_cmake(PrefixInPATH)
+run_cmake(Required)

@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/sangwan/dev/cmake-3.19.2/Tests/CMakeLib/testUVProcessChainHelper.cxx
+cctype
+-
+chrono
+-
+cstdlib
+-
+iostream
+-
+set
+-
+sstream
+-
+string
+-
+thread
+-
+
