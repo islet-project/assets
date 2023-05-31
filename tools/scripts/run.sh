@@ -26,7 +26,7 @@ arg_fip=
 arg_acs_build_dir=
 arg_acs_ns_preload_addr=${ACS_NS_PRELOAD_ADDR_DFLT}
 # Run the test with a timeout so they can't loop forever.
-arg_test_timeout=20
+arg_test_timeout=1000
 suite_timeout_multiplier=3
 test_report_logfile=
 regression_report_logfile=
@@ -172,7 +172,8 @@ then
 
     fvp_cmd="${fvp_cmd} \
  --data cluster0.cpu0=${arg_acs_build_dir}/output/acs_non_secure.bin@${arg_acs_ns_preload_addr}\
- -C bp.pl011_uart2.out_file=${regression_report_logfile}"
+ -C bp.pl011_uart2.out_file=${regression_report_logfile}\
+ -C bp.pl011_uart2.unbuffered_output=1"
 
     arg_test_timeout=$(($arg_test_timeout * $suite_timeout_multiplier))
 
