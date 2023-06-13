@@ -38,7 +38,11 @@ static uint8_t select_protocol_version(const psa_invec *in_vec, size_t in_len,
 		out_size_total += out_vec[i].len;
 	}
 
+	/* This value is not to be trusted, no error checking */
 	comms_mhu_msg_size = mhu_get_max_message_size();
+	/* reverse engineer if there was an error code */
+	if (comms_mhu_msg_size / sizeof(uint32_t) > UINT32_MAX - 10)
+		comms_mhu_msg_size = 0;
 
 	comms_embed_msg_min_size = sizeof(struct serialized_rss_comms_header_t) +
 				   sizeof(struct rss_embed_msg_t) -
@@ -59,8 +63,8 @@ static uint8_t select_protocol_version(const psa_invec *in_vec, size_t in_len,
 	 * messages due to ATU configuration costs to allow access to the
 	 * pointers.
 	 */
-	if ((comms_embed_msg_min_size + in_size_total > comms_mhu_msg_size - sizeof(uint32_t))
-	 || (comms_embed_reply_min_size + out_size_total > comms_mhu_msg_size) - sizeof(uint32_t)) {
+	if ((comms_embed_msg_min_size + in_size_total + sizeof(int32_t) > comms_mhu_msg_size) ||
+	    (comms_embed_reply_min_size + out_size_total + sizeof(uint32_t) > comms_mhu_msg_size)) {
 		return RSS_COMMS_PROTOCOL_POINTER_ACCESS;
 	} else {
 		return RSS_COMMS_PROTOCOL_EMBED;

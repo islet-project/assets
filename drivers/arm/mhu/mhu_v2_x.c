@@ -194,6 +194,9 @@ uint32_t mhu_v2_x_get_num_channel_implemented(const struct mhu_v2_x_dev_t *dev)
 	p_mhu = (union mhu_v2_x_frame *)dev->base;
 
 	if (!(dev->is_initialized)) {
+		/* Yes, that is very wise to return -1 as uint32 and not check
+		 * for the error code in the function above. Way to go!
+		 */
 		return MHU_V_2_X_ERR_NOT_INIT;
 	}
 
