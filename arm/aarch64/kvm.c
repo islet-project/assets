@@ -1,7 +1,5 @@
 #include "kvm/kvm.h"
 
-#include <asm/image.h>
-
 #include <linux/byteorder.h>
 #include <linux/cpumask.h>
 #include <linux/sizes.h>
@@ -87,13 +85,13 @@ unsigned long long kvm__arch_get_kern_offset(struct kvm *kvm, int fd)
 
 	lseek(fd, cur_offset, SEEK_SET);
 
-	if (memcmp(&header.magic, ARM64_IMAGE_MAGIC, sizeof(header.magic))) {
+	if (!is_arm64_image(&header)) {
 		debug_str = "Kernel image magic not matching";
 		goto default_offset;
 	}
 
-	if (le64_to_cpu(header.image_size))
-		return le64_to_cpu(header.text_offset);
+	if (arm64_image_size(&header))
+		return arm64_image_text_offset(&header);
 
 	debug_str = "Image size is 0";
 default_offset:
