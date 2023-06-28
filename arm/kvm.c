@@ -103,7 +103,8 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 {
 	void *pos, *kernel_end, *limit;
 	unsigned long guest_addr;
-	ssize_t file_size;
+	unsigned long kern_offset, end_offset;
+	ssize_t file_size, mem_size;
 
 	/*
 	 * Linux requires the initrd and dtb to be mapped inside lowmem,
@@ -111,8 +112,10 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	 */
 	limit = kvm->ram_start + min(kvm->ram_size, (u64)SZ_256M) - 1;
 
-	pos = kvm->ram_start + kvm__arch_get_kern_offset(kvm, fd_kernel);
+	kern_offset = kvm__arch_get_kern_offset(kvm, fd_kernel);
+	pos = kvm->ram_start + kern_offset;
 	kvm->arch.kern_guest_start = host_to_guest_flat(kvm, pos);
+
 	file_size = read_file(fd_kernel, pos, limit - pos);
 	if (file_size < 0) {
 		if (errno == ENOMEM)
@@ -120,10 +123,20 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 
 		die_perror("kernel read");
 	}
-	kernel_end = pos + file_size;
-	pr_debug("Loaded kernel to 0x%llx (%zd bytes)",
-		 kvm->arch.kern_guest_start, file_size);
 
+	/*
+	 * If we know the actual memory size of the image, make sure we
+	 * use that informatoin to avoid overlapping images
+	 */
+	mem_size = kvm__arch_get_image_size(kvm, pos);
+	if (!mem_size)
+		mem_size = file_size;
+	end_offset = kern_offset + mem_size;
+	kernel_end = kvm->ram_start + end_offset;
+	pr_debug("Loaded kernel to 0x%llx - 0x%llx (%zd bytes actual)",
+		 kvm->arch.kern_guest_start,
+		 kvm->arch.kern_guest_start + mem_size,
+		 file_size);
 	/*
 	 * Now load backwards from the end of memory so the kernel
 	 * decompressor has plenty of space to work with. First up is
@@ -199,7 +212,7 @@ bool kvm__load_firmware(struct kvm *kvm, const char *firmware_filename)
 	u64 fw_addr = kvm->cfg.arch.fw_addr;
 	void *host_pos;
 	void *limit;
-	ssize_t fw_sz;
+	ssize_t fw_sz, mem_sz;
 	int fd;
 
 	limit = kvm->ram_start + kvm->ram_size;
@@ -224,13 +237,19 @@ bool kvm__load_firmware(struct kvm *kvm, const char *firmware_filename)
 		die("failed to load firmware");
 	close(fd);
 
+	mem_sz = kvm__arch_get_image_size(kvm, host_pos);
+	if (!mem_sz)
+		mem_sz = fw_sz;
+
 	/* Kernel isn't loaded by kvm, point start address to firmware */
 	kvm->arch.kern_guest_start = fw_addr;
-	pr_debug("Loaded firmware to 0x%llx (%zd bytes)",
-		 kvm->arch.kern_guest_start, fw_sz);
+	pr_debug("Loaded firmware to 0x%llx - 0x%llx (%zd bytes actual)",
+		 kvm->arch.kern_guest_start,
+		 kvm->arch.kern_guest_start + mem_sz,
+		 fw_sz);
 
 	/* Load dtb just after the firmware image*/
-	host_pos += fw_sz;
+	host_pos += mem_sz;
 	if (host_pos + FDT_MAX_SIZE > limit)
 		die("not enough space to load fdt");
 
