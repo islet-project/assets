@@ -1,0 +1,163 @@
+
+project build/make/
+diff --git a/build/make/core/Makefile b/build/make/core/Makefile
+index 309a179ee0..942b120abc 100644
+--- a/build/make/core/Makefile
++++ b/build/make/core/Makefile
+@@ -6699,8 +6699,12 @@ INSTALLED_SYSTEM_QEMU_CONFIG := $(PRODUCT_OUT)/system-qemu-config.txt
+ $(INSTALLED_SYSTEM_QEMU_CONFIG): $(INSTALLED_SUPERIMAGE_TARGET) $(INSTALLED_VBMETAIMAGE_TARGET)
+ 	@echo "$(PRODUCT_OUT)/vbmeta.img vbmeta 1" > $@
+ 	@echo "$(INSTALLED_SUPERIMAGE_TARGET) super 2" >> $@
++	@echo "$(INSTALLED_USERDATAIMAGE_TARGET) userdata 3" >> $@
++	@echo "$(PRODUCT_OUT)/metadata.img metadata 4" >> $@
+ $(INSTALLED_QEMU_SYSTEMIMAGE): $(INSTALLED_VBMETAIMAGE_TARGET) $(MK_COMBINE_QEMU_IMAGE) $(SGDISK_HOST) $(SIMG2IMG) \
+     $(INSTALLED_SUPERIMAGE_TARGET) $(INSTALLED_SYSTEM_QEMU_CONFIG)
++	dd if=/dev/zero of="$(PRODUCT_OUT)/metadata.img" bs=4k count=4096 status=none
++	$(HOST_OUT_EXECUTABLES)/mke2fs -t ext4 -q "$(PRODUCT_OUT)/metadata.img"
+ 	@echo Create system-qemu.img now
+ 	(export SGDISK=$(SGDISK_HOST) SIMG2IMG=$(SIMG2IMG); \
+      $(MK_COMBINE_QEMU_IMAGE) -i $(INSTALLED_SYSTEM_QEMU_CONFIG) -o $@)
+
+project device/generic/goldfish/
+diff --git a/device/generic/goldfish/fvp.mk b/device/generic/goldfish/fvp.mk
+index 888d9f00..004bc8d3 100644
+--- a/device/generic/goldfish/fvp.mk
++++ b/device/generic/goldfish/fvp.mk
+@@ -22,7 +22,7 @@ PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
+ #
+ # All components inherited here go to system image
+ #
+-$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
+ $(call inherit-product, $(SRC_TARGET_DIR)/product/generic_system.mk)
+ 
+ #
+@@ -90,6 +90,8 @@ PRODUCT_COPY_FILES += \
+     device/generic/goldfish/fvpbase/fstab.initrd:$(TARGET_COPY_OUT_RAMDISK)/fstab.qemu \
+     device/generic/goldfish/fvpbase/init.fvpbase.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.fvpbase.rc \
+     device/generic/goldfish/fvpbase/init.qemu.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemu.rc \
++    device/generic/goldfish/fvpbase/mini_network.rc:system/etc/init/mini_network.rc \
++    device/generic/goldfish/fvpbase/mini_network.sh:/system/bin/mini_network.sh \
+     device/generic/goldfish/fvpbase/required_images:required_images \
+     device/generic/goldfish/fvpbase/ueventd.fvp.rc:$(TARGET_COPY_OUT_VENDOR)/ueventd.rc \
+     frameworks/av/services/audiopolicy/config/audio_policy_configuration_generic.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+@@ -116,5 +118,5 @@ WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY := false
+ DEVICE_MANIFEST_FILE := device/generic/goldfish/fvpbase/manifest.xml
+ 
+ # Use a multilib setup (see fvpbase/BoardConfig.mk).
+-FVP_MULTILIB_BUILD := true
++FVP_MULTILIB_BUILD := false
+ 
+diff --git a/device/generic/goldfish/fvpbase/fstab.fvpbase b/device/generic/goldfish/fvpbase/fstab.fvpbase
+index 6c62809c..ee52b998 100644
+--- a/device/generic/goldfish/fvpbase/fstab.fvpbase
++++ b/device/generic/goldfish/fvpbase/fstab.fvpbase
+@@ -4,5 +4,6 @@
+ # specify MF_CHECK, and must come before any filesystems that do specify MF_CHECK
+ system   /system     ext4    ro,barrier=1     wait,logical,first_stage_mount
+ vendor   /vendor     ext4    ro,barrier=1     wait,logical,first_stage_mount
+-/dev/block/mmcblk0  /data    ext4      noatime,nosuid,nodev,nomblk_io_submit,errors=panic   wait,check,quota
++/dev/block/vda3 /data     ext4 noatime,nosuid,nodev,nomblk_io_submit,errors=panic wait,check,quota
++/dev/block/vda4 /metadata ext4 noatime,nosuid,nodev,nomblk_io_submit,errors=panic wait,check,quota
+ /devices/*/block/vde  auto  auto      defaults voldmanaged=sdcard:auto,encryptable=userdata
+
+project frameworks/av/
+diff --git a/frameworks/av/media/mediaserver/mediaserver.rc b/frameworks/av/media/mediaserver/mediaserver.rc
+index 05373c9c3f..06697e92b5 100644
+--- a/frameworks/av/media/mediaserver/mediaserver.rc
++++ b/frameworks/av/media/mediaserver/mediaserver.rc
+@@ -7,3 +7,4 @@ service media /system/bin/mediaserver
+     group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc mediadrm
+     ioprio rt 4
+     task_profiles ProcessCapacityHigh HighPerformance
++    disabled
+
+project system/core/
+diff --git a/system/core/rootdir/init.rc b/system/core/rootdir/init.rc
+index cd71aa8aa..d7cf70796 100644
+--- a/system/core/rootdir/init.rc
++++ b/system/core/rootdir/init.rc
+@@ -535,7 +535,7 @@ on late-init
+     trigger post-fs-data
+ 
+     # Should be before netd, but after apex, properties and logging is available.
+-    trigger load_bpf_programs
++    # trigger load_bpf_programs
+ 
+     # Now we can start zygote for devices with file based encryption
+     trigger zygote-start
+@@ -660,6 +660,8 @@ on property:ro.product.cpu.abilist64=* && property:bootreceiver.enable=1
+     write /sys/kernel/tracing/instances/bootreceiver/events/error_report/error_report_end/enable 1
+ 
+ on post-fs-data
++    mkdir /mnt/shared
++    mount 9p FM /mnt/shared FM trans=virtio,version=9p2000.L
+ 
+     mark_post_data
+ 
+@@ -1031,7 +1033,7 @@ on zygote-start && property:ro.crypto.state=unencrypted
+     start statsd
+     start netd
+     start zygote
+-    start zygote_secondary
++    # start zygote_secondary
+ 
+ on zygote-start && property:ro.crypto.state=unsupported
+     wait_for_prop odsign.verification.done 1
+@@ -1040,7 +1042,7 @@ on zygote-start && property:ro.crypto.state=unsupported
+     start statsd
+     start netd
+     start zygote
+-    start zygote_secondary
++    # start zygote_secondary
+ 
+ on zygote-start && property:ro.crypto.state=encrypted && property:ro.crypto.type=file
+     wait_for_prop odsign.verification.done 1
+@@ -1049,7 +1051,7 @@ on zygote-start && property:ro.crypto.state=encrypted && property:ro.crypto.type
+     start statsd
+     start netd
+     start zygote
+-    start zygote_secondary
++    # start zygote_secondary
+ 
+ on boot && property:ro.config.low_ram=true
+     # Tweak background writeout
+diff --git a/system/core/rootdir/init.zygote64.rc b/system/core/rootdir/init.zygote64.rc
+index 5bde5f469..486880378 100644
+--- a/system/core/rootdir/init.zygote64.rc
++++ b/system/core/rootdir/init.zygote64.rc
+@@ -9,7 +9,7 @@ service zygote /system/bin/app_process64 -Xzygote /system/bin --zygote --start-s
+     onrestart write /sys/power/state on
+     onrestart restart audioserver
+     onrestart restart cameraserver
+-    onrestart restart media
++    # onrestart restart media
+     onrestart restart media.tuner
+     onrestart restart netd
+     onrestart restart wificond
+
+project system/netd/
+diff --git a/system/netd/server/netd.rc b/system/netd/server/netd.rc
+index 3e7aa40f..7ffcbca2 100644
+--- a/system/netd/server/netd.rc
++++ b/system/netd/server/netd.rc
+@@ -6,7 +6,7 @@ service netd /system/bin/netd
+     socket mdns stream 0660 root system
+     socket fwmarkd stream 0660 root inet
+     onrestart restart zygote
+-    onrestart restart zygote_secondary
++    # onrestart restart zygote_secondary
+     # b/121354779: netd itself is not updatable, but on startup it dlopen()s the resolver library
+     # from the DNS resolver APEX. Mark it as updatable so init won't start it until all APEX
+     # packages are ready.
+
+project system/security/
+diff --git a/system/security/keystore2/keystore2.rc b/system/security/keystore2/keystore2.rc
+index 6f88dd39..610f851e 100644
+--- a/system/security/keystore2/keystore2.rc
++++ b/system/security/keystore2/keystore2.rc
+@@ -11,3 +11,4 @@ service keystore2 /system/bin/keystore2 /data/misc/keystore
+     user keystore
+     group keystore readproc log
+     task_profiles ProcessCapacityHigh
++    disabled
