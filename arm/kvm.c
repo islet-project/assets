@@ -130,6 +130,9 @@ void kvm__arch_set_cmdline(char *cmdline, bool video)
 
 void kvm__arch_init(struct kvm *kvm)
 {
+	if (kvm__is_realm(kvm))
+		kvm_arm_realm_create_realm_descriptor(kvm);
+
 	/* Create the virtual GIC. */
 	if (gic__create(kvm, kvm->cfg.arch.irqchip))
 		die("Failed to create virtual GIC");
