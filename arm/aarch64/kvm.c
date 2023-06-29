@@ -52,11 +52,26 @@ static void validate_mem_cfg(struct kvm *kvm)
 
 static void validate_realm_cfg(struct kvm *kvm)
 {
-	if (!kvm__is_realm(kvm))
+	if (!kvm__is_realm(kvm)) {
+		if (kvm->cfg.arch.measurement_algo)
+			die("--measurement-algo valid only with --realm");
 		return;
+	}
 
 	if (kvm->cfg.arch.aarch32_guest)
 		die("Realms supported only for 64bit guests");
+
+	if (kvm->cfg.arch.measurement_algo) {
+		if (strcmp(kvm->cfg.arch.measurement_algo, "sha256") == 0)
+			kvm->arch.measurement_algo = KVM_CAP_ARM_RME_MEASUREMENT_ALGO_SHA256;
+		else if (strcmp(kvm->cfg.arch.measurement_algo, "sha512") == 0)
+			kvm->arch.measurement_algo = KVM_CAP_ARM_RME_MEASUREMENT_ALGO_SHA512;
+		else
+			die("unknown realm measurement algorithm");
+	} else {
+		pr_debug("Realm Hash algorithm: Using default SHA256\n");
+		kvm->arch.measurement_algo = KVM_CAP_ARM_RME_MEASUREMENT_ALGO_SHA256;
+	}
 
 	die("Realms not supported");
 }

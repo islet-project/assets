@@ -108,6 +108,7 @@ struct kvm_arch {
 	u64	dtb_guest_start;
 
 	cpu_set_t *vcpu_affinity_cpuset;
+	u64	measurement_algo;
 };
 
 #endif /* ARM_COMMON__KVM_ARCH_H */

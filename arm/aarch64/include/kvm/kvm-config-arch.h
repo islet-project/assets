@@ -23,7 +23,10 @@ int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset);
 	OPT_BOOLEAN('\0', "disable-sve", &(cfg)->disable_sve,		\
 			"Disable SVE"),					\
 	OPT_BOOLEAN('\0', "realm", &(cfg)->is_realm,			\
-			"Create VM running in a realm using Arm RME"),
+			"Create VM running in a realm using Arm RME"),	\
+	OPT_STRING('\0', "measurement-algo", &(cfg)->measurement_algo,	\
+			 "sha256, sha512",				\
+			 "Realm Measurement algorithm, default: sha256"),
 
 #include "arm-common/kvm-config-arch.h"
 
