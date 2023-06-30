@@ -32,6 +32,9 @@ int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset);
 			"Personalisation Value (only) for Realm VMs"),	\
 	OPT_U64('\0', "sve-vl", &(cfg)->sve_vl,				\
 			"SVE Vector Length the VM"			\
+			"(only supported for Realms)"),			\
+	OPT_UINTEGER('\0', "pmu-counters", &(cfg)->pmu_cntrs,			\
+			"Number of PMU counters"			\
 			"(only supported for Realms)"),
 
 #include "arm-common/kvm-config-arch.h"

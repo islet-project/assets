@@ -62,11 +62,32 @@ static void realm_configure_sve(struct kvm *kvm)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) SVE");
 }
 
+static void realm_configure_pmu(struct kvm *kvm)
+{
+	struct kvm_cap_arm_rme_config_item pmu_cfg = {
+		.cfg	= KVM_CAP_ARM_RME_CFG_PMU,
+		.num_pmu_cntrs = kvm->cfg.arch.pmu_cntrs
+	};
+
+	struct kvm_enable_cap rme_config = {
+		.cap = KVM_CAP_ARM_RME,
+		.args[0] = KVM_CAP_ARM_RME_CONFIG_REALM,
+		.args[1] = (u64)&pmu_cfg,
+	};
+
+	if (!kvm->cfg.arch.pmu_cntrs)
+		return;
+
+	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
+		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) PMU");
+}
+
 static void realm_configure_parameters(struct kvm *kvm)
 {
 	realm_configure_hash_algo(kvm);
 	realm_configure_rpv(kvm);
 	realm_configure_sve(kvm);
+	realm_configure_pmu(kvm);
 }
 
 void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm)

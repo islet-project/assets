@@ -63,6 +63,8 @@ static void validate_realm_cfg(struct kvm *kvm)
 			die("--realm-pv valid only with --realm");
 		if (kvm->cfg.arch.sve_vl)
 			die("--sve-vl valid only with --realm");
+		if (kvm->cfg.arch.pmu_cntrs)
+			die("--pmu-counters valid only with --realm");
 		return;
 	}
 
