@@ -14,6 +14,9 @@
 static console_t data_channel;
 static bool data_channel_initialized = false;
 
+/* added in aarch64/pl011_console.S */
+int console_pl011_rawputc(int c, console_t *console);
+
 static void serial_lazy_initialize()
 {
 	if (data_channel_initialized)
@@ -22,7 +25,7 @@ static void serial_lazy_initialize()
 	/* UART0 is BOOT and then passed to EFI/OS
 	 * UART1 is RUN which is TF-A after passing 0 to EFI
 	 * UART2 is TSP whatever that is, it's uninitialized
-	 * UART3 is taken by TF-RMM
+	 * UART3 is TRP whatever that is, it's taken by TF-RMM
 	 *
 	 * Conclusion: use UART2
 	 */
@@ -56,7 +59,7 @@ enum mhu_error_t mhu_send_data(const uint8_t *send_buffer, size_t size)
 	serial_lazy_initialize();
 
 	for (i = 0; i < size; ++i) {
-		ret = data_channel.putc(send_buffer[i], &data_channel);
+		ret = console_pl011_rawputc(send_buffer[i], &data_channel);
 		if (ret < 0) {
 			NOTICE("[RSS_SERIAL] serial error: %d\n", ret);
 			return MHU_ERR_GENERAL;
