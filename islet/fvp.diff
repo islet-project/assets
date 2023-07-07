@@ -60,6 +60,24 @@ index 6c62809c..ee52b998 100644
 +/dev/block/vda3 /data     ext4 noatime,nosuid,nodev,nomblk_io_submit,errors=panic wait,check,quota
 +/dev/block/vda4 /metadata ext4 noatime,nosuid,nodev,nomblk_io_submit,errors=panic wait,check,quota
  /devices/*/block/vde  auto  auto      defaults voldmanaged=sdcard:auto,encryptable=userdata
+diff --git a/device/generic/goldfish/fvpbase/init.fvpbase.rc b/device/generic/goldfish/fvpbase/init.fvpbase.rc
+index 4d3db00c..1e56a6c4 100644
+--- a/device/generic/goldfish/fvpbase/init.fvpbase.rc
++++ b/device/generic/goldfish/fvpbase/init.fvpbase.rc
+@@ -1,2 +1,13 @@
+ on fs
+     mount_all /vendor/etc/fstab.fvpbase
++
++on init
++    # Create UDS structure for base VR services.
++    mkdir /dev/socket/pdx 0775 system system
++    mkdir /dev/socket/pdx/system 0775 system system
++    mkdir /dev/socket/pdx/system/buffer_hub 0775 system system
++    mkdir /dev/socket/pdx/system/performance 0775 system system
++    mkdir /dev/socket/pdx/system/vr 0775 system system
++    mkdir /dev/socket/pdx/system/vr/display 0775 system system
++    mkdir /dev/socket/pdx/system/vr/pose 0775 system system
++    mkdir /dev/socket/pdx/system/vr/sensors 0775 system system
 
 project frameworks/av/
 diff --git a/frameworks/av/media/mediaserver/mediaserver.rc b/frameworks/av/media/mediaserver/mediaserver.rc
