@@ -30,6 +30,9 @@ arg_test_timeout=1000
 suite_timeout_multiplier=3
 test_report_logfile=
 regression_report_logfile=
+uart0_logfile=
+uart1_logfile=
+uart3_logfile=
 tfa_rmm_logfile=
 
 fvp_cmd=" -C bp.refcounter.non_arch_start_at_default=1 \
@@ -164,7 +167,10 @@ fvp_cmd="${arg_model} ${fvp_cmd} \
 # Add additional model parameters from the cmdline
 fvp_cmd="${fvp_cmd} $@"
 
-regression_report_logfile=${arg_acs_build_dir}/output/regression_report.log
+regression_report_logfile=${arg_acs_build_dir}/../../../out/uart2.log
+uart0_logfile=${arg_acs_build_dir}/../../../out/uart0.log
+uart1_logfile=${arg_acs_build_dir}/../../../out/uart1.log
+uart3_logfile=${arg_acs_build_dir}/../../../out/uart3.log
 
 if [[ -f "${arg_acs_build_dir}/output/acs_non_secure.bin" ]]
 then
@@ -172,6 +178,9 @@ then
 
     fvp_cmd="${fvp_cmd} \
  --data cluster0.cpu0=${arg_acs_build_dir}/output/acs_non_secure.bin@${arg_acs_ns_preload_addr}\
+ -C bp.pl011_uart0.out_file=${uart0_logfile}\
+ -C bp.pl011_uart1.out_file=${uart1_logfile}\
+ -C bp.pl011_uart3.out_file=${uart3_logfile}\
  -C bp.pl011_uart2.out_file=${regression_report_logfile}\
  -C bp.pl011_uart2.unbuffered_output=1"
 
