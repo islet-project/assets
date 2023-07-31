@@ -95,15 +95,6 @@ diff --git a/system/core/rootdir/init.rc b/system/core/rootdir/init.rc
 index cd71aa8aa..d7cf70796 100644
 --- a/system/core/rootdir/init.rc
 +++ b/system/core/rootdir/init.rc
-@@ -535,7 +535,7 @@ on late-init
-     trigger post-fs-data
- 
-     # Should be before netd, but after apex, properties and logging is available.
--    trigger load_bpf_programs
-+    # trigger load_bpf_programs
- 
-     # Now we can start zygote for devices with file based encryption
-     trigger zygote-start
 @@ -660,6 +660,8 @@ on property:ro.product.cpu.abilist64=* && property:bootreceiver.enable=1
      write /sys/kernel/tracing/instances/bootreceiver/events/error_report/error_report_end/enable 1
  
