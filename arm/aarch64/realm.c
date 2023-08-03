@@ -82,12 +82,41 @@ static void realm_configure_pmu(struct kvm *kvm)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) PMU");
 }
 
+static void realm_configure_debug(struct kvm *kvm)
+{
+	int n;
+
+	struct kvm_cap_arm_rme_config_item dbg_cfg = {
+		.cfg	= KVM_CAP_ARM_RME_CFG_DBG,
+	};
+
+	struct kvm_enable_cap rme_config = {
+		.cap = KVM_CAP_ARM_RME,
+		.args[0] = KVM_CAP_ARM_RME_CONFIG_REALM,
+		.args[1] = (u64)&dbg_cfg,
+	};
+
+	n = ioctl(kvm->vm_fd, KVM_CHECK_EXTENSION, KVM_CAP_GUEST_DEBUG_HW_BPS);
+	if (n < 0)
+		die_perror("Failed to get Guest HW BPs");
+	dbg_cfg.num_brps = n;
+
+	n = ioctl(kvm->vm_fd, KVM_CHECK_EXTENSION, KVM_CAP_GUEST_DEBUG_HW_WPS);
+	if (n < 0)
+		die_perror("Failed to get Guest HW BPs");
+	dbg_cfg.num_wrps = n;
+
+	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
+		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) DEBUG");
+}
+
 static void realm_configure_parameters(struct kvm *kvm)
 {
 	realm_configure_hash_algo(kvm);
 	realm_configure_rpv(kvm);
 	realm_configure_sve(kvm);
 	realm_configure_pmu(kvm);
+	realm_configure_debug(kvm);
 }
 
 void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm)
