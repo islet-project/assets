@@ -1221,6 +1221,25 @@ static int config_realm_debug(struct realm *realm,
 	return 0;
 }
 
+static int config_realm_pmu(struct realm *realm,
+			    struct kvm_cap_arm_rme_config_item *cfg)
+{
+	int pmu_max_ctrs = u64_get_bits(rmm_feat_reg0,
+					RMI_FEATURE_REGISTER_0_PMU_NUM_CTRS);
+
+	if (!rme_supports(RMI_FEATURE_REGISTER_0_PMU_EN))
+		return -EINVAL;
+
+	if (cfg->num_pmu_cntrs > pmu_max_ctrs)
+		return -EINVAL;
+
+	realm->params->pmu_num_ctrs = cfg->num_pmu_cntrs;
+	realm->params->flags |= RMI_REALM_PARAM_FLAG_PMU;
+
+	realm->pmu_enabled = true;
+	return 0;
+}
+
 static int kvm_rme_config_realm(struct kvm *kvm, struct kvm_enable_cap *cap)
 {
 	struct kvm_cap_arm_rme_config_item cfg;
@@ -1245,6 +1264,9 @@ static int kvm_rme_config_realm(struct kvm *kvm, struct kvm_enable_cap *cap)
 		break;
 	case KVM_CAP_ARM_RME_CFG_DBG:
 		r = config_realm_debug(realm, &cfg);
+		break;
+	case KVM_CAP_ARM_RME_CFG_PMU:
+		r = config_realm_pmu(realm, &cfg);
 		break;
 	default:
 		r = -EINVAL;
@@ -1426,6 +1448,9 @@ int kvm_create_rec(struct kvm_vcpu *vcpu)
 	 * flag covers v0.2 and onwards.
 	 */
 	if (!vcpu_has_feature(vcpu, KVM_ARM_VCPU_PSCI_0_2))
+		return -EINVAL;
+
+	if (kvm_vcpu_has_pmu(vcpu) != realm->pmu_enabled)
 		return -EINVAL;
 
 	BUILD_BUG_ON(sizeof(*params) > PAGE_SIZE);

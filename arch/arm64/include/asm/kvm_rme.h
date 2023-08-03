@@ -57,6 +57,7 @@ enum realm_state {
  * @num_aux: The number of auxiliary pages required by the RMM
  * @vmid: VMID to be used by the RMM for the realm
  * @ia_bits: Number of valid Input Address bits in the IPA
+ * @pmu_enabled: PMU enabled in the realm
  */
 struct realm {
 	enum realm_state state;
@@ -69,6 +70,7 @@ struct realm {
 	unsigned long num_aux;
 	unsigned int vmid;
 	unsigned int ia_bits;
+	bool pmu_enabled;
 };
 
 /**
