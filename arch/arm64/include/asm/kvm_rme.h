@@ -67,6 +67,8 @@ struct realm {
 
 int kvm_init_rme(void);
 u32 kvm_realm_ipa_limit(void);
+u32 kvm_realm_get_num_brps(void);
+u32 kvm_realm_get_num_wrps(void);
 
 int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap);
 int kvm_init_realm_vm(struct kvm *kvm);

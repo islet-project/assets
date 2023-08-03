@@ -80,12 +80,12 @@ u32 kvm_realm_ipa_limit(void)
 	return u64_get_bits(rmm_feat_reg0, RMI_FEATURE_REGISTER_0_S2SZ);
 }
 
-static u32 kvm_realm_get_num_brps(void)
+u32 kvm_realm_get_num_brps(void)
 {
 	return u64_get_bits(rmm_feat_reg0, RMI_FEATURE_REGISTER_0_NUM_BPS);
 }
 
-static u32 kvm_realm_get_num_wrps(void)
+u32 kvm_realm_get_num_wrps(void)
 {
 	return u64_get_bits(rmm_feat_reg0, RMI_FEATURE_REGISTER_0_NUM_WPS);
 }
