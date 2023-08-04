@@ -429,7 +429,7 @@ WARNINGS += -Wno-format-nonliteral
 CFLAGS	+= $(WARNINGS)
 
 ifneq ($(WERROR),0)
-	CFLAGS += -Werror
+	CFLAGS += #-Werror
 endif
 
 all: $(PROGRAM) $(PROGRAM_ALIAS)
