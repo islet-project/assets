@@ -619,18 +619,19 @@ static int init_vq(struct kvm *kvm, void *dev, u32 vq)
 	mutex_init(&net_queue->lock);
 	pthread_cond_init(&net_queue->cond, NULL);
 	if (is_ctrl_vq(ndev, vq)) {
-		pthread_create(&net_queue->thread, NULL, virtio_net_ctrl_thread,
-			       net_queue);
+		//pthread_create(&net_queue->thread, NULL, virtio_net_ctrl_thread,
+		//	       net_queue);
 
 		return 0;
 	} else if (ndev->vhost_fd == 0 ) {
-		if (vq & 1)
-			pthread_create(&net_queue->thread, NULL,
-				       virtio_net_tx_thread, net_queue);
-		else
-			pthread_create(&net_queue->thread, NULL,
-				       virtio_net_rx_thread, net_queue);
-
+		if (vq & 1) {
+			//pthread_create(&net_queue->thread, NULL,
+			//	       virtio_net_tx_thread, net_queue);
+		}
+		else {
+			//pthread_create(&net_queue->thread, NULL,
+			//	       virtio_net_rx_thread, net_queue);
+		}
 		return 0;
 	}
 

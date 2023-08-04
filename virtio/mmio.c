@@ -24,7 +24,7 @@ static void virtio_mmio_ioevent_callback(struct kvm *kvm, void *param)
 	struct virtio_mmio_ioevent_param *ioeventfd = param;
 	struct virtio_mmio *vmmio = ioeventfd->vdev->virtio;
 
-	ioeventfd->vdev->ops->notify_vq(kvm, vmmio->dev, ioeventfd->vq);
+	//ioeventfd->vdev->ops->notify_vq(kvm, vmmio->dev, ioeventfd->vq);
 }
 
 int virtio_mmio_init_ioeventfd(struct kvm *kvm, struct virtio_device *vdev,
