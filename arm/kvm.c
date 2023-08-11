@@ -14,6 +14,8 @@
 #include <linux/kvm.h>
 #include <linux/sizes.h>
 
+#include <strings.h>
+
 struct kvm_ext kvm_req_ext[] = {
 	{ DEFINE_KVM_EXT(KVM_CAP_IRQCHIP) },
 	{ DEFINE_KVM_EXT(KVM_CAP_ONE_REG) },
@@ -168,8 +170,12 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	pr_debug("Loaded kernel to 0x%llx (%llu bytes)",
 		 kvm->arch.kern_guest_start, kvm->arch.kern_size);
 
-	if (kvm->cfg.arch.is_realm)
+	if (kvm->cfg.arch.is_realm) {
+		if (!IS_ALIGNED((uintptr_t)kernel_end, PAGE_SIZE))
+			explicit_bzero(kernel_end,
+			               (size_t)(ALIGN((uintptr_t)kernel_end, PAGE_SIZE) - (uintptr_t)kernel_end));
 		kvm_arm_realm_populate_kernel(kvm);
+	}
 
 	/*
 	 * Now load backwards from the end of memory so the kernel
