@@ -1,0 +1,26 @@
+
+project system/core/
+diff --git a/system/core/rootdir/init.rc b/system/core/rootdir/init.rc
+index 631975109..d7cf70796 100644
+--- a/system/core/rootdir/init.rc
++++ b/system/core/rootdir/init.rc
+@@ -535,7 +535,7 @@ on late-init
+     trigger post-fs-data
+ 
+     # Should be before netd, but after apex, properties and logging is available.
+-    trigger load_bpf_programs
++    # trigger load_bpf_programs
+ 
+     # Now we can start zygote for devices with file based encryption
+     trigger zygote-start
+
+project system/security/
+diff --git a/system/security/keystore2/keystore2.rc b/system/security/keystore2/keystore2.rc
+index 6f88dd39..610f851e 100644
+--- a/system/security/keystore2/keystore2.rc
++++ b/system/security/keystore2/keystore2.rc
+@@ -11,3 +11,4 @@ service keystore2 /system/bin/keystore2 /data/misc/keystore
+     user keystore
+     group keystore readproc log
+     task_profiles ProcessCapacityHigh
++    disabled

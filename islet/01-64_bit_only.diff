@@ -1,0 +1,94 @@
+
+project device/generic/goldfish/
+diff --git a/device/generic/goldfish/fvp.mk b/device/generic/goldfish/fvp.mk
+index 3ab835a5..004bc8d3 100644
+--- a/device/generic/goldfish/fvp.mk
++++ b/device/generic/goldfish/fvp.mk
+@@ -22,7 +22,7 @@ PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
+ #
+ # All components inherited here go to system image
+ #
+-$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
+ $(call inherit-product, $(SRC_TARGET_DIR)/product/generic_system.mk)
+ 
+ #
+@@ -118,5 +118,5 @@ WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY := false
+ DEVICE_MANIFEST_FILE := device/generic/goldfish/fvpbase/manifest.xml
+ 
+ # Use a multilib setup (see fvpbase/BoardConfig.mk).
+-FVP_MULTILIB_BUILD := true
++FVP_MULTILIB_BUILD := false
+ 
+
+project frameworks/av/
+diff --git a/frameworks/av/media/mediaserver/mediaserver.rc b/frameworks/av/media/mediaserver/mediaserver.rc
+index 05373c9c3f..06697e92b5 100644
+--- a/frameworks/av/media/mediaserver/mediaserver.rc
++++ b/frameworks/av/media/mediaserver/mediaserver.rc
+@@ -7,3 +7,4 @@ service media /system/bin/mediaserver
+     group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc mediadrm
+     ioprio rt 4
+     task_profiles ProcessCapacityHigh HighPerformance
++    disabled
+
+project system/core/
+diff --git a/system/core/rootdir/init.rc b/system/core/rootdir/init.rc
+index 1d27ffa3a..631975109 100644
+--- a/system/core/rootdir/init.rc
++++ b/system/core/rootdir/init.rc
+@@ -1033,7 +1033,7 @@ on zygote-start && property:ro.crypto.state=unencrypted
+     start statsd
+     start netd
+     start zygote
+-    start zygote_secondary
++    # start zygote_secondary
+ 
+ on zygote-start && property:ro.crypto.state=unsupported
+     wait_for_prop odsign.verification.done 1
+@@ -1042,7 +1042,7 @@ on zygote-start && property:ro.crypto.state=unsupported
+     start statsd
+     start netd
+     start zygote
+-    start zygote_secondary
++    # start zygote_secondary
+ 
+ on zygote-start && property:ro.crypto.state=encrypted && property:ro.crypto.type=file
+     wait_for_prop odsign.verification.done 1
+@@ -1051,7 +1051,7 @@ on zygote-start && property:ro.crypto.state=encrypted && property:ro.crypto.type
+     start statsd
+     start netd
+     start zygote
+-    start zygote_secondary
++    # start zygote_secondary
+ 
+ on boot && property:ro.config.low_ram=true
+     # Tweak background writeout
+diff --git a/system/core/rootdir/init.zygote64.rc b/system/core/rootdir/init.zygote64.rc
+index 5bde5f469..486880378 100644
+--- a/system/core/rootdir/init.zygote64.rc
++++ b/system/core/rootdir/init.zygote64.rc
+@@ -9,7 +9,7 @@ service zygote /system/bin/app_process64 -Xzygote /system/bin --zygote --start-s
+     onrestart write /sys/power/state on
+     onrestart restart audioserver
+     onrestart restart cameraserver
+-    onrestart restart media
++    # onrestart restart media
+     onrestart restart media.tuner
+     onrestart restart netd
+     onrestart restart wificond
+
+project system/netd/
+diff --git a/system/netd/server/netd.rc b/system/netd/server/netd.rc
+index 3e7aa40f..7ffcbca2 100644
+--- a/system/netd/server/netd.rc
++++ b/system/netd/server/netd.rc
+@@ -6,7 +6,7 @@ service netd /system/bin/netd
+     socket mdns stream 0660 root system
+     socket fwmarkd stream 0660 root inet
+     onrestart restart zygote
+-    onrestart restart zygote_secondary
++    # onrestart restart zygote_secondary
+     # b/121354779: netd itself is not updatable, but on startup it dlopen()s the resolver library
+     # from the DNS resolver APEX. Mark it as updatable so init won't start it until all APEX
+     # packages are ready.
