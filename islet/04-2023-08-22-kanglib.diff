@@ -1,0 +1,81 @@
+
+project device/generic/goldfish/
+diff --git a/device/generic/goldfish/fvp.mk b/device/generic/goldfish/fvp.mk
+index 3ab835a5..28a33cde 100644
+--- a/device/generic/goldfish/fvp.mk
++++ b/device/generic/goldfish/fvp.mk
+@@ -69,6 +69,7 @@ PRODUCT_PACKAGES += \
+     libGLESv1_CM_angle \
+     libGLESv2_angle \
+     vulkan.pastel \
++    com.android.virt \
+ 
+ PRODUCT_HOST_PACKAGES += bind_to_localhost
+ 
+
+project system/core/
+diff --git a/system/core/llkd/llkd-debuggable.rc b/system/core/llkd/llkd-debuggable.rc
+index 8355e9d96..cef392550 100644
+--- a/system/core/llkd/llkd-debuggable.rc
++++ b/system/core/llkd/llkd-debuggable.rc
+@@ -8,7 +8,7 @@ on property:ro.llk.enable=eng
+ on property:ro.khungtask.enable=eng
+     setprop khungtask.enable ${ro.debuggable:-0}
+ 
+-service llkd-1 /system/bin/llkd
++service llkd-1 /system/bin/true
+     class late_start
+     disabled
+     user llkd
+diff --git a/system/core/llkd/llkd.rc b/system/core/llkd/llkd.rc
+index 5d701fcc0..95653d990 100644
+--- a/system/core/llkd/llkd.rc
++++ b/system/core/llkd/llkd.rc
+@@ -34,7 +34,7 @@ on property:khungtask.enable=false
+ on property:llk.enable=true
+     start llkd-${ro.debuggable:-0}
+ 
+-service llkd-0 /system/bin/llkd
++service llkd-0 /system/bin/true
+     class late_start
+     disabled
+     user llkd
+
+project system/netd/
+diff --git a/system/netd/server/TetherController.cpp b/system/netd/server/TetherController.cpp
+index 79193574..8011dff6 100644
+--- a/system/netd/server/TetherController.cpp
++++ b/system/netd/server/TetherController.cpp
+@@ -67,7 +67,7 @@ using android::base::StringPrintf;
+ using android::base::unique_fd;
+ using android::netdutils::DumpWriter;
+ using android::netdutils::ScopedIndent;
+-using android::netdutils::statusFromErrno;
++// using android::netdutils::statusFromErrno;
+ using android::netdutils::StatusOr;
+ 
+ namespace {
+@@ -912,14 +912,19 @@ StatusOr<TetherController::TetherStatsList> TetherController::getTetherStats() {
+     for (const IptablesTarget target : {V4, V6}) {
+         std::string statsString;
+         if (int ret = iptablesRestoreFunction(target, GET_TETHER_STATS_COMMAND, &statsString)) {
+-            return statusFromErrno(-ret, StringPrintf("failed to fetch tether stats (%d): %d",
+-                                                      target, ret));
++            gLog.log("[JBD] %s \n", StringPrintf("failed to fetch tether stats (%d): %d",
++                                                      target, ret).c_str());
++            // return statusFromErrno(-ret, StringPrintf("failed to fetch tether stats (%d): %d",
++            //                                           target, ret));
+         }
+ 
+         if (int ret = addForwardChainStats(statsList, statsString, parsedIptablesOutput)) {
+-            return statusFromErrno(-ret, StringPrintf("failed to parse %s tether stats:\n%s",
++            gLog.log("[JBD] %s\n", StringPrintf("failed to parse %s tether stats:\n%s",
+                                                       target == V4 ? "IPv4": "IPv6",
+-                                                      parsedIptablesOutput.c_str()));
++                                                      parsedIptablesOutput.c_str()).c_str());
++            // return statusFromErrno(-ret, StringPrintf("failed to parse %s tether stats:\n%s",
++            //                                           target == V4 ? "IPv4": "IPv6",
++            //                                           parsedIptablesOutput.c_str()));
+         }
+     }
+ 
