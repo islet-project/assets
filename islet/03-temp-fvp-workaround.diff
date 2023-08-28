@@ -1,84 +1,47 @@
 
-project device/generic/goldfish/
-diff --git a/manifest.xml b/manifest.xml
-index 8d7479b7..320d7e15 100644
---- a/manifest.xml
-+++ b/manifest.xml
-@@ -41,15 +41,6 @@
-             <instance>default</instance>
-         </interface>
-     </hal>
--    <hal format="hidl">
--        <name>android.hardware.media.c2</name>
--        <transport>hwbinder</transport>
--        <version>1.0</version>
--        <interface>
--            <name>IComponentStore</name>
--            <instance>default</instance>
--        </interface>
--    </hal>
-     <hal format="hidl">
-         <name>android.hardware.media.omx</name>
-         <transport>hwbinder</transport>
-
-project external/swiftshader/
-diff --git a/src/System/Memory.cpp b/src/System/Memory.cpp
-index 0333afbb7..d2b5851bd 100644
---- a/src/System/Memory.cpp
-+++ b/src/System/Memory.cpp
-@@ -129,6 +129,7 @@ void freeMemory(void *memory)
- 
- void clear(uint16_t *memory, uint16_t element, size_t count)
- {
-+    return;
- #if defined(_MSC_VER) && defined(__x86__) && !defined(MEMORY_SANITIZER)
- 	__stosw(memory, element, count);
- #elif defined(__GNUC__) && defined(__x86__) && !defined(MEMORY_SANITIZER)
-@@ -146,6 +147,7 @@ void clear(uint16_t *memory, uint16_t element, size_t count)
- 
- void clear(uint32_t *memory, uint32_t element, size_t count)
- {
-+    return;
- #if defined(_MSC_VER) && defined(__x86__) && !defined(MEMORY_SANITIZER)
- 	__stosd((unsigned long *)memory, element, count);
- #elif defined(__GNUC__) && defined(__x86__) && !defined(MEMORY_SANITIZER)
-
 project frameworks/base/
+diff --git a/services/core/java/com/android/server/SystemServerInitThreadPool.java b/services/core/java/com/android/server/SystemServerInitThreadPool.java
+index 63e7563af6d1..fbbb64bca157 100644
+--- a/services/core/java/com/android/server/SystemServerInitThreadPool.java
++++ b/services/core/java/com/android/server/SystemServerInitThreadPool.java
+@@ -177,8 +177,11 @@ public final class SystemServerInitThreadPool implements Dumpable {
+                     copy.addAll(sInstance.mPendingTasks);
+                 }
+                 t.traceEnd();
+-                throw new IllegalStateException("Cannot shutdown. Unstarted tasks "
++                Slog.d(TAG, "[ISLET] Shutdown successful"
++                        +  "Cannot shutdown. Unstarted tasks "
+                         + unstartedRunnables + " Unfinished tasks " + copy);
++                //throw new IllegalStateException("Cannot shutdown. Unstarted tasks "
++                //        + unstartedRunnables + " Unfinished tasks " + copy);
+             }
+             sInstance = null; // Make eligible for GC
+             Slog.d(TAG, "Shutdown successful");
 diff --git a/services/core/java/com/android/server/SystemServiceManager.java b/services/core/java/com/android/server/SystemServiceManager.java
-index 78df983c83f7..e283857ce4c6 100644
+index 78df983c83f7..425973f2fb35 100644
 --- a/services/core/java/com/android/server/SystemServiceManager.java
 +++ b/services/core/java/com/android/server/SystemServiceManager.java
-@@ -295,8 +295,8 @@ public final class SystemServiceManager implements Dumpable {
+@@ -293,10 +293,14 @@ public final class SystemServiceManager implements Dumpable {
+                 try {
+                     service.onBootPhase(mCurrentPhase);
                  } catch (Exception ex) {
-                     throw new RuntimeException("Failed to boot service "
+-                    throw new RuntimeException("Failed to boot service "
++                    Slog.i(TAG, "ISLET" + "Failed to boot service "
                              + service.getClass().getName()
--                            + ": onBootPhase threw an exception during phase "
+                             + ": onBootPhase threw an exception during phase "
 -                            + mCurrentPhase, ex);
-+                             + ": onBootPhase threw an exception during phase "
-+                             + mCurrentPhase, ex);
++                            + mCurrentPhase);
++                    //throw new RuntimeException("Failed to boot service "
++                    //        + service.getClass().getName()
++                    //        + ": onBootPhase threw an exception during phase "
++                    //        + mCurrentPhase, ex);
                  }
                  warnIfTooLong(SystemClock.elapsedRealtime() - time, service, "onBootPhase");
                  t.traceEnd();
 
-project system/core/
-diff --git a/init/init.cpp b/init/init.cpp
-index 29f643ebd..0bdbc8feb 100644
---- a/init/init.cpp
-+++ b/init/init.cpp
-@@ -436,8 +436,8 @@ static bool HandleControlMessage(std::string_view message, const std::string& na
-     }
- 
-     if (service == nullptr) {
--        LOG(ERROR) << "Control message: Could not find '" << name << "' for ctl." << message
--                   << " from pid: " << from_pid << " (" << process_cmdline << ")";
-+        //LOG(ERROR) << "Control message: Could not find '" << name << "' for ctl." << message
-+        //           << " from pid: " << from_pid << " (" << process_cmdline << ")";
-         return false;
-     }
- 
 project system/netd/
 diff --git a/server/TetherController.cpp b/server/TetherController.cpp
-index 79193574..8090cd1b 100644
+index 79193574..80363e0a 100644
 --- a/server/TetherController.cpp
 +++ b/server/TetherController.cpp
 @@ -67,7 +67,7 @@ using android::base::StringPrintf;
@@ -86,32 +49,31 @@ index 79193574..8090cd1b 100644
  using android::netdutils::DumpWriter;
  using android::netdutils::ScopedIndent;
 -using android::netdutils::statusFromErrno;
-+//using android::netdutils::statusFromErrno;
++// using android::netdutils::statusFromErrno;
  using android::netdutils::StatusOr;
  
  namespace {
-@@ -912,14 +912,20 @@ StatusOr<TetherController::TetherStatsList> TetherController::getTetherStats() {
+@@ -912,14 +912,19 @@ StatusOr<TetherController::TetherStatsList> TetherController::getTetherStats() {
      for (const IptablesTarget target : {V4, V6}) {
          std::string statsString;
          if (int ret = iptablesRestoreFunction(target, GET_TETHER_STATS_COMMAND, &statsString)) {
 -            return statusFromErrno(-ret, StringPrintf("failed to fetch tether stats (%d): %d",
 -                                                      target, ret));
-+            gLog.log("[JBD] %s \n", StringPrintf("failed to fetch tether stats (%d): %d",
++            gLog.log("[ISLET] %s \n", StringPrintf("failed to fetch tether stats (%d): %d",
 +                                                      target, ret).c_str());
-+            //return statusFromErrno(-ret, StringPrintf("failed to fetch tether stats (%d): %d",
-+            //                                          target, ret));
++            // return statusFromErrno(-ret, StringPrintf("failed to fetch tether stats (%d): %d",
++            //                                           target, ret));
          }
  
          if (int ret = addForwardChainStats(statsList, statsString, parsedIptablesOutput)) {
 -            return statusFromErrno(-ret, StringPrintf("failed to parse %s tether stats:\n%s",
-+
-+            gLog.log("[JBD] %s\n", StringPrintf("failed to parse %s tether stats:\n%s",
++            gLog.log("[ISLET] %s\n", StringPrintf("failed to parse %s tether stats:\n%s",
                                                        target == V4 ? "IPv4": "IPv6",
 -                                                      parsedIptablesOutput.c_str()));
 +                                                      parsedIptablesOutput.c_str()).c_str());
-+            //return statusFromErrno(-ret, StringPrintf("failed to parse %s tether stats:\n%s",
-+            //                                          target == V4 ? "IPv4": "IPv6",
-+            //                                          parsedIptablesOutput.c_str()));
++            // return statusFromErrno(-ret, StringPrintf("failed to parse %s tether stats:\n%s",
++            //                                           target == V4 ? "IPv4": "IPv6",
++            //                                           parsedIptablesOutput.c_str()));
          }
      }
  
