@@ -1,0 +1,15 @@
+
+project libcore/
+diff --git a/libcore/libart/src/main/java/java/lang/Daemons.java b/libcore/libart/src/main/java/java/lang/Daemons.java
+index 5b2adb366c7..53ad07a4c7d 100644
+--- a/libcore/libart/src/main/java/java/lang/Daemons.java
++++ b/libcore/libart/src/main/java/java/lang/Daemons.java
+@@ -54,7 +54,7 @@ public final class Daemons {
+             HeapTaskDaemon.INSTANCE,
+             ReferenceQueueDaemon.INSTANCE,
+             FinalizerDaemon.INSTANCE,
+-            FinalizerWatchdogDaemon.INSTANCE,
++            // FinalizerWatchdogDaemon.INSTANCE,
+     };
+     private static final CountDownLatch POST_ZYGOTE_START_LATCH = new CountDownLatch(DAEMONS.length);
+     private static final CountDownLatch PRE_ZYGOTE_START_LATCH = new CountDownLatch(DAEMONS.length);
