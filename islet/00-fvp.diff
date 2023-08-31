@@ -20,10 +20,30 @@ index 309a179ee0..942b120abc 100644
 
 project device/generic/goldfish/
 diff --git a/device/generic/goldfish/fvp.mk b/device/generic/goldfish/fvp.mk
-index 888d9f00..3ab835a5 100644
+index 888d9f00..9bdee351 100644
 --- a/device/generic/goldfish/fvp.mk
 +++ b/device/generic/goldfish/fvp.mk
-@@ -90,6 +90,8 @@ PRODUCT_COPY_FILES += \
+@@ -19,6 +19,11 @@ PRODUCT_USE_DYNAMIC_PARTITIONS := true
+ PRODUCT_FULL_TREBLE_OVERRIDE := true
+ PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
+ 
++#
++# This file is to configure vendor/data partitions of emulator-related products
++#
++$(call inherit-product-if-exists, frameworks/native/build/phone-xhdpi-2048-dalvik-heap.mk)
++
+ #
+ # All components inherited here go to system image
+ #
+@@ -63,6 +68,7 @@ PRODUCT_PACKAGES += \
+     android.hardware.neuralnetworks@1.3-service-sample-limited \
+     android.hardware.keymaster@4.0-service \
+     android.hardware.keymaster@4.0-impl \
++    com.android.virt \
+     gralloc.minigbm \
+     hwcomposer.drm_minigbm \
+     libEGL_angle \
+@@ -90,6 +96,8 @@ PRODUCT_COPY_FILES += \
      device/generic/goldfish/fvpbase/fstab.initrd:$(TARGET_COPY_OUT_RAMDISK)/fstab.qemu \
      device/generic/goldfish/fvpbase/init.fvpbase.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.fvpbase.rc \
      device/generic/goldfish/fvpbase/init.qemu.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemu.rc \
@@ -62,6 +82,36 @@ index 4d3db00c..1e56a6c4 100644
 +    mkdir /dev/socket/pdx/system/vr/display 0775 system system
 +    mkdir /dev/socket/pdx/system/vr/pose 0775 system system
 +    mkdir /dev/socket/pdx/system/vr/sensors 0775 system system
+
+project frameworks/base/
+diff --git a/frameworks/base/libs/hwui/JankTracker.cpp b/frameworks/base/libs/hwui/JankTracker.cpp
+index 1e5be6c3eed7..58281bcee515 100644
+--- a/frameworks/base/libs/hwui/JankTracker.cpp
++++ b/frameworks/base/libs/hwui/JankTracker.cpp
+@@ -247,7 +247,7 @@ void JankTracker::finishFrame(FrameInfo& frame, std::unique_ptr<FrameMetricsRepo
+             for (size_t i = 0; i < static_cast<size_t>(FrameInfoIndex::NumIndexes); i++) {
+                 ss << FrameInfoNames[i] << "=" << frame[i] << ", ";
+             }
+-            ALOGI("%s", ss.str().c_str());
++            ALOGV("%s", ss.str().c_str());
+             // Just so we have something that counts up, the value is largely irrelevant
+             ATRACE_INT(ss.str().c_str(), ++sDaveyCount);
+         }
+
+project frameworks/native/
+diff --git a/frameworks/native/libs/gui/DisplayEventDispatcher.cpp b/frameworks/native/libs/gui/DisplayEventDispatcher.cpp
+index dfdce20438..5f082042e2 100644
+--- a/frameworks/native/libs/gui/DisplayEventDispatcher.cpp
++++ b/frameworks/native/libs/gui/DisplayEventDispatcher.cpp
+@@ -136,7 +136,7 @@ int DisplayEventDispatcher::handleEvent(int, int events, void*) {
+         const nsecs_t currentTime = systemTime(SYSTEM_TIME_MONOTONIC);
+         const nsecs_t vsyncScheduleDelay = currentTime - mLastScheduleVsyncTime;
+         if (vsyncScheduleDelay > WAITING_FOR_VSYNC_TIMEOUT) {
+-            ALOGW("Vsync time out! vsyncScheduleDelay=%" PRId64 "ms", ns2ms(vsyncScheduleDelay));
++            ALOGV("Vsync time out! vsyncScheduleDelay=%" PRId64 "ms", ns2ms(vsyncScheduleDelay));
+             mWaitingForVsync = false;
+             dispatchVsync(currentTime, vsyncDisplayId /* displayId is not used */,
+                           ++mLastVsyncCount, vsyncEventData /* empty data */);
 
 project system/core/
 diff --git a/system/core/rootdir/init.rc b/system/core/rootdir/init.rc
