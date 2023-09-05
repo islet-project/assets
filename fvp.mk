@@ -59,6 +59,7 @@ EDK2_BIN		?= $(EDK2_PLATFORMS_PATH)/Build/ArmVExpress-FVP-AArch64/$(EDK2_BUILD)_
 GRUB_PATH		?= $(ROOT)/third-party/grub
 GRUB_CONFIG_PATH	?= $(BUILD_PATH)/fvp/grub
 OUT_PATH		?= $(ROOT)/out
+SCRIPT_PATH		?= $(ROOT)/scripts/fvp
 GRUB_BIN		?= $(OUT_PATH)/bootaa64.efi
 BOOT_IMG		?= $(OUT_PATH)/boot.img
 FTPM_PATH		?= $(ROOT)/ms-tpm-20-ref/Samples/ARM32-FirmwareTPM/optee_ta
@@ -242,6 +243,25 @@ boot-img: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	mkdir -p $(OUT_PATH)/rootfs
 	fakeroot bash -c " \
 		tar xfj $(ROOT)/assets/rootfs/rootfs-linux.tar.bz2 -C $(OUT_PATH)/rootfs; \
+		cd $(OUT_PATH)/rootfs; \
+		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
+	gzip $(OUT_PATH)/rootfs.cpio
+	mv $(OUT_PATH)/rootfs.cpio.gz $(OUT_PATH)/initrd.img
+	mcopy -i $(BOOT_IMG) $(LINUX_BIN) ::
+	mcopy -i $(BOOT_IMG) $(LINUX_DTB_BIN) ::
+	mmd -i $(BOOT_IMG) ::/EFI
+	mmd -i $(BOOT_IMG) ::/EFI/BOOT
+	mcopy -i $(BOOT_IMG) $(OUT_PATH)/initrd.img ::/initrd.img
+	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
+	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
+
+.PHONY: boot-img-launch
+boot-img-launch: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
+	mformat -i $(BOOT_IMG) -n 64 -h 2 -T 65536 -v "BOOT IMG" -C ::
+	mkdir -p $(OUT_PATH)/rootfs
+	fakeroot bash -c " \
+		tar xfj $(ROOT)/assets/rootfs/rootfs-linux.tar.bz2 -C $(OUT_PATH)/rootfs; \
+		cp $(SCRIPT_PATH)/launch-realm.sh $(OUT_PATH)/rootfs/etc/init.d/S50launch; \
 		cd $(OUT_PATH)/rootfs; \
 		find . | cpio -H newc -o > $(OUT_PATH)/rootfs.cpio"
 	gzip $(OUT_PATH)/rootfs.cpio
