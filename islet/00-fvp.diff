@@ -84,63 +84,7 @@ index 4d3db00c..1e56a6c4 100644
 +    mkdir /dev/socket/pdx/system/vr/pose 0775 system system
 +    mkdir /dev/socket/pdx/system/vr/sensors 0775 system system
 
-project frameworks/base/
-diff --git a/frameworks/base/libs/hwui/JankTracker.cpp b/frameworks/base/libs/hwui/JankTracker.cpp
-index 1e5be6c3eed7..58281bcee515 100644
---- a/frameworks/base/libs/hwui/JankTracker.cpp
-+++ b/frameworks/base/libs/hwui/JankTracker.cpp
-@@ -247,7 +247,7 @@ void JankTracker::finishFrame(FrameInfo& frame, std::unique_ptr<FrameMetricsRepo
-             for (size_t i = 0; i < static_cast<size_t>(FrameInfoIndex::NumIndexes); i++) {
-                 ss << FrameInfoNames[i] << "=" << frame[i] << ", ";
-             }
--            ALOGI("%s", ss.str().c_str());
-+            ALOGV("%s", ss.str().c_str());
-             // Just so we have something that counts up, the value is largely irrelevant
-             ATRACE_INT(ss.str().c_str(), ++sDaveyCount);
-         }
-
-project frameworks/native/
-diff --git a/frameworks/native/libs/gui/DisplayEventDispatcher.cpp b/frameworks/native/libs/gui/DisplayEventDispatcher.cpp
-index dfdce20438..5f082042e2 100644
---- a/frameworks/native/libs/gui/DisplayEventDispatcher.cpp
-+++ b/frameworks/native/libs/gui/DisplayEventDispatcher.cpp
-@@ -136,7 +136,7 @@ int DisplayEventDispatcher::handleEvent(int, int events, void*) {
-         const nsecs_t currentTime = systemTime(SYSTEM_TIME_MONOTONIC);
-         const nsecs_t vsyncScheduleDelay = currentTime - mLastScheduleVsyncTime;
-         if (vsyncScheduleDelay > WAITING_FOR_VSYNC_TIMEOUT) {
--            ALOGW("Vsync time out! vsyncScheduleDelay=%" PRId64 "ms", ns2ms(vsyncScheduleDelay));
-+            ALOGV("Vsync time out! vsyncScheduleDelay=%" PRId64 "ms", ns2ms(vsyncScheduleDelay));
-             mWaitingForVsync = false;
-             dispatchVsync(currentTime, vsyncDisplayId /* displayId is not used */,
-                           ++mLastVsyncCount, vsyncEventData /* empty data */);
-
 project system/core/
-diff --git a/system/core/init/init.cpp b/system/core/init/init.cpp
-index 29f643ebd..1754427b9 100644
---- a/system/core/init/init.cpp
-+++ b/system/core/init/init.cpp
-@@ -1034,7 +1034,7 @@ int SecondStageMain(int argc, char** argv) {
-             std::chrono::duration<double> waited =
-                     std::chrono::steady_clock::now() - Service::exec_service_started();
-             if (waited >= kDiagnosticTimeout) {
--                LOG(ERROR) << "Exec service is hung? Waited " << waited.count()
-+                LOG(VERBOSE) << "Exec service is hung? Waited " << waited.count()
-                            << " without SIGCHLD";
-                 if (!dumped_diagnostics) {
-                     DumpPidFds("exec service opened: ", Service::exec_service_pid());
-diff --git a/system/core/init/service.cpp b/system/core/init/service.cpp
-index bd704cf8e..773ae71b3 100644
---- a/system/core/init/service.cpp
-+++ b/system/core/init/service.cpp
-@@ -508,7 +508,7 @@ void Service::RunService(const std::optional<MountNamespace>& override_mount_nam
-     }
- 
-     if (task_profiles_.size() > 0 && !SetTaskProfiles(getpid(), task_profiles_)) {
--        LOG(ERROR) << "failed to set task profiles";
-+        LOG(VERBOSE) << "failed to set task profiles";
-     }
- 
-     // As requested, set our gid, supplemental gids, uid, context, and
 diff --git a/system/core/rootdir/init.rc b/system/core/rootdir/init.rc
 index cd71aa8aa..1d27ffa3a 100644
 --- a/system/core/rootdir/init.rc
