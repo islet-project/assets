@@ -1,5 +1,3 @@
-
-project build/make/
 diff --git a/build/make/core/Makefile b/build/make/core/Makefile
 index 309a179ee0..942b120abc 100644
 --- a/build/make/core/Makefile
@@ -17,34 +15,21 @@ index 309a179ee0..942b120abc 100644
  	@echo Create system-qemu.img now
  	(export SGDISK=$(SGDISK_HOST) SIMG2IMG=$(SIMG2IMG); \
       $(MK_COMBINE_QEMU_IMAGE) -i $(INSTALLED_SYSTEM_QEMU_CONFIG) -o $@)
-
-project device/generic/goldfish/
 diff --git a/device/generic/goldfish/fvp.mk b/device/generic/goldfish/fvp.mk
-index 888d9f00..f51b84fd 100644
+index 888d9f00..b0756fa2 100644
 --- a/device/generic/goldfish/fvp.mk
 +++ b/device/generic/goldfish/fvp.mk
-@@ -19,6 +19,11 @@ PRODUCT_USE_DYNAMIC_PARTITIONS := true
- PRODUCT_FULL_TREBLE_OVERRIDE := true
- PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
- 
-+#
-+# This file is to configure vendor/data partitions of emulator-related products
-+#
-+$(call inherit-product-if-exists, frameworks/native/build/phone-xhdpi-2048-dalvik-heap.mk)
-+
- #
- # All components inherited here go to system image
- #
-@@ -42,6 +47,8 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_product.mk)
+@@ -42,6 +42,9 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_product.mk)
  $(call inherit-product, $(SRC_TARGET_DIR)/product/media_vendor.mk)
  $(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
  
 +$(call inherit-product, packages/modules/Virtualization/apex/product_packages.mk)
++$(call inherit-product-if-exists, frameworks/native/build/phone-xhdpi-2048-dalvik-heap.mk)
 +
  PRODUCT_SOONG_NAMESPACES += device/generic/goldfish
  
  PRODUCT_PACKAGES += \
-@@ -90,6 +97,8 @@ PRODUCT_COPY_FILES += \
+@@ -90,6 +93,8 @@ PRODUCT_COPY_FILES += \
      device/generic/goldfish/fvpbase/fstab.initrd:$(TARGET_COPY_OUT_RAMDISK)/fstab.qemu \
      device/generic/goldfish/fvpbase/init.fvpbase.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.fvpbase.rc \
      device/generic/goldfish/fvpbase/init.qemu.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qemu.rc \
@@ -54,7 +39,7 @@ index 888d9f00..f51b84fd 100644
      device/generic/goldfish/fvpbase/ueventd.fvp.rc:$(TARGET_COPY_OUT_VENDOR)/ueventd.rc \
      frameworks/av/services/audiopolicy/config/audio_policy_configuration_generic.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
 diff --git a/device/generic/goldfish/fvpbase/fstab.fvpbase b/device/generic/goldfish/fvpbase/fstab.fvpbase
-index 6c62809c..ee52b998 100644
+index 6c62809c..234270eb 100644
 --- a/device/generic/goldfish/fvpbase/fstab.fvpbase
 +++ b/device/generic/goldfish/fvpbase/fstab.fvpbase
 @@ -4,5 +4,6 @@
@@ -63,13 +48,13 @@ index 6c62809c..ee52b998 100644
  vendor   /vendor     ext4    ro,barrier=1     wait,logical,first_stage_mount
 -/dev/block/mmcblk0  /data    ext4      noatime,nosuid,nodev,nomblk_io_submit,errors=panic   wait,check,quota
 +/dev/block/vda3 /data     ext4 noatime,nosuid,nodev,nomblk_io_submit,errors=panic wait,check,quota
-+/dev/block/vda4 /metadata ext4 noatime,nosuid,nodev,nomblk_io_submit,errors=panic wait,check,quota
++/dev/block/vda4 /metadata ext4 noatime,nosuid,nodev,nomblk_io_submit,errors=panic wait,check
  /devices/*/block/vde  auto  auto      defaults voldmanaged=sdcard:auto,encryptable=userdata
 diff --git a/device/generic/goldfish/fvpbase/init.fvpbase.rc b/device/generic/goldfish/fvpbase/init.fvpbase.rc
-index 4d3db00c..1e56a6c4 100644
+index 4d3db00c..d994c864 100644
 --- a/device/generic/goldfish/fvpbase/init.fvpbase.rc
 +++ b/device/generic/goldfish/fvpbase/init.fvpbase.rc
-@@ -1,2 +1,13 @@
+@@ -1,2 +1,21 @@
  on fs
      mount_all /vendor/etc/fstab.fvpbase
 +
@@ -83,18 +68,39 @@ index 4d3db00c..1e56a6c4 100644
 +    mkdir /dev/socket/pdx/system/vr/display 0775 system system
 +    mkdir /dev/socket/pdx/system/vr/pose 0775 system system
 +    mkdir /dev/socket/pdx/system/vr/sensors 0775 system system
-
-project system/core/
-diff --git a/system/core/rootdir/init.rc b/system/core/rootdir/init.rc
-index cd71aa8aa..1d27ffa3a 100644
---- a/system/core/rootdir/init.rc
-+++ b/system/core/rootdir/init.rc
-@@ -660,6 +660,8 @@ on property:ro.product.cpu.abilist64=* && property:bootreceiver.enable=1
-     write /sys/kernel/tracing/instances/bootreceiver/events/error_report/error_report_end/enable 1
- 
- on post-fs-data
++
++on post-fs-data
 +    mkdir /mnt/shared
 +    mount 9p FM /mnt/shared FM trans=virtio,version=9p2000.L
++
++on boot
++    setprop ro.boot.hypervisor.protected_vm.supported 1
++    setprop ro.boot.hypervisor.vm.supported 1
+diff --git a/libcore/libart/src/main/java/java/lang/Daemons.java b/libcore/libart/src/main/java/java/lang/Daemons.java
+index 5b2adb366c7..53ad07a4c7d 100644
+--- a/libcore/libart/src/main/java/java/lang/Daemons.java
++++ b/libcore/libart/src/main/java/java/lang/Daemons.java
+@@ -54,7 +54,7 @@ public final class Daemons {
+             HeapTaskDaemon.INSTANCE,
+             ReferenceQueueDaemon.INSTANCE,
+             FinalizerDaemon.INSTANCE,
+-            FinalizerWatchdogDaemon.INSTANCE,
++            // FinalizerWatchdogDaemon.INSTANCE,
+     };
+     private static final CountDownLatch POST_ZYGOTE_START_LATCH = new CountDownLatch(DAEMONS.length);
+     private static final CountDownLatch PRE_ZYGOTE_START_LATCH = new CountDownLatch(DAEMONS.length);
+diff --git a/system/netd/server/TetherController.cpp b/system/netd/server/TetherController.cpp
+index 79193574..6b3111e5 100644
+--- a/system/netd/server/TetherController.cpp
++++ b/system/netd/server/TetherController.cpp
+@@ -724,8 +724,8 @@ int TetherController::setForwardRules(bool add, const char *intIface, const char
  
-     mark_post_data
- 
+     std::vector<std::string> v4 = {
+             "*raw",
+-            StringPrintf("%s %s -p tcp --dport 21 -i %s -j CT --helper ftp", op,
+-                         LOCAL_RAW_PREROUTING, intIface),
++            // StringPrintf("%s %s -p tcp --dport 21 -i %s -j CT --helper ftp", op,
++            //              LOCAL_RAW_PREROUTING, intIface),
+             StringPrintf("%s %s -p tcp --dport 1723 -i %s -j CT --helper pptp", op,
+                          LOCAL_RAW_PREROUTING, intIface),
+             "COMMIT",

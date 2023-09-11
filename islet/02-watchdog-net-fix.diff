@@ -1,19 +1,4 @@
 
-project libcore/
-diff --git a/libcore/libart/src/main/java/java/lang/Daemons.java b/libcore/libart/src/main/java/java/lang/Daemons.java
-index 5b2adb366c7..53ad07a4c7d 100644
---- a/libcore/libart/src/main/java/java/lang/Daemons.java
-+++ b/libcore/libart/src/main/java/java/lang/Daemons.java
-@@ -54,7 +54,7 @@ public final class Daemons {
-             HeapTaskDaemon.INSTANCE,
-             ReferenceQueueDaemon.INSTANCE,
-             FinalizerDaemon.INSTANCE,
--            FinalizerWatchdogDaemon.INSTANCE,
-+            // FinalizerWatchdogDaemon.INSTANCE,
-     };
-     private static final CountDownLatch POST_ZYGOTE_START_LATCH = new CountDownLatch(DAEMONS.length);
-     private static final CountDownLatch PRE_ZYGOTE_START_LATCH = new CountDownLatch(DAEMONS.length);
-
 project system/netd/
 diff --git a/server/TetherController.cpp b/server/TetherController.cpp
 index 79193574..7c9d8a25 100644
@@ -28,17 +13,6 @@ index 79193574..7c9d8a25 100644
  using android::netdutils::StatusOr;
  
  namespace {
-@@ -724,8 +724,8 @@ int TetherController::setForwardRules(bool add, const char *intIface, const char
- 
-     std::vector<std::string> v4 = {
-             "*raw",
--            StringPrintf("%s %s -p tcp --dport 21 -i %s -j CT --helper ftp", op,
--                         LOCAL_RAW_PREROUTING, intIface),
-+            //StringPrintf("%s %s -p tcp --dport 21 -i %s -j CT --helper ftp", op,
-+            //             LOCAL_RAW_PREROUTING, intIface),
-             StringPrintf("%s %s -p tcp --dport 1723 -i %s -j CT --helper pptp", op,
-                          LOCAL_RAW_PREROUTING, intIface),
-             "COMMIT",
 @@ -912,14 +912,19 @@ StatusOr<TetherController::TetherStatsList> TetherController::getTetherStats() {
      for (const IptablesTarget target : {V4, V6}) {
          std::string statsString;
