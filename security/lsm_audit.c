@@ -443,7 +443,6 @@ void common_lsm_audit(struct common_audit_data *a,
 {
 	struct audit_buffer *ab;
 
-	return;
 	if (a == NULL)
 		return;
 	/* we use GFP_ATOMIC so we won't sleep */
