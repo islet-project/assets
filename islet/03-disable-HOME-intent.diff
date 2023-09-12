@@ -1,9 +1,8 @@
-
 project frameworks/base/
-diff --git a/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java b/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java
+diff --git a/frameworks/base/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java b/frameworks/base/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java
 index 13690f30ab3b..b202fb39c0a3 100644
---- a/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java
-+++ b/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java
+--- a/frameworks/base/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java
++++ b/frameworks/base/packages/SystemUI/src/com/android/keyguard/KeyguardUpdateMonitor.java
 @@ -3201,6 +3201,8 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
          if (isUserUnlocked(getCurrentUser())) {
              return false;
@@ -13,10 +12,10 @@ index 13690f30ab3b..b202fb39c0a3 100644
          Intent homeIntent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
          ResolveInfo resolveInfo = mContext.getPackageManager().resolveActivityAsUser(homeIntent,
                  0 /* flags */, getCurrentUser());
-diff --git a/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java b/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java
+diff --git a/frameworks/base/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java b/frameworks/base/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java
 index 546a4093ec7d..07dcba764657 100644
---- a/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java
-+++ b/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java
+--- a/frameworks/base/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java
++++ b/frameworks/base/packages/SystemUI/src/com/android/systemui/keyguard/WorkLockActivity.java
 @@ -201,6 +201,8 @@ public class WorkLockActivity extends Activity {
      }
  
@@ -26,10 +25,10 @@ index 546a4093ec7d..07dcba764657 100644
          final Intent homeIntent = new Intent(Intent.ACTION_MAIN);
          homeIntent.addCategory(Intent.CATEGORY_HOME);
          homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-diff --git a/services/core/java/com/android/server/SystemServerInitThreadPool.java b/services/core/java/com/android/server/SystemServerInitThreadPool.java
+diff --git a/frameworks/base/services/core/java/com/android/server/SystemServerInitThreadPool.java b/frameworks/base/services/core/java/com/android/server/SystemServerInitThreadPool.java
 index 63e7563af6d1..fbbb64bca157 100644
---- a/services/core/java/com/android/server/SystemServerInitThreadPool.java
-+++ b/services/core/java/com/android/server/SystemServerInitThreadPool.java
+--- a/frameworks/base/services/core/java/com/android/server/SystemServerInitThreadPool.java
++++ b/frameworks/base/services/core/java/com/android/server/SystemServerInitThreadPool.java
 @@ -177,8 +177,11 @@ public final class SystemServerInitThreadPool implements Dumpable {
                      copy.addAll(sInstance.mPendingTasks);
                  }
@@ -43,10 +42,10 @@ index 63e7563af6d1..fbbb64bca157 100644
              }
              sInstance = null; // Make eligible for GC
              Slog.d(TAG, "Shutdown successful");
-diff --git a/services/core/java/com/android/server/SystemServiceManager.java b/services/core/java/com/android/server/SystemServiceManager.java
+diff --git a/frameworks/base/services/core/java/com/android/server/SystemServiceManager.java b/frameworks/base/services/core/java/com/android/server/SystemServiceManager.java
 index 78df983c83f7..425973f2fb35 100644
---- a/services/core/java/com/android/server/SystemServiceManager.java
-+++ b/services/core/java/com/android/server/SystemServiceManager.java
+--- a/frameworks/base/services/core/java/com/android/server/SystemServiceManager.java
++++ b/frameworks/base/services/core/java/com/android/server/SystemServiceManager.java
 @@ -293,10 +293,14 @@ public final class SystemServiceManager implements Dumpable {
                  try {
                      service.onBootPhase(mCurrentPhase);
@@ -64,10 +63,10 @@ index 78df983c83f7..425973f2fb35 100644
                  }
                  warnIfTooLong(SystemClock.elapsedRealtime() - time, service, "onBootPhase");
                  t.traceEnd();
-diff --git a/services/core/java/com/android/server/UiModeManagerService.java b/services/core/java/com/android/server/UiModeManagerService.java
+diff --git a/frameworks/base/services/core/java/com/android/server/UiModeManagerService.java b/frameworks/base/services/core/java/com/android/server/UiModeManagerService.java
 index c853ba93f4ab..af101035f041 100644
---- a/services/core/java/com/android/server/UiModeManagerService.java
-+++ b/services/core/java/com/android/server/UiModeManagerService.java
+--- a/frameworks/base/services/core/java/com/android/server/UiModeManagerService.java
++++ b/frameworks/base/services/core/java/com/android/server/UiModeManagerService.java
 @@ -1728,7 +1728,9 @@ final class UiModeManagerService extends SystemService {
                          + mDockState +", category=" + category);
              }
@@ -79,10 +78,10 @@ index c853ba93f4ab..af101035f041 100644
          }
  
          // keep screen on when charging and in car mode
-diff --git a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+diff --git a/frameworks/base/services/core/java/com/android/server/wm/ActivityTaskManagerService.java b/frameworks/base/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
 index aa154292fe7e..924ff0edb4fb 100644
---- a/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
-+++ b/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
+--- a/frameworks/base/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
++++ b/frameworks/base/services/core/java/com/android/server/wm/ActivityTaskManagerService.java
 @@ -4977,9 +4977,11 @@ public class ActivityTaskManagerService extends IActivityTaskManager.Stub {
          Intent intent = new Intent(mTopAction, mTopData != null ? Uri.parse(mTopData) : null);
          intent.setComponent(mTopComponent);
