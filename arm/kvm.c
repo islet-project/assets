@@ -147,6 +147,7 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 {
 	void *pos, *kernel_end, *limit;
 	unsigned long guest_addr;
+	uintptr_t initrd_end;
 	ssize_t file_size;
 
 	/*
@@ -221,8 +222,13 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 		pr_debug("Loaded initrd to 0x%llx (%llu bytes)",
 			 kvm->arch.initrd_guest_start, kvm->arch.initrd_size);
 
-		if (kvm->cfg.arch.is_realm)
+		if (kvm->cfg.arch.is_realm) {
+			initrd_end = (uintptr_t)pos + (uintptr_t)file_size;
+			if (!IS_ALIGNED(initrd_end, PAGE_SIZE))
+				explicit_bzero((void *)initrd_end,
+				               (size_t)(ALIGN(initrd_end, PAGE_SIZE) - initrd_end));
 			kvm_arm_realm_populate_initrd(kvm);
+		}
 	} else {
 		kvm->arch.initrd_size = 0;
 	}
