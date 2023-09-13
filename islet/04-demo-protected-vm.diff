@@ -1,0 +1,14 @@
+
+project packages/modules/Virtualization/
+diff --git a/packages/modules/Virtualization/demo/java/com/android/microdroid/demo/MainActivity.java b/packages/modules/Virtualization/demo/java/com/android/microdroid/demo/MainActivity.java
+index e53f95d9..0a65383d 100644
+--- a/packages/modules/Virtualization/demo/java/com/android/microdroid/demo/MainActivity.java
++++ b/packages/modules/Virtualization/demo/java/com/android/microdroid/demo/MainActivity.java
+@@ -283,6 +283,7 @@ public class MainActivity extends AppCompatActivity {
+             try {
+                 VirtualMachineConfig.Builder builder =
+                         new VirtualMachineConfig.Builder(getApplication(), "assets/vm_config.json");
++                builder.setProtectedVm(true);
+                 if (debug) {
+                     builder.debugLevel(DebugLevel.FULL);
+                 }
