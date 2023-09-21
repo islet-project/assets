@@ -148,6 +148,7 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	void *pos, *kernel_end, *limit;
 	unsigned long guest_addr;
 	unsigned long kern_offset, end_offset;
+	uintptr_t initrd_end;
 	ssize_t file_size, mem_size;
 
 	/*
@@ -181,7 +182,11 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 		 kvm->arch.kern_guest_start + mem_size,
 		 file_size);
 
+	kernel_end = kvm->ram_start + end_offset;
 	if (kvm__is_realm(kvm)) {
+		if (!IS_ALIGNED((uintptr_t)kernel_end, PAGE_SIZE))
+			explicit_bzero(kernel_end,
+			               (size_t)(ALIGN((uintptr_t)kernel_end, PAGE_SIZE) - (uintptr_t)kernel_end));
 		kvm_arm_realm_populate_kernel(kvm, file_size, mem_size);
 		/*
 		 * Make sure the initrd doesn't get loaded in the tail page of
@@ -189,7 +194,6 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 		 */
 		end_offset = ALIGN(end_offset, SZ_4K);
 	}
-	kernel_end = kvm->ram_start + end_offset;
 
 	/*
 	 * Now load backwards from the end of memory so the kernel
@@ -244,8 +248,15 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 		 * Thus we don't run into a situation where any of these images
 		 * are overlapped in a single 4K page.
 		 */
-		if (kvm__is_realm(kvm))
+		if (kvm__is_realm(kvm)) {
+			if (kvm->cfg.arch.is_realm) {
+				initrd_end = (uintptr_t)pos + (uintptr_t)file_size;
+				if (!IS_ALIGNED(initrd_end, PAGE_SIZE))
+					explicit_bzero((void *)initrd_end,
+					               (size_t)(ALIGN(initrd_end, PAGE_SIZE) - initrd_end));
+			}
 			kvm_arm_realm_populate_initrd(kvm);
+		}
 	} else {
 		kvm->arch.initrd_size = 0;
 	}
