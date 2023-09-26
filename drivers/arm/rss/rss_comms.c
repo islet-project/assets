@@ -38,7 +38,11 @@ static uint8_t select_protocol_version(const psa_invec *in_vec, size_t in_len,
 		out_size_total += out_vec[i].len;
 	}
 
+	/* This value is not to be trusted, no error checking */
 	comms_mhu_msg_size = mhu_get_max_message_size();
+	/* reverse engineer if there was an error code */
+	if (comms_mhu_msg_size / sizeof(uint32_t) > UINT32_MAX - 10)
+		comms_mhu_msg_size = 0;
 
 	comms_embed_msg_min_size = sizeof(struct serialized_rss_comms_header_t) +
 				   sizeof(struct rss_embed_msg_t) -
@@ -47,6 +51,10 @@ static uint8_t select_protocol_version(const psa_invec *in_vec, size_t in_len,
 	comms_embed_reply_min_size = sizeof(struct serialized_rss_comms_header_t) +
 				     sizeof(struct rss_embed_reply_t) -
 				     PLAT_RSS_COMMS_PAYLOAD_MAX_SIZE;
+
+	NOTICE("[RSS_SERIAL] msg_min: %lu, reply_min: %lu, in: %lu, out: %lu, mhu: %lu\n",
+	       comms_embed_msg_min_size, comms_embed_reply_min_size,
+	       in_size_total, out_size_total, comms_mhu_msg_size);
 
 	/* Use embed if we can pack into one message and reply, else use
 	 * pointer_access. The underlying MHU transport protocol uses a
@@ -59,10 +67,12 @@ static uint8_t select_protocol_version(const psa_invec *in_vec, size_t in_len,
 	 * messages due to ATU configuration costs to allow access to the
 	 * pointers.
 	 */
-	if ((comms_embed_msg_min_size + in_size_total > comms_mhu_msg_size - sizeof(uint32_t))
-	 || (comms_embed_reply_min_size + out_size_total > comms_mhu_msg_size) - sizeof(uint32_t)) {
+	if ((comms_embed_msg_min_size + in_size_total + sizeof(int32_t) > comms_mhu_msg_size) ||
+	    (comms_embed_reply_min_size + out_size_total + sizeof(uint32_t) > comms_mhu_msg_size)) {
+		NOTICE("[RSS_SERIAL] protocol: POINTER_ACCESS\n");
 		return RSS_COMMS_PROTOCOL_POINTER_ACCESS;
 	} else {
+		NOTICE("[RSS_SERIAL] protocol: EMBED\n");
 		return RSS_COMMS_PROTOCOL_EMBED;
 	}
 }
@@ -92,19 +102,26 @@ psa_status_t psa_call(psa_handle_t handle, int32_t type, const psa_invec *in_vec
 	io_buf.msg.header.client_id = 1U,
 	io_buf.msg.header.protocol_ver = select_protocol_version(in_vec, in_len, out_vec, out_len);
 
+	/* debug print */
+	{
+		NOTICE("[RSS_SERIAL] Sending message:\n");
+		NOTICE("[RSS_SERIAL]   protocol_ver=%u\n", io_buf.msg.header.protocol_ver);
+		NOTICE("[RSS_SERIAL]   seq_num=%u\n", io_buf.msg.header.seq_num);
+		NOTICE("[RSS_SERIAL]   client_id=%u\n", io_buf.msg.header.client_id);
+		for (idx = 0; idx < in_len; idx++) {
+			NOTICE("[RSS_SERIAL]   in_vec[%lu].len=%lu\n", idx, in_vec[idx].len);
+			//NOTICE("[RSS_SERIAL]   in_vec[%lu].buf=%p\n", idx, (void *)in_vec[idx].base);
+		}
+		for (idx = 0; idx < out_len; idx++) {
+			NOTICE("[RSS_SERIAL]   out_vec[%lu].len=%lu\n", idx, out_vec[idx].len);
+			//NOTICE("[RSS_SERIAL]   out_vec[%lu].buf=%p\n", idx, (void *)out_vec[idx].base);
+		}
+	}
+
 	status = rss_protocol_serialize_msg(handle, type, in_vec, in_len, out_vec,
 					    out_len, &io_buf.msg, &msg_size);
 	if (status != PSA_SUCCESS) {
 		return status;
-	}
-
-	VERBOSE("[RSS-COMMS] Sending message\n");
-	VERBOSE("protocol_ver=%u\n", io_buf.msg.header.protocol_ver);
-	VERBOSE("seq_num=%u\n", io_buf.msg.header.seq_num);
-	VERBOSE("client_id=%u\n", io_buf.msg.header.client_id);
-	for (idx = 0; idx < in_len; idx++) {
-		VERBOSE("in_vec[%lu].len=%lu\n", idx, in_vec[idx].len);
-		VERBOSE("in_vec[%lu].buf=%p\n", idx, (void *)in_vec[idx].base);
 	}
 
 	err = mhu_send_data((uint8_t *)&io_buf.msg, msg_size);
@@ -125,21 +142,23 @@ psa_status_t psa_call(psa_handle_t handle, int32_t type, const psa_invec *in_vec
 		return PSA_ERROR_COMMUNICATION_FAILURE;
 	}
 
-	VERBOSE("[RSS-COMMS] Received reply\n");
-	VERBOSE("protocol_ver=%u\n", io_buf.reply.header.protocol_ver);
-	VERBOSE("seq_num=%u\n", io_buf.reply.header.seq_num);
-	VERBOSE("client_id=%u\n", io_buf.reply.header.client_id);
-
 	status = rss_protocol_deserialize_reply(out_vec, out_len, &return_val,
 						&io_buf.reply, reply_size);
 	if (status != PSA_SUCCESS) {
 		return status;
 	}
 
-	VERBOSE("return_val=%d\n", return_val);
-	for (idx = 0U; idx < out_len; idx++) {
-		VERBOSE("out_vec[%lu].len=%lu\n", idx, out_vec[idx].len);
-		VERBOSE("out_vec[%lu].buf=%p\n", idx, (void *)out_vec[idx].base);
+	/* debug print */
+	{
+		NOTICE("[RSS_SERIAL] Received reply:\n");
+		NOTICE("[RSS_SERIAL]   protocol_ver=%u\n", io_buf.reply.header.protocol_ver);
+		NOTICE("[RSS_SERIAL]   seq_num=%u\n", io_buf.reply.header.seq_num);
+		NOTICE("[RSS_SERIAL]   client_id=%u\n", io_buf.reply.header.client_id);
+		NOTICE("[RSS_SERIAL]   return_val=%d\n", return_val);
+		for (idx = 0U; idx < out_len; idx++) {
+			NOTICE("[RSS_SERIAL]   out_vec[%lu].len=%lu\n", idx, out_vec[idx].len);
+			//NOTICE("[RSS_SERIAL]   out_vec[%lu].buf=%p\n", idx, (void *)out_vec[idx].base);
+		}
 	}
 
 	/* Clear the MHU message buffer to remove assets from memory */

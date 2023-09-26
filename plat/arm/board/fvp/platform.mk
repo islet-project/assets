@@ -368,6 +368,10 @@ ifneq (${BL2_AT_EL3}, 0)
     override BL1_SOURCES =
 endif
 
+# RSS though can be partially supported on FVP when we use serial port instead
+# of MHU and forward those messages to some external RSS.
+PLAT_RSS_COMMS_USE_SERIAL := 0
+
 # Include Measured Boot makefile before any Crypto library makefile.
 # Crypto library makefile may need default definitions of Measured Boot build
 # flags present in Measured Boot makefile.
@@ -395,6 +399,7 @@ BL1_SOURCES		+=	plat/arm/board/fvp/fvp_common_measured_boot.c	\
 BL2_SOURCES		+=	plat/arm/board/fvp/fvp_common_measured_boot.c	\
 				plat/arm/board/fvp/fvp_bl2_measured_boot.c	\
 				lib/psa/measured_boot.c
+endif
 
 # Note that attestation code does not depend on measured boot interfaces per se,
 # but the two features go together - attestation without boot measurements is
@@ -419,11 +424,16 @@ ifneq (${PLAT_RSS_NOT_SUPPORTED},1)
     BL31_SOURCES	+=	${RSS_COMMS_SOURCES}		\
 				lib/psa/delegated_attestation.c
 
-    BL1_CFLAGS		+=	-DPLAT_RSS_COMMS_PAYLOAD_MAX_SIZE=0
-    BL2_CFLAGS		+=	-DPLAT_RSS_COMMS_PAYLOAD_MAX_SIZE=0
-    BL31_CFLAGS		+=	-DPLAT_RSS_COMMS_PAYLOAD_MAX_SIZE=0
-endif
+    BL1_CFLAGS		+=	-DPLAT_RSS_COMMS_PAYLOAD_MAX_SIZE=0x1000
+    BL2_CFLAGS		+=	-DPLAT_RSS_COMMS_PAYLOAD_MAX_SIZE=0x1000
+    BL31_CFLAGS		+=	-DPLAT_RSS_COMMS_PAYLOAD_MAX_SIZE=0x1000
 
+ifneq (${PLAT_RSS_COMMS_USE_SERIAL},0)
+    $(warning "... unless you use serial instead of MHU, then it might be.")
+    BL1_CFLAGS		+=	-DPLAT_RSS_COMMS_USE_SERIAL=1
+    BL2_CFLAGS		+=	-DPLAT_RSS_COMMS_USE_SERIAL=1
+    BL31_CFLAGS		+=	-DPLAT_RSS_COMMS_USE_SERIAL=1
+endif
 endif
 
 ifeq (${DRTM_SUPPORT}, 1)

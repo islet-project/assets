@@ -13,10 +13,16 @@ RSS_COMMS_SOURCES	:=	$(addprefix drivers/arm/rss/,			\
 					rss_comms_protocol_pointer_access.c	\
 				)
 
+ifneq (${PLAT_RSS_COMMS_USE_SERIAL},0)
+RSS_COMMS_SOURCES	+=	$(addprefix drivers/arm/rss/,			\
+					rss_comms_serial.c			\
+				)
+else
 RSS_COMMS_SOURCES	+=	$(addprefix drivers/arm/mhu/,			\
 					mhu_v2_x.c				\
 					mhu_wrapper_v2_x.c			\
 				)
+endif
 
 PLAT_INCLUDES		+=	-Idrivers/arm/rss		\
 				-Idrivers/arm/mhu
