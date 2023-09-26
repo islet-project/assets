@@ -22,6 +22,9 @@
 	.globl	console_pl011_getc
 	.globl	console_pl011_flush
 
+	.globl console_pl011_core_rawputc
+	.globl console_pl011_rawputc
+
 	/* -----------------------------------------------
 	 * int console_pl011_core_init(uintptr_t base_addr,
 	 * unsigned int uart_clk, unsigned int baud_rate)
@@ -245,3 +248,47 @@ func console_pl011_flush
 	ldr	x0, [x0, #CONSOLE_T_BASE]
 	b	console_pl011_core_flush
 endfunc console_pl011_flush
+
+	/* --------------------------------------------------------
+	 * int console_pl011_core_rawputc(int c, uintptr_t base_addr)
+	 * Function to output a character over the console. It
+	 * returns the character printed on success or -1 on error.
+	 * In : w0 - character to be printed
+	 *      x1 - console base address
+	 * Out : return -1 on error else return character.
+	 * Clobber list : x2
+	 * --------------------------------------------------------
+	 */
+
+func console_pl011_core_rawputc
+#if ENABLE_ASSERTIONS
+	cmp	x1, #0
+	ASM_ASSERT(ne)
+#endif /* ENABLE_ASSERTIONS */
+
+1:
+	/* Check if the transmit FIFO is full */
+	ldr	w2, [x1, #UARTFR]
+	tbnz	w2, #PL011_UARTFR_TXFF_BIT, 1b
+	str	w0, [x1, #UARTDR]
+	ret
+endfunc console_pl011_core_rawputc
+
+	/* --------------------------------------------------------
+	 * int console_pl011_rawputc(int c, console_t *console)
+	 * Function to output a character over the console. It
+	 * returns the character printed on success or -1 on error.
+	 * In : w0 - character to be printed
+	 *      x1 - pointer to console_t structure
+	 * Out : return -1 on error else return character.
+	 * Clobber list : x2
+	 * --------------------------------------------------------
+	 */
+func console_pl011_rawputc
+#if ENABLE_ASSERTIONS
+	cmp	x1, #0
+	ASM_ASSERT(ne)
+#endif /* ENABLE_ASSERTIONS */
+	ldr	x1, [x1, #CONSOLE_T_BASE]
+	b	console_pl011_core_rawputc
+endfunc console_pl011_rawputc

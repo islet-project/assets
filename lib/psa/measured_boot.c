@@ -16,7 +16,7 @@
 
 static void print_byte_array(const uint8_t *array __unused, size_t len __unused)
 {
-#if LOG_LEVEL >= LOG_LEVEL_INFO
+#if LOG_LEVEL >= LOG_LEVEL_NOTICE
 	size_t i;
 
 	if (array == NULL || len == 0U) {
@@ -47,18 +47,18 @@ static void log_measurement(uint8_t index,
 			    size_t measurement_value_size,
 			    bool lock_measurement)
 {
-	INFO("Measured boot extend measurement:\n");
-	INFO(" - slot        : %u\n", index);
-	INFO(" - signer_id   :");
+	NOTICE("Measured boot extend measurement:\n");
+	NOTICE(" - slot        : %u\n", index);
+	NOTICE(" - signer_id   :");
 	print_byte_array(signer_id, signer_id_size);
-	INFO(" - version     : %s\n",  version);
-	INFO(" - version_size: %zu\n", version_size);
-	INFO(" - sw_type     : %s\n",  sw_type);
-	INFO(" - sw_type_size: %zu\n", sw_type_size);
-	INFO(" - algorithm   : %x\n", measurement_algo);
-	INFO(" - measurement :");
+	NOTICE(" - version     : %s\n",  version);
+	NOTICE(" - version_size: %zu\n", version_size);
+	NOTICE(" - sw_type     : %s\n",  sw_type);
+	NOTICE(" - sw_type_size: %zu\n", sw_type_size);
+	NOTICE(" - algorithm   : %x\n", measurement_algo);
+	NOTICE(" - measurement :");
 	print_byte_array(measurement_value, measurement_value_size);
-	INFO(" - locking     : %s\n", lock_measurement ? "true" : "false");
+	NOTICE(" - locking     : %s\n", lock_measurement ? "true" : "false");
 }
 
 #if !PLAT_RSS_NOT_SUPPORTED
