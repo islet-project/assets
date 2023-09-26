@@ -500,10 +500,12 @@ psa_status_t mbedtls_psa_inject_entropy(const uint8_t *seed,
  * \retval #PSA_ERROR_NOT_SUPPORTED \emptydescription
  * \retval #PSA_ERROR_INSUFFICIENT_MEMORY \emptydescription
  */
+#if 0
 psa_status_t psa_set_key_domain_parameters(psa_key_attributes_t *attributes,
                                            psa_key_type_t type,
                                            const uint8_t *data,
                                            size_t data_length);
+#endif
 
 /**
  * \brief Get domain parameters for a key.
