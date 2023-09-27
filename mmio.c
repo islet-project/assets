@@ -137,6 +137,7 @@ int kvm__register_iotrap(struct kvm *kvm, u64 phys_addr, u64 phys_addr_len,
 		.remove		= false,
 	};
 
+#ifndef RIM_MEASURE
 	if (trap_is_mmio(flags) && (flags & IOTRAP_COALESCE)) {
 		zone = (struct kvm_coalesced_mmio_zone) {
 			.addr	= phys_addr,
@@ -148,6 +149,7 @@ int kvm__register_iotrap(struct kvm *kvm, u64 phys_addr, u64 phys_addr_len,
 			return -errno;
 		}
 	}
+#endif
 
 	mutex_lock(&mmio_lock);
 	if (trap_is_mmio(flags))

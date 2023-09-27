@@ -125,6 +125,7 @@ bool kvm__supports_vm_extension(struct kvm *kvm, unsigned int extension)
 
 bool kvm__supports_extension(struct kvm *kvm, unsigned int extension)
 {
+#ifndef RIM_MEASURE
 	int ret;
 
 	ret = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION, extension);
@@ -132,6 +133,12 @@ bool kvm__supports_extension(struct kvm *kvm, unsigned int extension)
 		return false;
 
 	return ret;
+#else
+	if (extension == KVM_CAP_ARM_PSCI_0_2)
+		return true;
+	else
+		return false;
+#endif
 }
 
 static int kvm__check_extensions(struct kvm *kvm)
@@ -326,7 +333,11 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 			.userspace_addr		= (unsigned long)userspace_addr,
 		};
 
+#ifndef RIM_MEASURE
 		ret = ioctl(kvm->vm_fd, KVM_SET_USER_MEMORY_REGION, &mem);
+#else
+		ret = 0;
+#endif
 		if (ret < 0) {
 			ret = -errno;
 			goto out;
@@ -437,6 +448,7 @@ int kvm__init(struct kvm *kvm)
 {
 	int ret;
 
+#ifndef RIM_MEASURE
 	if (!kvm__arch_cpu_supports_vm()) {
 		pr_err("Your CPU does not support hardware virtualization");
 		ret = -ENOSYS;
@@ -478,6 +490,7 @@ int kvm__init(struct kvm *kvm)
 		ret = -ENOSYS;
 		goto err_vm_fd;
 	}
+#endif
 
 	kvm__arch_init(kvm);
 

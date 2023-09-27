@@ -83,6 +83,7 @@ void kvm__init_ram(struct kvm *kvm)
 	 * Use mlock2(,,MLOCK_ONFAULT) to allow faulting in pages and thus
 	 * allowing to lazily populate the PAR.
 	 */
+#ifndef RIM_MEASURE
 	if (kvm->cfg.arch.is_realm) {
 		int ret;
 
@@ -97,6 +98,7 @@ void kvm__init_ram(struct kvm *kvm)
 
 	madvise(kvm->arch.ram_alloc_start, kvm->arch.ram_alloc_size,
 		MADV_HUGEPAGE);
+#endif
 
 	phys_start	= kvm->cfg.ram_addr;
 	phys_size	= kvm->ram_size;
@@ -136,8 +138,9 @@ void kvm__arch_init(struct kvm *kvm)
 	/* Create the virtual GIC. */
 	if (gic__create(kvm, kvm->cfg.arch.irqchip))
 		die("Failed to create virtual GIC");
-
+#ifndef RIM_MEASURE
 	kvm__arch_enable_mte(kvm);
+#endif
 }
 
 #define FDT_ALIGN	SZ_2M

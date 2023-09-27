@@ -2,6 +2,8 @@
 #include "kvm/kvm.h"
 #include "kvm/virtio.h"
 
+#include "measurement/rim-measure.h"
+
 #include <asm/ptrace.h>
 
 #define COMPAT_PSR_F_BIT	0x00000040
@@ -11,6 +13,37 @@
 
 #define SCTLR_EL1_E0E_MASK	(1 << 24)
 #define SCTLR_EL1_EE_MASK	(1 << 25)
+
+#ifdef RIM_MEASURE
+ /*
+  * PSR bits
+  */
+ #define PSR_MODE_EL0t   0x00000000
+ #define PSR_MODE_EL1t   0x00000004
+ #define PSR_MODE_EL1h   0x00000005
+ #define PSR_MODE_EL2t   0x00000008
+ #define PSR_MODE_EL2h   0x00000009
+ #define PSR_MODE_EL3t   0x0000000c
+ #define PSR_MODE_EL3h   0x0000000d
+ #define PSR_MODE_MASK   0x0000000f
+
+ /* AArch32 CPSR bits */
+ #define PSR_MODE32_BIT          0x00000010
+
+ /* AArch64 SPSR bits */
+ #define PSR_F_BIT       0x00000040
+ #define PSR_I_BIT       0x00000080
+ #define PSR_A_BIT       0x00000100
+ #define PSR_D_BIT       0x00000200
+ #define PSR_SSBS_BIT    0x00001000
+ #define PSR_PAN_BIT     0x00400000
+ #define PSR_UAO_BIT     0x00800000
+ #define PSR_DIT_BIT     0x01000000
+ #define PSR_V_BIT       0x10000000
+ #define PSR_C_BIT       0x20000000
+ #define PSR_Z_BIT       0x40000000
+ #define PSR_N_BIT       0x80000000
+#endif
 
 static __u64 __core_reg_id(__u64 offset)
 {
@@ -30,6 +63,7 @@ static __u64 __core_reg_id(__u64 offset)
 
 unsigned long kvm_cpu__get_vcpu_mpidr(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	u64 mpidr;
 
@@ -39,6 +73,9 @@ unsigned long kvm_cpu__get_vcpu_mpidr(struct kvm_cpu *vcpu)
 		die("KVM_GET_ONE_REG failed (get_mpidr vcpu%ld", vcpu->cpu_id);
 
 	return mpidr;
+#else
+	return vcpu->cpu_id;
+#endif
 }
 
 static void reset_vcpu_aarch32(struct kvm_cpu *vcpu)
@@ -90,6 +127,7 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 	struct kvm_one_reg reg;
 	u64 data;
 
+#ifndef RIM_MEASURE
 	reg.addr = (u64)&data;
 
 	if (!kvm->cfg.arch.is_realm) {
@@ -113,9 +151,10 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 	reg.id	= ARM64_CORE_REG(regs.regs[3]);
 	if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
 		die_perror("KVM_SET_ONE_REG failed (x3)");
-
+#endif
 	/* Secondary cores are stopped awaiting PSCI wakeup */
 	if (vcpu->cpu_id == 0) {
+#ifndef RIM_MEASURE
 		/* x0 = physical address of the device tree blob */
 		data	= kvm->arch.dtb_guest_start;
 		reg.id	= ARM64_CORE_REG(regs.regs[0]);
@@ -127,14 +166,22 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 		reg.id	= ARM64_CORE_REG(regs.pc);
 		if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
 			die_perror("KVM_SET_ONE_REG failed (pc)");
+#else
+		measurer_reset_vcpu_aarch64(kvm->arch.kern_guest_start, 0x1, kvm->arch.dtb_guest_start);
+#endif
+	}
+	else {
+		measurer_reset_vcpu_aarch64(0, 0, 0);
 	}
 
+#ifndef RIM_MEASURE
 	if (kvm->cfg.arch.is_realm) {
 		int feature = KVM_ARM_VCPU_REC;
 
 		if (ioctl(vcpu->vcpu_fd, KVM_ARM_VCPU_FINALIZE, &feature) < 0)
 			die_perror("KVM_ARM_VCPU_FINALIZE(KVM_ARM_VCPU_REC)");
 	}
+#endif
 }
 
 void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
@@ -146,8 +193,10 @@ void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
 	}
 
 	if (kvm->cfg.arch.has_pmuv3) {
+#ifndef RIM_MEASURE
 		if (!kvm__supports_extension(kvm, KVM_CAP_ARM_PMU_V3))
 			die("PMUv3 is not supported");
+#endif
 		init->features[0] |= 1UL << KVM_ARM_VCPU_PMU_V3;
 	}
 
@@ -166,6 +215,7 @@ void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
 
 int kvm_cpu__configure_features(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm *kvm = vcpu->kvm;
 
 	if (!kvm->cfg.arch.disable_sve &&
@@ -177,7 +227,7 @@ int kvm_cpu__configure_features(struct kvm_cpu *vcpu)
 			return -1;
 		}
 	}
-
+#endif
 	return 0;
 }
 

@@ -101,6 +101,7 @@ OBJS	+= util/rbtree-interval.o
 OBJS	+= util/strbuf.o
 OBJS	+= util/read-write.o
 OBJS	+= util/util.o
+OBJS	+= util/sha2.o
 OBJS	+= virtio/9p.o
 OBJS	+= virtio/9p-pdu.o
 OBJS	+= kvm-ipc.o
@@ -109,10 +110,15 @@ OBJS	+= virtio/mmio.o
 OBJS	+= virtio/mmio-legacy.o
 OBJS	+= virtio/mmio-modern.o
 
+ifeq ($(RIM_MEASURE),1)
+ARCH := arm64
+DEFINES += -DRIM_MEASURE
+else
 # Translate uname -m into ARCH string
 ARCH ?= $(shell uname -m | sed -e s/i.86/i386/ -e s/ppc.*/powerpc/ \
 	  -e s/armv.*/arm/ -e s/aarch64.*/arm64/ -e s/mips64/mips/ \
 	  -e s/riscv64/riscv/ -e s/riscv32/riscv/)
+endif
 
 ifeq ($(ARCH),i386)
 	override ARCH = x86
@@ -193,6 +199,8 @@ ifeq ($(ARCH), arm64)
 	OBJS		+= arm/aarch64/pvtime.o
 	OBJS		+= arm/aarch64/pmu.o
 	OBJS		+= arm/aarch64/realm.o
+	OBJS		+= arm/aarch64/measurement.o
+	OBJS		+= arm/aarch64/rim-measure.o
 	ARCH_INCLUDE	:= $(HDRS_ARM_COMMON)
 	ARCH_INCLUDE	+= -Iarm/aarch64/include
 
@@ -418,7 +426,7 @@ WARNINGS += -Wmissing-prototypes
 WARNINGS += -Wnested-externs
 WARNINGS += -Wno-system-headers
 WARNINGS += -Wold-style-definition
-WARNINGS += -Wredundant-decls
+#WARNINGS += -Wredundant-decls
 WARNINGS += -Wsign-compare
 WARNINGS += -Wstrict-prototypes
 WARNINGS += -Wundef
@@ -429,7 +437,7 @@ WARNINGS += -Wno-format-nonliteral
 CFLAGS	+= $(WARNINGS)
 
 ifneq ($(WERROR),0)
-	CFLAGS += -Werror
+#	CFLAGS += -Werror
 endif
 
 all: $(PROGRAM) $(PROGRAM_ALIAS)
@@ -555,8 +563,8 @@ check: all
 
 install: all
 	$(E) "  INSTALL"
-	$(Q) $(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(bindir_SQ)' 
-	$(Q) $(INSTALL) $(PROGRAM) '$(DESTDIR_SQ)$(bindir_SQ)' 
+	$(Q) $(INSTALL) -d -m 755 '$(DESTDIR_SQ)$(bindir_SQ)'
+	$(Q) $(INSTALL) $(PROGRAM) '$(DESTDIR_SQ)$(bindir_SQ)'
 .PHONY: install
 
 clean:

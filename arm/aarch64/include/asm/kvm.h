@@ -47,6 +47,24 @@
 #define KVM_REG_SIZE(id)						\
 	(1U << (((id) & KVM_REG_SIZE_MASK) >> KVM_REG_SIZE_SHIFT))
 
+
+#ifdef RIM_MEASURE
+ struct user_pt_regs {
+         __u64           regs[31];
+         __u64           sp;
+         __u64           pc;
+         __u64           pstate;
+ };
+
+ struct user_fpsimd_state {
+          __uint128_t     vregs[32];
+         __u32           fpsr;
+         __u32           fpcr;
+         __u32           __reserved[2];
+};
+
+#endif
+
 struct kvm_regs {
 	struct user_pt_regs regs;	/* sp = sp_el0 */
 

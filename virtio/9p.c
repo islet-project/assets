@@ -1494,11 +1494,17 @@ int virtio_9p_rootdir_parser(const struct option *opt, const char *arg, int unse
 		*tag_name = '\0';
 		tag_name++;
 	}
+#ifndef RIM_MEASURE
 	if (realpath(arg, tmp)) {
+#else
+	strcpy(tmp, arg);
+#endif
 		if (virtio_9p__register(kvm, tmp, tag_name) < 0)
 			die("Unable to initialize virtio 9p");
+#ifndef RIM_MEASURE
 	} else
 		die("Failed resolving 9p path");
+#endif
 	return 0;
 }
 

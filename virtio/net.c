@@ -378,6 +378,7 @@ static void virtio_net__tap_exit(struct net_dev *ndev)
 
 static bool virtio_net__tap_create(struct net_dev *ndev)
 {
+#ifndef RIM_MEASURE
 	int offload;
 	struct ifreq ifr;
 	const struct virtio_net_params *params = ndev->params;
@@ -436,6 +437,9 @@ fail:
 		close(ndev->tap_fd);
 
 	return 0;
+#else
+	return 1;
+#endif
 }
 
 static inline int tap_ops_tx(struct iovec *iov, u16 out, struct net_dev *ndev)

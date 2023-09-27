@@ -50,6 +50,7 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 	if (!vcpu)
 		return NULL;
 
+#ifndef RIM_MEASURE
 	vcpu->vcpu_fd = ioctl(kvm->vm_fd, KVM_CREATE_VCPU, cpu_id);
 	if (vcpu->vcpu_fd < 0)
 		die_perror("KVM_CREATE_VCPU ioctl");
@@ -62,6 +63,7 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 			     vcpu->vcpu_fd, 0);
 	if (vcpu->kvm_run == MAP_FAILED)
 		die("unable to mmap vcpu fd");
+#endif
 
 	/* VCPU 0 is the boot CPU, the others start in a poweroff state. */
 	if (cpu_id > 0)
@@ -74,6 +76,7 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 
 	kvm_cpu__select_features(kvm, &vcpu_init);
 
+#ifndef RIM_MEASURE
 	/*
 	 * If the preferred target ioctl is successful then
 	 * use preferred target else try each and every target type
@@ -111,6 +114,11 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 		if (err)
 			die("Unable to find matching target");
 	}
+#else
+	target = kvm_arm_generic_target;
+	vcpu_init.target = kvm_arm_generic_target;
+	err = 0;
+#endif
 
 	/* Populate the vcpu structure. */
 	vcpu->kvm		= kvm;
@@ -122,11 +130,13 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 	if (err || target->init(vcpu))
 		die("Unable to initialise vcpu");
 
+#ifndef RIM_MEASURE
 	coalesced_offset = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION,
 				 KVM_CAP_COALESCED_MMIO);
 	if (coalesced_offset)
 		vcpu->ring = (void *)vcpu->kvm_run +
 			     (coalesced_offset * PAGE_SIZE);
+#endif
 
 	if (kvm_cpu__configure_features(vcpu))
 		die("Unable to configure requested vcpu features");
