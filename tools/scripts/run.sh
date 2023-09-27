@@ -27,6 +27,7 @@ arg_acs_build_dir=
 arg_acs_ns_preload_addr=${ACS_NS_PRELOAD_ADDR_DFLT}
 # Run the test with a timeout so they can't loop forever.
 arg_test_timeout=1000
+arg_no_telnet=
 suite_timeout_multiplier=3
 test_report_logfile=
 regression_report_logfile=
@@ -118,6 +119,10 @@ case "$1" in
         arg_test_timeout="$2"
         shift 2
         ;;
+    --no_telnet)
+        arg_no_telnet=yes
+        shift 1
+        ;;
     -n | --dry-run)
         arg_dryrun=yes
         shift 1
@@ -183,6 +188,15 @@ then
  -C bp.pl011_uart3.out_file=${uart3_logfile}\
  -C bp.pl011_uart2.out_file=${regression_report_logfile}\
  -C bp.pl011_uart2.unbuffered_output=1"
+
+    if [[ ${arg_no_telnet} == "yes" ]]
+    then
+    fvp_cmd="${fvp_cmd} \
+ -C bp.terminal_0.start_telnet=0 \
+ -C bp.terminal_1.start_telnet=0 \
+ -C bp.terminal_2.start_telnet=0 \
+ -C bp.terminal_3.start_telnet=0"
+    fi
 
     arg_test_timeout=$(($arg_test_timeout * $suite_timeout_multiplier))
 
