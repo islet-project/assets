@@ -210,7 +210,7 @@ static bool validate_fw_addr(struct kvm *kvm, u64 fw_addr)
 bool kvm__load_firmware(struct kvm *kvm, const char *firmware_filename)
 {
 	u64 fw_addr = kvm->cfg.arch.fw_addr;
-	void *host_pos;
+	void *host_pos, *fdt_pos;
 	void *limit;
 	ssize_t fw_sz, mem_sz;
 	int fd;
@@ -248,12 +248,16 @@ bool kvm__load_firmware(struct kvm *kvm, const char *firmware_filename)
 		 kvm->arch.kern_guest_start + mem_sz,
 		 fw_sz);
 
-	/* Load dtb just after the firmware image*/
 	host_pos += mem_sz;
-	if (host_pos + FDT_MAX_SIZE > limit)
+	/*
+	 * Load dtb at the end of the DRAM, to avoid the firmware
+	 * overwriting the FDT if it overlaps with the .bss etc.
+	 */
+	fdt_pos = limit - (FDT_MAX_SIZE + FDT_ALIGN);
+	if (fdt_pos < host_pos)
 		die("not enough space to load fdt");
 
-	kvm->arch.dtb_guest_start = ALIGN(host_to_guest_flat(kvm, host_pos),
+	kvm->arch.dtb_guest_start = ALIGN(host_to_guest_flat(kvm, fdt_pos),
 					  FDT_ALIGN);
 	pr_debug("Placing fdt at 0x%llx - 0x%llx",
 		 kvm->arch.dtb_guest_start,
