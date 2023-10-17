@@ -176,15 +176,28 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	if (!mem_size)
 		mem_size = file_size;
 	end_offset = kern_offset + mem_size;
-	kernel_end = kvm->ram_start + end_offset;
 	pr_debug("Loaded kernel to 0x%llx - 0x%llx (%zd bytes actual)",
 		 kvm->arch.kern_guest_start,
 		 kvm->arch.kern_guest_start + mem_size,
 		 file_size);
+
+	if (kvm__is_realm(kvm)) {
+		kvm_arm_realm_populate_kernel(kvm, file_size, mem_size);
+		/*
+		 * Make sure the initrd doesn't get loaded in the tail page of
+		 * the kernel.
+		 */
+		end_offset = ALIGN(end_offset, SZ_4K);
+	}
+	kernel_end = kvm->ram_start + end_offset;
+
 	/*
 	 * Now load backwards from the end of memory so the kernel
 	 * decompressor has plenty of space to work with. First up is
 	 * the device tree blob...
+	 * The DTB is aligned to 2MB and thus wouldn't overlap with
+	 * initrd's tail and thus we don't need any other measures
+	 * for Realm.
 	 */
 	pos = limit;
 	pos -= (FDT_MAX_SIZE + FDT_ALIGN);
@@ -202,7 +215,6 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 	/* ... and finally the initrd, if we have one. */
 	if (fd_initrd != -1) {
 		struct stat sb;
-		unsigned long initrd_start;
 
 		if (fstat(fd_initrd, &sb))
 			die_perror("fstat");
@@ -213,7 +225,6 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 		if (pos < kernel_end)
 			die("initrd overlaps with kernel image.");
 
-		initrd_start = guest_addr;
 		file_size = read_file(fd_initrd, pos, limit - pos);
 		if (file_size == -1) {
 			if (errno == ENOMEM)
@@ -222,11 +233,19 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 			die_perror("initrd read");
 		}
 
-		kvm->arch.initrd_guest_start = initrd_start;
+		kvm->arch.initrd_guest_start = guest_addr;
 		kvm->arch.initrd_size = file_size;
 		pr_debug("Loaded initrd to 0x%llx (%llu bytes)",
 			 kvm->arch.initrd_guest_start,
 			 kvm->arch.initrd_size);
+
+		/*
+		 * kernel_end is already aligned to 4K and FDT aligned to 2M.
+		 * Thus we don't run into a situation where any of these images
+		 * are overlapped in a single 4K page.
+		 */
+		if (kvm__is_realm(kvm))
+			kvm_arm_realm_populate_initrd(kvm);
 	} else {
 		kvm->arch.initrd_size = 0;
 	}
@@ -291,6 +310,14 @@ bool kvm__load_firmware(struct kvm *kvm, const char *firmware_filename)
 		 kvm->arch.kern_guest_start,
 		 kvm->arch.kern_guest_start + mem_sz,
 		 fw_sz);
+
+	/*
+	 * FDT load address is aligned to FDT_ALIGN and it guarantees that
+	 * the firmware image will not overlap the FDT in the same page for
+	 * a Realm.
+	 */
+	if (kvm__is_realm(kvm))
+		kvm_arm_realm_populate_kernel(kvm, fw_sz, mem_sz);
 
 	host_pos += mem_sz;
 	/*

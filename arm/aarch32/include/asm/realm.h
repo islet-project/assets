@@ -11,5 +11,12 @@ static inline bool kvm__is_realm(struct kvm *kvm)
 }
 
 static inline void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm) {}
+static inline void kvm_arm_realm_populate_initrd(struct kvm *kvm) {}
+static inline void kvm_arm_realm_populate_dtb(struct kvm *kvm) {}
+static inline void kvm_arm_realm_populate_kernel(struct kvm *kvm,
+						 unsigned long file_size,
+						 unsigned long mem_size)
+{
+}
 
 #endif

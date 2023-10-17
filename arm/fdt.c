@@ -7,6 +7,8 @@
 #include "arm-common/gic.h"
 #include "arm-common/pci.h"
 
+#include "asm/realm.h"
+
 #include <stdbool.h>
 
 #include <linux/byteorder.h>
@@ -231,6 +233,10 @@ static int setup_fdt(struct kvm *kvm)
 
 	if (kvm->cfg.arch.dump_dtb_filename)
 		dump_fdt(kvm->cfg.arch.dump_dtb_filename, fdt_dest);
+
+	if (kvm__is_realm(kvm))
+		kvm_arm_realm_populate_dtb(kvm);
+
 	return 0;
 }
 late_init(setup_fdt);
