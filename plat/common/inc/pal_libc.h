@@ -48,5 +48,9 @@ void *pal_memset(void *dst, int val, size_t count);
 **/
 void *pal_memcpy(void *dst, const void *src, size_t len);
 
+int pal_strlen(char *string);
 
+char *pal_strtok(char *string,char *delimiter);
+
+char* pal_strcpy(char* destination, const char* source);
 #endif
