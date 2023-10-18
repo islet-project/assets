@@ -118,7 +118,9 @@ int kvm__register_iotrap(struct kvm *kvm, u64 phys_addr, u64 phys_addr_len,
 			 unsigned int flags)
 {
 	struct mmio_mapping *mmio;
+#ifndef RIM_MEASURE
 	struct kvm_coalesced_mmio_zone zone;
+#endif
 	int ret;
 
 	mmio = malloc(sizeof(*mmio));

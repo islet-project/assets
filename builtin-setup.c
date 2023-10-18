@@ -146,10 +146,17 @@ static int extract_file(const char *guestfs_name, const char *filename,
 	return 0;
 }
 
+#ifndef RIM_MEASURE
 extern unsigned char init_binary[];
 extern unsigned long init_binary_size;
 extern unsigned char pre_init_binary[];
 extern unsigned long pre_init_binary_size;
+#else
+unsigned char init_binary[0];
+unsigned long init_binary_size;
+unsigned char pre_init_binary[0];
+unsigned long pre_init_binary_size;
+#endif
 
 int kvm_setup_guest_init(const char *guestfs_name)
 {

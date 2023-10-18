@@ -35,6 +35,8 @@ struct vsock_dev {
 	struct kvm			*kvm;
 };
 
+#ifndef RIM_MEASURE
+
 static u8 *get_config(struct kvm *kvm, void *dev)
 {
 	struct vsock_dev *vdev = dev;
@@ -267,6 +269,25 @@ static void virtio_vhost_vsock_init(struct kvm *kvm, struct vsock_dev *vdev)
 	free(mem);
 }
 
+#else
+
+static struct virtio_ops vsock_dev_virtio_ops = {
+	.get_config		= NULL,
+	.get_config_size	= NULL,
+	.get_host_features	= NULL,
+	.init_vq		= NULL,
+	.get_vq			= NULL,
+	.get_size_vq		= NULL,
+	.set_size_vq		= NULL,
+	.notify_vq_eventfd	= NULL,
+	.notify_status		= NULL,
+	.notify_vq_gsi		= NULL,
+	.notify_vq		= NULL,
+	.get_vq_count		= NULL,
+};
+
+#endif
+
 static int virtio_vsock_init_one(struct kvm *kvm, u64 guest_cid)
 {
 	struct vsock_dev *vdev;
@@ -290,7 +311,9 @@ static int virtio_vsock_init_one(struct kvm *kvm, u64 guest_cid)
 	if (r < 0)
 	    return r;
 
+#ifndef RIM_MEASURE
 	virtio_vhost_vsock_init(kvm, vdev);
+#endif
 
 	if (compat_id == -1)
 		compat_id = virtio_compat_add_message("virtio-vsock", "CONFIG_VIRTIO_VSOCK");

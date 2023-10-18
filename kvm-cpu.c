@@ -23,6 +23,7 @@ int __attribute__((weak)) kvm_cpu__get_endianness(struct kvm_cpu *vcpu)
 	return VIRTIO_ENDIAN_HOST;
 }
 
+#ifndef RIM_MEASURE
 void kvm_cpu__enable_singlestep(struct kvm_cpu *vcpu)
 {
 	struct kvm_guest_debug debug = {
@@ -256,6 +257,7 @@ exit_kvm:
 panic_kvm:
 	return 1;
 }
+#endif
 
 int kvm_cpu__init(struct kvm *kvm)
 {
@@ -274,12 +276,13 @@ int kvm_cpu__init(struct kvm *kvm)
 
 	kvm->nrcpus = kvm->cfg.nrcpus;
 
+#ifndef RIM_MEASURE
 	task_eventfd = eventfd(0, 0);
 	if (task_eventfd < 0) {
 		pr_warning("Couldn't create task_eventfd");
 		return task_eventfd;
 	}
-
+#endif
 	/* Alloc one pointer too many, so array ends up 0-terminated */
 	kvm->cpus = calloc(kvm->nrcpus + 1, sizeof(void *));
 	if (!kvm->cpus) {
@@ -304,6 +307,7 @@ fail_alloc:
 }
 base_init(kvm_cpu__init);
 
+#ifndef RIM_MEASURE
 int kvm_cpu__exit(struct kvm *kvm)
 {
 	int i, r;
@@ -330,6 +334,6 @@ int kvm_cpu__exit(struct kvm *kvm)
 	kvm->nrcpus = 0;
 
 	close(task_eventfd);
-
 	return r;
 }
+#endif

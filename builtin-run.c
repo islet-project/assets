@@ -245,6 +245,7 @@ static int mem_parser(const struct option *opt, const char *arg, int unset)
 	OPT_END()							\
 	};
 
+#ifndef RIM_MEASURE
 static void *kvm_cpu_thread(void *arg)
 {
 	char name[16];
@@ -274,6 +275,7 @@ panic_kvm:
 
 	return (void *) (intptr_t) 1;
 }
+#endif
 
 static char kernel[PATH_MAX];
 
@@ -753,6 +755,7 @@ static struct kvm *kvm_cmd_run_init(int argc, const char **argv)
 	}
 
 	if (kvm->cfg.custom_rootfs) {
+		printf("custom rootfs image is configured setup_guest_init\n");
 		kvm_run_set_sandbox(kvm);
 		if (kvm_setup_guest_init(kvm->cfg.custom_rootfs_name))
 			die("Failed to setup init for guest.");
@@ -781,6 +784,8 @@ static struct kvm *kvm_cmd_run_init(int argc, const char **argv)
 	return kvm;
 }
 
+
+#ifndef RIM_MEASURE
 static int kvm_cmd_run_work(struct kvm *kvm)
 {
 	int i;
@@ -807,18 +812,24 @@ static void kvm_cmd_run_exit(struct kvm *kvm, int guest_ret)
 	if (guest_ret == 0)
 		printf("\n  # KVM session ended normally.\n");
 }
+#endif
 
 int kvm_cmd_run(int argc, const char **argv, const char *prefix)
 {
 	int ret = -EFAULT;
 	struct kvm *kvm;
 
+
 	kvm = kvm_cmd_run_init(argc, argv);
 	if (IS_ERR(kvm))
 		return PTR_ERR(kvm);
 
+#ifndef RIM_MEASURE
 	ret = kvm_cmd_run_work(kvm);
 	kvm_cmd_run_exit(kvm, ret);
+#else
+	ret = 0;
+#endif
 
 	return ret;
 }

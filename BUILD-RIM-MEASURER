@@ -1,0 +1,37 @@
+To build the lkvm-rim-measurer tool you need to firstly download and build libfdt library from git://git.kernel.org/pub/scm/utils/dtc/dtc.git
+
+To build the tool run the following command:
+
+	make RIM_MEASURE=1 LIBFDT_DIR=<path to the libfdt folder>
+
+The takes the same set of options as lkvm run command and produces the Realm Initial Measurement.
+
+	./lkvm-rim-measurer run                                                 \
+		--debug                                                          \
+		--realm                                                          \
+		--measurement-algo="sha512"                                      \
+		--disable-sve                                                    \
+		--console virtio                                                 \
+		--irqchip=gicv3                                                  \
+		-m 256M                                                          \
+		-c 2                                                             \
+		-k Image.realm                                                   \
+		-i initramfs-realm.cpio.gz                                       \
+		-p "earlycon=ttyS0 printk.devkmsg=on"                            \
+		-n virtio                                                        \
+		--kaslr-seed 12345                                               \
+		--rng                                                            \
+		--pmu                                                            \
+		--9p /shared,FMR                                                 \
+		"$@"
+
+	# lkvm run -k Image.realm -m 256 -c 2 --name guest-2066805
+	  Info: (arm/kvm.c) kvm__init_ram:116: RAM created at 0x80000000 - 0x8fffffff
+	  Info: (arm/kvm.c) kvm__arch_load_kernel_image:178: Loaded kernel to 0x80000000 (15272448 bytes)
+	  Info: (arm/kvm.c) kvm__arch_load_kernel_image:201: Placing fdt at 0x8fe00000 - 0x8fffffff
+	  Info: (arm/kvm.c) kvm__arch_load_kernel_image:229: Loaded initrd to 0x8fc70404 (1637371 bytes)
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000000:36
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000200:37
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000400:38
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000600:39
+	RIM: F58AF6D6A022F113627B1E0B1E0D9B9A1BFB460207AC29721E84BCEF4B4F5CE08351684444BC11CF329D1D4C807BB621807916C2DF4F56B7326E8D16692546A8

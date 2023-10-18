@@ -96,9 +96,9 @@ static int irq__routing_init(struct kvm *kvm)
 	return 0;
 }
 
+#ifndef RIM_MEASURE
 static int gic__create_its_frame(struct kvm *kvm, u64 its_frame_addr)
 {
-#ifndef RIM_MEASURE
 	struct kvm_create_device its_device = {
 		.type = KVM_DEV_TYPE_ARM_VGIC_ITS,
 		.flags	= 0,
@@ -134,9 +134,6 @@ static int gic__create_its_frame(struct kvm *kvm, u64 its_frame_addr)
 		return err;
 
 	return ioctl(its_device.fd, KVM_SET_DEVICE_ATTR, &its_init_attr);
-#else
-	return 0;
-#endif
 }
 
 static int gic__create_msi_frame(struct kvm *kvm, enum irqchip_type type,
@@ -190,11 +187,7 @@ static int gic__create_device(struct kvm *kvm, enum irqchip_type type)
 		return -ENODEV;
 	}
 
-#ifdef RIM_MEASURE
-	err = 0;
-#else
 	err = ioctl(kvm->vm_fd, KVM_CREATE_DEVICE, &gic_device);
-#endif
 	if (err)
 		return err;
 
@@ -203,19 +196,11 @@ static int gic__create_device(struct kvm *kvm, enum irqchip_type type)
 	switch (type) {
 	case IRQCHIP_GICV2M:
 	case IRQCHIP_GICV2:
-#ifdef RIM_MEASURE
-		err = 0;
-#else
 		err = ioctl(gic_fd, KVM_SET_DEVICE_ATTR, &cpu_if_attr);
-#endif
 		break;
 	case IRQCHIP_GICV3_ITS:
 	case IRQCHIP_GICV3:
-#ifdef RIM_MEASURE
-		err = 0;
-#else
 		err = ioctl(gic_fd, KVM_SET_DEVICE_ATTR, &redist_attr);
-#endif
 		break;
 	case IRQCHIP_AUTO:
 		return -ENODEV;
@@ -223,11 +208,7 @@ static int gic__create_device(struct kvm *kvm, enum irqchip_type type)
 	if (err)
 		goto out_err;
 
-#ifdef RIM_MEASURE
-	err = 0;
-#else
 	err = ioctl(gic_fd, KVM_SET_DEVICE_ATTR, &dist_attr);
-#endif
 	if (err)
 		goto out_err;
 
@@ -238,9 +219,7 @@ static int gic__create_device(struct kvm *kvm, enum irqchip_type type)
 	return 0;
 
 out_err:
-#ifndef RIM_MEASURE
 	close(gic_fd);
-#endif
 	gic_fd = -1;
 	return err;
 }
@@ -272,6 +251,7 @@ static int gic__create_irqchip(struct kvm *kvm)
 	err = ioctl(kvm->vm_fd, KVM_ARM_SET_DEVICE_ADDR, &gic_addr[1]);
 	return err;
 }
+#endif
 
 int gic__create(struct kvm *kvm, enum irqchip_type type)
 {
@@ -309,12 +289,16 @@ int gic__create(struct kvm *kvm, enum irqchip_type type)
 		return -ENODEV;
 	}
 
+#ifndef RIM_MEASURE
 	/* Try the new way first, and fallback on legacy method otherwise */
 	err = gic__create_device(kvm, type);
 	if (err && type == IRQCHIP_GICV2)
 		err = gic__create_irqchip(kvm);
 
 	return err;
+#else
+	return 0;
+#endif
 }
 
 /*

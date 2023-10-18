@@ -179,7 +179,7 @@ void measurer_reset_vcpu_aarch64(u64 pc, u64 flags, u64 dtb)
 
 void measurer_print_rim(void)
 {
-	int i;
+	size_t i;
 	printf("RIM: ");
 	for (i = 0; i < MAX_MEASUREMENT_SIZE; i++) {
 		printf("%02X", rim[i]);

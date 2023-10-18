@@ -49,6 +49,8 @@ struct bln_dev {
 static struct bln_dev bdev;
 static int compat_id = -1;
 
+#ifndef RIM_MEASURE
+
 static bool virtio_bln_do_io_request(struct kvm *kvm, struct bln_dev *bdev, struct virt_queue *queue)
 {
 	struct iovec iov[VIRTIO_BLN_QUEUE_SIZE];
@@ -265,16 +267,32 @@ struct virtio_ops bln_dev_virtio_ops = {
 	.get_vq_count		= get_vq_count,
 };
 
+#else
+
+struct virtio_ops bln_dev_virtio_ops = {
+	.get_config		= NULL,
+	.get_config_size	= NULL,
+	.get_host_features	= NULL,
+	.init_vq		= NULL,
+	.notify_vq		= NULL,
+	.get_vq			= NULL,
+	.get_size_vq		= NULL,
+	.set_size_vq            = NULL,
+	.get_vq_count		= NULL,
+};
+
+#endif
+
 int virtio_bln__init(struct kvm *kvm)
 {
 	int r;
 
 	if (!kvm->cfg.balloon)
 		return 0;
-
+#ifndef RIM_MEASURE
 	kvm_ipc__register_handler(KVM_IPC_BALLOON, handle_mem);
 	kvm_ipc__register_handler(KVM_IPC_STAT, virtio_bln__print_stats);
-
+#endif
 	bdev.stat_waitfd	= eventfd(0, 0);
 	memset(&bdev.config, 0, sizeof(struct virtio_balloon_config));
 

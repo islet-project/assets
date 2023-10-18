@@ -29,6 +29,7 @@ bool kvm__arch_cpu_supports_vm(void)
 	return true;
 }
 
+#ifndef RIM_MEASURE
 static void try_increase_mlock_limit(struct kvm *kvm)
 {
 	u64 size = kvm->arch.ram_alloc_size;
@@ -47,6 +48,7 @@ static void try_increase_mlock_limit(struct kvm *kvm)
 	/* Requires CAP_SYS_RESOURCE capability. */
 	setrlimit(RLIMIT_MEMLOCK, &new_limit);
 }
+#endif
 
 void kvm__init_ram(struct kvm *kvm)
 {
@@ -122,8 +124,10 @@ void kvm__arch_delete_ram(struct kvm *kvm)
 
 void kvm__arch_read_term(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	serial8250__update_consoles(kvm);
 	virtio_console__inject_interrupt(kvm);
+#endif
 }
 
 void kvm__arch_set_cmdline(char *cmdline, bool video)

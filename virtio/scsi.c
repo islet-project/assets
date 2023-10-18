@@ -30,6 +30,8 @@ struct scsi_dev {
 	struct kvm			*kvm;
 };
 
+#ifndef RIM_MEASURE
+
 static u8 *get_config(struct kvm *kvm, void *dev)
 {
 	struct scsi_dev *sdev = dev;
@@ -242,6 +244,23 @@ static void virtio_scsi_vhost_init(struct kvm *kvm, struct scsi_dev *sdev)
 	free(mem);
 }
 
+#else
+
+static struct virtio_ops scsi_dev_virtio_ops = {
+	.get_config		= NULL,
+	.get_config_size	= NULL,
+	.get_host_features	= NULL,
+	.init_vq		= NULL,
+	.get_vq			= NULL,
+	.get_size_vq		= NULL,
+	.set_size_vq		= NULL,
+	.notify_status		= NULL,
+	.notify_vq		= NULL,
+	.notify_vq_gsi		= NULL,
+	.notify_vq_eventfd	= NULL,
+	.get_vq_count		= NULL,
+};
+#endif
 
 static int virtio_scsi_init_one(struct kvm *kvm, struct disk_image *disk)
 {
@@ -268,9 +287,9 @@ static int virtio_scsi_init_one(struct kvm *kvm, struct disk_image *disk)
 			VIRTIO_ID_SCSI, PCI_CLASS_BLK);
 	if (r < 0)
 		return r;
-
+#ifndef RIM_MEASURE
 	virtio_scsi_vhost_init(kvm, sdev);
-
+#endif
 	if (compat_id == -1)
 		compat_id = virtio_compat_add_message("virtio-scsi", "CONFIG_VIRTIO_SCSI");
 

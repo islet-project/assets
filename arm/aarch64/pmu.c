@@ -13,6 +13,7 @@
 
 #include "asm/pmu.h"
 
+#ifndef RIM_MEASURE
 static bool pmu_has_attr(struct kvm_cpu *vcpu, u64 attr)
 {
 	struct kvm_device_attr pmu_attr = {
@@ -190,14 +191,17 @@ static int find_pmu(struct kvm *kvm)
 
 	return find_pmu_cpumask(kvm, cpumask);
 }
+#endif
 
 void pmu__generate_fdt_nodes(void *fdt, struct kvm *kvm)
 {
 	const char compatible[] = "arm,armv8-pmuv3";
 	int irq = KVM_ARM_PMUv3_PPI;
+#ifndef RIM_MEASURE
 	struct kvm_cpu *vcpu;
 	int pmu_id = -ENXIO;
 	int i;
+#endif
 
 	u32 cpu_mask = gic__get_fdt_irq_cpumask(kvm);
 	u32 irq_prop[] = {

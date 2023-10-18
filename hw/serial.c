@@ -138,6 +138,8 @@ static struct serial8250_device devices[] = {
 	},
 };
 
+#ifndef RIM_MEASURE
+
 static void serial8250_flush_tx(struct kvm *kvm, struct serial8250_device *dev)
 {
 	dev->lsr |= UART_LSR_TEMT | UART_LSR_THRE;
@@ -410,6 +412,16 @@ static void serial8250_mmio(struct kvm_cpu *vcpu, u64 addr, u8 *data, u32 len,
 	else
 		serial8250_in(dev, vcpu, addr - dev->iobase, data);
 }
+
+#else
+
+static void serial8250_mmio(struct kvm_cpu *vcpu, u64 addr, u8 *data, u32 len,
+			    u8 is_write, void *ptr)
+{
+
+}
+
+#endif
 
 #ifdef CONFIG_HAS_LIBFDT
 

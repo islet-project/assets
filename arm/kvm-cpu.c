@@ -39,9 +39,12 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 {
 	struct kvm_arm_target *target;
 	struct kvm_cpu *vcpu;
-	int coalesced_offset, mmap_size, err = -1;
+#ifndef RIM_MEASURE
+	int coalesced_offset, mmap_size;
 	unsigned int i;
 	struct kvm_vcpu_init preferred_init;
+#endif
+	int err = -1;
 	struct kvm_vcpu_init vcpu_init = {
 		.features = {},
 	};
@@ -116,7 +119,7 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 	}
 #else
 	target = kvm_arm_generic_target;
-	vcpu_init.target = kvm_arm_generic_target;
+	vcpu_init.target = kvm_arm_generic_target->id;
 	err = 0;
 #endif
 

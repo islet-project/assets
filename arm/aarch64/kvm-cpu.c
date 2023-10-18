@@ -14,6 +14,7 @@
 #define SCTLR_EL1_E0E_MASK	(1 << 24)
 #define SCTLR_EL1_EE_MASK	(1 << 25)
 
+#if 0
 #ifdef RIM_MEASURE
  /*
   * PSR bits
@@ -43,6 +44,7 @@
  #define PSR_C_BIT       0x20000000
  #define PSR_Z_BIT       0x40000000
  #define PSR_N_BIT       0x80000000
+#endif
 #endif
 
 static __u64 __core_reg_id(__u64 offset)
@@ -124,10 +126,10 @@ static void reset_vcpu_aarch32(struct kvm_cpu *vcpu)
 static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 {
 	struct kvm *kvm = vcpu->kvm;
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	u64 data;
 
-#ifndef RIM_MEASURE
 	reg.addr = (u64)&data;
 
 	if (!kvm->cfg.arch.is_realm) {
@@ -256,6 +258,7 @@ void kvm_cpu__reset_vcpu(struct kvm_cpu *vcpu)
 
 int kvm_cpu__get_endianness(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	u64 psr;
 	u64 sctlr;
@@ -290,6 +293,9 @@ int kvm_cpu__get_endianness(struct kvm_cpu *vcpu)
 	else
 		sctlr &= SCTLR_EL1_EE_MASK;
 	return sctlr ? VIRTIO_ENDIAN_BE : VIRTIO_ENDIAN_LE;
+#else
+	return 	VIRTIO_ENDIAN_LE;
+#endif
 }
 
 void kvm_cpu__show_code(struct kvm_cpu *vcpu)

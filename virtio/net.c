@@ -74,6 +74,8 @@ struct net_dev {
 static LIST_HEAD(ndevs);
 static int compat_id = -1;
 
+#ifndef RIM_MEASURE
+
 #define MAX_PACKET_SIZE 65550
 
 static bool has_virtio_feature(struct net_dev *ndev, u32 feature)
@@ -273,6 +275,7 @@ static void virtio_net_handle_callback(struct kvm *kvm, struct net_dev *ndev, in
 	mutex_unlock(&net_queue->lock);
 }
 
+#ifndef RIM_MEASURE
 static int virtio_net_request_tap(struct net_dev *ndev, struct ifreq *ifr,
 				  const char *tapname)
 {
@@ -289,6 +292,7 @@ static int virtio_net_request_tap(struct net_dev *ndev, struct ifreq *ifr,
 		strlcpy(ndev->tap_name, ifr->ifr_name, sizeof(ndev->tap_name));
 	return ret;
 }
+#endif
 
 static int virtio_net_exec_script(const char* script, const char *tap_name)
 {
@@ -323,8 +327,10 @@ static bool virtio_net__tap_init(struct net_dev *ndev)
 		pr_warning("Config tap device TUNSETVNETHDRSZ error");
 
 	if (strcmp(params->script, "none")) {
+#ifndef RIM_MEASURE
 		if (virtio_net_exec_script(params->script, ndev->tap_name) < 0)
 			goto fail;
+#endif
 	} else if (!skipconf) {
 		memset(&ifr, 0, sizeof(ifr));
 		strncpy(ifr.ifr_name, ndev->tap_name, sizeof(ifr.ifr_name));
@@ -792,6 +798,34 @@ static struct virtio_ops net_dev_virtio_ops = {
 	.notify_vq_eventfd	= notify_vq_eventfd,
 	.notify_status		= notify_status,
 };
+#else
+static struct virtio_ops net_dev_virtio_ops = {
+	.get_config		= NULL,
+	.get_config_size	= NULL,
+	.get_host_features	= NULL,
+	.get_vq_count		= NULL,
+	.init_vq		= NULL,
+	.exit_vq		= NULL,
+	.get_vq			= NULL,
+	.get_size_vq		= NULL,
+	.set_size_vq		= NULL,
+	.notify_vq		= NULL,
+	.notify_vq_gsi		= NULL,
+	.notify_vq_eventfd	= NULL,
+	.notify_status		= NULL,
+};
+
+static struct net_dev_operations tap_ops = {
+	.rx	= NULL,
+	.tx	= NULL,
+};
+
+static struct net_dev_operations uip_ops = {
+	.rx	= NULL,
+	.tx	= NULL,
+};
+
+#endif
 
 static void virtio_net__vhost_init(struct kvm *kvm, struct net_dev *ndev)
 {
@@ -962,15 +996,19 @@ static int virtio_net__init_one(struct virtio_net_params *params)
 	ndev->mode = params->mode;
 	if (ndev->mode == NET_MODE_TAP) {
 		ndev->ops = &tap_ops;
+#ifndef RIM_MEASURE
 		if (!virtio_net__tap_create(ndev))
 			die_perror("You have requested a TAP device, but creation of one has failed because");
+#endif
 	} else {
 		ndev->info.host_ip		= ntohl(inet_addr(params->host_ip));
 		ndev->info.guest_ip		= ntohl(inet_addr(params->guest_ip));
 		ndev->info.guest_netmask	= ntohl(inet_addr("255.255.255.0"));
 		ndev->info.buf_nr		= 20,
 		ndev->ops = &uip_ops;
+#ifndef RIM_MEASURE
 		uip_static_init(&ndev->info);
+#endif
 	}
 
 	*ops = net_dev_virtio_ops;
@@ -1041,18 +1079,21 @@ virtio_dev_init(virtio_net__init);
 
 int virtio_net__exit(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	struct virtio_net_params *params;
+#endif
 	struct net_dev *ndev;
 	struct list_head *ptr, *n;
 
 	list_for_each_safe(ptr, n, &ndevs) {
 		ndev = list_entry(ptr, struct net_dev, list);
+#ifndef RIM_MEASURE
 		params = ndev->params;
 		/* Cleanup any tap device which attached to bridge */
 		if (ndev->mode == NET_MODE_TAP &&
 		    strcmp(params->downscript, "none"))
 			virtio_net_exec_script(params->downscript, ndev->tap_name);
-
+#endif
 		list_del(&ndev->list);
 		free(ndev);
 	}

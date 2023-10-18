@@ -141,6 +141,7 @@ bool kvm__supports_extension(struct kvm *kvm, unsigned int extension)
 #endif
 }
 
+#ifndef RIM_MEASURE
 static int kvm__check_extensions(struct kvm *kvm)
 {
 	int i;
@@ -157,6 +158,7 @@ static int kvm__check_extensions(struct kvm *kvm)
 
 	return 0;
 }
+#endif
 
 struct kvm *kvm__new(void)
 {
@@ -244,7 +246,9 @@ out:
 int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 		      void *userspace_addr, enum kvm_mem_type type)
 {
+#ifndef RIM_MEASURE
 	struct kvm_userspace_memory_region mem;
+#endif
 	struct kvm_mem_bank *merged = NULL;
 	struct kvm_mem_bank *bank;
 	struct list_head *prev_entry;
@@ -324,6 +328,7 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 	if (type & KVM_MEM_TYPE_READONLY)
 		flags |= KVM_MEM_READONLY;
 
+#ifndef RIM_MEASURE
 	if (type != KVM_MEM_TYPE_RESERVED) {
 		mem = (struct kvm_userspace_memory_region) {
 			.slot			= slot,
@@ -333,16 +338,13 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 			.userspace_addr		= (unsigned long)userspace_addr,
 		};
 
-#ifndef RIM_MEASURE
 		ret = ioctl(kvm->vm_fd, KVM_SET_USER_MEMORY_REGION, &mem);
-#else
-		ret = 0;
-#endif
 		if (ret < 0) {
 			ret = -errno;
 			goto out;
 		}
 	}
+#endif
 
 	list_add(&bank->list, prev_entry);
 	kvm->mem_slots++;
@@ -514,6 +516,7 @@ int kvm__init(struct kvm *kvm)
 
 	return 0;
 
+#ifndef RIM_MEASURE
 err_vm_fd:
 	close(kvm->vm_fd);
 err_sys_fd:
@@ -522,6 +525,7 @@ err_free:
 	free(kvm);
 err:
 	return ret;
+#endif
 }
 core_init(kvm__init);
 
