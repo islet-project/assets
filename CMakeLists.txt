@@ -166,6 +166,9 @@ if(DEFINED SUITE_TEST_RANGE)
     add_definitions(-DSUITE_TEST_RANGE_MAX="${SUITE_TEST_RANGE_MAX}")
 endif()
 
+if(DEFINED SUITE_EXCLUDED)
+    add_definitions(-DSUITE_EXCLUDED="${SUITE_EXCLUDED}")
+endif()
 
 
 # Setup toolchain parameters for compilation and link

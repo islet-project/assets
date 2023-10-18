@@ -295,6 +295,22 @@ static void val_host_test_dispatch(bool primary_cpu_boot)
     test_fptr_t       fn_ptr;
     val_test_info_ts       test_info = {0};
     val_regre_report_ts    regre_report = {0};
+#if defined(SUITE_EXCLUDED)
+    char str[] = SUITE_EXCLUDED;
+    char delimeter[] = ",";
+    char *result = NULL;
+    char excluded_tests[60][80];
+    uint32_t k = 0;
+    uint32_t total_excluded = 0;
+	    
+    result = pal_strtok(str, delimeter);
+
+    while (result != NULL) {
+        pal_strcpy(excluded_tests[k++], result);
+        result = pal_strtok(NULL, delimeter);
+    }
+    total_excluded = k;
+#endif
 
     if (primary_cpu_boot == true)
     {
@@ -375,6 +391,18 @@ static void val_host_test_dispatch(bool primary_cpu_boot)
         /* Iterate over test_list[] to run test one by one */
         for (i = test_num_start ; i <= test_num_end; i++)
         {
+#if defined(SUITE_EXCLUDED)
+            bool skip = false;
+            for (k = 0; k < total_excluded; k++) {
+                if (val_strcmp((char *)test_list[i].test_name, excluded_tests[k]) == 0) {
+                    skip = true;
+                }
+            }
+
+            if (skip == true) {
+                continue;
+            }
+#endif
             fn_ptr = (test_fptr_t)(test_list[i].host_fn);
 
             if (fn_ptr == NULL)
