@@ -1,0 +1,10 @@
+Firstly you need to download and build the libfdt library from git://git.kernel.org/pub/scm/utils/dtc/dtc.git
+
+Build the lkvm-rim-measurer tool
+
+	make RIM_MEASURE=1 LIBFDT_DIR=<path to libfdt library>
+
+Run all the tests
+
+	./rim-calc-test.sh
+
