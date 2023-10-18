@@ -271,6 +271,7 @@ int kvm_cpu__get_endianness(struct kvm_cpu *vcpu)
 
 void kvm_cpu__show_code(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	unsigned long data;
 	int debug_fd = kvm_cpu__get_debug_fd();
@@ -293,10 +294,12 @@ void kvm_cpu__show_code(struct kvm_cpu *vcpu)
 		die("KVM_GET_ONE_REG failed (show_code @ LR)");
 
 	kvm__dump_mem(vcpu->kvm, data, 32, debug_fd);
+#endif
 }
 
 void kvm_cpu__show_registers(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	unsigned long data;
 	int debug_fd = kvm_cpu__get_debug_fd();
@@ -328,4 +331,5 @@ void kvm_cpu__show_registers(struct kvm_cpu *vcpu)
 	if (ioctl(vcpu->vcpu_fd, KVM_GET_ONE_REG, &reg) < 0)
 		die("KVM_GET_ONE_REG failed (lr)");
 	dprintf(debug_fd, " LR:    0x%lx\n", data);
+#endif
 }

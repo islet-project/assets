@@ -45,7 +45,7 @@ static void kvm_cpu__arch_parse_mpidrs(struct kvm *kvm)
 
 	if (kvm->arch.mpidr == NULL) {
 		kvm->arch.mpidr = (u64 *) calloc(kvm->nrcpus, sizeof(u64));
-		if (kvm->arch.mpidr)
+		if (kvm->arch.mpidr == NULL)
 			die("Couldn't allocate memory for MPIDRs");
 
 		mpidr_str = strdup(kvm->cfg.arch.mpidr);
