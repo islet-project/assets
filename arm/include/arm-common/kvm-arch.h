@@ -117,6 +117,9 @@ struct kvm_arch {
 	u64	measurement_algo;
 	u64	sve_vq;
 	bool	realm_is_active;
+#ifdef RIM_MEASURE
+	u64 *mpidr;
+#endif
 };
 
 #endif /* ARM_COMMON__KVM_ARCH_H */

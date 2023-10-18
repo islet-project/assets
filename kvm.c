@@ -417,6 +417,7 @@ int kvm__for_each_mem_bank(struct kvm *kvm, enum kvm_mem_type type,
 
 int kvm__recommended_cpus(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	int ret;
 
 	ret = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION, KVM_CAP_NR_VCPUS);
@@ -428,10 +429,14 @@ int kvm__recommended_cpus(struct kvm *kvm)
 		return 4;
 
 	return ret;
+#else
+	return 2;
+#endif
 }
 
 int kvm__max_cpus(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	int ret;
 
 	ret = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION, KVM_CAP_MAX_VCPUS);
@@ -439,6 +444,9 @@ int kvm__max_cpus(struct kvm *kvm)
 		ret = kvm__recommended_cpus(kvm);
 
 	return ret;
+#else
+	return 16;
+#endif
 }
 
 int __attribute__((weak)) kvm__get_vm_type(struct kvm *kvm)

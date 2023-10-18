@@ -35,6 +35,41 @@ int kvm_cpu__register_kvm_arm_target(struct kvm_arm_target *target)
 	return -ENOSPC;
 }
 
+#ifdef RIM_MEASURE
+static void kvm_cpu__arch_parse_mpidrs(struct kvm *kvm)
+{
+	char *token;
+	char *mpidr_str;
+	char *saveptr;
+	int mpidr_idx;
+
+	if (kvm->arch.mpidr == NULL) {
+		kvm->arch.mpidr = (u64 *) calloc(kvm->nrcpus, sizeof(u64));
+		if (kvm->arch.mpidr)
+			die("Couldn't allocate memory for MPIDRs");
+
+		mpidr_str = strdup(kvm->cfg.arch.mpidr);
+		if (mpidr_str == NULL)
+			die("Couldn't allocate memory for MPIDRs string");
+
+		saveptr = mpidr_str;
+		mpidr_idx = 0;
+
+		while ((token = strtok_r(saveptr, ",", &saveptr))) {
+			sscanf(token, "%llx", &kvm->arch.mpidr[mpidr_idx]);
+			mpidr_idx++;
+			if (mpidr_idx > kvm->nrcpus)
+				die("Too many MPIDRs");
+		}
+
+		if (mpidr_idx < kvm->nrcpus)
+			die("The number of MPIDRs doesn't match the number of CPUs");
+
+		free(mpidr_str);
+	}
+}
+#endif
+
 struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 {
 	struct kvm_arm_target *target;
@@ -129,6 +164,15 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 	vcpu->cpu_type		= vcpu_init.target;
 	vcpu->cpu_compatible	= target->compatible;
 	vcpu->is_running	= true;
+#ifdef RIM_MEASURE
+	if (kvm->cfg.arch.mpidr) {
+		kvm_cpu__arch_parse_mpidrs(kvm);
+		vcpu->mpidr = kvm->arch.mpidr[cpu_id];
+	}
+	else {
+		vcpu->mpidr = cpu_id;
+	}
+#endif
 
 	if (err || target->init(vcpu))
 		die("Unable to initialise vcpu");

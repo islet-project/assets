@@ -3,7 +3,17 @@
 
 int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset);
 
+#ifdef RIM_MEASURE
+#define ARM_OPT_ARCH_RUN_MEASURE(cfg) 				\
+	OPT_STRING('\0', "mpidrs", &(cfg)->mpidr,		\
+	"mpidr values",									\
+	"comma-separated MPIDR values for CPUs"),
+#else
+#define ARM_OPT_ARCH_RUN_MEASURE(...)
+#endif
+
 #define ARM_OPT_ARCH_RUN(cfg)						\
+	ARM_OPT_ARCH_RUN_MEASURE(cfg)					\
 	OPT_BOOLEAN('\0', "aarch32", &(cfg)->aarch32_guest,		\
 			"Run AArch32 guest"),				\
 	OPT_BOOLEAN('\0', "pmu", &(cfg)->has_pmuv3,			\
