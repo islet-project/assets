@@ -7,6 +7,8 @@ Calculated RIM values highly depend on the implementation of host and RMM compon
 - Linux kernel supporting Arm CCA https://gitlab.arm.com/linux-arm/linux-cca branch: cca-host/rfc-v1
 - Trusted Firmware RMM - TF-RMM https://git.trustedfirmware.org/TF-RMM/tf-rmm.git (v0.3.0 aligned with the RMM v1.0-Beta0 specification)
 
+WARNING: Because the tool re-uses the original TF-RMM source code of measurement descriptor structures, the tool currently targets only 64 bit little-endian environments (this should cover majority of modern Linux PC workstations).
+
 BUILDING
 ========
 
