@@ -1,6 +1,8 @@
 /*
 * SPDX-License-Identifier: BSD-3-Clause
 * SPDX-FileCopyrightText: Copyright TF-RMM Contributors.
+*
+* The code has been borrowed from TF-RMM (v1.0-Beta0 RMM specification).
 */
 
 #include <string.h>

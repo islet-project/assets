@@ -1,10 +1,29 @@
+NOTICE
+======
+
+Calculated RIM values highly depend on the implementation of host and RMM components used to launch Realms. This version of the tool is compatible with Arm CCA environments that use the the following set of components:
+
+- kvmtool supporting Arm CCA https://gitlab.arm.com/linux-arm/kvmtool-cca branch: cca/rfc-v1
+- Linux kernel supporting Arm CCA https://gitlab.arm.com/linux-arm/linux-cca branch: cca-host/rfc-v1
+- Trusted Firmware RMM - TF-RMM https://git.trustedfirmware.org/TF-RMM/tf-rmm.git (v0.3.0 aligned with the RMM v1.0-Beta0 specification)
+
+BUILDING
+========
+
 To build the lkvm-rim-measurer tool you need to firstly download and build libfdt library from git://git.kernel.org/pub/scm/utils/dtc/dtc.git
 
-To build the tool run the following command:
+Then, get into the RIM measurer tool project folder and run the following command:
 
 	make RIM_MEASURE=1 LIBFDT_DIR=<path to the libfdt folder>
 
-The takes the same set of options as lkvm run command and produces the Realm Initial Measurement.
+The resulting executable is named lkvm-rim-measurer and it can be found in the main project folder.
+
+The same source base can be used to build the lkvm tool used to launch Realms on an Arm CCA environment (build the tool without providing additional RIM_MEASURE=1 parameter).
+
+RUNNING
+=======
+
+The tool takes the same set of options as lkvm run command and produces the Realm Initial Measurement (RIM).
 
 	./lkvm-rim-measurer run                                                 \
 		--debug                                                          \

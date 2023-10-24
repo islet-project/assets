@@ -7,11 +7,9 @@
 #define MEASUREMENT_H
 
 #include <assert.h>
-//#include <smc-rmi.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <linux/sizes.h>
-//#include <utils_def.h>
 
 #define GRANULE_SIZE 4096U
 
@@ -28,10 +26,6 @@
 
 #define COMPILER_ASSERT(_condition)	\
 			extern char compiler_assert[(_condition) ? 1 : -1]
-
-/*#define COMPILER_ASSERT(_condition)	\
-			typedef char compiler_assert[(_condition) ? 1 : -1]
-*/
 
 /* RmiHashAlgorithm type */
 #define RMI_HASH_ALGO_SHA256	0
