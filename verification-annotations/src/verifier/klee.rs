@@ -12,7 +12,7 @@
 
 pub use crate::traits::*;
 
-#[link(name = "kleeRuntest")]
+//#[link(name = "kleeRuntest")]
 extern "C" {
     fn klee_make_symbolic(data: *mut u8, length: usize, name: *const i8);
     fn klee_assume(cond: usize);
