@@ -90,12 +90,12 @@ macro_rules! assert {
     ($cond:expr, $($arg:tt)+) => {{
         if ! $cond {
 	    #[cfg(not(feature = "verifier-smack"))]
-	    {
+	    /*{
 		let message = format!($($arg)+);
 		eprintln!("VERIFIER: panicked at '{}', {}:{}:{}",
 			  message,
 			  std::file!(), std::line!(), std::column!());
-	    }
+	    }*/
             $crate::verifier::abort();
         }
     }}
