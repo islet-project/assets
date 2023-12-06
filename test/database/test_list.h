@@ -26,6 +26,7 @@ DECLARE_TEST_FN(cmd_rsi_version);
 DECLARE_TEST_FN(cmd_realm_config);
 DECLARE_TEST_FN(cmd_ipa_state_get);
 DECLARE_TEST_FN(cmd_ipa_state_set);
+DECLARE_TEST_FN(cmd_local_channel_send_receive);
 /*command testcase declaration ends here*/
 
 /*val sanity testcase starts here*/
@@ -144,6 +145,9 @@ DECLARE_TEST_FN(gic_ctrl_list_invalid);
     #endif
     #if (defined(TEST_COMBINE) || defined(d_cmd_ipa_state_set))
     HOST_REALM_TEST(command, cmd_ipa_state_set),
+    #endif
+    #if (defined(TEST_COMBINE) || defined(d_cmd_local_channel_send_receive))
+    HOST_REALM_TEST(command, cmd_local_channel_send_receive),
     #endif
 
 #endif /* (SUITE == all || SUITE == command) */

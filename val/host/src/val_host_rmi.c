@@ -157,6 +157,11 @@ uint64_t val_host_rmi_realm_activate(uint64_t rd)
     return (val_smc_call(RMI_REALM_ACTIVATE, rd, 0, 0, 0, 0, 0, 0)).x0;
 }
 
+uint64_t val_host_rmi_local_channel_setup(uint64_t c_rd, uint64_t s_rd, uint64_t lc_pa, uint64_t lc_ipa, uint64_t lc_size)
+{
+    return (val_smc_call(RMI_LOCAL_CHANNEL_SETUP, c_rd, s_rd, lc_pa, lc_ipa, lc_size, 0, 0)).x0;
+}
+
 /**
  *   @brief    Creates a Realm
  *   @param    rd              -  PA of the RD

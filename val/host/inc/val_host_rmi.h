@@ -34,6 +34,7 @@ uint64_t val_host_rmi_granule_undelegate(uint64_t addr);
 uint64_t val_host_rmi_psci_complete(uint64_t calling_rec,
                  uint64_t target_rec);
 uint64_t val_host_rmi_realm_activate(uint64_t rd);
+uint64_t val_host_rmi_local_channel_setup(uint64_t c_rd, uint64_t s_rd, uint64_t lc_ipa, uint64_t lc_pa, uint64_t lc_size);
 uint64_t val_host_rmi_realm_create(uint64_t rd, uint64_t params_ptr);
 uint64_t val_host_rmi_realm_destroy(uint64_t rd);
 uint64_t val_host_rmi_data_destroy(uint64_t rd, uint64_t ipa);

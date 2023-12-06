@@ -42,6 +42,12 @@ uint64_t val_realm_rsi_host_call(uint16_t imm)
      return (val_smc_call(RSI_HOST_CALL, (uint64_t)&gv_realm_host_call, 0, 0, 0, 0, 0, 0)).x0;
 }
 
+void val_realm_rsi_local_channel_send(uint64_t lc_ipa, uint64_t lc_size, uint64_t data_size)
+{
+    val_smc_call(RSI_LOCAL_CHANNEL_SEND, lc_ipa, lc_size, data_size, 0, 0, 0, 0);
+}
+
+
 /**
  *   @brief    Request RIPAS of a target IPA range to be changed to a specified value.
  *   @param    base     - Base of target IPA region
@@ -87,6 +93,25 @@ val_realm_rsi_host_call_t *val_realm_rsi_host_call_ripas(uint16_t imm)
 
      return &gv_realm_host_call;
 }
+
+val_realm_rsi_host_call_t *val_realm_rsi_host_call_get_lc_info(uint16_t imm)
+{
+    gv_realm_host_call.imm = imm;
+
+    val_smc_call(RSI_HOST_CALL, (uint64_t)&gv_realm_host_call, 0, 0, 0, 0, 0, 0);
+
+    return &gv_realm_host_call;
+}
+
+val_realm_rsi_host_call_t *val_realm_rsi_host_call_local_channel_receive(uint16_t imm)
+{
+    gv_realm_host_call.imm = imm;
+
+    val_smc_call(RSI_HOST_CALL, (uint64_t)&gv_realm_host_call, 0, 0, 0, 0, 0, 0);
+
+    return &gv_realm_host_call;
+}
+
 
 /**
  *   @brief    Get realm IPA width
