@@ -388,6 +388,9 @@ static void val_host_test_dispatch(bool primary_cpu_boot)
             test_num_end = test_info.end_test_num;
         }
 
+		// cmd_local_channel_send_receive TC
+		test_num_start = 21;
+		test_num_end = 21;
         /* Iterate over test_list[] to run test one by one */
         for (i = test_num_start ; i <= test_num_end; i++)
         {
