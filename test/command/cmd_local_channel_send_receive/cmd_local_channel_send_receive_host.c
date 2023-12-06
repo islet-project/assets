@@ -162,5 +162,10 @@ void cmd_local_channel_send_receive_host(void)
 
 /* Free test resources */
 destroy_realm:
+    LOG(TEST, "\t[HOST] Call rmi_local_channel_destroy()\n", 0, 0);
+    val_host_rmi_local_channel_destroy(realms[0].rd, realms[1].rd, lc_pa, lc_ipa, PAGE_SIZE);
+
+    LOG(TEST, "\t[HOST] Free local channel PA 0x%lx\n", lc_pa, 0);
+    val_host_mem_free((void *)lc_pa);
     return;
 }

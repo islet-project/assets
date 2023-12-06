@@ -36,6 +36,7 @@
 #define RMI_RTT_INIT_RIPAS           0xC4000168
 #define RMI_RTT_SET_RIPAS            0xC4000169
 #define RMI_LOCAL_CHANNEL_SETUP      0xC400016a
+#define RMI_LOCAL_CHANNEL_DESTROY    0xC400016b
 #define RMI_VERSION                  0xC4000150
 
 /* RmiFeature types */
