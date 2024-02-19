@@ -114,6 +114,39 @@ SYSCALL_DEFINE0(sync)
 	return 0;
 }
 
+#include <asm/rsi_cmds.h>
+unsigned char cloak_local_channel_buf[4096] __attribute__((aligned(4096))) = {0,};
+
+SYSCALL_DEFINE2(cloak_channel_create, unsigned long, id, unsigned long, ipa)
+{
+    pr_info("[JB] cloak_channel_create!\n");
+    return (int)rsi_cloak_channel_create(id, (unsigned long)virt_to_phys(cloak_local_channel_buf));
+}
+
+SYSCALL_DEFINE2(cloak_channel_connect, unsigned long, id, unsigned long, ipa)
+{
+    pr_info("[JB] cloak_channel_connect!\n");
+    return (int)rsi_cloak_channel_connect(id, (unsigned long)virt_to_phys(cloak_local_channel_buf));
+}
+
+SYSCALL_DEFINE2(cloak_channel_write, char __user *, buf, unsigned int, size)
+{
+	pr_info("[JB] cloak_channel_write!\n");
+	if (copy_from_user(cloak_local_channel_buf, buf, size)) {
+		return -EFAULT;
+	}
+	return 0;
+}
+
+SYSCALL_DEFINE2(cloak_channel_read, char __user *, buf, unsigned int, size)
+{
+	pr_info("[JB] cloak_channel_read!\n");
+	if (copy_to_user(buf, cloak_local_channel_buf, size)) {
+		return -EFAULT;
+	}
+	return 0;
+}
+
 static void do_sync_work(struct work_struct *work)
 {
 	int nowait = 0;

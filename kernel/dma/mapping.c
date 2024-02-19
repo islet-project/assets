@@ -330,9 +330,13 @@ void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr, size_t size,
 {
 	const struct dma_map_ops *ops = get_dma_ops(dev);
 
+    pr_info("[JB] dma_sync_single_for_cpu: sync_single_for_cpu: %lx, sync_sg_for_cpu: %lx, init_name: %s\n", (unsigned long)ops->sync_single_for_cpu, (unsigned long)ops->sync_sg_for_cpu, dev->init_name);
+
 	BUG_ON(!valid_dma_direction(dir));
-	if (dma_map_direct(dev, ops))
+	if (dma_map_direct(dev, ops)) {
+        pr_info("[JB] dma_map_direct!\n");
 		dma_direct_sync_single_for_cpu(dev, addr, size, dir);
+    }
 	else if (ops->sync_single_for_cpu)
 		ops->sync_single_for_cpu(dev, addr, size, dir);
 	debug_dma_sync_single_for_cpu(dev, addr, size, dir);
@@ -344,9 +348,13 @@ void dma_sync_single_for_device(struct device *dev, dma_addr_t addr,
 {
 	const struct dma_map_ops *ops = get_dma_ops(dev);
 
+    pr_info("[JB] dma_sync_single_for_device: sync_single_for_cpu: %lx, sync_sg_for_cpu: %lx, init_name: %s\n", (unsigned long)ops->sync_single_for_cpu, (unsigned long)ops->sync_sg_for_cpu, dev->init_name);
+
 	BUG_ON(!valid_dma_direction(dir));
-	if (dma_map_direct(dev, ops))
+	if (dma_map_direct(dev, ops)) {
+        pr_info("[JB] dma_map_direct!\n");
 		dma_direct_sync_single_for_device(dev, addr, size, dir);
+    }
 	else if (ops->sync_single_for_device)
 		ops->sync_single_for_device(dev, addr, size, dir);
 	debug_dma_sync_single_for_device(dev, addr, size, dir);
@@ -358,9 +366,13 @@ void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
 {
 	const struct dma_map_ops *ops = get_dma_ops(dev);
 
+    pr_info("[JB] dma_sync_sg_for_cpu: sync_single_for_cpu: %lx, sync_sg_for_cpu: %lx, init_name: %s\n", (unsigned long)ops->sync_single_for_cpu, (unsigned long)ops->sync_sg_for_cpu, dev->init_name);
+
 	BUG_ON(!valid_dma_direction(dir));
-	if (dma_map_direct(dev, ops))
+	if (dma_map_direct(dev, ops)) {
+        pr_info("[JB] dma_map_direct!\n");
 		dma_direct_sync_sg_for_cpu(dev, sg, nelems, dir);
+    }
 	else if (ops->sync_sg_for_cpu)
 		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
 	debug_dma_sync_sg_for_cpu(dev, sg, nelems, dir);
@@ -372,11 +384,16 @@ void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
 {
 	const struct dma_map_ops *ops = get_dma_ops(dev);
 
+    pr_info("[JB] dma_sync_sg_for_device: sync_single_for_cpu: %lx, sync_sg_for_cpu: %lx, init_name: %s\n", (unsigned long)ops->sync_single_for_cpu, (unsigned long)ops->sync_sg_for_cpu, dev->init_name);
+
 	BUG_ON(!valid_dma_direction(dir));
-	if (dma_map_direct(dev, ops))
+	if (dma_map_direct(dev, ops)) {
+        pr_info("[JB] dma_map_direct!\n");
 		dma_direct_sync_sg_for_device(dev, sg, nelems, dir);
-	else if (ops->sync_sg_for_device)
+    }
+	else if (ops->sync_sg_for_device) {
 		ops->sync_sg_for_device(dev, sg, nelems, dir);
+    }
 	debug_dma_sync_sg_for_device(dev, sg, nelems, dir);
 }
 EXPORT_SYMBOL(dma_sync_sg_for_device);

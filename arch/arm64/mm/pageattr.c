@@ -208,9 +208,11 @@ static int __set_memory_encrypted(unsigned long addr,
 	end = start + numpages * PAGE_SIZE;
 
 	if (encrypt) {
+        pr_info("[JB] set_encrypted_page: %lx-%lx\n", (unsigned long)start, (unsigned long)end);
 		clear_prot = PROT_NS_SHARED;
 		set_memory_range_protected(start, end);
 	} else {
+        pr_info("[JB] set_decrypted_page: %lx-%lx\n", (unsigned long)start, (unsigned long)end);
 		set_prot = PROT_NS_SHARED;
 		set_memory_range_shared(start, end);
 	}
@@ -227,7 +229,11 @@ int set_memory_encrypted(unsigned long addr, int numpages)
 
 int set_memory_decrypted(unsigned long addr, int numpages)
 {
+    unsigned long caller = (unsigned long)__builtin_return_address(0);
+    pr_info("[JB] set_memory_decrypted, addr: %lx, caller: %lx\n", addr, caller);
+
 	return __set_memory_encrypted(addr, numpages, false);
+	//return __set_memory_encrypted(addr, numpages, true);
 }
 
 #ifdef CONFIG_DEBUG_PAGEALLOC

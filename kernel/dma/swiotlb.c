@@ -534,6 +534,21 @@ static void swiotlb_bounce(struct device *dev, phys_addr_t tlb_addr, size_t size
 	unsigned char *vaddr = mem->vaddr + tlb_addr - mem->start;
 	unsigned int tlb_offset, orig_addr_offset;
 
+/*
+    unsigned long caller = (unsigned long)__builtin_return_address(0);
+    unsigned long caller2 = (unsigned long)__builtin_return_address(1);
+    unsigned long caller3 = (unsigned long)__builtin_return_address(2);
+    pr_info("[JB] swiotlb_bounce: tlb_addr: %lx, orig_addr: %lx, vaddr: %lx, caller: %lx, caller2: %lx, caller3: %lx\n", (unsigned long)tlb_addr, (unsigned long)orig_addr, (unsigned long)vaddr, caller, caller2, caller3);
+    if (dev->init_name) {
+        pr_info("[JB] dev_init_name: %s\n", dev->init_name);
+    }
+    if (dev->type && dev->type->name) {
+        pr_info("[JB] type_name: %s\n", dev->type->name);
+    }
+    if (dev->kobj.name) {
+        pr_info("[JB] kobj_name: %s\n", dev->kobj.name);
+    } */
+
 	if (orig_addr == INVALID_PHYS_ADDR)
 		return;
 

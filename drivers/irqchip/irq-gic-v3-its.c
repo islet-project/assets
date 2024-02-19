@@ -213,9 +213,10 @@ static struct page *its_alloc_shared_pages_node(int node, gfp_t gfp,
 	else
 		page = alloc_pages_node(node, gfp, order);
 
-	if (page)
+	if (page) {
 		set_memory_decrypted((unsigned long)page_address(page),
 				     1 << order);
+    }
 	return page;
 }
 

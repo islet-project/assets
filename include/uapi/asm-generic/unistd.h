@@ -886,8 +886,21 @@ __SYSCALL(__NR_futex_waitv, sys_futex_waitv)
 #define __NR_set_mempolicy_home_node 450
 __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
 
+// [JB] for cloak
+#define __NR_cloak_channel_create 451
+__SYSCALL(__NR_cloak_channel_create, sys_cloak_channel_create)
+
+#define __NR_cloak_channel_connect 452
+__SYSCALL(__NR_cloak_channel_connect, sys_cloak_channel_connect)
+
+#define __NR_cloak_channel_write 453
+__SYSCALL(__NR_cloak_channel_write, sys_cloak_channel_write)
+
+#define __NR_cloak_channel_read 454
+__SYSCALL(__NR_cloak_channel_read, sys_cloak_channel_read)
+
 #undef __NR_syscalls
-#define __NR_syscalls 451
+#define __NR_syscalls 455
 
 /*
  * 32 bit systems traditionally used different

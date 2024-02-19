@@ -129,4 +129,19 @@ struct realm_config {
  */
 #define SMC_RSI_HOST_CALL			SMC_RSI_FID(0x199)
 
+// For Cloak
+/*
+ * arg1 == channel id
+ * arg2 == IPA of shared memory
+ * ret0 == Status / error
+ */
+#define SMC_RSI_CHANNEL_CREATE      SMC_RSI_FID(0x200)
+
+/*
+ * arg1 == channel id
+ * arg2 == IPA of shared memory
+ * ret0 == Status / error
+ */
+#define SMC_RSI_CHANNEL_CONNECT     SMC_RSI_FID(0x201)
+
 #endif /* __SMC_RSI_H_ */

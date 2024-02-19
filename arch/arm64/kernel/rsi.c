@@ -71,8 +71,12 @@ void arm64_setup_memory(void)
 	}
 }
 
+//static unsigned char local_channel_buf[4096 * 4] = {0,};
+
 void __init arm64_rsi_init(void)
 {
+    unsigned long r;
+
 	if (!rsi_version_matches())
 		return;
 	if (rsi_get_realm_config(&config))
@@ -83,4 +87,8 @@ void __init arm64_rsi_init(void)
 		phys_mask_shift = config.ipa_bits - 1;
 
 	static_branch_enable(&rsi_present);
+
+    // For cloak: test
+    //rsi_cloak_channel_create(0, (unsigned long)virt_to_phys(local_channel_buf));
+    //rsi_cloak_channel_connect(0, (unsigned long)virt_to_phys(local_channel_buf));
 }
