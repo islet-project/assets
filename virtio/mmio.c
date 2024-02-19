@@ -149,6 +149,9 @@ static void generate_virtio_mmio_fdt_node(void *fdt,
 int virtio_mmio_init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 		     int device_id, int subsys_id, int class)
 {
+    // [JB]
+    return 0;
+
 	bool legacy = vdev->legacy;
 	struct virtio_mmio *vmmio = vdev->virtio;
 	int r;

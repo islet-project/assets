@@ -341,6 +341,8 @@ int virtio_pci__init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 	u16 port_addr;
 	int r;
 
+    pr_err("[JB] virtio_pci__init start\n");
+
 	vpci->kvm = kvm;
 	vpci->dev = dev;
 
@@ -422,6 +424,7 @@ int virtio_pci__init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 	else
 		return virtio_pci_modern_init(vdev);
 
+    pr_err("[JB] virtio_pci__init end\n");
 	return 0;
 }
 

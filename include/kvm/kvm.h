@@ -164,6 +164,7 @@ int __must_check kvm__register_mmio(struct kvm *kvm, u64 phys_addr,
 				    u64 phys_addr_len, bool coalesce,
 				    mmio_handler_fn mmio_fn, void *ptr)
 {
+    pr_err("[JB] kvm__register_mmio: phys_addr: %lx, ptr: %lx\n", (unsigned long)phys_addr, (unsigned long)ptr);
 	return kvm__register_iotrap(kvm, phys_addr, phys_addr_len, mmio_fn, ptr,
 			DEVICE_BUS_MMIO | (coalesce ? IOTRAP_COALESCE : 0));
 }
@@ -171,6 +172,7 @@ static inline
 int __must_check kvm__register_pio(struct kvm *kvm, u16 port, u16 len,
 				   mmio_handler_fn mmio_fn, void *ptr)
 {
+    pr_err("[JB] kvm__register_pio: ptr: %lx\n", (unsigned long)ptr);
 	return kvm__register_iotrap(kvm, port, len, mmio_fn, ptr,
 				    DEVICE_BUS_IOPORT);
 }

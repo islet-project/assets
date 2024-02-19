@@ -159,6 +159,7 @@ static int init_vq(struct kvm *kvm, void *dev, u32 vq)
 		cdev.vq_ready = 1;
 		mutex_unlock(&cdev.mutex);
 	}
+    pr_err("[JB] console init_vq: %lx\n", (unsigned long)queue->vring_addr.pfn);
 
 	return 0;
 }
@@ -225,6 +226,7 @@ int virtio_console__init(struct kvm *kvm)
 {
 	int r;
 
+    pr_err("[JB] virtio_console__init start\n");
 	if (kvm->cfg.active_console != CONSOLE_VIRTIO)
 		return 0;
 
@@ -237,6 +239,7 @@ int virtio_console__init(struct kvm *kvm)
 	if (compat_id == -1)
 		compat_id = virtio_compat_add_message("virtio-console", "CONFIG_VIRTIO_CONSOLE");
 
+    pr_err("[JB] virtio_console__init end\n");
 	return 0;
 }
 virtio_dev_init(virtio_console__init);

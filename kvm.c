@@ -313,6 +313,7 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 	bank->size			= size;
 	bank->type			= type;
 	bank->slot			= slot;
+    pr_err("[JB] kvm__register_mem: guest_phy: %lx, host_addr: %lx, size: %lx, type: %lx\n", (unsigned long)guest_phys, (unsigned long)userspace_addr, (unsigned long)size, (unsigned long)type);
 
 	if (type & KVM_MEM_TYPE_READONLY)
 		flags |= KVM_MEM_READONLY;

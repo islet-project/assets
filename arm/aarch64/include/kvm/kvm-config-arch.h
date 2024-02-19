@@ -30,6 +30,9 @@ int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset);
 	OPT_STRING('\0', "realm-pv", &(cfg)->realm_pv,			\
 			"personalisation value",			\
 			"Personalisation Value (only) for Realm VMs"),	\
+	OPT_STRING('\0', "expected-measurement", &(cfg)->expected_measurement,			\
+			"expected measurement value",			\
+			"Expected measurement value for mutual attestation"),	\
 	OPT_U64('\0', "sve-vl", &(cfg)->sve_vl,				\
 			"SVE Vector Length the VM"			\
 			"(only supported for Realms)"),

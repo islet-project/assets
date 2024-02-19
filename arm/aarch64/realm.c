@@ -23,8 +23,43 @@ static void realm_configure_hash_algo(struct kvm *kvm)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) hash_algo");
 }
 
+// Function to convert hex character to decimal
+static int hexCharToDecimal(char hexChar) {
+    if (hexChar >= '0' && hexChar <= '9') {
+        return hexChar - '0';
+    } else if (hexChar >= 'A' && hexChar <= 'F') {
+        return hexChar - 'A' + 10;
+    } else if (hexChar >= 'a' && hexChar <= 'f') {
+        return hexChar - 'a' + 10;
+    }
+    return -1; // Invalid hex character
+}
+
+// Function to convert hex string to binary string
+static void hexStringToBinary(const char* hexString, unsigned char *out) {
+    size_t len = strlen(hexString);
+
+    for (size_t i = 0; i < len; ++i) {
+        int decimalValue = hexCharToDecimal(hexString[i]);
+
+        if (decimalValue == -1) {
+            fprintf(stderr, "Invalid hex character: %c\n", hexString[i]);
+            exit(EXIT_FAILURE);
+        }
+
+        if (i % 2 == 0) {
+            out[i / 2] += (unsigned char)(decimalValue * 16);
+        } else {
+            out[i / 2] += (unsigned char)decimalValue;
+        }
+    }
+}
+
 static void realm_configure_rpv(struct kvm *kvm)
 {
+    unsigned char measure[256] = {0,};
+
+    // 1. configure RPV
 	struct kvm_cap_arm_rme_config_item rpv_cfg  = {
 		.cfg	= KVM_CAP_ARM_RME_CFG_RPV,
 	};
@@ -35,14 +70,26 @@ static void realm_configure_rpv(struct kvm *kvm)
 		.args[1] = (u64)&rpv_cfg,
 	};
 
-	if (!kvm->cfg.arch.realm_pv)
+	if (!kvm->cfg.arch.realm_pv) {
+        pr_err("[JB] realm_pv NULL\n");
 		return;
+    }
+    pr_err("[JB] realm_pv: %s\n", kvm->cfg.arch.realm_pv);
 
 	memset(&rpv_cfg.rpv, 0, sizeof(rpv_cfg.rpv));
 	memcpy(&rpv_cfg.rpv, kvm->cfg.arch.realm_pv, strlen(kvm->cfg.arch.realm_pv));
 
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) RPV");
+
+    // 2. configure expected_measurement
+    rpv_cfg.cfg = KVM_CAP_ARM_RME_CFG_EXPECTED_MEASUREMENT;
+    memset(&rpv_cfg.expected_measurement, 0, sizeof(rpv_cfg.expected_measurement));
+    hexStringToBinary(kvm->cfg.arch.expected_measurement, measure);
+    memcpy(&rpv_cfg.expected_measurement, measure, sizeof(measure));
+
+    if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
+        die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) EXPECTED_MEASUREMENT");
 }
 
 static void realm_configure_sve(struct kvm *kvm)

@@ -420,6 +420,7 @@ enum {
 #define KVM_CAP_ARM_RME_CFG_SVE			2
 #define KVM_CAP_ARM_RME_CFG_DBG			3
 #define KVM_CAP_ARM_RME_CFG_PMU			4
+#define KVM_CAP_ARM_RME_CFG_EXPECTED_MEASUREMENT            5
 
 struct kvm_cap_arm_rme_config_item {
 	__u32 cfg;
@@ -428,6 +429,11 @@ struct kvm_cap_arm_rme_config_item {
 		struct {
 			__u8	rpv[KVM_CAP_ARM_RME_RPV_SIZE];
 		};
+
+        // cfg == KVM_CAP_ARM_RME_CFG_EXPECTED_MEASUREMENT
+        struct {
+            __u8    expected_measurement[256];
+        };
 
 		/* cfg == KVM_CAP_ARM_RME_CFG_HASH_ALGO */
 		struct {
