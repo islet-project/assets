@@ -1215,9 +1215,11 @@ static int realm_map_ipa(struct kvm *kvm, phys_addr_t ipa, unsigned long hva,
 	if (WARN_ON(!(prot & KVM_PGTABLE_PROT_W)))
 		return -EFAULT;
 
-	if (!realm_is_addr_protected(realm, ipa))
+	if (!realm_is_addr_protected(realm, ipa)) {
+        pr_info("[JB] realm_map_non_secure: device_prot: %lx, ipa: %lx, pfn: %lx, hva: %lx, prot: %lx\n", (unsigned long)(prot & KVM_PGTABLE_PROT_DEVICE), (unsigned long)ipa, (unsigned long)pfn, hva, (unsigned long)prot);
 		return realm_map_non_secure(realm, ipa, page, map_size,
 					    memcache);
+    }
 
 	return realm_map_protected(realm, hva, ipa, page, map_size, memcache);
 }
@@ -1425,9 +1427,10 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
 	 */
 	if (fault_status == FSC_PERM && vma_pagesize == fault_granule)
 		ret = kvm_pgtable_stage2_relax_perms(pgt, fault_ipa, prot);
-	else if (kvm_is_realm(kvm))
+	else if (kvm_is_realm(kvm)) {
 		ret = realm_map_ipa(kvm, fault_ipa, hva, pfn, vma_pagesize,
 				    prot, memcache);
+    }
 	else
 		ret = kvm_pgtable_stage2_map(pgt, fault_ipa, vma_pagesize,
 					     __pfn_to_phys(pfn), prot,

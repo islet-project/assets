@@ -243,6 +243,12 @@ static int realm_create_rd(struct kvm *kvm)
 
 	params_phys = virt_to_phys(params);
 
+    // [JB]
+    pr_info("[JB] expected_measurement before REALM_CREATE\n");
+    for (int i=0; i<16; i++) {
+        pr_info("%02x\n", params->expected_measurement[i]);
+    }
+
 	if (rmi_realm_create(rd_phys, params_phys)) {
 		r = -ENXIO;
 		goto out_undelegate_tables;
@@ -1157,6 +1163,16 @@ static int kvm_rme_config_realm(struct kvm *kvm, struct kvm_enable_cap *cap)
 	case KVM_CAP_ARM_RME_CFG_SVE:
 		r = config_realm_sve(realm, &cfg);
 		break;
+    case KVM_CAP_ARM_RME_CFG_EXPECTED_MEASUREMENT:
+    {
+        int i;
+        memcpy(&realm->params->expected_measurement, &cfg.expected_measurement, sizeof(cfg.expected_measurement));
+        pr_info("[JB] expected_measurement\n");
+        for (i=0; i<16; i++) {
+            pr_info("%02x\n", realm->params->expected_measurement[i]);
+        }
+        break;
+    }
 	default:
 		r = -EINVAL;
 	}

@@ -106,6 +106,7 @@ struct realm_params {
 			u64 rtt_base;
 			u64 rtt_level_start;
 			u32 rtt_num_start;
+            u8 expected_measurement[256];
 		};
 		u8 padding_5[0x800];
 	};
