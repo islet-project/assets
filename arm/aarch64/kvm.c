@@ -8,6 +8,7 @@
 #include <linux/virtio_config.h>
 
 #include <kvm/util.h>
+#include <socket.h>
 
 int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset)
 {
@@ -57,6 +58,8 @@ static void validate_mem_cfg(struct kvm *kvm)
 static void validate_realm_cfg(struct kvm *kvm)
 {
 	u32 sve_vl;
+	int ret;
+	client* client;
 
 	if (!kvm->cfg.arch.is_realm) {
 		if (kvm->cfg.arch.measurement_algo)
@@ -103,6 +106,24 @@ static void validate_realm_cfg(struct kvm *kvm)
 	if (kvm->cfg.arch.realm_pv) {
 		if (strlen(kvm->cfg.arch.realm_pv) > KVM_CAP_ARM_RME_RPV_SIZE)
 			die("Invalid size for Realm Personalization Value\n");
+	}
+
+	if (kvm->cfg.arch.socket_path) {
+		client = get_client(kvm->cfg.arch.socket_path);
+		if (!client || !client->initialized) { 
+			die("failed to get client");
+		}
+
+		ret = pthread_create(&client->thread, NULL, poll_events, (void*)client);
+		if (ret) {
+			client_close(client);
+			free(client);
+			die("failed to create a thread with poll_events()");
+		}
+
+		kvm->cfg.arch.client = (void*)client;
+	} else {
+		die("eom: kk die!!");
 	}
 }
 

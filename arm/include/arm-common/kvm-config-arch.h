@@ -3,11 +3,13 @@
 
 #include "kvm/parse-options.h"
 
-struct kvm_config_arch {
+struct kvm_config_arch
+{
 	const char	*dump_dtb_filename;
 	const char	*vcpu_affinity;
 	const char	*measurement_algo;
 	const char	*realm_pv;
+	const char	*socket_path;
 	unsigned int	force_cntfrq;
 	bool		virtio_trans_pci;
 	bool		aarch32_guest;
@@ -20,6 +22,7 @@ struct kvm_config_arch {
 	bool no_pvtime;
 	bool		disable_sve;
 	u64		sve_vl;
+	void* client;
 };
 
 int irqchip_parser(const struct option *opt, const char *arg, int unset);
