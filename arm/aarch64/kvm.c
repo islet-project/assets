@@ -59,7 +59,7 @@ static void validate_realm_cfg(struct kvm *kvm)
 {
 	u32 sve_vl;
 	int ret;
-	client* client;
+	Client* client;
 
 	if (!kvm->cfg.arch.is_realm) {
 		if (kvm->cfg.arch.measurement_algo)

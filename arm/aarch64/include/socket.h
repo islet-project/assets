@@ -5,12 +5,12 @@
 
 #define PEER_LIST_MAX  128
 
-typedef struct peer {
+typedef struct Peer {
 	int vm_id;
 	int eventfd;
-} peer;
+} Peer;
 
-typedef struct client {
+typedef struct Client {
 	bool initialized;
 	int vm_id;
 	int sock_fd;
@@ -18,12 +18,12 @@ typedef struct client {
 	int hc_eventfd; // host channel's eventfd
 	pthread_t thread;
 	int peer_cnt;
-	peer peers[PEER_LIST_MAX];
-} client;
+	Peer peers[PEER_LIST_MAX];
+} Client;
 
 // create & connect socket fd
-client* get_client(const char *socket_path);
+Client* get_client(const char *socket_path);
 void *poll_events(void *c_ptr);
-void client_close(client *client);
+void client_close(Client *client);
 
 #endif // ARM_AARCH64__SOCKET_H

@@ -24,7 +24,7 @@ typedef enum Error
 } Error;
 
 
-static bool push_back(client* client, peer new_peer) {
+static bool push_back(Client* client, Peer new_peer) {
     if (client->peer_cnt >= PEER_LIST_MAX) {
         return false;
     }
@@ -34,7 +34,7 @@ static bool push_back(client* client, peer new_peer) {
     return true;
 }
 
-static int search_peer_idx(client *client, int vm_id) {
+static int search_peer_idx(Client *client, int vm_id) {
 	pr_debug("[VM_ID:%d] search_peer_idx start, peer_cnt %d", client->vm_id, client->peer_cnt);
     for (int i = 0; i < client->peer_cnt; i++) {
 		pr_debug("[VM_ID:%d] peer[%d].vm_id: %d", client->vm_id, i, client->peers[i].vm_id);
@@ -46,13 +46,13 @@ static int search_peer_idx(client *client, int vm_id) {
     return -1;
 }
 
-static int search_peer(client* client, int vm_id) {
+static int search_peer(Client* client, int vm_id) {
     int idx = search_peer_idx(client, vm_id);
     return idx;
 }
 
-static int remove_peer(client* client, int idx) {
-    peer empty_peer = {-1, -1};
+static int remove_peer(Client* client, int idx) {
+    Peer empty_peer = {-1, -1};
 
     if (client->peer_cnt == 0) {
         return ERROR_PEER_LIST_EMPTY;
@@ -182,10 +182,10 @@ static int recv_initial_msg(int c_sock_fd, int* c_vm_id, int* c_eventfd, int* c_
     return 0;
 }
 
-client* get_client(const char *socket_path) {
+Client* get_client(const char *socket_path) {
     int ret;
-    client* client = calloc(1, sizeof(struct client));
-    memset(client, 0, sizeof(struct client));
+    Client* client = calloc(1, sizeof(Client));
+    memset(client, 0, sizeof(Client));
 
     client->sock_fd = connect_socket(socket_path);
     if (client->sock_fd < 0) {
@@ -202,7 +202,7 @@ client* get_client(const char *socket_path) {
 
 	pr_debug("[VM_ID:%d] client addr %p", client->vm_id, client);
 
-    memset(client->peers, -1, sizeof(struct peer) * PEER_LIST_MAX);
+    memset(client->peers, -1, sizeof(Peer) * PEER_LIST_MAX);
 
     client->initialized = true;
     return client;
@@ -214,8 +214,8 @@ err_close:
 }
 
 /* handle message coming from server (new peer, new vectors) */
-static int handle_eventfd_manager_msg(client* client) {
-    peer new_peer = {};
+static int handle_eventfd_manager_msg(Client* client) {
+    Peer new_peer = {};
     int64_t peer_id = -1;
     int ret, fd = -1, peer_idx;
 
@@ -268,7 +268,7 @@ err:
 }
 
 /* read and handle new messages on the given fd_set */
-static int handle_fds(client* client, fd_set *fds, int maxfd) {
+static int handle_fds(Client* client, fd_set *fds, int maxfd) {
     int ret = -1;
 
     if (client->sock_fd < maxfd && FD_ISSET(client->sock_fd, fds)) {
@@ -289,7 +289,7 @@ static int handle_fds(client* client, fd_set *fds, int maxfd) {
 void *poll_events(void *c_ptr) {
     fd_set fds;
     int ret, maxfd = 0;
-    client* client = c_ptr;
+    Client* client = c_ptr;
 
 	pr_debug("Start poll_events()");
     while (1) {
@@ -326,7 +326,7 @@ void *poll_events(void *c_ptr) {
     return NULL;
 }
 
-void client_close(client* client) {
+void client_close(Client* client) {
     for (int i = 0; i < client->peer_cnt; i++) {
         close(client->peers[i].eventfd);
     }
