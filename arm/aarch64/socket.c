@@ -185,7 +185,6 @@ static int recv_initial_msg(int c_sock_fd, int* c_vm_id, int* c_eventfd, int* c_
 Client* get_client(const char *socket_path) {
     int ret;
     Client* client = calloc(1, sizeof(Client));
-    memset(client, 0, sizeof(Client));
 
     client->sock_fd = connect_socket(socket_path);
     if (client->sock_fd < 0) {
