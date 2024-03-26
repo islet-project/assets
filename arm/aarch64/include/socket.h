@@ -6,13 +6,13 @@
 #define PEER_LIST_MAX  128
 
 typedef struct Peer {
-	int vm_id;
+	int id; // NOTE: It's not same with VMID
 	int eventfd;
 } Peer;
 
 typedef struct Client {
 	bool initialized;
-	int vm_id;
+	int id; // NOTE: It's not same with VMID
 	int sock_fd;
 	int eventfd;
 	int hc_eventfd; // host channel's eventfd

@@ -28,26 +28,26 @@ static bool push_back(Client* client, Peer new_peer) {
     if (client->peer_cnt >= PEER_LIST_MAX) {
         return false;
     }
-	pr_debug("[VM_ID:%d] push_back peer.vm_id %d, peer.eventfd %d",
-            client->vm_id, new_peer.vm_id, new_peer.eventfd);
+	pr_debug("[ID:%d] push_back peer.id %d, peer.eventfd %d",
+            client->id, new_peer.id, new_peer.eventfd);
     client->peers[client->peer_cnt++] = new_peer;
     return true;
 }
 
-static int search_peer_idx(Client *client, int vm_id) {
-	pr_debug("[VM_ID:%d] search_peer_idx start, peer_cnt %d", client->vm_id, client->peer_cnt);
+static int search_peer_idx(Client *client, int id) {
+	pr_debug("[ID:%d] search_peer_idx start, peer_cnt %d", client->id, client->peer_cnt);
     for (int i = 0; i < client->peer_cnt; i++) {
-		pr_debug("[VM_ID:%d] peer[%d].vm_id: %d", client->vm_id, i, client->peers[i].vm_id);
-		pr_debug("[VM_ID:%d] peer[%d].eventfd: %d", client->vm_id, i, client->peers[i].eventfd);
-        if (vm_id == client->peers[i].vm_id) {
+		pr_debug("[ID:%d] peer[%d].id: %d", client->id, i, client->peers[i].id);
+		pr_debug("[ID:%d] peer[%d].eventfd: %d", client->id, i, client->peers[i].eventfd);
+        if (id == client->peers[i].id) {
             return i;
         }
     }
     return -1;
 }
 
-static int search_peer(Client* client, int vm_id) {
-    int idx = search_peer_idx(client, vm_id);
+static int search_peer(Client* client, int id) {
+    int idx = search_peer_idx(client, id);
     return idx;
 }
 
@@ -68,7 +68,7 @@ static int remove_peer(Client* client, int idx) {
 }
 
 /* read message from the unix socket */
-static int read_one_msg(int sock_fd, int64_t *vm_id, int *fd) {
+static int read_one_msg(int sock_fd, int64_t *id, int *fd) {
     int64_t ret;
     struct msghdr msg;
     struct iovec iov[1];
@@ -78,8 +78,8 @@ static int read_one_msg(int sock_fd, int64_t *vm_id, int *fd) {
     } msg_control;
     struct cmsghdr *cmsg;
 
-    iov[0].iov_base = vm_id;
-    iov[0].iov_len = sizeof(vm_id);
+    iov[0].iov_base = id;
+    iov[0].iov_len = sizeof(id);
 
     memset(&msg, 0, sizeof(msg));
     msg.msg_iov = iov;
@@ -98,7 +98,7 @@ static int read_one_msg(int sock_fd, int64_t *vm_id, int *fd) {
     }
 	
 	// this code is only needed for other platform support between VM and host
-    //*vm_id = GINT64_FROM_LE(*vm_id);
+    //*id = GINT64_FROM_LE(*id);
     *fd = -1;
 
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
@@ -158,21 +158,21 @@ err_close:
     return -1;
 }
 
-static int recv_initial_msg(int c_sock_fd, int* c_vm_id, int* c_eventfd, int* c_hc_eventfd) {
+static int recv_initial_msg(int c_sock_fd, int* c_id, int* c_eventfd, int* c_hc_eventfd) {
     int fd;
-    int64_t vm_id;
+    int64_t id;
 
-    /* receive client's vm_id and eventfd */
-    if (read_one_msg(c_sock_fd, &vm_id, &fd) < 0 || vm_id < 0 || fd < 0) {
-        pr_debug("cannot read client's vm_id & eventfd from server");
+    /* receive client's id and eventfd */
+    if (read_one_msg(c_sock_fd, &id, &fd) < 0 || id < 0 || fd < 0) {
+        pr_debug("cannot read client's id & eventfd from server");
         return -1;
     }
-    *c_vm_id = vm_id;
+    *c_id = id;
     *c_eventfd = fd;
-    pr_debug("client_vm_id = %d, client_eventfd = %d", *c_vm_id, *c_eventfd);
+    pr_debug("client_id = %d, client_eventfd = %d", *c_id, *c_eventfd);
 
     /* receive host channel's eventfd */
-    if (read_one_msg(c_sock_fd, &vm_id, &fd) < 0 || vm_id != -1 || fd < 0) {
+    if (read_one_msg(c_sock_fd, &id, &fd) < 0 || id != -1 || fd < 0) {
         pr_debug("cannot read host channel eventfd from server");
         return -1;
     }
@@ -194,12 +194,12 @@ Client* get_client(const char *socket_path) {
 
 	pr_debug("client->sock_fd = %d", client->sock_fd);
 
-    ret = recv_initial_msg(client->sock_fd, &client->vm_id, &client->eventfd, &client->hc_eventfd);
+    ret = recv_initial_msg(client->sock_fd, &client->id, &client->eventfd, &client->hc_eventfd);
     if (ret < 0) {
         goto err_close;
     }
 
-	pr_debug("[VM_ID:%d] client addr %p", client->vm_id, client);
+	pr_debug("[ID:%d] client addr %p", client->id, client);
 
     memset(client->peers, -1, sizeof(Peer) * PEER_LIST_MAX);
 
@@ -229,7 +229,7 @@ static int handle_eventfd_manager_msg(Client* client) {
         goto err;
     }
 
-	pr_debug("[VM_ID:%d] recv a peer_id: %ld", client->vm_id, peer_id);
+	pr_debug("[ID:%d] recv a peer_id: %ld", client->id, peer_id);
     peer_idx = search_peer(client, peer_id);
 
     /* delete peer */
@@ -246,7 +246,7 @@ static int handle_eventfd_manager_msg(Client* client) {
 
     /* new peer */
     if (peer_idx < 0) {
-        new_peer.vm_id = peer_id;
+        new_peer.id = peer_id;
         new_peer.eventfd = fd;
 
         ret = push_back(client, new_peer);
@@ -255,7 +255,7 @@ static int handle_eventfd_manager_msg(Client* client) {
             goto err;
         }
 
-		pr_debug("[VM_ID:%d] a new peer is added. peer_id: %d", client->vm_id, client->peers[client->peer_cnt-1].vm_id);
+		pr_debug("[ID:%d] a new peer is added. peer_id: %d", client->id, client->peers[client->peer_cnt-1].id);
     } else {
         pr_debug("The peer_id %ld is already exist", peer_id);
         goto err;
