@@ -33,6 +33,9 @@ int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset);
 	OPT_STRING('\0', "socket-path", &(cfg)->socket_path,	\
 			"personalisation value",			\
 			"Socket Path to get eventfds"),\
+	OPT_INTEGER('\0', "shm-id", &(cfg)->shm_id,	\
+			"Use the same shm-id to target realms for inter realm communication" \
+			"(should be greater than zero)"),   \
 	OPT_U64('\0', "sve-vl", &(cfg)->sve_vl,				\
 			"SVE Vector Length the VM"			\
 			"(only supported for Realms)"),

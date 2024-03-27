@@ -23,6 +23,7 @@ struct kvm_config_arch
 	bool		disable_sve;
 	u64		sve_vl;
 	void* client;
+	int shm_id;
 };
 
 int irqchip_parser(const struct option *opt, const char *arg, int unset);

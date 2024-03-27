@@ -114,16 +114,18 @@ static void validate_realm_cfg(struct kvm *kvm)
 			die("failed to get client");
 		}
 
-		ret = pthread_create(&client->thread, NULL, poll_events, (void*)client);
-		if (ret) {
-			client_close(client);
-			free(client);
-			die("failed to create a thread with poll_events()");
+		if (!is_valid_shm_id(client, kvm->cfg.arch.shm_id)) {
+			pr_debug("[ID:%d] shm_id expect %d but current shm_id: %d",
+				client->id, client->shm_id, kvm->cfg.arch.shm_id);
+			close_client(client);
+		} else {
+			ret = pthread_create(&client->thread, NULL, poll_events, (void *)client);
+			if (ret) {
+				close_client(client);
+				die("failed to create a thread with poll_events()");
+			}
+			kvm->cfg.arch.client = (void *)client;
 		}
-
-		kvm->cfg.arch.client = (void*)client;
-	} else {
-		die("eom: kk die!!");
 	}
 }
 

@@ -158,28 +158,40 @@ err_close:
     return -1;
 }
 
-static int recv_initial_msg(int c_sock_fd, int* c_id, int* c_eventfd, int* c_hc_eventfd) {
+static int recv_initial_msg(Client* client) {
     int fd;
     int64_t id;
 
     /* receive client's id and eventfd */
-    if (read_one_msg(c_sock_fd, &id, &fd) < 0 || id < 0 || fd < 0) {
+    if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id < 0 || fd < 0) {
         pr_debug("cannot read client's id & eventfd from server");
         return -1;
     }
-    *c_id = id;
-    *c_eventfd = fd;
-    pr_debug("client_id = %d, client_eventfd = %d", *c_id, *c_eventfd);
+    client->id = id;
+    client->eventfd = fd;
+    pr_debug("client->id = %d, client->eventfd = %d", client->id, client->eventfd);
+
+    /* receive eventfd manager's shm_id */
+    if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id <= 0 || fd != -1) {
+        pr_debug("cannot read Eventfd Manager's shm_id");
+        return -1;
+    }
+    client->shm_id = (int)id;
+    pr_debug("client->shm_id = %d", client->shm_id);
 
     /* receive host channel's eventfd */
-    if (read_one_msg(c_sock_fd, &id, &fd) < 0 || id != -1 || fd < 0) {
+    if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id != -1 || fd < 0) {
         pr_debug("cannot read host channel eventfd from server");
         return -1;
     }
-    *c_hc_eventfd = fd;
-    pr_debug("host channel eventfd = %d", *c_hc_eventfd);
+    client->hc_eventfd = fd;
+    pr_debug("host channel eventfd = %d", client->hc_eventfd);
 
     return 0;
+}
+
+bool is_valid_shm_id(Client* client, int shm_id) {
+    return client->shm_id == shm_id;
 }
 
 Client* get_client(const char *socket_path) {
@@ -194,7 +206,7 @@ Client* get_client(const char *socket_path) {
 
 	pr_debug("client->sock_fd = %d", client->sock_fd);
 
-    ret = recv_initial_msg(client->sock_fd, &client->id, &client->eventfd, &client->hc_eventfd);
+    ret = recv_initial_msg(client);
     if (ret < 0) {
         goto err_close;
     }
@@ -318,14 +330,15 @@ void *poll_events(void *c_ptr) {
     }
 
     pr_debug("close all fd & free client");
-    client_close(client);
+    close_client(client);
     free(client);
 
     pthread_exit(NULL);
     return NULL;
 }
 
-void client_close(Client* client) {
+void close_client(Client* client) {
+    pr_debug("close_client() start");
     for (int i = 0; i < client->peer_cnt; i++) {
         close(client->peers[i].eventfd);
     }
@@ -338,4 +351,5 @@ void client_close(Client* client) {
 
     close(client->hc_eventfd);
     client->hc_eventfd= -1;
+    free(client);
 }
