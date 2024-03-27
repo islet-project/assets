@@ -27,6 +27,8 @@ arg_acs_build_dir=
 arg_acs_ns_preload_addr=${ACS_NS_PRELOAD_ADDR_DFLT}
 # Run the test with a timeout so they can't loop forever.
 arg_test_timeout=1000
+arg_debug=
+arg_trace=
 arg_no_telnet=
 suite_timeout_multiplier=3
 test_report_logfile=
@@ -119,6 +121,14 @@ case "$1" in
         arg_test_timeout="$2"
         shift 2
         ;;
+    --debug)
+        arg_debug=yes
+        shift 1
+        ;;
+    --trace)
+        arg_trace=yes
+        shift 1
+        ;;
     --no_telnet)
         arg_no_telnet=yes
         shift 1
@@ -188,6 +198,27 @@ then
  -C bp.pl011_uart3.out_file=${uart3_logfile}\
  -C bp.pl011_uart2.out_file=${regression_report_logfile}\
  -C bp.pl011_uart2.unbuffered_output=1"
+
+    if [[ ${arg_debug} == "yes" ]]
+    then
+    fvp_cmd="${fvp_cmd} --cadi-server"
+    fi
+
+    if [[ ${arg_trace} == "yes" ]]
+    then
+    fvp_cmd="${fvp_cmd} \
+ --plugin ${arg_acs_build_dir}/../../../third-party/fvp/Base_RevC_AEMvA_pkg/plugins/Linux64_GCC-9.3/TarmacTrace.so \
+ -C TRACE.TarmacTrace.trace_events=1 \
+ -C TRACE.TarmacTrace.trace_instructions=1 \
+ -C TRACE.TarmacTrace.start-instruction-count=20000000 \
+ -C TRACE.TarmacTrace.trace_core_registers=1 \
+ -C TRACE.TarmacTrace.trace_vfp=1 \
+ -C TRACE.TarmacTrace.trace_mmu=0 \
+ -C TRACE.TarmacTrace.trace_loads_stores=1 \
+ -C TRACE.TarmacTrace.trace_cache=0 \
+ -C TRACE.TarmacTrace.updated-registers=1 \
+ -C TRACE.TarmacTrace.trace-file=${arg_acs_build_dir}/../../../out/trace.log"
+    fi
 
     if [[ ${arg_no_telnet} == "yes" ]]
     then
