@@ -144,4 +144,19 @@ struct realm_config {
  */
 #define SMC_RSI_CHANNEL_CONNECT     SMC_RSI_FID(0x201)
 
+/*
+ * arg1 == channel id
+ * arg2~arg9 == challenge (64 bytes)
+ * arg10 == a target IPA an attestation report is written onto
+ * ret0 == Status / error
+ */
+#define SMC_RSI_CHANNEL_GEN_REPORT     SMC_RSI_FID(0x202)
+
+/*
+ * arg1 == channel id
+ * arg2 == attestation result (0 or 1)
+ * ret0 == Status / error
+ */
+#define SMC_RSI_CHANNEL_RESULT     SMC_RSI_FID(0x203)
+
 #endif /* __SMC_RSI_H_ */
