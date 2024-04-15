@@ -431,9 +431,10 @@ struct kvm_cap_arm_rme_config_item {
 		};
 
         // cfg == KVM_CAP_ARM_RME_CFG_EXPECTED_MEASUREMENT
+        /*
         struct {
             __u8    expected_measurement[256];
-        };
+        }; */
 
 		/* cfg == KVM_CAP_ARM_RME_CFG_HASH_ALGO */
 		struct {

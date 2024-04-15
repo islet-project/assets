@@ -8,7 +8,7 @@ struct kvm_config_arch {
 	const char	*vcpu_affinity;
 	const char	*measurement_algo;
 	const char	*realm_pv;
-    const char  *expected_measurement;
+    //const char  *expected_measurement;
 	unsigned int	force_cntfrq;
 	bool		virtio_trans_pci;
 	bool		aarch32_guest;

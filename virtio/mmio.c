@@ -149,8 +149,10 @@ static void generate_virtio_mmio_fdt_node(void *fdt,
 int virtio_mmio_init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 		     int device_id, int subsys_id, int class)
 {
-    // [JB]
-    return 0;
+    // [JB] do not try create virtio-mmio if no_shared_region is given
+    if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+        return 0;
+    }
 
 	bool legacy = vdev->legacy;
 	struct virtio_mmio *vmmio = vdev->virtio;
