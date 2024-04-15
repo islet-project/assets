@@ -1216,7 +1216,7 @@ static int realm_map_ipa(struct kvm *kvm, phys_addr_t ipa, unsigned long hva,
 		return -EFAULT;
 
 	if (!realm_is_addr_protected(realm, ipa)) {
-        pr_info("[JB] realm_map_non_secure: device_prot: %lx, ipa: %lx, pfn: %lx, hva: %lx, prot: %lx\n", (unsigned long)(prot & KVM_PGTABLE_PROT_DEVICE), (unsigned long)ipa, (unsigned long)pfn, hva, (unsigned long)prot);
+        //pr_info("[JB] realm_map_non_secure: device_prot: %lx, ipa: %lx, pfn: %lx, hva: %lx, prot: %lx\n", (unsigned long)(prot & KVM_PGTABLE_PROT_DEVICE), (unsigned long)ipa, (unsigned long)pfn, hva, (unsigned long)prot);
 		return realm_map_non_secure(realm, ipa, page, map_size,
 					    memcache);
     }
