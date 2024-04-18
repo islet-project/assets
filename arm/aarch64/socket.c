@@ -17,6 +17,8 @@
 
 #define PATH_MAX      4096	/* chars in a path name including nul */
 
+Client *client;
+
 typedef enum Error
 {
     ERROR_PEER_LIST_EMPTY = -1,
@@ -196,7 +198,11 @@ bool is_valid_shm_id(Client* client, int shm_id) {
 
 Client* get_client(const char *socket_path) {
     int ret;
-    Client* client = calloc(1, sizeof(Client));
+
+    if (client)
+        return client;
+
+    client = calloc(1, sizeof(Client));
 
     client->sock_fd = connect_socket(socket_path);
     if (client->sock_fd < 0) {
