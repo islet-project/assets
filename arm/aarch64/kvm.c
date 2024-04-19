@@ -58,8 +58,6 @@ static void validate_mem_cfg(struct kvm *kvm)
 static void validate_realm_cfg(struct kvm *kvm)
 {
 	u32 sve_vl;
-	int ret;
-	Client* client;
 
 	if (!kvm->cfg.arch.is_realm) {
 		if (kvm->cfg.arch.measurement_algo)
@@ -106,26 +104,6 @@ static void validate_realm_cfg(struct kvm *kvm)
 	if (kvm->cfg.arch.realm_pv) {
 		if (strlen(kvm->cfg.arch.realm_pv) > KVM_CAP_ARM_RME_RPV_SIZE)
 			die("Invalid size for Realm Personalization Value\n");
-	}
-
-	if (kvm->cfg.arch.socket_path) {
-		client = get_client(kvm->cfg.arch.socket_path);
-		if (!client || !client->initialized) { 
-			die("failed to get client");
-		}
-
-		if (!is_valid_shm_id(client, kvm->cfg.arch.shm_id)) {
-			pr_debug("[ID:%d] shm_id expect %d but current shm_id: %d",
-				client->id, client->shm_id, kvm->cfg.arch.shm_id);
-			close_client(client);
-		} else {
-			ret = pthread_create(&client->thread, NULL, poll_events, (void *)client);
-			if (ret) {
-				close_client(client);
-				die("failed to create a thread with poll_events()");
-			}
-			kvm->cfg.arch.client = (void *)client;
-		}
 	}
 }
 

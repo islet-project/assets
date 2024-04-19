@@ -22,7 +22,6 @@ struct kvm_config_arch
 	bool no_pvtime;
 	bool		disable_sve;
 	u64		sve_vl;
-	void* client;
 	int shm_id;
 };
 

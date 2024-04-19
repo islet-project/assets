@@ -14,10 +14,11 @@
 #include <stdlib.h> 
 #include <socket.h>
 #include <pthread.h>
+#include <kvm/ioeventfd.h>
 
 #define PATH_MAX      4096	/* chars in a path name including nul */
 
-Client *client;
+static Client *client;
 
 typedef enum Error
 {
@@ -196,7 +197,7 @@ bool is_valid_shm_id(Client* client, int shm_id) {
     return client->shm_id == shm_id;
 }
 
-Client* get_client(const char *socket_path) {
+Client* get_client(const char *socket_path, uint32_t mmio_addr, struct kvm* kvm) {
     int ret;
 
     if (client)
@@ -210,7 +211,10 @@ Client* get_client(const char *socket_path) {
         return NULL;
     }
 
-	pr_debug("client->sock_fd = %d", client->sock_fd);
+    client->mmio_addr = mmio_addr;
+    client->kvm = kvm;
+
+    pr_debug("client->sock_fd = %d", client->sock_fd);
 
     ret = recv_initial_msg(client);
     if (ret < 0) {
@@ -235,6 +239,7 @@ static int handle_eventfd_manager_msg(Client* client) {
     Peer new_peer = {};
     int64_t peer_id = -1;
     int ret, fd = -1, peer_idx;
+    struct ioevent ioevent;
 
     ret = read_one_msg(client->sock_fd, &peer_id, &fd);
     if (ret < 0) {
@@ -242,7 +247,7 @@ static int handle_eventfd_manager_msg(Client* client) {
         goto err;
     }
 
-    if (peer_id < 0) {
+    if (peer_id < 0 || peer_id == client->id) {
         pr_debug("invalid peer_id %ld", peer_id);
         goto err;
     }
@@ -272,10 +277,25 @@ static int handle_eventfd_manager_msg(Client* client) {
             pr_debug("peer list is full %d", client->peer_cnt);
             goto err;
         }
+        pr_debug("[ID:%d] a new peer is added. peer_id: %d", client->id, client->peers[client->peer_cnt-1].id);
 
-		pr_debug("[ID:%d] a new peer is added. peer_id: %d", client->id, client->peers[client->peer_cnt-1].id);
+        ioevent = (struct ioevent){
+            .io_addr = client->mmio_addr,
+            .io_len = sizeof(int),
+            .fn_kvm = client->kvm,
+            .fd = new_peer.eventfd,
+            .datamatch = new_peer.id,
+        };
+
+        ret = ioeventfd__add_event(&ioevent, 0);
+        if (ret) {
+            pr_debug("[ID:%d] ioeventfd__add_event() failed %d", client->id, ret);
+            goto err;
+        }
+        pr_debug("[ID:%d] add ioeventfd successfully. io_addr %lld, io_len %d, fd %d, datamatch %lld",
+            client->id, ioevent.io_addr, ioevent.io_len, ioevent.fd, ioevent.datamatch);
     } else {
-        pr_debug("The peer_id %ld is already exist", peer_id);
+        pr_debug("[ID:%d] The peer_id %ld is already exist", client->id, peer_id);
         goto err;
     }
 
@@ -308,7 +328,8 @@ void *poll_events(void *c_ptr) {
     int ret, maxfd = 0;
     Client* client = c_ptr;
 
-	pr_debug("Start poll_events()");
+	pr_debug("[ID:%d] Start poll_events()", client->id);
+
     while (1) {
         FD_ZERO(&fds);
         FD_SET(client->sock_fd, &fds);
@@ -321,7 +342,7 @@ void *poll_events(void *c_ptr) {
             if (errno == EINTR) {
                 continue;
             }
-            fprintf(stderr, "select error: %s\n", strerror(errno));
+            fprintf(stderr, "[ID:%d] select error: %s\n", client->id, strerror(errno));
             break;
         }
         if (ret == 0) { // timeout
@@ -330,12 +351,12 @@ void *poll_events(void *c_ptr) {
 
         ret = handle_fds(client, &fds, maxfd);
         if (ret < 0) {
-            fprintf(stderr, "handle_fds() failed %d\n", ret);
+            fprintf(stderr, "[ID:%d] handle_fds() failed %d\n", client->id, ret);
             break;
         }
     }
 
-    pr_debug("close all fd & free client");
+    pr_debug("[ID:%d] close all fd & free client", client->id);
     close_client(client);
     free(client);
 
@@ -344,7 +365,7 @@ void *poll_events(void *c_ptr) {
 }
 
 void close_client(Client* client) {
-    pr_debug("close_client() start");
+    pr_debug("[ID:%d] close_client() start", client->id);
     for (int i = 0; i < client->peer_cnt; i++) {
         close(client->peers[i].eventfd);
     }

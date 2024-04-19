@@ -20,8 +20,8 @@
 struct vchannel_device {
 	struct pci_device_header	pci_hdr;
 	struct device_header		dev_hdr;
+
 	int gsi;
-	int fd;
 };
 
 #endif // ARM_AARCH64__CHANNEL_H
