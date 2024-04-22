@@ -16,17 +16,17 @@ static int vchannel_init(struct kvm *kvm) {
 
     // TODO: need to open host channel module and send its eventfd
 
-    pr_debug("vchannel_init start");
+    ch_syslog("vchannel_init start");
 
     if (!kvm->cfg.arch.socket_path) {
-        pr_debug("vchannel_init: empty socket_path");
+        ch_syslog("vchannel_init: empty socket_path");
         return 0;
     }
 
     // Setup virtual PCI device 
     vchannel_dev = calloc(1, sizeof(*vchannel_dev));
 	if (!vchannel_dev) {
-        pr_debug("vchannel_init failed with -ENOMEM %d", -ENOMEM);
+        ch_syslog("vchannel_init failed with -ENOMEM %d", -ENOMEM);
         return -ENOMEM;
     }
 
@@ -49,7 +49,7 @@ static int vchannel_init(struct kvm *kvm) {
 
     ret = device__register(&vchannel_dev->dev_hdr);
     if (ret < 0) {
-        pr_debug("device__register failed with %d", ret);
+        ch_syslog("device__register failed with %d", ret);
         return ret;
     }
 
@@ -59,45 +59,54 @@ static int vchannel_init(struct kvm *kvm) {
     // Setup client
     client = get_client(kvm->cfg.arch.socket_path, mmio_addr, kvm);
     if (!client || !client->initialized) {
-        pr_debug("failed to get client");
+        ch_syslog("failed to get client");
         return -EINVAL;
     }
 
     if (!is_valid_shm_id(client, kvm->cfg.arch.shm_id)) {
-        pr_debug("[ID:%d] shm_id expect %d but current shm_id: %d",
+        ch_syslog("[ID:%d] shm_id expect %d but current shm_id: %d",
                  client->id, client->shm_id, kvm->cfg.arch.shm_id);
         return -EINVAL;
     } else {
-        pr_debug("[ID:%d] Create pthread for socket fd polling", client->id);
+        ch_syslog("[ID:%d] Create pthread for socket fd polling", client->id);
         ret = pthread_create(&client->thread, NULL, poll_events, (void *)client);
         if (ret) {
             close_client(client);
             die("failed to create a thread with poll_events()");
         }
-        pr_debug("[ID:%d] pthread_create returns %d", client->id, ret);
+        ch_syslog("[ID:%d] pthread_create returns %d", client->id, ret);
+
+        ret = pthread_detach(client->thread);
+        if (ret) {
+            close_client(client);
+            die("failed to detach a thread");
+        }
+        usleep(100000);
     }
 
+    ch_syslog("[ID:%d] request irq__add_irqfd gsi %d fd %d",
+            client->id, vchannel_dev->gsi, client->eventfd);
     // Setup notification channel to receive as a guest interrupt
     ret = irq__add_irqfd(kvm, vchannel_dev->gsi, client->eventfd, 0);
 
-    pr_debug("vchannel_init done successfully");
+    ch_syslog("vchannel_init done successfully");
 
     return 0;
 }
 dev_base_init(vchannel_init);
 
 static int vchannel_exit(struct kvm *kvm) {
-    pr_debug("vchannel_exit start");
+    ch_syslog("vchannel_exit start");
 
 	if (!kvm->cfg.arch.socket_path) {
-        pr_debug("vchannel_exit: empty socket_path");
+        ch_syslog("vchannel_exit: empty socket_path");
         return 0;
     }
 
     if (vchannel_dev)
         free(vchannel_dev);
 
-    pr_debug("vchannel_exit done successfully");
+    ch_syslog("vchannel_exit done successfully");
 
     return 0;
 }
