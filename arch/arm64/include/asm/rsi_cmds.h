@@ -13,6 +13,7 @@
 enum ripas {
 	RSI_RIPAS_EMPTY,
 	RSI_RIPAS_RAM,
+	RSI_RIPAS_SHARED = 3,
 };
 
 static inline unsigned long rsi_get_version(void)
@@ -65,6 +66,25 @@ static inline unsigned long rsi_set_addr_range_state(phys_addr_t start,
 				   start, (end - start), state, 0, &res);
 
 	*top = res.a1;
+	return res.a0;
+}
+
+static inline unsigned long rsi_get_addr_page_ripas(phys_addr_t ipa_base, phys_addr_t *ripas)
+{
+	struct arm_smccc_res res;
+
+	invoke_rsi_fn_smc_with_res(SMC_RSI_IPA_STATE_GET, ipa_base, 0, 0, 0, &res);
+
+	*ripas = res.a1;
+	return res.a0;
+}
+
+static inline unsigned long rsi_set_shrm_token(u8 idx, u8 shrm_token)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SMC_RSI_SET_SHRM_TOKEN, idx, shrm_token, 0, 0, 0, 0, 0, &res);
+
 	return res.a0;
 }
 

@@ -230,6 +230,13 @@ int set_memory_decrypted(unsigned long addr, int numpages)
 	return __set_memory_encrypted(addr, numpages, false);
 }
 
+void set_memory_shared(phys_addr_t start, int numpages)
+{
+	phys_addr_t end = start + numpages * PAGE_SIZE;
+
+	set_memory_shared_ripas(start, end);
+}
+
 #ifdef CONFIG_DEBUG_PAGEALLOC
 void __kernel_map_pages(struct page *page, int numpages, int enable)
 {

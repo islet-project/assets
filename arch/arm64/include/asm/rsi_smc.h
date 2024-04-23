@@ -42,6 +42,7 @@
 #define SMC_RSI_FID(_x)			(SMC_RSI_CALL_BASE + (_x))
 
 #define SMC_RSI_ABI_VERSION			SMC_RSI_FID(0x190)
+#define SMC_RSI_SET_SHRM_TOKEN			SMC_RSI_FID(0x191)
 
 /*
  * arg1 == The IPA of token buffer
