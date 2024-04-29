@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
 
-menu "Islet inter co-resident realm communication support"
-
 config CHANNEL
 	bool "Islet inter co-resident realm communication support"
 	help
@@ -9,8 +7,18 @@ config CHANNEL
 	  The channel module communicates with channel device driver in realms using 
 	  virtual interrupts.
 
+config GUEST_CHANNEL
+	bool "Support CHANNEL on guest side"
+	depends on CHANNEL
+	help
+	  The guest channel is a module to communicate with co-resident realms on the same host.
+	  The channel module communicates with channel device driver in realms using 
+	  virtual interrupts.
+	  In addition, this module can get dynamic shared memory from host channel module to
+	  share it with co-resident realms.
+
 config HOST_CHANNEL
-	bool "Support CHANNEL on Host Side"
+	bool "Support CHANNEL on host side"
 	depends on CHANNEL
 	help
 	  The host channel module can send or receive interrupt to or from  other channel module
