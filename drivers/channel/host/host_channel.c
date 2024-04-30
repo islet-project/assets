@@ -4,10 +4,13 @@
 #include <linux/module.h>
 #include <linux/string.h>
 #include <linux/printk.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
 
-#define DRIVER_NAME "host_channel"
+#define DEVICE_NAME "host_channel"
 #define PEER_LIST_MAX  128
 #define MINOR_BASE 0
+#define MINOR_NUM 1
 
 #define HOST_CHANNEL_ID 0
 
@@ -28,6 +31,9 @@ struct channel_priv {
 
 // TODO: Need lock
 static struct channel_priv drv_priv;
+
+static struct cdev ch_cdev;
+static struct class *ch_class;
 
 static int search_peer_idx(int peer_id) {
     for (int i = 0; i < drv_priv.cnt; i++) {
@@ -93,7 +99,7 @@ static ssize_t channel_write(struct file *file, const char __user *user_buffer, 
 		return -EFAULT;
 	}
 
-	pr_info("CHANNEL: channel_write done. peer: %d %d len: %d\n", peer->id, peer->eventfd, len);
+	pr_info("CHANNEL: channel_write done. peer's id: %d, eventfd: %d len: %d\n", peer->id, peer->eventfd, len);
 	// TODO: add peer to the peer list
 	if (drv_priv.id < 0 || drv_priv.eventfd < 0) {
 		drv_priv.id = peer->id;
@@ -111,7 +117,7 @@ static ssize_t channel_write(struct file *file, const char __user *user_buffer, 
     return len;
 }
 
-static const struct file_operations channel_ops = {
+static const struct file_operations ch_fops = {
 	.owner   = THIS_MODULE,
 	.open	= channel_open,
 	.write   = channel_write,
@@ -121,24 +127,62 @@ static const struct file_operations channel_ops = {
 static int __init channel_init(void)
 {
 	int ret = 0;
+	struct device *dev_struct;
+	dev_t ch_dev;
 
-	/* Register device node ops. */
-	ret = register_chrdev(0, DRIVER_NAME, &channel_ops);
-	if (ret < 0) {
-		pr_err("CHANNEL: register_chrdev failed %d\n", ret);
+	pr_info("CHANNEL: channel_init start \n");
+
+	ret = alloc_chrdev_region(&ch_dev, MINOR_BASE, MINOR_NUM, DEVICE_NAME);
+	if (ret) {
+		pr_err("%s alloc_chrdev_region failed %d\n", __func__, ret);
 		return ret;
 	}
+
+	cdev_init(&ch_cdev, &ch_fops);
+
+	ret = cdev_add(&ch_cdev, ch_dev, MINOR_NUM);
+	if (ret) {
+		pr_err("%s cdev_add failed %d\n", __func__, ret);
+		goto unreg_dev_num;
+	}
+
+	ch_class = class_create(THIS_MODULE, DEVICE_NAME);
+	if (IS_ERR(ch_class)) {
+		pr_err("%s class_create failed\n", __func__);
+		goto unreg_cdev;
+	}
+
+	dev_struct = device_create(ch_class, NULL, ch_dev, NULL, DEVICE_NAME);
+	if (IS_ERR(dev_struct)) {
+		pr_err("%s device_create failed\n", __func__);
+		goto unreg_class;
+	}
+
 	memset(&drv_priv, -1, sizeof(drv_priv));
 
-	dev_major_num = ret;
-	pr_info("CHANNEL: major device numer: %d\n", dev_major_num);
+	dev_major_num = MAJOR(ch_dev);
+	pr_info("%s major:minor = %d:%d\n", __func__, dev_major_num, MINOR(ch_dev));
 
 	return 0;
+
+unreg_class:
+	class_destroy(ch_class);
+unreg_cdev:
+	cdev_del(&ch_cdev);
+unreg_dev_num:
+	unregister_chrdev_region(ch_dev, MINOR_NUM);
+	return ret ? ret : -1;
 }
 
 static void __exit channel_exit(void)
 {
-	unregister_chrdev(dev_major_num, DRIVER_NAME);
+	dev_t dev = MKDEV(dev_major_num, MINOR_BASE);
+
+	// this form is only valid when MINOR_NUM is 1.
+	device_destroy(ch_class, dev);
+	class_destroy(ch_class);
+	cdev_del(&ch_cdev);
+	unregister_chrdev_region(dev, MINOR_NUM);
 }
 
 MODULE_LICENSE("GPL");
