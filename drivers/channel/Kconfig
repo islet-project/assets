@@ -7,6 +7,8 @@ config CHANNEL
 	  The channel module communicates with channel device driver in realms using 
 	  virtual interrupts.
 
+if CHANNEL
+
 config GUEST_CHANNEL
 	bool "Support CHANNEL on guest side"
 	depends on CHANNEL
@@ -24,3 +26,5 @@ config HOST_CHANNEL
 	  The host channel module can send or receive interrupt to or from  other channel module
 	  in realm to allocate and deallocate dynamic shared memory.
 	  Note that it should be disabled on realm kernel.
+
+endif # CHANNEL
