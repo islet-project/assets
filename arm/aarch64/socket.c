@@ -190,6 +190,8 @@ static int recv_initial_msg(Client* client) {
     }
     client->hc_eventfd = fd;
     ch_syslog("host channel eventfd = %d", client->hc_eventfd);
+    ch_syslog("TEST: Write host channel eventfd = %d", client->hc_eventfd);
+    eventfd_write(client->hc_eventfd, 1);
 
     return 0;
 }
