@@ -11,11 +11,10 @@
 
 #define MINOR_BASE 0
 
-static int dev_major_num;
 
 /* This sample driver supports device with VID = 0x010F, and PID = 0x0F0E*/
 static struct pci_device_id channel_id_table[] = {
-    { PCI_DEVICE(0x1af4, 0x10f0) },
+    { PCI_DEVICE(VENDOR_ID, DEVICE_ID) },
     {0,}
 };
 
@@ -32,59 +31,6 @@ static struct pci_driver channel_driver = {
     .remove = channel_remove
 };
 
-static const struct file_operations channel_ops = {
-	.owner   = THIS_MODULE,
-	.open	= channel_open,
-	.write   = channel_write,
-	.release = channel_release,
-};
-
-static int channel_open(struct inode *inode, struct file *file)
-{
-	pr_info("CHANNEL: device opened\n");
-	struct peer *peer = kmalloc(sizeof(struct peer), GFP_KERNEL);
-
-    if (!peer) {
-		pr_err("CHANNEL: kmalloc failed");
-        return -ENOMEM;
-    }
-
-    file->private_data = peer;
-
-    return 0;
-}
-
-static int channel_release(struct inode * inode, struct file * filp)
-{
-    pr_info("CHANNEL: channel_release start");
-    if (file->private_data) {
-        kfree(file->private_data);
-        file->private_data = NULL;
-    }
-    return 0;
-}
-
-static int channel_write(struct file *file, const char __user *user_buffer,
-                    size_t size, loff_t * offset)
-{
-    struct peer *peer= (struct peer*) file->private_data;
-    ssize_t len = min(sizeof(struct peer) - *offset, size);
-
-    if (len <= 0)
-        return 0;
-
-    /* read data from user buffer to my_data->buffer */
-    if (copy_from_user(peer + *offset, user_buffer, len))
-        return -EFAULT;
-
-	pr_info("CHANNEL: channel_write done. peer: %d %d %d len: %d",
-			peer->id, peer->sock_fd, peer->eventfd, len);
-	// TODO: add peer to the peer list
-
-    *offset += len;
-    return len;
-}
-
 struct peer {
     int id;      /* This is for identifying peers. It's NOT vmid */
     int sock_fd; /* connected unix sock */
@@ -99,6 +45,9 @@ struct peer_list {
 /* This is a "private" data structure */
 /* You can store there any data that should be passed between driver's functions */
 struct channel_priv {
+	uint32_t ioeventfd_addr;
+	uint32_t ioeventfd_size;
+	void *ioeventfd_iomap_addr;
 	struct peer_list peer_list;
 };
 
@@ -106,42 +55,18 @@ static int __init channel_init(void)
 {
 	int ret = 0;
 
-	/* Register device node ops. */
-	ret = register_chrdev(0, DRIVER_NAME, &channel_ops);
-	if (ret) {
-		pr_err("CHANNEL: register_chrdev failed %d\n", ret);
-		return ret;
-	}
-
-	dev_major_num = ret;
-	pr_info("CHANNEL: major device numer: %d\n", dev_major_num);
-
+	pr_info("[CH] %s start\n", __func__);
 	ret = pci_register_driver(&channel_driver);
 	if (ret) {
-		pr_err("CHANNEL: pci_register_driver failed %d\n", ret);
-		goto err;
+		pr_err("[CH] pci_register_driver failed %d\n", ret);
 	}
-
-	return 0;
-
-err:
-	unregister_chrdev(dev_major_num, DRIVER_NAME);
 	return ret;
 }
 
 static void __exit channel_exit(void)
 {
-    int minor; 
-    dev_t dev = MKDEV(dev_major_num, MINOR_BASE);
-
-	unregister_chrdev(dev_major_num, DRIVER_NAME);
+	pr_info("[CH] %s start\n", __func__);
     pci_unregister_driver(&channel_driver);
-}
-
-void release_device(struct pci_dev *pdev)
-{
-    free_irq(pdev->irq, pdev);
-    pci_disable_device(pdev);
 }
 
 /* 
@@ -158,29 +83,49 @@ static irqreturn_t channel_irq_handler(int irq, struct peer_list *peer_list)
 /* This function is called by the kernel */
 static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
-    int ret;
+    int bar = 0, ret;
     u16 vendor, device;
-    unsigned long mmio_start,mmio_len;
+    uint64_t dev_ioeventfd_addr, dev_ioeventfd_size;
     struct channel_priv *drv_priv;
+
+    pr_info("[CH] %s start\n", __func__);
 
     /* Let's read data from the PCI device configuration registers */
     pci_read_config_word(pdev, PCI_VENDOR_ID, &vendor);
     pci_read_config_word(pdev, PCI_DEVICE_ID, &device);
 
-    pr_info("device vid: 0x%X pid: 0x%X\n", vendor, device);
+    pr_info("[CH] device vid: 0x%X pid: 0x%X\n", vendor, device);
 
     ret = pci_enable_device(pdev);
     if (ret) {
+		pr_err("[CH] pci_enable_device failed %d\n", ret);
         return ret;
     }
 
     /* Allocate memory for the driver private data */
     drv_priv = kzalloc(sizeof(struct channel_priv), GFP_KERNEL);
-
     if (!drv_priv) {
-        release_device(pdev);
-        return -ENOMEM;
+		pr_err("[CH] failed to kzalloc for drv_priv\n");
+		goto pci_disable;
     }
+
+	/* Request memory region for the BAR */
+    ret = pci_request_region(pdev, bar, DRIVER_NAME);
+    if (ret) {
+		pr_err("[CH] pci_request_region failed %d\n", ret);
+		goto pci_disable;
+    }
+
+	dev_ioeventfd_addr = pci_resource_start(pdev, bar);
+	dev_ioeventfd_size = pci_resource_len(pdev, bar);
+	drv_priv.ioeventfd_addr = pci_iomap(pdev, bar, 0);
+
+	pr_info("[CH] ioeventfd addr 0x%x, size 0x%x, iomap_addr 0x%lx",
+			dev_ioeventfd_addr, dev_ioeventfd_size, (uint64_t)drv_priv.ioeventfd_addr);
+	if (!drv_priv.ioeventfd_iomap_addr) {
+		pr_err("[CH] pci_iomap failed for ioeventfd_iomap_addr\n");
+		goto pci_release;
+	}
 
     /* Set driver private data */
     /* Now we can access mapped "hwmem" from the any driver's function */
@@ -190,20 +135,35 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 			DRIVER_NAME, &drv_priv->peer_list);
 	if (ret) {
 		pr_err("CHANNEL: request_irq failed. pdev->irq: %d\n", pdev->irq);
+		goto iomap_release;
 	}
 
+	pr_info("[CH] %s done\n", __func__);
+
     return 0;
+
+iomap_release:
+	pci_iounmap(pdev, drv_priv.ioeventfd_addr);
+pci_release:
+	pci_release_region(pdev, bar);
+pci_disable:
+	pci_disable_device(pdev);
+	return -EBUSY;
 }
 
 static void channel_remove(struct pci_dev *pdev)
 {
-    struct channel_priv *drv_priv = pci_get_drvdata(pdev);
+	struct channel_priv *drv_priv = pci_get_drvdata(pdev);
 
-    if (drv_priv) {
-        kfree(drv_priv);
-    }
+	if (drv_priv) {
+		kfree(drv_priv);
+	}
 
-    release_device(pdev);
+	free_irq(pdev->irq, pdev);
+	pci_iounmap(pdev, drv_priv.ioeventfd_addr);
+	/* Free memory region */
+	pci_release_region(pdev, bar);
+	pci_disable_device(pdev);
 }
 
 MODULE_LICENSE("GPL");
