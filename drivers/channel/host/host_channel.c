@@ -6,6 +6,13 @@
 #include <linux/printk.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
+#include <linux/eventfd.h>
+#include <linux/kthread.h>
+#include <linux/workqueue.h>
+#include <linux/wait.h>
+#include <linux/poll.h>
+#include <linux/spinlock.h>
+#include <linux/file.h>
 
 #define DEVICE_NAME "host_channel"
 #define PEER_LIST_MAX  128
@@ -23,19 +30,26 @@ struct peer {
 
 /* This is a "private" data structure */
 struct channel_priv {
+	spinlock_t lock;
 	int id;
-	int eventfd; 
 	int cnt;
+	bool is_active;
+	struct eventfd_ctx *eventfd;
+	wait_queue_entry_t wait;
+	poll_table pt;
 	struct peer peers[PEER_LIST_MAX];
 };
 
-// TODO: Need lock
 static struct channel_priv drv_priv;
-
 static struct cdev ch_cdev;
 static struct class *ch_class;
 
-static int search_peer_idx(int peer_id) {
+// NOTE: drv_priv.lock must be held before calling this function
+static int search_peer_idx(struct channel_priv* priv_ptr, int peer_id) {
+    if (priv_ptr != &drv_priv) {
+        return -1;
+    }
+
     for (int i = 0; i < drv_priv.cnt; i++) {
         if (peer_id == drv_priv.peers[i].id) {
             return i;
@@ -44,28 +58,86 @@ static int search_peer_idx(int peer_id) {
     return -1;
 }
 
-static bool inline is_new_peer(int peer_id) {
-	return search_peer_idx(peer_id) == -1 ? true : false;
+// NOTE: drv_priv.lock must be held before calling this function
+static bool inline is_new_peer(struct channel_priv* priv_ptr, int peer_id) {
+	return search_peer_idx(priv_ptr, peer_id) == -1 ? true : false;
 }
 
-static bool push_back(struct peer new_peer) {
-    if (drv_priv.cnt >= PEER_LIST_MAX) {
+// NOTE: drv_priv.lock must be held before calling this function
+static bool push_back(struct channel_priv* priv_ptr, struct peer new_peer) {
+    if (priv_ptr != &drv_priv || priv_ptr->cnt >= PEER_LIST_MAX) {
         return false;
     }
-	pr_info("[ID:%d] push_back peer.id %d, peer.eventfd %d",
-            drv_priv.id, new_peer.id, new_peer.eventfd);
-    drv_priv.peers[drv_priv.cnt++] = new_peer;
+	pr_info("[CH] push_back peer.id %d, peer.eventfd %d",
+            priv_ptr->id, new_peer.id, new_peer.eventfd);
+    priv_ptr->peers[drv_priv.cnt++] = new_peer;
     return true;
+}
+
+static void ch_ptable_queue_proc(struct file *file, wait_queue_head_t *wqh, poll_table *pt)
+{
+	pr_info("[CH] %s add waitqueue entry to our eventfd->wqh", __func__);
+	add_wait_queue_priority(wqh, &drv_priv.wait);
+}
+
+/*
+ * Mark the drv_priv as inactive and schedule it for removal
+ * assumes drv_priv.lock is held
+ */
+static void ch_deactivate(struct channel_priv *priv_ptr)
+{
+	BUG_ON(!priv_ptr->is_active);
+	priv_ptr->is_active = false;
+	// TODO: schedule_work(&ch_shutdown);
+	// need to add eventfd_ctx_put(irqfd->eventfd); to ch_shutdown
+}
+
+/*
+ * Called with wqh->lock held and interrupts disabled
+ */
+static int ch_wakeup(wait_queue_entry_t *wait, unsigned mode, int sync, void *key)
+{
+	struct channel_priv *priv_ptr = container_of(wait, struct channel_priv, wait);
+	__poll_t flags = key_to_poll(key);
+	int ret = 0;
+
+	pr_info("[CH] %s start", __func__);
+    if (priv_ptr != &drv_priv) {
+		pr_err("[CH] %s Invalid priv_ptr\n", __func__);
+        return -1;
+    }
+
+	if (flags & EPOLLIN) {
+		u64 cnt;
+		eventfd_ctx_do_read(priv_ptr->eventfd, &cnt);
+		pr_info("[CH] %s EPOLLIN: eventfd cnt %d\n", __func__, cnt);
+		//schedule_work(&check_mem_request()); TODO: need to implement check_mem_request() 
+		ret = 1;
+	}
+
+	if (flags & EPOLLHUP) {
+		/* The eventfd is closing, deactivate it */
+		unsigned long flags;
+
+		pr_info("[CH] %s eventfd is closed\n", __func__);
+
+		spin_lock_irqsave(&priv_ptr->lock, flags);
+		if (priv_ptr->is_active)
+			ch_deactivate(priv_ptr);
+		spin_unlock_irqrestore(&priv_ptr->lock, flags);
+	}
+
+	return ret;
 }
 
 static int channel_open(struct inode *inode, struct file *file)
 {
 	struct peer *peer;
-	pr_info("CHANNEL: device opened\n");
+	pr_info("[CH] device opened\n");
 
 	peer = kmalloc(sizeof(struct peer), GFP_KERNEL);
     if (!peer) {
-		pr_err("CHANNEL: kmalloc failed");
+		pr_err("[CH] kmalloc failed");
         return -ENOMEM;
     }
 
@@ -76,7 +148,7 @@ static int channel_open(struct inode *inode, struct file *file)
 
 static int channel_release(struct inode * inode, struct file * file)
 {
-    pr_info("CHANNEL: channel_release start");
+    pr_info("[CH] channel_release start");
     if (file->private_data) {
         kfree(file->private_data);
         file->private_data = NULL;
@@ -89,6 +161,8 @@ static ssize_t channel_write(struct file *file, const char __user *user_buffer, 
 	int ret = 0;
     struct peer *peer = (struct peer*) file->private_data;
     ssize_t len = sizeof(struct peer) - *offset;
+	unsigned long flags;
+	__poll_t events;
 
     if (len <= 0)
         return 0;
@@ -98,23 +172,48 @@ static ssize_t channel_write(struct file *file, const char __user *user_buffer, 
     if (ret) {
 		return -EFAULT;
 	}
+    *offset += len;
 
-	pr_info("CHANNEL: channel_write done. peer's id: %d, eventfd: %d len: %d\n", peer->id, peer->eventfd, len);
-	// TODO: add peer to the peer list
-	if (drv_priv.id < 0 || drv_priv.eventfd < 0) {
+	pr_info("[CH] %s peer's id: %d, eventfd: %d len: %d\n", __func__, peer->id, peer->eventfd, len);
+	spin_lock_irqsave(&drv_priv.lock, flags);
+	if (drv_priv.id < 0 || !drv_priv.eventfd) {
+		struct fd f;
+
+		pr_info("[CH] Get Host Channel's peer id: %d, eventfd: %d\n", peer->id, peer->eventfd);
 		drv_priv.id = peer->id;
-		drv_priv.eventfd = peer->eventfd;
-	} else if (is_new_peer(peer->id)) {
-		ret = push_back(*peer);
+		f = fdget(peer->eventfd);
+		if (!f.file) {
+			pr_err("[CH] %s fdget failed", __func__);
+			goto out;
+		}
+
+		drv_priv.eventfd = eventfd_ctx_fileget(f.file);
+		if (IS_ERR(drv_priv.eventfd)) {
+			pr_err("[CH] %s eventfd_ctx_fileget failed", __func__);
+			fdput(f);
+			goto out;
+		}
+
+		/*
+		 * Check if there was an event already pending on the eventfd before we registered.
+		 * This registration should be done before running any realm.
+		 * Therefore, if there is any pending event, it is abnormal.
+		 */
+		events = vfs_poll(f.file, &drv_priv.pt);
+		if (events & EPOLLIN) {
+			pr_err("[CH] %s pending event is not allowed when registering eventfd", __func__);
+		}
+	} else if (is_new_peer(&drv_priv, peer->id)) {
+		ret = push_back(&drv_priv, *peer);
 		if (ret) {
-			pr_err("failed to push_back a new peer. id: %d, eventfd: %d", peer->id, peer->eventfd);
+			pr_err("[CH] failed to push_back a new peer. id: %d, eventfd: %d", peer->id, peer->eventfd);
 		}
 	} else {
-		pr_err("The peer already exists: id: %d, eventfd: %d", peer->id, peer->eventfd);
+		pr_err("[CH] The peer already exists: id: %d, eventfd: %d", peer->id, peer->eventfd);
 	}
-
-    *offset += len;
-    return len;
+out:
+	spin_unlock_irqrestore(&drv_priv.lock, flags);
+	return len;
 }
 
 static const struct file_operations ch_fops = {
@@ -130,11 +229,11 @@ static int __init channel_init(void)
 	struct device *dev_struct;
 	dev_t ch_dev;
 
-	pr_info("CHANNEL: channel_init start \n");
+	pr_info("[CH] channel_init start \n");
 
 	ret = alloc_chrdev_region(&ch_dev, MINOR_BASE, MINOR_NUM, DEVICE_NAME);
 	if (ret) {
-		pr_err("%s alloc_chrdev_region failed %d\n", __func__, ret);
+		pr_err("[CH] %s alloc_chrdev_region failed %d\n", __func__, ret);
 		return ret;
 	}
 
@@ -142,26 +241,32 @@ static int __init channel_init(void)
 
 	ret = cdev_add(&ch_cdev, ch_dev, MINOR_NUM);
 	if (ret) {
-		pr_err("%s cdev_add failed %d\n", __func__, ret);
+		pr_err("[CH] %s cdev_add failed %d\n", __func__, ret);
 		goto unreg_dev_num;
 	}
 
 	ch_class = class_create(THIS_MODULE, DEVICE_NAME);
 	if (IS_ERR(ch_class)) {
-		pr_err("%s class_create failed\n", __func__);
+		pr_err("[CH] %s class_create failed\n", __func__);
 		goto unreg_cdev;
 	}
 
 	dev_struct = device_create(ch_class, NULL, ch_dev, NULL, DEVICE_NAME);
 	if (IS_ERR(dev_struct)) {
-		pr_err("%s device_create failed\n", __func__);
+		pr_err("[CH] %s device_create failed\n", __func__);
 		goto unreg_class;
 	}
 
-	memset(&drv_priv, -1, sizeof(drv_priv));
+	memset(&drv_priv, 0, sizeof(drv_priv));
+	drv_priv.id = -1;
+	drv_priv.is_active = true;
+
+	spin_lock_init(&drv_priv.lock);
+	init_waitqueue_func_entry(&drv_priv.wait, ch_wakeup);
+	init_poll_funcptr(&drv_priv.pt, ch_ptable_queue_proc);
 
 	dev_major_num = MAJOR(ch_dev);
-	pr_info("%s major:minor = %d:%d\n", __func__, dev_major_num, MINOR(ch_dev));
+	pr_info("[CH] %s major:minor = %d:%d\n", __func__, dev_major_num, MINOR(ch_dev));
 
 	return 0;
 
@@ -183,6 +288,7 @@ static void __exit channel_exit(void)
 	class_destroy(ch_class);
 	cdev_del(&ch_cdev);
 	unregister_chrdev_region(dev, MINOR_NUM);
+	ch_deactivate(&drv_priv);
 }
 
 MODULE_LICENSE("GPL");
