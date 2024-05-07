@@ -4,7 +4,7 @@
 #include <linux/module.h>
 #include <linux/pci.h>
 
-#define DRIVER_NAME "channel"
+#define DRIVER_NAME "guest_channel"
 #define VENDOR_ID 0x1af4
 #define DEVICE_ID 0x10f0
 #define PEER_LIST_MAX  128
@@ -35,19 +35,17 @@ struct peer {
     int id;      /* This is for identifying peers. It's NOT vmid */
     int sock_fd; /* connected unix sock */
     int eventfd;
-}
+};
 
 struct peer_list {
 	int cnt;
 	struct peer peers[PEER_LIST_MAX];
-}
+};
 
 /* This is a "private" data structure */
 /* You can store there any data that should be passed between driver's functions */
 struct channel_priv {
-	uint32_t ioeventfd_addr;
-	uint32_t ioeventfd_size;
-	void *ioeventfd_iomap_addr;
+	uint32_t* ioeventfd_addr;
 	struct peer_list peer_list;
 };
 
@@ -55,17 +53,17 @@ static int __init channel_init(void)
 {
 	int ret = 0;
 
-	pr_info("[CH] %s start\n", __func__);
+	pr_info("[GCH] %s start\n", __func__);
 	ret = pci_register_driver(&channel_driver);
 	if (ret) {
-		pr_err("[CH] pci_register_driver failed %d\n", ret);
+		pr_err("[GCH] pci_register_driver failed %d\n", ret);
 	}
 	return ret;
 }
 
 static void __exit channel_exit(void)
 {
-	pr_info("[CH] %s start\n", __func__);
+	pr_info("[GCH] %s start\n", __func__);
     pci_unregister_driver(&channel_driver);
 }
 
@@ -74,10 +72,11 @@ static void __exit channel_exit(void)
  * Host: Send dyn memory or Retrieve it from realm
  * Realm: Get dyn memory or Receive I/O ring request 
  */
-static irqreturn_t channel_irq_handler(int irq, struct peer_list *peer_list)
+static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 {
-   printk("Handle IRQ #%d\n", irq);
-   return IRQ_HANDLED;
+	struct peer_list *peer_list = (struct peer_list *)dev_instance;
+	pr_info("[GCH] Handle IRQ #%d, peer_list->cnt %d\n", irq, peer_list->cnt);
+	return IRQ_HANDLED;
 }
 
 /* This function is called by the kernel */
@@ -85,45 +84,45 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
     int bar = 0, ret;
     u16 vendor, device;
-    uint64_t dev_ioeventfd_addr, dev_ioeventfd_size;
+    uint32_t dev_ioeventfd_addr, dev_ioeventfd_size;
     struct channel_priv *drv_priv;
 
-    pr_info("[CH] %s start\n", __func__);
+    pr_info("[GCH] %s start\n", __func__);
 
     /* Let's read data from the PCI device configuration registers */
     pci_read_config_word(pdev, PCI_VENDOR_ID, &vendor);
     pci_read_config_word(pdev, PCI_DEVICE_ID, &device);
 
-    pr_info("[CH] device vid: 0x%X pid: 0x%X\n", vendor, device);
+    pr_info("[GCH] device vid: 0x%X pid: 0x%X\n", vendor, device);
 
     ret = pci_enable_device(pdev);
     if (ret) {
-		pr_err("[CH] pci_enable_device failed %d\n", ret);
+		pr_err("[GCH] pci_enable_device failed %d\n", ret);
         return ret;
     }
 
     /* Allocate memory for the driver private data */
     drv_priv = kzalloc(sizeof(struct channel_priv), GFP_KERNEL);
     if (!drv_priv) {
-		pr_err("[CH] failed to kzalloc for drv_priv\n");
+		pr_err("[GCH] failed to kzalloc for drv_priv\n");
 		goto pci_disable;
     }
 
 	/* Request memory region for the BAR */
     ret = pci_request_region(pdev, bar, DRIVER_NAME);
     if (ret) {
-		pr_err("[CH] pci_request_region failed %d\n", ret);
+		pr_err("[GCH] pci_request_region failed %d\n", ret);
 		goto pci_disable;
     }
 
 	dev_ioeventfd_addr = pci_resource_start(pdev, bar);
 	dev_ioeventfd_size = pci_resource_len(pdev, bar);
-	drv_priv.ioeventfd_addr = pci_iomap(pdev, bar, 0);
+	drv_priv->ioeventfd_addr = pci_iomap(pdev, bar, 0);
 
-	pr_info("[CH] ioeventfd addr 0x%x, size 0x%x, iomap_addr 0x%lx",
-			dev_ioeventfd_addr, dev_ioeventfd_size, (uint64_t)drv_priv.ioeventfd_addr);
-	if (!drv_priv.ioeventfd_iomap_addr) {
-		pr_err("[CH] pci_iomap failed for ioeventfd_iomap_addr\n");
+	pr_info("[GCH] ioeventfd addr 0x%x, size 0x%x, iomap_addr 0x%llx",
+			dev_ioeventfd_addr, dev_ioeventfd_size, (uint64_t)drv_priv->ioeventfd_addr);
+	if (!drv_priv->ioeventfd_addr) {
+		pr_err("[GCH] pci_iomap failed for ioeventfd_addr\n");
 		goto pci_release;
 	}
 
@@ -134,16 +133,16 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	ret = request_irq(pdev->irq, channel_irq_handler, IRQF_SHARED,
 			DRIVER_NAME, &drv_priv->peer_list);
 	if (ret) {
-		pr_err("CHANNEL: request_irq failed. pdev->irq: %d\n", pdev->irq);
+		pr_err("[GCH] request_irq failed. pdev->irq: %d\n", pdev->irq);
 		goto iomap_release;
 	}
 
-	pr_info("[CH] %s done\n", __func__);
+	pr_info("[GCH] %s done\n", __func__);
 
     return 0;
 
 iomap_release:
-	pci_iounmap(pdev, drv_priv.ioeventfd_addr);
+	pci_iounmap(pdev, drv_priv->ioeventfd_addr);
 pci_release:
 	pci_release_region(pdev, bar);
 pci_disable:
@@ -160,9 +159,9 @@ static void channel_remove(struct pci_dev *pdev)
 	}
 
 	free_irq(pdev->irq, pdev);
-	pci_iounmap(pdev, drv_priv.ioeventfd_addr);
+	pci_iounmap(pdev, drv_priv->ioeventfd_addr);
 	/* Free memory region */
-	pci_release_region(pdev, bar);
+	pci_release_region(pdev, 0);
 	pci_disable_device(pdev);
 }
 
