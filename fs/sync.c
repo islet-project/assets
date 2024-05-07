@@ -111,7 +111,7 @@ void ksys_sync(void)
 SYSCALL_DEFINE0(sync)
 {
     // [JB]
-    pr_info("[JB] SYNC!\n");
+    //pr_info("[JB] SYNC!\n");
 	ksys_sync();
 	return 0;
 }
