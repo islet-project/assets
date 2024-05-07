@@ -22,7 +22,10 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 
-#ifdef CONFIG_NET_9P_DEBUG
+// [JB] enable p9 debug
+extern unsigned long no_shared_region_flag;
+
+//#ifdef CONFIG_NET_9P_DEBUG
 unsigned int p9_debug_level;	/* feature-rific global debug level  */
 EXPORT_SYMBOL(p9_debug_level);
 module_param_named(debug, p9_debug_level, uint, 0);
@@ -34,8 +37,10 @@ void _p9_debug(enum p9_debug_flags level, const char *func,
 	struct va_format vaf;
 	va_list args;
 
-	if ((p9_debug_level & level) != level)
-		return;
+    if (no_shared_region_flag == 0)
+        return;
+	//if ((p9_debug_level & level) != level)
+	//	return;
 
 	va_start(args, fmt);
 
@@ -50,7 +55,7 @@ void _p9_debug(enum p9_debug_flags level, const char *func,
 	va_end(args);
 }
 EXPORT_SYMBOL(_p9_debug);
-#endif
+//#endif
 
 /* Dynamic Transport Registration Routines */
 

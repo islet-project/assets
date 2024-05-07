@@ -473,8 +473,9 @@ p9_parse_header(struct p9_fcall *pdu, int32_t *size, int8_t *type,
 	pdu->offset = 0;
 
 	err = p9pdu_readf(pdu, 0, "dbw", &r_size, &r_type, &r_tag);
-	if (err)
+	if (err) {
 		goto rewind_and_exit;
+    }
 
 	if (type)
 		*type = r_type;
@@ -484,6 +485,9 @@ p9_parse_header(struct p9_fcall *pdu, int32_t *size, int8_t *type,
 		*size = r_size;
 
 	if (pdu->size != r_size || r_size < 7) {
+		phys_addr_t phy_sdata = virt_to_phys(pdu->sdata);
+        pr_info("[JB] pdu->size diff -22! %d-%d\n", pdu->size, r_size);
+
 		err = -EINVAL;
 		goto rewind_and_exit;
 	}
@@ -529,7 +533,8 @@ static int p9_check_errors(struct p9_client *c, struct p9_req_t *req)
 	 */
 	trace_9p_protocol_dump(c, &req->rc);
 	if (err) {
-		p9_debug(P9_DEBUG_ERROR, "couldn't parse header %d\n", err);
+		//p9_debug(P9_DEBUG_ERROR, "couldn't parse header %d\n", err);
+        pr_info("[JB] p9_parse_header error: %d\n", err);
 		return err;
 	}
 	if (type != P9_RERROR && type != P9_RLERROR)
@@ -540,14 +545,19 @@ static int p9_check_errors(struct p9_client *c, struct p9_req_t *req)
 
 		err = p9pdu_readf(&req->rc, c->proto_version, "s?d",
 				  &ename, &ecode);
-		if (err)
+		if (err) {
+            pr_info("[JB] p9_is_proto_dotl false - p9pdu_readf: %d\n", err);
 			goto out_err;
+        }
 
-		if (p9_is_proto_dotu(c) && ecode < 512)
+		if (p9_is_proto_dotu(c) && ecode < 512) {
 			err = -ecode;
+            pr_info("[JB] p9_is_proto_dotl false - dotu: %d\n", err);
+        }
 
 		if (!err) {
 			err = p9_errstr2errno(ename, strlen(ename));
+            pr_info("[JB] p9_is_proto_dotl false - str2errno: %d\n", err);
 
 			p9_debug(P9_DEBUG_9P, "<<< RERROR (%d) %s\n",
 				 -ecode, ename);
@@ -555,8 +565,10 @@ static int p9_check_errors(struct p9_client *c, struct p9_req_t *req)
 		kfree(ename);
 	} else {
 		err = p9pdu_readf(&req->rc, c->proto_version, "d", &ecode);
-		if (err)
+		if (err) {
+            pr_info("[JB] p9_is_proto_dotl true - p9_pdu_readf err: %d\n", err);
 			goto out_err;
+        }
 		err = -ecode;
 
 		p9_debug(P9_DEBUG_9P, "<<< RLERROR (%d)\n", -ecode);
@@ -746,8 +758,9 @@ recalc_sigpending:
 
 	err = p9_check_errors(c, req);
 	trace_9p_client_res(c, type, req->rc.tag, err);
-	if (!err)
+	if (!err) {
 		return req;
+    }
 reterr:
 	p9_req_put(c, req);
 	return ERR_PTR(safe_errno(err));

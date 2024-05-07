@@ -193,6 +193,7 @@ int set_direct_map_default_noflush(struct page *page)
 				   PAGE_SIZE, change_page_range, &data);
 }
 
+extern unsigned long no_shared_region_flag;
 static int __set_memory_encrypted(unsigned long addr,
 				  int numpages,
 				  bool encrypt)

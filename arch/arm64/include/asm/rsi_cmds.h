@@ -61,6 +61,13 @@ static inline unsigned long rsi_set_addr_range_state(phys_addr_t start,
 {
 	struct arm_smccc_res res;
 
+    // [JB]
+    /*
+    if (start == 0x88200000) {
+        pr_info("[JB] channel op!\n");
+        rsi_cloak_channel_create_with_size(0, start, (end - start));
+    } */
+
 	invoke_rsi_fn_smc_with_res(SMC_RSI_IPA_STATE_SET,
 				   start, (end - start), state, 0, &res);
 
@@ -81,6 +88,46 @@ static inline unsigned long rsi_cloak_channel_connect(unsigned long id, unsigned
 	struct arm_smccc_res res;
 
 	invoke_rsi_fn_smc_with_res(SMC_RSI_CHANNEL_CONNECT, id, ipa, 0, 0, &res);
+	return res.a0;
+}
+
+static inline unsigned long rsi_cloak_channel_result(unsigned long id, unsigned long result)
+{
+	struct arm_smccc_res res;
+
+	invoke_rsi_fn_smc_with_res(SMC_RSI_CHANNEL_RESULT, id, result, 0, 0, &res);
+	return res.a0;
+}
+
+static inline unsigned long rsi_cloak_channel_create_with_size(unsigned long id, unsigned long ipa, unsigned long size)
+{
+    struct arm_smccc_res res;
+
+    invoke_rsi_fn_smc_with_res(SMC_RSI_CHANNEL_CREATE, id, ipa, size, 0, &res);
+    return res.a0;
+}
+
+static inline unsigned long rsi_cloak_channel_create(unsigned long id, unsigned long ipa)
+{
+	struct arm_smccc_res res;
+
+	invoke_rsi_fn_smc_with_res(SMC_RSI_CHANNEL_CREATE, id, ipa, 4096, 0, &res);
+	return res.a0;
+}
+
+static inline unsigned long rsi_cloak_channel_connect_with_size(unsigned long id, unsigned long ipa, unsigned long size)
+{
+    struct arm_smccc_res res;
+
+    invoke_rsi_fn_smc_with_res(SMC_RSI_CHANNEL_CONNECT, id, ipa, size, 0, &res);
+    return res.a0;
+}
+
+static inline unsigned long rsi_cloak_channel_connect(unsigned long id, unsigned long ipa)
+{
+	struct arm_smccc_res res;
+
+	invoke_rsi_fn_smc_with_res(SMC_RSI_CHANNEL_CONNECT, id, ipa, 4096, 0, &res);
 	return res.a0;
 }
 

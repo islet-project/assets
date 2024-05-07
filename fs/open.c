@@ -1326,12 +1326,83 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	return do_sys_openat2(dfd, filename, &how);
 }
 
+bool is_file_to_delegate_gateway(const char __user * filename, char *kbuf)
+{
+    //char buf[2048] = {0,};
+    if (strncpy_from_user(kbuf, filename, 2048) < 0) {
+        pr_info("filename read error!");
+        return false;
+    }
+
+    if (strncmp(kbuf, "/shared/", 8) == 0) {
+		pr_info("[JB] file name: shared!\n");
+        return true;
+    } else {
+		pr_info("[JB] file name: not shared!\n");
+        return false;
+    }
+}
+
+
+//extern char __attribute__((aligned(4096))) rsi_page_creator[64 * 1024 * 1024];
+extern unsigned long no_shared_region_flag;
+int cloak_test_fd = -1;
+
+#define DEL_OPEN_MAGIC_NUM (9999999)
+#define DEL_SYSCALL_OPEN (1)
+
+struct del_open_req {
+    unsigned int type;
+    char filename[256];
+    unsigned int flags;
+    unsigned int mode;
+} __attribute__((packed));
+struct del_open_resp {
+    unsigned int type;
+    unsigned int magic_num;
+    int fd;
+} __attribute__((packed));
 
 SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
 {
-	if (force_o_largefile())
-		flags |= O_LARGEFILE;
-	return do_sys_open(AT_FDCWD, filename, flags, mode);
+#if 0
+    char kbuf[2048] = {0,};
+
+    //if (no_shared_region_flag && is_file_to_delegate_gateway(filename, kbuf)) {
+    if (is_file_to_delegate_gateway(filename, kbuf)) {
+        // 1. shared_memory_write!
+        struct del_open_req *req = (struct del_open_req *)rsi_page_creator;
+        memset(req, 0x8, sizeof(struct del_open_req));
+        req->type = DEL_SYSCALL_OPEN;
+		memset(req->filename, 0, 256);
+        strncpy(req->filename, kbuf, sizeof(req->filename));
+        req->flags = flags;
+        req->mode = (unsigned int)mode;
+		pr_info("[JB] open: shared_memory_write! %s\n", kbuf);
+        
+        // 2. read result!
+        int resp_fd = -1;
+        while (1) {
+            struct del_open_resp *resp = (struct del_open_resp *)rsi_page_creator;
+            unsigned int magic = *(volatile unsigned int *)&resp->magic_num;
+            int fd = *(volatile int *)&resp->fd;
+
+            if (magic == DEL_OPEN_MAGIC_NUM) {
+                resp_fd = fd;
+				cloak_test_fd = fd;
+                pr_info("[JB] resp_fd: %d\n", resp_fd);
+                break;
+            }
+        }
+		pr_info("[JB] open end\n");
+
+        return resp_fd;
+    } else {
+#endif
+	    if (force_o_largefile())
+		    flags |= O_LARGEFILE;
+    	return do_sys_open(AT_FDCWD, filename, flags, mode);
+    //}
 }
 
 SYSCALL_DEFINE4(openat, int, dfd, const char __user *, filename, int, flags,

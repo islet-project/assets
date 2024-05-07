@@ -618,9 +618,77 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 	return ret;
 }
 
+//extern char __attribute__((aligned(4096))) rsi_page_creator[64 * 1024 * 1024];
+extern unsigned long no_shared_region_flag;
+extern int cloak_test_fd;
+
+#define DEL_WRITE_MAGIC_NUM (9999998)
+#define DEL_SYSCALL_WRITE (2)
+
+#define DEL_READ_MAGIC_NUM (9999997)
+#define DEL_SYSCALL_READ (3)
+
+struct del_write_req {
+    unsigned int type;
+	int fd;
+	unsigned int size;
+    unsigned char data[2048];
+} __attribute__((packed));
+struct del_write_resp {
+    unsigned int type;
+    unsigned int magic_num;
+    unsigned int size;
+} __attribute__((packed));
+struct del_read_req {
+    unsigned int type;
+	int fd;
+	unsigned int size;
+} __attribute__((packed));
+struct del_read_resp {
+    unsigned int type;
+    unsigned int magic_num;
+    unsigned int size;
+	unsigned char data[2048];
+} __attribute__((packed));
+
 SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
 {
-	return ksys_read(fd, buf, count);
+#if 0
+	if (no_shared_region_flag && cloak_test_fd == fd) {
+		/*
+		char kbuf[2048] = {0,};
+		if (copy_from_user(kbuf, buf, 2048) < 0) {
+			pr_info("[JB] read: copy_from_user error\n");
+			return 0;
+		} */
+
+		// 1. shared_memory_write: read() request
+		struct del_read_req *req = (struct del_read_req *)rsi_page_creator;
+		req->type = DEL_SYSCALL_READ;
+		req->fd = fd;
+		req->size = (unsigned int)count;
+		pr_info("[JB] read: shared_memory_write request! %ld\n", count);
+
+		// 2. wait for read() request to get done
+		while (1) {
+            struct del_read_resp *resp = (struct del_read_resp *)rsi_page_creator;
+            unsigned int magic = *(volatile unsigned int *)&resp->magic_num;
+			unsigned int size = *(volatile unsigned int *)&resp->size;
+
+            if (magic == DEL_READ_MAGIC_NUM) {
+                if (copy_to_user(buf, resp->data, count) < 0) {
+					pr_info("[JB] read: copy_to_user error!\n");
+					return 0;
+				}
+                pr_info("[JB] read: shared_memory_read done! %d\n", size);
+                return size;
+            }
+        }
+		return 0;
+	} else {
+#endif
+		return ksys_read(fd, buf, count);
+	//}
 }
 
 ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count)
@@ -646,7 +714,38 @@ ssize_t ksys_write(unsigned int fd, const char __user *buf, size_t count)
 SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf,
 		size_t, count)
 {
-	return ksys_write(fd, buf, count);
+#if 0
+	if (no_shared_region_flag && cloak_test_fd == fd) {
+		char kbuf[2048] = {0,};
+		if (copy_from_user(kbuf, buf, 2048) < 0) {
+			pr_info("[JB] write: copy_from_user error\n");
+			return 0;
+		}
+
+		// 1. shared_memory_write: write() request
+		struct del_write_req *req = (struct del_write_req *)rsi_page_creator;
+		req->type = DEL_SYSCALL_WRITE;
+		req->fd = fd;
+		req->size = (unsigned int)count;
+		memcpy(req->data, kbuf, 2048);
+		pr_info("[JB] write: shared_memory_write request! %ld\n", count);
+
+		// 2. wait for write() request to get done
+		while (1) {
+            struct del_write_resp *resp = (struct del_write_resp *)rsi_page_creator;
+            unsigned int magic = *(volatile unsigned int *)&resp->magic_num;
+            unsigned int size = *(volatile unsigned int *)&resp->size;
+
+            if (magic == DEL_WRITE_MAGIC_NUM) {
+                pr_info("[JB] write: shared_memory_read done! %d\n", size);
+				return size;
+            }
+        }
+		return 0;
+	} else {
+#endif
+		return ksys_write(fd, buf, count);
+	//}
 }
 
 ssize_t ksys_pread64(unsigned int fd, char __user *buf, size_t count,
