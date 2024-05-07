@@ -588,7 +588,8 @@ void kvm_realm_unmap_range(struct kvm *kvm, unsigned long ipa, u64 size)
 					base, end);
 	}
 
-	realm_fold_rtt_range(realm, ipa, end);
+    // Islet: temporarily comment this out until fold is supported.
+	//realm_fold_rtt_range(realm, ipa, end);
 }
 
 static int realm_create_protected_data_page(struct realm *realm,
