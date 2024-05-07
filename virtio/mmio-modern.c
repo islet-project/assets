@@ -6,9 +6,12 @@
 #define vmmio_selected_vq(vmmio) \
 	vdev->ops->get_vq((vmmio)->kvm, (vmmio)->dev, (vmmio)->hdr.queue_sel)
 
+#define ENABLE_MMIO_MODERN
+
+#ifdef ENABLE_MMIO_MODERN
 static void virtio_mmio_config_in(struct kvm_cpu *vcpu,
 				  u64 addr, u32 *data, u32 len,
-				  struct virtio_device *vdev)
+				  struct virtio_device *vdev, bool p9req)
 {
 	struct virtio_mmio *vmmio = vdev->virtio;
 	u64 features = 1ULL << VIRTIO_F_VERSION_1;
@@ -71,12 +74,14 @@ static void virtio_mmio_config_in(struct kvm_cpu *vcpu,
 
 static void virtio_mmio_config_out(struct kvm_cpu *vcpu,
 				   u64 addr, u32 *data, u32 len,
-				   struct virtio_device *vdev)
+				   struct virtio_device *vdev, bool p9req)
 {
 	struct virtio_mmio *vmmio = vdev->virtio;
 	struct kvm *kvm = vmmio->kvm;
-	u32 val = le32_to_cpu(*data);
+	u32 val = 0;
 	u64 features;
+
+	val = le32_to_cpu(*data);
 
 	switch (addr) {
 	case VIRTIO_MMIO_DEVICE_FEATURES_SEL:
@@ -133,13 +138,30 @@ static void virtio_mmio_config_out(struct kvm_cpu *vcpu,
 		break;
 	};
 }
+#endif
+
+extern struct virtio_ops p9_dev_virtio_ops;
 
 void virtio_mmio_modern_callback(struct kvm_cpu *vcpu, u64 addr, u8 *data,
 				 u32 len, u8 is_write, void *ptr)
 {
+#ifdef ENABLE_MMIO_MODERN
 	struct virtio_device *vdev = ptr;
 	struct virtio_mmio *vmmio = vdev->virtio;
 	u32 offset = addr - vmmio->addr;
+	bool p9req = false;
+
+    // [JB] no_shared_region check
+    // no_shared_region is dealt with in p9-backend
+    if ( (vcpu->kvm->cfg.arch.realm_pv != NULL) && (strcmp(vcpu->kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+		// check if this is 9p device
+		// if 9p --> keep going ahead, otherwise --> return;
+		if ((unsigned long)(vdev->ops) == (unsigned long)(&p9_dev_virtio_ops)) {
+			p9req = true;
+		} else {
+        	return;
+		}
+    }
 
 	if (offset >= VIRTIO_MMIO_CONFIG) {
 		offset -= VIRTIO_MMIO_CONFIG;
@@ -151,11 +173,16 @@ void virtio_mmio_modern_callback(struct kvm_cpu *vcpu, u64 addr, u8 *data,
 	if (len != 4) {
 		pr_debug("Invalid %s size %d at 0x%llx", is_write ? "write" :
 			 "read", len, addr);
+		if (p9req)
+			printf("[JB] p9: invalid size!\n");
 		return;
 	}
 
-	if (is_write)
-		virtio_mmio_config_out(vcpu, offset, (void *)data, len, ptr);
-	else
-		virtio_mmio_config_in(vcpu, offset, (void *)data, len, ptr);
+	if (is_write) {
+		virtio_mmio_config_out(vcpu, offset, (void *)data, len, ptr, p9req);
+	}
+	else {
+		virtio_mmio_config_in(vcpu, offset, (void *)data, len, ptr, p9req);
+	}
+#endif
 }

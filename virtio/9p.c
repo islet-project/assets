@@ -185,6 +185,8 @@ static void virtio_p9_version(struct p9_dev *p9dev,
 	*outlen = pdu->write_offset;
 	virtio_p9_set_reply_header(pdu, *outlen);
 	free(version);
+
+	//printf("[JB] p9_version outlen: %d\n", *outlen);
 	return;
 }
 
@@ -534,6 +536,8 @@ static void virtio_p9_attach(struct p9_dev *p9dev,
 	virtio_p9_pdu_writef(pdu, "Q", &qid);
 	*outlen = pdu->write_offset;
 	virtio_p9_set_reply_header(pdu, *outlen);
+
+	//printf("[JB] p9_attach: %d\n", *outlen);
 	return;
 err_out:
 	virtio_p9_error_reply(p9dev, pdu, errno, outlen);
@@ -1329,6 +1333,46 @@ static u8 virtio_p9_get_cmd(struct p9_pdu *pdu)
 	return msg->cmd;
 }
 
+static u32 virtio_p9_pdu_write_to_file(struct p9_pdu *p9pdu)
+{
+    FILE *fp = NULL;
+	u32 outlen = 0;
+
+	//printf("[JB] virtio_p9_pdu_write_to_file start!\n");
+
+    // 1. write request
+    fp = fopen("/shared/p9req.bin", "wb");
+    if (fp) {
+        fwrite((unsigned char *)p9pdu, sizeof(unsigned char), sizeof(struct p9_pdu)/sizeof(unsigned char), fp);
+        fclose(fp);
+        //printf("[JB] p9req write!\n");
+    } else {
+        //printf("[JB] p9req write fail..\n");
+    }
+
+	// 2. check request. wait for it to get deleted.
+	while (true) {
+		sync();
+        if (access("/shared/p9req.bin", F_OK) == 0) {
+            sleep(1);
+        } else {
+            break;
+        }
+    }
+	//printf("[JB] try to read resp!\n");
+
+	// 3. read resp
+	fp = fopen("/shared/p9resp.bin", "rb");
+	if (fp) {
+		fread(&outlen, sizeof(outlen), 1, fp);
+		fclose(fp);
+		//printf("[JB] read resp! %d\n", outlen);
+	}
+
+	// 4. read result
+	return outlen;
+}
+
 static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 {
 	u8 cmd;
@@ -1342,18 +1386,32 @@ static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 	p9dev = job->p9dev;
 
 	p9pdu = virtio_p9_pdu_init(kvm, vq);
-	cmd = virtio_p9_get_cmd(p9pdu);
 
-	if ((cmd >= ARRAY_SIZE(virtio_9p_dotl_handler)) ||
-	    !virtio_9p_dotl_handler[cmd])
-		handler = virtio_p9_eopnotsupp;
-	else
-		handler = virtio_9p_dotl_handler[cmd];
+    if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+		// no_shared_region
+		// for CVM_App
 
-	handler(p9dev, p9pdu, &len);
-	virt_queue__set_used_elem(vq, p9pdu->queue_head, len);
-	free(p9pdu);
-	return true;
+		// 1. wait for CVM_GW (virtio backend) to handle this request
+		len = virtio_p9_pdu_write_to_file(p9pdu);
+
+		// 2. update results
+		virt_queue__set_used_elem(vq, p9pdu->queue_head, len);
+		free(p9pdu);
+        return true;
+    } else {
+		// for CVM_GW
+		cmd = virtio_p9_get_cmd(p9pdu);
+		if ((cmd >= ARRAY_SIZE(virtio_9p_dotl_handler)) ||
+			!virtio_9p_dotl_handler[cmd])
+			handler = virtio_p9_eopnotsupp;
+		else
+			handler = virtio_9p_dotl_handler[cmd];
+
+		handler(p9dev, p9pdu, &len);
+		virt_queue__set_used_elem(vq, p9pdu->queue_head, len);
+		free(p9pdu);
+		return true;
+    }
 }
 
 static void virtio_p9_do_io(struct kvm *kvm, void *param)

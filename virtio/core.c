@@ -11,6 +11,7 @@
 #include "kvm/util.h"
 #include "kvm/kvm.h"
 
+void *jb_guest_flat_to_host(struct kvm *kvm, u64 offset);
 
 const char* virtio_trans_name(enum virtio_trans trans)
 {
@@ -99,14 +100,14 @@ u16 virt_queue__get_head_iov(struct virt_queue *vq, struct iovec iov[], u16 *out
 
 	if (virt_desc__test_flag(vq, &desc[idx], VRING_DESC_F_INDIRECT)) {
 		max = virtio_guest_to_host_u32(vq, desc[idx].len) / sizeof(struct vring_desc);
-		desc = guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+		desc = jb_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
 		idx = 0;
 	}
 
 	do {
 		/* Grab the first descriptor, and check it's OK. */
 		iov[*out + *in].iov_len = virtio_guest_to_host_u32(vq, desc[idx].len);
-		iov[*out + *in].iov_base = guest_flat_to_host(kvm,
+		iov[*out + *in].iov_base = jb_guest_flat_to_host(kvm,
 							      virtio_guest_to_host_u64(vq, desc[idx].addr));
 		/* If this is an input descriptor, increment that count. */
 		if (virt_desc__test_flag(vq, &desc[idx], VRING_DESC_F_WRITE))
@@ -128,12 +129,18 @@ u16 virt_queue__get_iov(struct virt_queue *vq, struct iovec iov[], u16 *out, u16
 }
 
 /* in and out are relative to guest */
+//void *jb_guest_flat_to_host(struct kvm *kvm, u64 offset);
 u16 virt_queue__get_inout_iov(struct kvm *kvm, struct virt_queue *queue,
 			      struct iovec in_iov[], struct iovec out_iov[],
 			      u16 *in, u16 *out)
 {
 	struct vring_desc *desc;
 	u16 head, idx;
+    bool no_shared = false;
+
+    if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+        no_shared = true;
+    }
 
 	idx = head = virt_queue__pop(queue);
 	*out = *in = 0;
@@ -142,12 +149,18 @@ u16 virt_queue__get_inout_iov(struct kvm *kvm, struct virt_queue *queue,
 		desc = virt_queue__get_desc(queue, idx);
 		addr = virtio_guest_to_host_u64(queue, desc->addr);
 		if (virt_desc__test_flag(queue, desc, VRING_DESC_F_WRITE)) {
-			in_iov[*in].iov_base = guest_flat_to_host(kvm, addr);
+			in_iov[*in].iov_base = jb_guest_flat_to_host(kvm, addr);
 			in_iov[*in].iov_len = virtio_guest_to_host_u32(queue, desc->len);
+            //if (no_shared) {
+            //    printf("[JB] virt_queue__get_inout_iov - in, %d, %lx, %ld\n", *in, (unsigned long)in_iov[*in].iov_base, (unsigned long)in_iov[*in].iov_len);
+            //}
 			(*in)++;
 		} else {
-			out_iov[*out].iov_base = guest_flat_to_host(kvm, addr);
+			out_iov[*out].iov_base = jb_guest_flat_to_host(kvm, addr);
 			out_iov[*out].iov_len = virtio_guest_to_host_u32(queue, desc->len);
+            //if (no_shared) {
+            //    printf("[JB] virt_queue__get_inout_iov - out, %d, %lx, %ld\n", *in, (unsigned long)out_iov[*out].iov_base, (unsigned long)out_iov[*out].iov_len);
+            //}
 			(*out)++;
 		}
 		if (virt_desc__test_flag(queue, desc, VRING_DESC_F_NEXT))
@@ -159,10 +172,44 @@ u16 virt_queue__get_inout_iov(struct kvm *kvm, struct virt_queue *queue,
 	return head;
 }
 
+unsigned char *frontend_vm_elem = NULL;
+bool mmap_frontend_vm_elem(void)
+{
+	int fd = open("/dev/rsi", O_RDWR);
+	if (fd < 0) {
+		printf("rsi open error\n");
+		return false;
+	}
+
+    frontend_vm_elem = mmap(NULL, 8 * 1024, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (frontend_vm_elem == MAP_FAILED) {
+        printf("mmap error, frontend_vm_elem\n");
+        close(fd);
+        return false;
+    }
+
+	close(fd);
+	printf("mmap success, frontend_vm_elem\n");
+	return true;
+}
+
+u64 translate_frontend_elem_addr(u64 addr)
+{
+	u64 orig = addr;
+	u64 offset = orig - 0x8c260000;
+	u64 new_addr = (u64)frontend_vm_elem + offset;
+	return new_addr;
+}
+
 void virtio_init_device_vq(struct kvm *kvm, struct virtio_device *vdev,
 			   struct virt_queue *vq, size_t nr_descs)
 {
 	struct vring_addr *addr = &vq->vring_addr;
+    bool no_shared = false;
+
+    if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+        no_shared = true;
+    }
 
 	vq->endian		= vdev->endian;
 	vq->use_event_idx	= (vdev->features & (1UL << VIRTIO_RING_F_EVENT_IDX));
@@ -170,7 +217,7 @@ void virtio_init_device_vq(struct kvm *kvm, struct virtio_device *vdev,
 
 	if (addr->legacy) {
 		unsigned long base = (u64)addr->pfn * addr->pgsize;
-		void *p = guest_flat_to_host(kvm, base);
+		void *p = jb_guest_flat_to_host(kvm, base);
 
 		vring_init(&vq->vring, nr_descs, p, addr->align);
 	} else {
@@ -184,6 +231,16 @@ void virtio_init_device_vq(struct kvm *kvm, struct virtio_device *vdev,
 			.avail	= guest_flat_to_host(kvm, avail),
 			.num	= nr_descs,
 		};
+        
+        /*
+        if (no_shared) {
+            // create a mapping and translate addr space!
+			//mmap_frontend_vm_elem();
+			//vq->vring.desc = translate_frontend_elem_addr(vq->vring.desc);
+			//vq->vring.used = translate_frontend_elem_addr(vq->vring.used);
+			//vq->vring.avail = translate_frontend_elem_addr(vq->vring.avail);
+            printf("[JB] init_device_vq: %lx, %lx, %lx, map: %lx\n", vq->vring.desc, vq->vring.used, vq->vring.avail, frontend_vm_elem);
+        } */
 	}
 }
 

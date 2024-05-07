@@ -37,7 +37,11 @@ bindir = $(prefix)/$(bindir_relative)
 DESTDIR_SQ = $(subst ','\'',$(DESTDIR))
 bindir_SQ = $(subst ','\'',$(bindir))
 
-PROGRAM	:= lkvm
+ifeq ($(CLOAK_VM),yes)
+    PROGRAM := lkvm_vm
+else
+    PROGRAM	:= lkvm
+endif
 PROGRAM_ALIAS := vm
 
 OBJS	+= builtin-balloon.o
@@ -59,7 +63,9 @@ OBJS	+= hw/rtc.o
 OBJS	+= irq.o
 OBJS	+= kvm-cpu.o
 OBJS	+= kvm.o
-OBJS	+= main.o
+ifeq ($(CLOAK_VM),no)
+    OBJS	+= main.o
+endif
 OBJS	+= mmio.o
 OBJS	+= pci.o
 OBJS	+= term.o
@@ -108,6 +114,9 @@ OBJS	+= builtin-sandbox.o
 OBJS	+= virtio/mmio.o
 OBJS	+= virtio/mmio-legacy.o
 OBJS	+= virtio/mmio-modern.o
+ifeq ($(CLOAK_VM),yes)
+    OBJS += virtio/9p-vm.o
+endif
 
 # Translate uname -m into ARCH string
 ARCH ?= $(shell uname -m | sed -e s/i.86/i386/ -e s/ppc.*/powerpc/ \
@@ -410,7 +419,7 @@ DEFINES	+= -DBUILD_ARCH='"$(ARCH)"'
 KVM_INCLUDE := include
 CFLAGS	+= $(CPPFLAGS) $(DEFINES) -I$(KVM_INCLUDE) -I$(ARCH_INCLUDE) -O2 -fno-strict-aliasing -g
 
-WARNINGS += -Wall
+#WARNINGS += -Wall
 WARNINGS += -Wformat=2
 WARNINGS += -Winit-self
 WARNINGS += -Wmissing-declarations
@@ -428,9 +437,9 @@ WARNINGS += -Wno-format-nonliteral
 
 CFLAGS	+= $(WARNINGS)
 
-ifneq ($(WERROR),0)
-	CFLAGS += -Werror
-endif
+#ifneq ($(WERROR),0)
+#	CFLAGS += -Werror
+#endif
 
 all: $(PROGRAM) $(PROGRAM_ALIAS)
 

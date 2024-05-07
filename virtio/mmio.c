@@ -150,9 +150,9 @@ int virtio_mmio_init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 		     int device_id, int subsys_id, int class)
 {
     // [JB] do not try create virtio-mmio if no_shared_region is given
-    if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
-        return 0;
-    }
+    //if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+    //    return 0;
+    //}
 
 	bool legacy = vdev->legacy;
 	struct virtio_mmio *vmmio = vdev->virtio;
@@ -165,6 +165,7 @@ int virtio_mmio_init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 	if (!legacy)
 		vdev->endian = VIRTIO_ENDIAN_LE;
 
+    printf("[JB] virtio-mmio legacy: %d\n", legacy ? 1 : 0);
 	r = kvm__register_mmio(kvm, vmmio->addr, VIRTIO_MMIO_IO_SIZE, false,
 			       legacy ? virtio_mmio_legacy_callback :
 					virtio_mmio_modern_callback,

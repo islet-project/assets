@@ -7,6 +7,7 @@
 #define vmmio_selected_vq(vdev, vmmio) \
 	(vdev)->ops->get_vq((vmmio)->kvm, (vmmio)->dev, (vmmio)->hdr.queue_sel)
 
+#if 0
 static void virtio_mmio_config_in(struct kvm_cpu *vcpu,
 				  u64 addr, void *data, u32 len,
 				  struct virtio_device *vdev)
@@ -128,10 +129,12 @@ static void virtio_mmio_config_out(struct kvm_cpu *vcpu,
 		break;
 	};
 }
+#endif
 
 void virtio_mmio_legacy_callback(struct kvm_cpu *vcpu, u64 addr, u8 *data,
 				 u32 len, u8 is_write, void *ptr)
 {
+    /*
 	struct virtio_device *vdev = ptr;
 	struct virtio_mmio *vmmio = vdev->virtio;
 	u32 offset = addr - vmmio->addr;
@@ -147,4 +150,5 @@ void virtio_mmio_legacy_callback(struct kvm_cpu *vcpu, u64 addr, u8 *data,
 		virtio_mmio_config_out(vcpu, offset, data, len, ptr);
 	else
 		virtio_mmio_config_in(vcpu, offset, data, len, ptr);
+    */
 }
