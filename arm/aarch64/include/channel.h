@@ -16,8 +16,11 @@
  * 
  * Referenced by https://github.com/qemu/qemu/blob/master/docs/specs/pci-ids.rst
  */
-#define VCHANNEL_PCI_DEVICE_ID  0x10f0
+#define VCHANNEL_PCI_DEVICE_ID 0x1110 // temporarily uses ivshmem's device id
 #define VCHANNEL_PCI_CLASS_MEM 0x050000
+
+#define IOEVENTFD_BASE_SIZE 0x100
+#define IOEVENTFD_BASE_ADDR (KVM_PCI_MMIO_AREA + ARM_PCI_MMIO_SIZE - IOEVENTFD_BASE_SIZE) // use end address of KVM_PCI_MMIO_AREA
 
 #define SYSLOG_PREFIX "KVMTOOL"
 

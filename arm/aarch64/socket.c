@@ -162,8 +162,31 @@ err_close:
     return -1;
 }
 
+static int set_ioeventfd(Client* client, int eventfd, int peer_id) {
+	int ret;
+	struct ioevent ioevent;
+
+	ioevent = (struct ioevent){
+		.io_addr = client->mmio_addr,
+		.io_len = sizeof(int),
+		.fn_kvm = client->kvm,
+		.fd = eventfd,
+		.datamatch = peer_id,
+	};
+
+	ret = ioeventfd__add_event(&ioevent, 0);
+	if (ret) {
+		ch_syslog("[ID:%d] ioeventfd__add_event fail(%d) for eventfd: %d, peer_id: %d",
+				client->id, ret, eventfd, peer_id);
+		return ret;
+	}
+	ch_syslog("[ID:%d] set_ioeventfd done. io_addr 0x%llx, io_len %d, fd %d, datamatch %lld",
+			client->id, ioevent.io_addr, ioevent.io_len, ioevent.fd, ioevent.datamatch);
+	return 0;
+}
+
 static int recv_initial_msg(Client* client) {
-    int fd;
+    int fd, ret = 0;
     int64_t id;
 
     /* receive client's id and eventfd */
@@ -173,27 +196,31 @@ static int recv_initial_msg(Client* client) {
     }
     client->id = id;
     client->eventfd = fd;
-    ch_syslog("client->id = %d, client->eventfd = %d", client->id, client->eventfd);
+    ch_syslog("[ID:%d] client->id = %d, client->eventfd = %d",
+			client->id, client->id, client->eventfd);
 
     /* receive eventfd manager's shm_id */
     if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id <= 0 || fd != -1) {
-        ch_syslog("cannot read Eventfd Manager's shm_id");
+        ch_syslog("[ID:%d] cannot read Eventfd Manager's shm_id", client->id);
         return -1;
     }
     client->shm_id = (int)id;
-    ch_syslog("client->shm_id = %d", client->shm_id);
+    ch_syslog("[ID:%d] client->shm_id = %d", client->id, client->shm_id);
 
     /* receive host channel's eventfd */
-    if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id != -1 || fd < 0) {
-        ch_syslog("cannot read host channel eventfd from server");
+    if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id != 0 || fd < 0) {
+        ch_syslog("[ID:%d] cannot read host channel eventfd from server", client->id);
         return -1;
     }
     client->hc_eventfd = fd;
-    ch_syslog("host channel eventfd = %d", client->hc_eventfd);
-    ch_syslog("TEST: Write host channel eventfd = %d", client->hc_eventfd);
+    ch_syslog("[ID:%d] host channel eventfd = %d", client->id, client->hc_eventfd);
+    ch_syslog("[ID:%d] TEST: Write host channel eventfd = %d", client->id, client->hc_eventfd);
     eventfd_write(client->hc_eventfd, 1);
 
-    return 0;
+	// set ioeventfd to send events to the host channel device driver from realm
+	ret = set_ioeventfd(client, client->hc_eventfd, id);
+
+    return ret;
 }
 
 bool is_valid_shm_id(Client* client, int shm_id) {
@@ -242,7 +269,6 @@ static int handle_eventfd_manager_msg(Client* client) {
     Peer new_peer = {};
     int64_t peer_id = -1;
     int ret, fd = -1, peer_idx;
-    struct ioevent ioevent;
 
     ret = read_one_msg(client->sock_fd, &peer_id, &fd);
     if (ret < 0) {
@@ -280,23 +306,13 @@ static int handle_eventfd_manager_msg(Client* client) {
             ch_syslog("peer list is full %d", client->peer_cnt);
             goto err;
         }
-        ch_syslog("[ID:%d] a new peer is added. peer_id: %d", client->id, client->peers[client->peer_cnt-1].id);
+		ch_syslog("[ID:%d] a new peer is added. peer_id: %d",
+				client->id, client->peers[client->peer_cnt-1].id);
 
-        ioevent = (struct ioevent){
-            .io_addr = client->mmio_addr,
-            .io_len = sizeof(int),
-            .fn_kvm = client->kvm,
-            .fd = new_peer.eventfd,
-            .datamatch = new_peer.id,
-        };
-
-        ret = ioeventfd__add_event(&ioevent, 0);
-        if (ret) {
-            ch_syslog("[ID:%d] ioeventfd__add_event() failed %d", client->id, ret);
-            goto err;
-        }
-        ch_syslog("[ID:%d] add ioeventfd successfully. io_addr %lld, io_len %d, fd %d, datamatch %lld",
-            client->id, ioevent.io_addr, ioevent.io_len, ioevent.fd, ioevent.datamatch);
+		ret = set_ioeventfd(client, new_peer.eventfd, new_peer.id);
+		if (ret) {
+			goto err;
+		}
     } else {
         ch_syslog("[ID:%d] The peer_id %ld is already exist", client->id, peer_id);
         goto err;

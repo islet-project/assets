@@ -12,11 +12,12 @@ static int vchannel_init(struct kvm *kvm) {
     int class = VCHANNEL_PCI_CLASS_MEM;
     int ret = 0;
     Client *client;
-    u32 mmio_addr = pci_get_mmio_block(PCI_IO_SIZE);
+    u32 ioeventfd_addr = IOEVENTFD_BASE_ADDR;
 
     // TODO: need to open host channel module and send its eventfd
 
-    ch_syslog("vchannel_init start");
+    ch_syslog("%s start", __func__);
+    ch_syslog("vchannel ioeventfd_addr: 0x%x", ioeventfd_addr);
 
     if (!kvm->cfg.arch.socket_path) {
         ch_syslog("vchannel_init: empty socket_path");
@@ -39,8 +40,10 @@ static int vchannel_init(struct kvm *kvm) {
         .class[2] = (class >> 16) & 0xff,
         .subsys_vendor_id = cpu_to_le16(PCI_SUBSYSTEM_VENDOR_ID_REDHAT_QUMRANET),
         .subsys_id = cpu_to_le16(PCI_SUBSYSTEM_ID_PCI_SHMEM),
-        .bar[0] = cpu_to_le32(mmio_addr | PCI_BASE_ADDRESS_SPACE_MEMORY),
     };
+
+    ch_syslog("vchannel vendor_id: 0x%x, device_id: 0x%x",
+			vchannel_dev->pci_hdr.vendor_id, vchannel_dev->pci_hdr.device_id);
 
     vchannel_dev->dev_hdr = (struct device_header){
         .bus_type = DEVICE_BUS_PCI,
@@ -57,7 +60,7 @@ static int vchannel_init(struct kvm *kvm) {
     vchannel_dev->gsi = vchannel_dev->pci_hdr.irq_line - KVM_IRQ_OFFSET;
 
     // Setup client
-    client = get_client(kvm->cfg.arch.socket_path, mmio_addr, kvm);
+    client = get_client(kvm->cfg.arch.socket_path, ioeventfd_addr, kvm);
     if (!client || !client->initialized) {
         ch_syslog("failed to get client");
         return -EINVAL;
