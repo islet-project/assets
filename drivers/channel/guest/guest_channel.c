@@ -6,10 +6,13 @@
 
 #define DRIVER_NAME "guest_channel"
 #define VENDOR_ID 0x1af4
-#define DEVICE_ID 0x10f0
-#define PEER_LIST_MAX  128
-
+#define DEVICE_ID 0x1110 // temporarily uses ivshmem's device id
 #define MINOR_BASE 0
+
+#define PEER_LIST_MAX  128
+#define IOEVENTFD_BASE_ADDR 0x7fffff00
+#define IOEVENTFD_BASE_SIZE 0x100
+
 
 
 /* This sample driver supports device with VID = 0x010F, and PID = 0x0F0E*/
@@ -115,9 +118,15 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		goto pci_disable;
     }
 
-	dev_ioeventfd_addr = pci_resource_start(pdev, bar);
-	dev_ioeventfd_size = pci_resource_len(pdev, bar);
-	drv_priv->ioeventfd_addr = pci_iomap(pdev, bar, 0);
+	//dev_ioeventfd_addr = pci_resource_start(pdev, bar);
+	//dev_ioeventfd_size = pci_resource_len(pdev, bar);
+
+	//drv_priv->ioeventfd_addr = pci_iomap(pdev, bar, 0);
+	
+	dev_ioeventfd_addr = IOEVENTFD_BASE_ADDR;
+	dev_ioeventfd_size = IOEVENTFD_BASE_SIZE;
+	drv_priv->ioeventfd_addr = ioremap(dev_ioeventfd_addr, dev_ioeventfd_size);
+
 
 	pr_info("[GCH] ioeventfd addr 0x%x, size 0x%x, iomap_addr 0x%llx",
 			dev_ioeventfd_addr, dev_ioeventfd_size, (uint64_t)drv_priv->ioeventfd_addr);
@@ -125,6 +134,9 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		pr_err("[GCH] pci_iomap failed for ioeventfd_addr\n");
 		goto pci_release;
 	}
+
+	pr_info("[GCH] TEST: write %d to ioeventfd_addr 0x%llx", 0, (uint64_t)drv_priv->ioeventfd_addr);
+	iowrite32(0, drv_priv->ioeventfd_addr);
 
     /* Set driver private data */
     /* Now we can access mapped "hwmem" from the any driver's function */
