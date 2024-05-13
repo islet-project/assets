@@ -1601,6 +1601,7 @@ static void free_old_xmit_skbs(struct send_queue *sq, bool in_napi)
 		if (likely(!is_xdp_frame(ptr))) {
 			struct sk_buff *skb = ptr;
 
+			//pr_info("[JB] free_old_xmit_skbs: ptr: %lx\n", (unsigned long)ptr);
 			pr_debug("Sent skb %p\n", skb);
 
 			bytes += skb->len;
@@ -1785,6 +1786,19 @@ static int xmit_skb(struct send_queue *sq, struct sk_buff *skb)
 
 	pr_debug("%s: xmit %p %pM\n", vi->dev->name, skb, dest);
 
+	/*
+	pr_info("[JB] %s: xmit %p %pM, skb->len: %d, hdr_len: %d\n", vi->dev->name, skb, dest, skb->len, hdr_len);
+	pr_info("[JB] skb->data: %lx, %lx\n", (unsigned long)skb->data, virt_to_phys(skb->data));
+	pr_info("[JB] skb: %lx, %lx\n", (unsigned long)skb, virt_to_phys(skb)); */
+	/*
+	pr_info("[JB] skb data: ");
+	for (unsigned i=0; i<skb->len; i++) {
+		pr_info("%02x ", skb->data[i]);
+		if (i >= 16)
+			break;
+	}
+	pr_info("\n"); */
+
 	can_push = vi->any_header_sg &&
 		!((unsigned long)skb->data & (__alignof__(*hdr) - 1)) &&
 		!skb_header_cloned(skb) && skb_headroom(skb) >= hdr_len;
@@ -1797,30 +1811,45 @@ static int xmit_skb(struct send_queue *sq, struct sk_buff *skb)
 
 	if (virtio_net_hdr_from_skb(skb, &hdr->hdr,
 				    virtio_is_little_endian(vi->vdev), false,
-				    0))
+				    0)) {
+        pr_info("[JB] virtio_net_hdr_from_skb -EPROTO error\n");
 		return -EPROTO;
+    }
 
-	if (vi->mergeable_rx_bufs)
+	if (vi->mergeable_rx_bufs) {
+        //pr_info("[JB] mergeable_rx_bufs!\n");
 		hdr->num_buffers = 0;
+    }
 
 	sg_init_table(sq->sg, skb_shinfo(skb)->nr_frags + (can_push ? 1 : 2));
 	if (can_push) {
 		__skb_push(skb, hdr_len);
 		num_sg = skb_to_sgvec(skb, sq->sg, 0, skb->len);
-		if (unlikely(num_sg < 0))
+		if (unlikely(num_sg < 0)) {
+            pr_info("[JB] num_sg0 error\n");
 			return num_sg;
+        }
 		/* Pull header back to avoid skew in tx bytes calculations. */
 		__skb_pull(skb, hdr_len);
 	} else {
 		sg_set_buf(sq->sg, hdr, hdr_len);
 		num_sg = skb_to_sgvec(skb, sq->sg + 1, 0, skb->len);
-		if (unlikely(num_sg < 0))
+		if (unlikely(num_sg < 0)) {
+            pr_info("[JB] num_sg1 error\n");
 			return num_sg;
+        }
 		num_sg++;
 	}
+
+	/*
+	pr_info("[JB] num_sg: %d\n", num_sg);
+	for(unsigned i=0; i<num_sg; i++) {
+		pr_info("[JB] sg-%d: offset: %lx, page_link: %lx, length: %lx, addr: %lx\n", i, sq->sg[i].offset, sq->sg[i].page_link, sq->sg[i].length, sq->sg[i].dma_address);
+	} */
 	return virtqueue_add_outbuf(sq->vq, sq->sg, num_sg, skb, GFP_ATOMIC);
 }
 
+// [JB] for handling tx
 static netdev_tx_t start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct virtnet_info *vi = netdev_priv(dev);
@@ -1856,6 +1885,8 @@ static netdev_tx_t start_xmit(struct sk_buff *skb, struct net_device *dev)
 				 qnum, err);
 		dev->stats.tx_dropped++;
 		dev_kfree_skb_any(skb);
+
+        pr_info("[JB] start_xmit error1: TXQ (%d) queue failure: %d\n", qnum, err);
 		return NETDEV_TX_OK;
 	}
 
@@ -1896,6 +1927,7 @@ static netdev_tx_t start_xmit(struct sk_buff *skb, struct net_device *dev)
 		}
 	}
 
+    //pr_info("[JB] start_xmit success!\n");
 	return NETDEV_TX_OK;
 }
 
@@ -2175,6 +2207,8 @@ static void virtnet_set_rx_mode(struct net_device *dev)
 	void *buf;
 	int i;
 
+    //pr_info("[JB] virtnet_set_rx_mode start\n");
+
 	/* We can't dynamically set ndo_set_rx_mode, so return gracefully */
 	if (!virtio_has_feature(vi->vdev, VIRTIO_NET_F_CTRL_RX))
 		return;
@@ -2232,6 +2266,7 @@ static void virtnet_set_rx_mode(struct net_device *dev)
 		dev_warn(&dev->dev, "Failed to set MAC filter table.\n");
 
 	kfree(buf);
+    //pr_info("[JB] virtnet_set_rx_mode end\n");
 }
 
 static int virtnet_vlan_rx_add_vid(struct net_device *dev,

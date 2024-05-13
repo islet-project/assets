@@ -60,6 +60,9 @@ struct rsi_cloak
 extern struct realm_config __attribute((aligned(MAX_TOKEN_LEN))) config;
 extern char __attribute__((aligned(MAX_TOKEN_LEN))) rsi_page_buf[MAX_TOKEN_LEN];
 extern char __attribute__((aligned(MAX_TOKEN_LEN))) rsi_page_connector[MAX_TOKEN_LEN];
-extern char __attribute__((aligned(MAX_TOKEN_LEN))) rsi_page_creator[MAX_TOKEN_LEN];
+
+extern char __attribute__((aligned(MAX_TOKEN_LEN))) rsi_page_creator[16 * 1024 * 1024];  // shared_mem from CVM_GW's perspective, 16mb
+extern char *cloak_virtio_mem;
+extern char __attribute__((aligned(MAX_TOKEN_LEN))) cloak_vq_elem[8 * 1024];  // vring_desc; 8kb;
 
 // for Cloak (test), rsi_page_buf for att_report, rsi_page_buf_* for others

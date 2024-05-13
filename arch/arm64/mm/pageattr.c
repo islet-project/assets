@@ -14,6 +14,8 @@
 #include <asm/set_memory.h>
 #include <asm/tlbflush.h>
 
+unsigned long cloak_virtio_start = 0x88400000;
+
 struct page_change_data {
 	pgprot_t set_mask;
 	pgprot_t clear_mask;
@@ -233,7 +235,38 @@ int set_memory_decrypted(unsigned long addr, int numpages)
     unsigned long caller = (unsigned long)__builtin_return_address(0);
     pr_info("[JB] set_memory_decrypted, addr: %lx, caller: %lx\n", addr, caller);
 
-	return __set_memory_encrypted(addr, numpages, false);
+    // [JB] for testing virtio-mirroring!
+    //return 0;
+    if (no_shared_region_flag) {
+        phys_addr_t start, end;
+        start = __virt_to_phys(addr);
+
+        if (start == cloak_virtio_start) {
+            unsigned char *ptr = (unsigned char *)addr;
+            unsigned long res;
+            //end = start + numpages * PAGE_SIZE;
+            end = start + (16 * 1024 * 1024);  // test. 16mb only
+            pr_info("[JB] rsi_cloak_channel_connect on 0x%lx, orig_size: %lx, modified_size: %lx\n", cloak_virtio_start, numpages * PAGE_SIZE, (16 * 1024 * 1024));
+            res = rsi_cloak_channel_connect_with_size(0, start, (end - start));
+
+            pr_info("[JB] rsi_cloak_channel_connect_with_size: %lx\n", res);
+            //pr_info("[JB] shared_mem: %02x, %02x\n", ptr[0], ptr[4 * 1024 * 1024]);
+            return 0;
+            //return __set_memory_encrypted(addr, numpages, false);
+        }
+        /*
+        else if (start == 0x8c260000) {
+            end = start + (8 * 1024);
+            pr_info("[JB] rsi_cloak_channel_connect on 0x8c260000\n");
+            rsi_cloak_channel_connect_with_size(1, start, 8 * 1024);
+            return 0;
+        } */
+        else {
+            return __set_memory_encrypted(addr, numpages, false);
+        }
+    } else {
+	    return __set_memory_encrypted(addr, numpages, false);
+    }
 	//return __set_memory_encrypted(addr, numpages, true);
 }
 

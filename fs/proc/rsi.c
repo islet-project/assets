@@ -3,6 +3,7 @@
 #include <linux/init.h>      // included for __init and __exit macros
 #include <linux/mutex.h>
 #include <linux/slab.h>
+#include <linux/mm.h>
 
 #include <linux/fs.h>
 #include <linux/cdev.h>
@@ -15,6 +16,7 @@
 
 #include "rsi.h"
 
+extern unsigned long cloak_virtio_start;
 
 //MODULE_LICENSE("GPL");
 //MODULE_AUTHOR("Havner");
@@ -28,7 +30,7 @@
 #define DEVICE_NAME       "rsi"       /* Name of device in /proc/devices */
 
 static int device_major;              /* Major number assigned to our device driver */
-static int device_open_count = 0;     /* Used to prevent multiple open */
+//static int device_open_count = 0;     /* Used to prevent multiple open */
 static struct class *cls;
 
 /* RSI attestation call consists of several arm_smc calls,
@@ -228,14 +230,15 @@ unlock:
 	return ret;
 }
 
-static int do_cloak_create(struct rsi_cloak *cloak)
+static int do_cloak_create(struct rsi_cloak *cloak, unsigned long size)
 {
-	phys_addr_t page = virt_to_phys(rsi_page_creator);
+	phys_addr_t page = virt_to_phys(cloak_virtio_mem);
 	struct arm_smccc_1_2_regs input = {0}, output = {0};
 
 	input.a0 = SMC_RSI_CHANNEL_CREATE;
 	input.a1 = cloak->id;
 	input.a2 = page;
+    input.a3 = size;
 
 	arm_smccc_1_2_smc(&input, &output);
     if (output.a0 == RSI_SUCCESS)
@@ -326,7 +329,7 @@ static long device_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	struct rsi_measurement *measur = NULL;
 	struct rsi_attestation *attest = NULL;
 	struct rsi_cloak cloak;
-	phys_addr_t page;
+	//phys_addr_t page;
 
 	switch (cmd) {
 	case RSIIO_ABI_VERSION:
@@ -425,7 +428,7 @@ static long device_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 			goto end;
 		}
 
-		ret = do_cloak_create(&cloak);
+		ret = do_cloak_create(&cloak, 4096);
 		if (ret != 0) {
 			printk(RSI_ALERT "ioctl: do_cloak_create failed: %d\n", ret);
 			goto end;
@@ -531,18 +534,120 @@ end:
 	return ret;
 }
 
+extern unsigned long no_shared_region_flag;
+static int cloak_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	size_t size = vma->vm_end - vma->vm_start;
+	u64 start, end;
+	u64 pfn;
+
+	start = (u64)vma->vm_pgoff << PAGE_SHIFT;
+	end = start + size;
+
+	if (size > (8 * 1024 * 1024)) {
+		return -EINVAL;
+	}
+
+    if (no_shared_region_flag) {
+        pfn = (unsigned long)0x88200000 >> PAGE_SHIFT;
+        if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
+            return -EINVAL;
+        }
+        
+        // [test]
+        return 0;
+    }
+
+    if (size == (8 * 1024 * 1024)) {
+		pfn = __pa(cloak_virtio_mem) >> PAGE_SHIFT;
+		if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
+			return -EINVAL;
+		}	
+
+        cloak_virtio_mem[0] = 0x77;
+        cloak_virtio_mem[16 * 1024] = 0x78;
+		pr_info("[JB] cloak remap_pfn_range success! rsi_page_creator\n");
+		return 0;
+    }
+	else if (size == (8 * 1024)) {
+		pfn = __pa(cloak_vq_elem) >> PAGE_SHIFT;
+		if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
+			return -EINVAL;
+		}	
+
+		pr_info("[JB] cloak remap_pfn_range success! cloak_vq_elem\n");
+		return 0;
+	}
+	else {
+		return -EINVAL;
+	}
+}
+
+static ssize_t cloak_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+{
+	if (count == (16 * 1024 * 1024)) {
+		char *mem = NULL;
+		if (no_shared_region_flag) {
+			mem = (char *)phys_to_virt(cloak_virtio_start);
+		} else {
+			mem = cloak_virtio_mem;
+		}
+
+		if (copy_from_user(mem, buf, count)) {
+			pr_info("[JB] cloak_write: copy_from_user() error");
+			return 0;
+		}
+		return count;
+	}
+	return 0;
+}
+
+static ssize_t cloak_read(struct file *filp, char __user *buf, size_t siz, loff_t *ppos)
+{
+	if (siz == (16 * 1024 * 1024)) {
+		char *mem = NULL;
+		if (no_shared_region_flag) {
+			mem = (char *)phys_to_virt(cloak_virtio_start);
+		} else {
+			mem = cloak_virtio_mem;
+		}
+
+		if (copy_to_user(buf, mem, siz)) {
+			pr_info("[JB] cloak_read: copy_to_user() error");
+			return 0;
+		}
+		return siz;
+	}
+	return 0;
+}
+
 static struct file_operations chardev_fops = {
 	.open = device_open,
 	.release = device_release,
 	.unlocked_ioctl = device_ioctl,
+	.mmap = cloak_mmap,
+	.write = cloak_write,
+	.read = cloak_read,
 };
 
 /*
  * Module
  */
 
+unsigned long no_shared_region_flag = 0;
+unsigned long cloak_single_test_flag = 0;
+
+static unsigned long jb_align_to_2mb(unsigned long value) {
+    unsigned long align_min = 2 * 1024 * 1024;
+    unsigned long remainder = value % align_min;
+    unsigned long aligned_value = value + (align_min - remainder);
+    return aligned_value;
+}
+
 static int __init rsi_init(void)
 {
+    struct rsi_cloak cl;
+
 	printk(RSI_INFO "Initializing\n");
 
 	device_major = register_chrdev(0, DEVICE_NAME, &chardev_fops);
@@ -560,8 +665,51 @@ static int __init rsi_init(void)
 
 	rsi_playground();
 
+    // shared_mem creation
+    if (no_shared_region_flag == 0) {
+		if (cloak_single_test_flag == 1) {
+			cloak_virtio_mem = (char *)phys_to_virt(cloak_virtio_start);
+		} else {
+			// addr adjustment
+			cloak_virtio_mem = (char *)rsi_page_creator;
+			cloak_virtio_mem = (char *)jb_align_to_2mb((unsigned long)cloak_virtio_mem);
+
+			cl.id = 0;
+			if (do_cloak_create(&cl, 16 * 1024 * 1024) != 0) {
+				pr_info("[JB] do_cloak_create fail\n");
+			} else {
+				cloak_virtio_mem[0] = 0x8;
+				cloak_virtio_mem[4 * 1024 * 1024] = 0x12;
+				pr_info("[JB] do_cloak_create success: %lx - %lx\n", cloak_virtio_mem, virt_to_phys(cloak_virtio_mem));
+			}
+		}
+        /*
+        cl.id = 1;
+        if (do_cloak_create(&cl, sizeof(cloak_vq_elem)) != 0) {
+            pr_info("[JB] do_cloak_create fail, cloak_vq_elem\n");
+        } else {
+            pr_info("[JB] do_cloak_create success, cloak_vq_elem\n");
+        } */
+    }
+
 	return 0;
 }
+
+static int __init no_shared_region_param(char *arg)
+{
+    no_shared_region_flag = 1;
+    pr_info("[JB] no_shared_region 1 !!!!\n");
+	return 0;
+}
+early_param("no_shared_region", no_shared_region_param);
+
+static int __init cloak_single_test_param(char *arg)
+{
+    cloak_single_test_flag = 1;
+    pr_info("[JB] cloak_single_test_flag 1 !!!!\n");
+	return 0;
+}
+early_param("cloak_single_test", cloak_single_test_param);
 
 /*
 static void __exit rsi_cleanup(void)

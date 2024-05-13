@@ -19,13 +19,7 @@ EXPORT_SYMBOL(rsi_page_buf);
 char __attribute__((aligned(PAGE_SIZE))) rsi_page_connector[PAGE_SIZE];
 EXPORT_SYMBOL(rsi_page_connector);
 
-char __attribute__((aligned(PAGE_SIZE))) rsi_page_creator[PAGE_SIZE];
-EXPORT_SYMBOL(rsi_page_creator);
-
-char __attribute__((aligned(PAGE_SIZE))) rsi_page_connector[PAGE_SIZE];
-EXPORT_SYMBOL(rsi_page_connector);
-
-char __attribute__((aligned(PAGE_SIZE))) rsi_page_creator[16 * 1024 * 1024] = {0,};
+char __attribute__((aligned(PAGE_SIZE))) rsi_page_creator[20 * 1024 * 1024] = {0,};
 EXPORT_SYMBOL(rsi_page_creator);
 
 char *cloak_virtio_mem = NULL;
