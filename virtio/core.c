@@ -11,7 +11,10 @@
 #include "kvm/util.h"
 #include "kvm/kvm.h"
 
+extern int cloak_single_test;
 void *jb_guest_flat_to_host(struct kvm *kvm, u64 offset);
+void *vm_guest_flat_to_host(struct kvm *kvm, u64 offset);
+void *host_guest_flat_to_host(struct kvm *kvm, u64 offset);
 
 const char* virtio_trans_name(enum virtio_trans trans)
 {
@@ -87,6 +90,40 @@ static unsigned next_desc(struct virt_queue *vq, struct vring_desc *desc,
 	return min(next, max);
 }
 
+u16 virt_queue__get_head_iov_host(struct virt_queue *vq, struct iovec iov[], u16 *out, u16 *in, u16 head, struct kvm *kvm)
+{
+	struct vring_desc *desc;
+	u16 idx;
+	u16 max;
+
+	idx = head;
+	*out = *in = 0;
+	max = vq->vring.num;
+	desc = vq->vring.desc;
+
+	if (virt_desc__test_flag(vq, &desc[idx], VRING_DESC_F_INDIRECT)) {
+        printf("in VRING_DESC_F_INDIRECT: cloak_single_test: %d\n", cloak_single_test);
+		max = virtio_guest_to_host_u32(vq, desc[idx].len) / sizeof(struct vring_desc);
+		desc = host_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+		idx = 0;
+	}
+
+    //printf("get_head_iov: cloak_single_test: %d\n", cloak_single_test);
+	do {
+		/* Grab the first descriptor, and check it's OK. */
+		iov[*out + *in].iov_len = virtio_guest_to_host_u32(vq, desc[idx].len);
+		iov[*out + *in].iov_base = host_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+
+		/* If this is an input descriptor, increment that count. */
+		if (virt_desc__test_flag(vq, &desc[idx], VRING_DESC_F_WRITE))
+			(*in)++;
+		else
+			(*out)++;
+	} while ((idx = next_desc(vq, desc, idx, max)) != max);
+
+	return head;
+}
+
 u16 virt_queue__get_head_iov(struct virt_queue *vq, struct iovec iov[], u16 *out, u16 *in, u16 head, struct kvm *kvm)
 {
 	struct vring_desc *desc;
@@ -99,16 +136,27 @@ u16 virt_queue__get_head_iov(struct virt_queue *vq, struct iovec iov[], u16 *out
 	desc = vq->vring.desc;
 
 	if (virt_desc__test_flag(vq, &desc[idx], VRING_DESC_F_INDIRECT)) {
+        printf("in VRING_DESC_F_INDIRECT: cloak_single_test: %d\n", cloak_single_test);
 		max = virtio_guest_to_host_u32(vq, desc[idx].len) / sizeof(struct vring_desc);
-		desc = jb_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+		if (cloak_single_test == 1) {
+			desc = vm_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+		} else {
+			desc = jb_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+		}
 		idx = 0;
 	}
 
+    //printf("get_head_iov: cloak_single_test: %d\n", cloak_single_test);
 	do {
 		/* Grab the first descriptor, and check it's OK. */
 		iov[*out + *in].iov_len = virtio_guest_to_host_u32(vq, desc[idx].len);
-		iov[*out + *in].iov_base = jb_guest_flat_to_host(kvm,
-							      virtio_guest_to_host_u64(vq, desc[idx].addr));
+
+		if (cloak_single_test == 1) {
+			iov[*out + *in].iov_base = vm_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+		} else {
+			iov[*out + *in].iov_base = jb_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
+		}
+
 		/* If this is an input descriptor, increment that count. */
 		if (virt_desc__test_flag(vq, &desc[idx], VRING_DESC_F_WRITE))
 			(*in)++;
@@ -126,6 +174,15 @@ u16 virt_queue__get_iov(struct virt_queue *vq, struct iovec iov[], u16 *out, u16
 	head = virt_queue__pop(vq);
 
 	return virt_queue__get_head_iov(vq, iov, out, in, head, kvm);
+}
+
+u16 virt_queue__get_iov_host(struct virt_queue *vq, struct iovec iov[], u16 *out, u16 *in, struct kvm *kvm)
+{
+	u16 head;
+
+	head = virt_queue__pop(vq);
+
+	return virt_queue__get_head_iov_host(vq, iov, out, in, head, kvm);
 }
 
 /* in and out are relative to guest */

@@ -360,6 +360,44 @@ void *guest_flat_to_host(struct kvm *kvm, u64 offset)
 	return NULL;
 }
 
+void *host_guest_flat_to_host(struct kvm *kvm, u64 offset)
+{
+	struct kvm_mem_bank *bank;
+
+	list_for_each_entry(bank, &kvm->mem_banks, list) {
+		u64 bank_start = bank->guest_phys_addr;
+		u64 bank_end = bank_start + bank->size;
+
+		if (offset >= bank_start && offset < bank_end) {
+			printf("[JB][host] bank_start: %lx, offset: %lx, host_addr: %lx, final_addr: %lx\n", bank_start, offset, bank->host_addr, bank->host_addr + (offset - bank_start));
+			return bank->host_addr + (offset - bank_start);
+		}
+	}
+
+	pr_warning("unable to translate guest address 0x%llx to host",
+			(unsigned long long)offset);
+	return NULL;
+}
+
+void *vm_guest_flat_to_host(struct kvm *kvm, u64 offset)
+{
+	struct kvm_mem_bank *bank;
+
+	list_for_each_entry(bank, &kvm->mem_banks, list) {
+		u64 bank_start = bank->guest_phys_addr;
+		u64 bank_end = bank_start + bank->size;
+
+		if (offset >= bank_start && offset < bank_end) {
+			printf("[JB][no_shared_region] bank_start: %lx, offset: %lx, host_addr: %lx, final_addr: %lx\n", bank_start, offset, bank->host_addr, bank->host_addr + (offset - bank_start));
+			return offset;
+		}
+	}
+
+	pr_warning("unable to translate guest address 0x%llx to host",
+			(unsigned long long)offset);
+	return NULL;
+}
+
 void *jb_guest_flat_to_host(struct kvm *kvm, u64 offset)
 {
 	if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {

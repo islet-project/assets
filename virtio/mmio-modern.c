@@ -141,6 +141,7 @@ static void virtio_mmio_config_out(struct kvm_cpu *vcpu,
 #endif
 
 extern struct virtio_ops p9_dev_virtio_ops;
+extern struct virtio_ops net_dev_virtio_ops;
 
 void virtio_mmio_modern_callback(struct kvm_cpu *vcpu, u64 addr, u8 *data,
 				 u32 len, u8 is_write, void *ptr)
@@ -152,16 +153,20 @@ void virtio_mmio_modern_callback(struct kvm_cpu *vcpu, u64 addr, u8 *data,
 	bool p9req = false;
 
     // [JB] no_shared_region check
-    // no_shared_region is dealt with in p9-backend
+    /*
     if ( (vcpu->kvm->cfg.arch.realm_pv != NULL) && (strcmp(vcpu->kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
 		// check if this is 9p device
 		// if 9p --> keep going ahead, otherwise --> return;
 		if ((unsigned long)(vdev->ops) == (unsigned long)(&p9_dev_virtio_ops)) {
 			p9req = true;
-		} else {
+		}
+        else if ((unsigned long)(vdev->ops) == (unsigned long)(&net_dev_virtio_ops)) {
+            p9req = true;
+        }
+        else {
         	return;
 		}
-    }
+    } */
 
 	if (offset >= VIRTIO_MMIO_CONFIG) {
 		offset -= VIRTIO_MMIO_CONFIG;

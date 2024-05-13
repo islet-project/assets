@@ -30,6 +30,8 @@
 #define VIRTIO_NET_QUEUE_SIZE		256
 #define VIRTIO_NET_NUM_QUEUES		8
 
+#define SLEEP_SEC (1)
+
 struct net_dev;
 
 struct net_dev_operations {
@@ -76,6 +78,19 @@ static int compat_id = -1;
 
 #define MAX_PACKET_SIZE 65550
 
+extern int cloak_single_test;
+
+bool is_no_shared_region(struct kvm *kvm)
+{
+	if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+		return true;
+	} else {
+		if (cloak_single_test == 1)
+			return true;
+		return false;
+	}
+}
+
 static bool has_virtio_feature(struct net_dev *ndev, u32 feature)
 {
 	return ndev->vdev.features & (1 << feature);
@@ -88,6 +103,100 @@ static int virtio_net_hdr_len(struct net_dev *ndev)
 		return sizeof(struct virtio_net_hdr_mrg_rxbuf);
 
 	return sizeof(struct virtio_net_hdr);
+}
+
+static void write_vm_num_buffers(unsigned long iov_base, u16 num_buffers)
+{
+	FILE *fp = NULL;
+
+	fp = fopen("/shared/net_rx_num_buffers.bin", "wb");
+	if (fp) {
+		fwrite((unsigned long *)&iov_base, sizeof(unsigned long), 1, fp);
+		fwrite((u16 *)&num_buffers, sizeof(u16), 1, fp);
+		fclose(fp);
+		printf("net_rx_num_buffers.bin write success\n");
+	}
+
+	// 2. check request. wait for it to get deleted.
+	while (true) {
+        if (access("/shared/net_rx_num_buffers.bin", F_OK) == 0) {
+            sleep(SLEEP_SEC);
+        } else {
+            break;
+        }
+    }
+	printf("net_rx_num_buffers.bin deleted\n");
+}
+
+static void run_vm_memcpy_to_iovec(struct iovec *iov, unsigned char *buf, size_t len, const char *fname, const char *dname)
+{
+	FILE *fp = NULL, *fpd = NULL;
+	unsigned char *data = buf;
+
+	// 1. write
+	fp = fopen(fname, "wb");
+	fpd = fopen(dname, "wb");
+	if (fp && fpd) {
+		struct iovec *iiov = iov;
+		unsigned int llen = len;
+		unsigned char *data = buf;
+
+		fwrite((unsigned int *)&llen, sizeof(llen), 1, fp);
+		while (llen > 0) {
+			if (iiov->iov_len) {
+				int copy = min_t(unsigned int, iiov->iov_len, llen);
+				fwrite((struct iovec *)iiov, sizeof(struct iovec), 1, fp);
+				fwrite(data, sizeof(unsigned char), copy, fpd);
+
+				printf("[host] rx write data %d: ", copy);
+				for (unsigned i=0; i<copy; i++) {
+					printf("%02x ", data[i]);
+					if (i >= 64)
+						break;
+				}
+				printf("\n");
+
+				data += copy;
+				llen -= copy;
+				iiov->iov_len -= copy;
+				iiov->iov_base += copy;
+			}
+			iiov++;
+		}
+		fclose(fp);
+		fclose(fpd);
+		printf("[JB] %s write!\n", fname);
+	} else {
+		printf("[JB] %s write fail..\n", fname);
+		return;
+	}
+
+	// 2. check request. wait for it to get deleted.
+	while (true) {
+        if (access(fname, F_OK) == 0) {
+            sleep(SLEEP_SEC);
+        } else {
+            break;
+        }
+    }
+	printf("%s deleted\n", fname);
+}
+
+void run_vm_memcpy_from_iovec(void *ctrl, struct iovec *iov, size_t len, const char *fname, const char *dname)
+{
+}
+
+static void run_vm_data_memcpy_to_iovec(struct iovec *iov, unsigned char *buf, size_t len)
+{
+	run_vm_memcpy_to_iovec(iov, buf, len, "/shared/net_rx.bin", "/shared/net_rx_data.bin");
+}
+static void run_vm_ctrl_memcpy_to_iovec(struct iovec *iov, unsigned char *buf, size_t len)
+{
+	run_vm_memcpy_to_iovec(iov, buf, len, "/shared/net_ctrl_to.bin", "/shared/net_ctrl_to_data.bin");
+}
+static void run_vm_ctrl_memcpy_from_iovec(void *ctrl, struct iovec *iov, size_t len)
+{
+	run_vm_memcpy_from_iovec(ctrl, iov, len, "/shared/net_ctrl_from.bin", "/shared/net_ctrl_from_data.bin");
 }
 
 static void *virtio_net_rx_thread(void *p)
@@ -119,20 +228,66 @@ static void *virtio_net_rx_thread(void *p)
 			struct virtio_net_hdr_mrg_rxbuf *hdr;
 			u16 num_buffers;
 
+			printf("[host-rx] invoke rx()\n");
 			len = ndev->ops->rx(&dummy_iov, 1, ndev);
 			if (len < 0) {
+				printf("ndev->ops->rx error!\n");
 				pr_warning("%s: rx on vq %u failed (%d), exiting thread\n",
 						__func__, queue->id, len);
 				goto out_err;
 			}
+			printf("[host-rx] after invoke rx()\n");
+
+			/*
+			printf("[host-rx-data] dummy_iov: ");
+			for (unsigned j=0; j<len; j++) {
+				printf("%02x ", buffer[j]);
+				if (j >= 64)
+					break;
+			}
+			printf("\n"); */
 
 			copied = num_buffers = 0;
 			head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
+			//head = virt_queue__get_iov_host(vq, iov, &out, &in, kvm);
+
+			printf("[host-rx] ops->rx len: %d\n", len);
+			for (unsigned i = 0; i < in; i++) {
+				printf("[host-rx-in-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
+
+				/*
+				printf("[host-rx-data] ");
+				for (unsigned j=0; j<iov[i].iov_len; j++) {
+					printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
+					if (j >= 64)
+						break;
+				}
+				printf("\n"); */
+			}
+			for (unsigned i = 0; i < out; i++) {
+				printf("[host-rx-out-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
+
+				/*
+				printf("[host-rx-data] ");
+				for (unsigned j=0; j<iov[i].iov_len; j++) {
+					printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
+					if (j >= 64)
+						break;
+				}
+				printf("\n"); */
+			}
+
+			// ===== vm-level emulation required ===== 
 			hdr = iov[0].iov_base;
 			while (copied < len) {
 				size_t iovsize = min_t(size_t, len - copied, iov_size(iov, in));
 
-				memcpy_toiovec(iov, buffer + copied, iovsize);
+				if (is_no_shared_region(kvm)) {
+					printf("[host-rx] run_vm_memcpy_to_iovec: %d, num_buffers: %d\n", iovsize, num_buffers);
+					run_vm_data_memcpy_to_iovec(iov, buffer + copied, iovsize);  // test
+				} else {
+					memcpy_toiovec(iov, buffer + copied, iovsize);
+				}
 				copied += iovsize;
 				virt_queue__set_used_elem_no_update(vq, head, iovsize, num_buffers++);
 				if (copied == len)
@@ -140,7 +295,9 @@ static void *virtio_net_rx_thread(void *p)
 				while (!virt_queue__available(vq))
 					sleep(0);
 				head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
+				//head = virt_queue__get_iov_host(vq, iov, &out, &in, kvm);
 			}
+			// ========================================
 
 			/*
 			 * The device MUST set num_buffers, except in the case
@@ -148,8 +305,15 @@ static void *virtio_net_rx_thread(void *p)
 			 * VIRTIO_NET_F_MRG_RXBUF and the field does not exist.
 			 */
 			if (has_virtio_feature(ndev, VIRTIO_NET_F_MRG_RXBUF) ||
-			    !ndev->vdev.legacy)
-				hdr->num_buffers = virtio_host_to_guest_u16(vq, num_buffers);
+			    !ndev->vdev.legacy) {
+				if (is_no_shared_region(kvm)) {
+					write_vm_num_buffers((unsigned long)hdr, virtio_host_to_guest_u16(vq, num_buffers));
+					printf("num_buffers write: %d\n", virtio_host_to_guest_u16(vq, num_buffers));
+				} else {
+					hdr->num_buffers = virtio_host_to_guest_u16(vq, num_buffers);
+					printf("hdr->num_buffers write: %d\n", hdr->num_buffers);
+				}
+			}
 
 			virt_queue__used_idx_advance(vq, num_buffers);
 
@@ -163,6 +327,85 @@ out_err:
 	pthread_exit(NULL);
 	return NULL;
 
+}
+
+static void virtio_net_tx_write_to_file(struct iovec *iov, u16 out)
+{
+	FILE *fp = NULL;
+
+	// 1. write net_tx.bin
+	fp = fopen("/shared/net_tx.bin", "wb");
+	if (fp) {
+		fwrite((struct iovec *)iov, sizeof(struct iovec), VIRTIO_NET_QUEUE_SIZE, fp);
+		fwrite((u16 *)&out, sizeof(u16), 1, fp);
+		fclose(fp);
+		printf("[JB] net_tx.bin write!\n");
+	} else {
+		printf("[JB] net_tx.bin write fail..\n");
+		return;
+	}
+
+	// 2. check request. wait for it to get deleted.
+	while (true) {
+        if (access("/shared/net_tx.bin", F_OK) == 0) {
+            sleep(SLEEP_SEC);
+        } else {
+            break;
+        }
+    }
+	printf("net_tx.bin deleted\n");
+}
+
+static int tap_ops_tx(struct iovec *iov, u16 out, struct net_dev *ndev);
+static unsigned char read_tx_inter_buf[16 * 1024 * 1024] = {0,};
+static unsigned long realm_base_ipa_addr = 0x88400000;
+
+static void translate_addr_for_tx(struct iovec *iov, u16 out)
+{
+	for (unsigned i=0; i<out; i++) {
+		unsigned long orig = (unsigned long)(iov[i].iov_base);
+		unsigned long offset = orig - realm_base_ipa_addr;
+		unsigned long new_addr = (unsigned long)read_tx_inter_buf + offset;
+
+		/*
+		if (offset >= (16 * 1024 * 1024)) {
+			printf("larger than VRING_SIZE!!!\n");
+			exit(-1);
+		} */
+		iov[i].iov_base = (void *)new_addr;
+	}
+}
+
+static int read_vm_data_and_tx(struct iovec *iov, u16 out, struct net_dev *ndev)
+{
+	FILE *fp = NULL;
+	int len = 0;
+
+	fp = fopen("/shared/net_tx_data.bin", "rb");
+    if (fp) {
+		translate_addr_for_tx(iov, out);
+
+        for (unsigned i = 0; i < out; i++) {
+            fread((unsigned char *)iov[i].iov_base, sizeof(unsigned char), iov[i].iov_len, fp);
+        }
+        fclose(fp);
+
+		len = tap_ops_tx(iov, out, ndev);
+		printf("[JB] /shared/net_tx_data.bin read! tap_ops_tx: %d\n", len);
+		
+		printf("[host] tx read data %d: ", len);
+		for (unsigned i=0; i<len; i++) {
+			printf("%02x ", ((unsigned char *)iov[0].iov_base)[i]);
+			if (i >= 64)
+				break;
+		}
+		printf("\n");
+
+		return len;
+    } else {
+        printf("[JB] /shared/net_tx_data.bin read fail..\n");
+		return -1;
+    }
 }
 
 static void *virtio_net_tx_thread(void *p)
@@ -188,7 +431,41 @@ static void *virtio_net_tx_thread(void *p)
 
 		while (virt_queue__available(vq)) {
 			head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
-			len = ndev->ops->tx(iov, out, ndev);
+
+			if (is_no_shared_region(kvm)) {
+				virtio_net_tx_write_to_file(iov, out);
+				len = read_vm_data_and_tx(iov, out, ndev);
+				for (unsigned i = 0; i < out; i++) {
+					printf("[host-tx-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
+					len += iov[i].iov_len;  // test!
+
+					/*
+					printf("[host-tx-data] ");
+					for (unsigned j=0; j<iov[i].iov_len; j++) {
+						printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
+						if (j >= 16)
+							break;
+					}
+					printf("\n"); */
+				}
+				printf("tx len: %d\n", len);
+			} else {
+				for (unsigned i = 0; i < out; i++) {
+					printf("[host-tx-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
+					
+					/*
+					printf("[host-tx-data] ");
+					for (unsigned j=0; j<iov[i].iov_len; j++) {
+						printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
+						if (j >= 64)
+							break;
+					}
+					printf("\n"); */
+				}
+				len = ndev->ops->tx(iov, out, ndev);
+				printf("tx len: %d\n", len);
+			}
+
 			if (len < 0) {
 				pr_warning("%s: tx on vq %u failed (%d)\n",
 						__func__, queue->id, errno);
@@ -225,6 +502,8 @@ static void *virtio_net_ctrl_thread(void *p)
 	virtio_net_ctrl_ack ack;
 	size_t len;
 
+	printf("[JB] virtio_net_ctrl_thread!\n");
+
 	kvm__set_thread_name("virtio-net-ctrl");
 
 	while (1) {
@@ -234,9 +513,19 @@ static void *virtio_net_ctrl_thread(void *p)
 		mutex_unlock(&queue->lock);
 
 		while (virt_queue__available(vq)) {
-			head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
+            printf("virtio_net_ctrl_thread vq avail start!\n");
+
+			//head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
+			head = virt_queue__get_head_iov_host(vq, iov, &out, &in, kvm);
 			len = min(iov_size(iov, in), sizeof(ctrl));
-			memcpy_fromiovec((void *)&ctrl, iov, len);
+
+			// ----------------------------------------------------
+			//if (is_no_shared_region(kvm)) {
+			//	run_vm_ctrl_memcpy_from_iovec((void *)&ctrl, iov, len);
+			//} else {
+				memcpy_fromiovec((void *)&ctrl, iov, len);
+			//}
+			printf("[JB] after memcpy_fromiovec\n");
 
 			switch (ctrl.class) {
 			case VIRTIO_NET_CTRL_MQ:
@@ -246,7 +535,15 @@ static void *virtio_net_ctrl_thread(void *p)
 				ack = VIRTIO_NET_ERR;
 				break;
 			}
-			memcpy_toiovec(iov + in, &ack, sizeof(ack));
+
+			//if (is_no_shared_region(kvm)) {
+			//	run_vm_ctrl_memcpy_to_iovec(iov + in, &ack, sizeof(ack));
+			//} else {
+				memcpy_toiovec(iov + in, &ack, sizeof(ack));
+			//}
+			printf("[JB] after memcpy_toiovec\n");
+			// -----------------------------------------------------
+
 			virt_queue__set_used_elem(vq, head, sizeof(ack));
 		}
 
@@ -398,6 +695,7 @@ static bool virtio_net__tap_create(struct net_dev *ndev)
 			pr_warning("Unable to open %s", tap_file);
 			return 0;
 		}
+		printf("[JB] tap_fd open success\n");
 	}
 
 	if (!macvtap &&
@@ -405,6 +703,7 @@ static bool virtio_net__tap_create(struct net_dev *ndev)
 		pr_warning("Config tap device error. Are you root?");
 		goto fail;
 	}
+	printf("[JB] virtio_net_request_tap success: %d\n", macvtap ? 1 : 0);
 
 	/*
 	 * The UFO support had been removed from kernel in commit:
@@ -773,7 +1072,7 @@ static unsigned int get_vq_count(struct kvm *kvm, void *dev)
 	return ndev->queue_pairs * 2 + 1;
 }
 
-static struct virtio_ops net_dev_virtio_ops = {
+struct virtio_ops net_dev_virtio_ops = {
 	.get_config		= get_config,
 	.get_config_size	= get_config_size,
 	.get_host_features	= get_host_features,
@@ -960,6 +1259,7 @@ static int virtio_net__init_one(struct virtio_net_params *params)
 		ndev->ops = &tap_ops;
 		if (!virtio_net__tap_create(ndev))
 			die_perror("You have requested a TAP device, but creation of one has failed because");
+		printf("[JB] virtio_net__tap_create success!\n");
 	} else {
 		ndev->info.host_ip		= ntohl(inet_addr(params->host_ip));
 		ndev->info.guest_ip		= ntohl(inet_addr(params->guest_ip));
@@ -989,8 +1289,10 @@ static int virtio_net__init_one(struct virtio_net_params *params)
 		return r;
 	}
 
-	if (params->vhost)
+	if (params->vhost) {
 		virtio_net__vhost_init(params->kvm, ndev);
+		printf("[JB] virtio_net__vhost_init end\n");
+	}
 
 	if (compat_id == -1)
 		compat_id = virtio_compat_add_message("virtio-net", "CONFIG_VIRTIO_NET");

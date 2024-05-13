@@ -534,6 +534,7 @@ static void kvm_run_write_sandbox_cmd(struct kvm *kvm, const char **argv, int ar
 	close(fd);
 }
 
+extern int cloak_single_test;
 static void kvm_run_set_real_cmdline(struct kvm *kvm)
 {
 	static char real_cmdline[2048];
@@ -577,6 +578,10 @@ static void kvm_run_set_real_cmdline(struct kvm *kvm)
 	if (kvm->cfg.kernel_cmdline) {
 		strcat(real_cmdline, " ");
 		strlcat(real_cmdline, kvm->cfg.kernel_cmdline, sizeof(real_cmdline));
+
+        if (strstr(kvm->cfg.kernel_cmdline, "cloak_single_test") != NULL) {
+            cloak_single_test = 1;
+        }
 	}
 
 	kvm->cfg.real_cmdline = real_cmdline;

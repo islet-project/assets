@@ -5,6 +5,7 @@
 #include <asm/image.h>
 #include <asm/realm.h>
 
+int cloak_single_test = 0;
 
 static void realm_configure_hash_algo(struct kvm *kvm)
 {
@@ -77,7 +78,8 @@ static void realm_configure_rpv(struct kvm *kvm)
     pr_err("[JB] realm_pv: %s\n", kvm->cfg.arch.realm_pv);
 
 	memset(&rpv_cfg.rpv, 0, sizeof(rpv_cfg.rpv));
-	memcpy(&rpv_cfg.rpv, kvm->cfg.arch.realm_pv, strlen(kvm->cfg.arch.realm_pv));
+    if (cloak_single_test == 0)
+    	memcpy(&rpv_cfg.rpv, kvm->cfg.arch.realm_pv, strlen(kvm->cfg.arch.realm_pv));
 
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) RPV");

@@ -21,6 +21,9 @@
 #include <linux/virtio_9p.h>
 #include <linux/9p.h>
 
+#define NET_VM_HOOK
+#define P9_VM_HOOK
+
 // =========================================================
 // log
 #define LOG_ON_ERROR
@@ -51,13 +54,14 @@ static struct rb_root vm_fids;   // equivalent to struct p9_dev.fids;
 static char vm_root_dir[PATH_MAX] = {0,};  // equivalent to struct p9_dev.root_dir;
 
 //static unsigned char vring_mirror[64 * 1024 * 1024] __attribute__((aligned(4096))) = {0,};
-#define VRING_SIZE (8 * 1024 * 1024)
+#define VRING_SIZE (16 * 1024 * 1024)
 #define VQ_ELEM_SIZE (8 * 1024)
 static unsigned char *vring_mirror = NULL;
 static unsigned char *vq_elem_mirror = NULL;
-static char vring_shared[VRING_SIZE] = {0,};
-static unsigned long base_ipa_addr = 0x88200000;
-static unsigned long base_ipa_elem_addr = 0x8c260000;
+
+char vring_shared[VRING_SIZE] = {0,};
+unsigned long base_ipa_addr = 0x88400000;
+unsigned long base_ipa_elem_addr = 0x8c260000;
 
 int vm_virtio_p9_pdu_readf(struct p9_pdu *pdu, const char *fmt, ...);
 int vm_virtio_p9_pdu_writef(struct p9_pdu *pdu, const char *fmt, ...);
@@ -1676,8 +1680,8 @@ bool translate_addr_space(struct p9_pdu *p9pdu)
 		unsigned long new_addr = (unsigned long)vring_shared + offset;
 
 		if (offset >= VRING_SIZE) {
-			LOG_ERROR("larger than VRING_SIZE!!!\n");
-			exit(-1);
+			LOG_ERROR("larger than VRING_SIZE!!!: orig: %lx, offset: %lx\n", orig, offset);
+			//exit(-1);
 		}
 		p9pdu->in_iov[i].iov_base = (void *)new_addr;
 	}
@@ -1687,8 +1691,8 @@ bool translate_addr_space(struct p9_pdu *p9pdu)
 		unsigned long new_addr = (unsigned long)vring_shared + offset;
 
 		if (offset >= VRING_SIZE) {
-			LOG_ERROR("larger than VRING_SIZE!!!\n");
-			exit(-1);
+			LOG_ERROR("larger than VRING_SIZE!!!: orig: %lx, offset: %lx\n", orig, offset);
+			//exit(-1);
 		}
 		p9pdu->out_iov[i].iov_base = (void *)new_addr;
 	}
@@ -1745,14 +1749,20 @@ bool map_vring_mirror(void)
 }
 #endif
 
-int main(int argc, char **argv)
+// net vm threads
+void* run_vm_rx_thread(void* arg);
+void* run_vm_rx_num_buf_thread(void* arg);
+void* run_vm_tx_thread(void* arg);
+
+// 9p vm thread
+void *run_vm_9p_thread(void *arg)
 {
 	FILE *fp;
 	struct p9_pdu p9pdu;
 	size_t res;
 	u32 outlen = 0;
 
-    LOG_ERROR("[JB] main loop start...\n");
+    LOG_ERROR("[JB] 9p_vm main loop start...\n");
 	while (true) {
 		memset(&p9pdu, 0, sizeof(p9pdu));
 
@@ -1789,7 +1799,7 @@ int main(int argc, char **argv)
 		fp = fopen("/shared/p9resp.bin", "wb");
 		if (fp == NULL) {
 			LOG_ERROR("[JB] p9resp.bin open error\n");
-			continue;	
+			continue;
 		} else {
 			LOG_DEBUG("[JB] run_p9_operation_in_vm success\n");
             fwrite(&outlen, sizeof(outlen), 1, fp);
@@ -1803,6 +1813,48 @@ int main(int argc, char **argv)
 			LOG_ERROR("[JB] remove p9req.bin error\n");
 		}
 	}
+	return NULL;
+}
 
-	return 0;
+void main_loop_vm(void)
+{
+    pthread_t rx, tx, rx_num_buf, p9;
+    void *status_rx, *status_tx, *status_rx_num_buf, *status_p9;
+
+#ifdef P9_VM_HOOK
+	if (pthread_create(&p9, NULL, &run_vm_9p_thread, (void*)NULL)) {
+        fprintf(stderr,"Can't create thread");
+        exit(-1);
+    }
+#endif
+
+#ifdef NET_VM_HOOK
+    if (pthread_create(&rx, NULL, &run_vm_rx_thread, (void*)NULL)) {
+        fprintf(stderr,"Can't create thread");
+        exit(-1);
+    }
+    if (pthread_create(&rx_num_buf, NULL, &run_vm_rx_num_buf_thread, (void*)NULL)) {
+        fprintf(stderr,"Can't create thread");
+        exit(-1);
+    }
+    if (pthread_create(&tx, NULL, &run_vm_tx_thread, (void*)NULL)) {
+        fprintf(stderr,"Can't create thread");
+        exit(-1);
+    }
+#endif
+
+#ifdef P9_VM_HOOK
+	pthread_join(p9, &status_p9);
+#endif
+
+#ifdef NET_VM_HOOK
+    pthread_join(rx, &status_rx);
+    pthread_join(rx_num_buf, &status_rx_num_buf);
+    pthread_join(tx, &status_tx);
+#endif
+}
+
+int main(int argc, char **argv)
+{
+	main_loop_vm();
 }

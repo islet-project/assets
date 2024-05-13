@@ -21,6 +21,9 @@
 #include <linux/virtio_9p.h>
 #include <linux/9p.h>
 
+extern int cloak_single_test;
+extern bool is_no_shared_region(struct kvm *kvm);
+
 static LIST_HEAD(devs);
 static int compat_id = -1;
 
@@ -1387,7 +1390,7 @@ static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 
 	p9pdu = virtio_p9_pdu_init(kvm, vq);
 
-    if ( (kvm->cfg.arch.realm_pv != NULL) && (strcmp(kvm->cfg.arch.realm_pv, "no_shared_region") == 0) ) {
+    if ( is_no_shared_region(kvm) ) {
 		// no_shared_region
 		// for CVM_App
 
