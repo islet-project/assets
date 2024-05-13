@@ -70,16 +70,23 @@ static void __exit channel_exit(void)
     pci_unregister_driver(&channel_driver);
 }
 
+static void send_signal(int peer_id, uint32_t* ioeventfd_addr) {
+	pr_info("[GCH] write %d to ioeventfd_addr 0x%x", peer_id, (uint32_t)ioeventfd_addr);
+	iowrite32(peer_id, ioeventfd_addr);
+}
+
 /* 
- * There are two differnt logic based by running layer (Host or Realm)
- * Host: Send dyn memory or Retrieve it from realm
- * Realm: Get dyn memory or Receive I/O ring request 
+ * There are two differnt logic based by caller layer (Host or Realm)
+ * From Host: Shared memory is arrived 
+ * From Realm: Receive I/O ring request 
  */
 static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 {
-	struct peer_list *peer_list = (struct peer_list *)dev_instance;
-	pr_info("[GCH] Handle IRQ #%d, peer_list->cnt %d\n", irq, peer_list->cnt);
-	return IRQ_HANDLED;
+	//struct peer_list *peer_list = (struct peer_list *)dev_instance;
+	static int cnt = 0;
+	pr_info("[GCH] IRQ #%d cnt %d\n", irq, cnt);
+	return (cnt++) ? IRQ_NONE : IRQ_HANDLED;
+	//return IRQ_HANDLED;
 }
 
 /* This function is called by the kernel */
@@ -111,32 +118,16 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		goto pci_disable;
     }
 
-	/* Request memory region for the BAR */
-    ret = pci_request_region(pdev, bar, DRIVER_NAME);
-    if (ret) {
-		pr_err("[GCH] pci_request_region failed %d\n", ret);
-		goto pci_disable;
-    }
-
-	//dev_ioeventfd_addr = pci_resource_start(pdev, bar);
-	//dev_ioeventfd_size = pci_resource_len(pdev, bar);
-
-	//drv_priv->ioeventfd_addr = pci_iomap(pdev, bar, 0);
-	
 	dev_ioeventfd_addr = IOEVENTFD_BASE_ADDR;
 	dev_ioeventfd_size = IOEVENTFD_BASE_SIZE;
 	drv_priv->ioeventfd_addr = ioremap(dev_ioeventfd_addr, dev_ioeventfd_size);
-
 
 	pr_info("[GCH] ioeventfd addr 0x%x, size 0x%x, iomap_addr 0x%llx",
 			dev_ioeventfd_addr, dev_ioeventfd_size, (uint64_t)drv_priv->ioeventfd_addr);
 	if (!drv_priv->ioeventfd_addr) {
 		pr_err("[GCH] pci_iomap failed for ioeventfd_addr\n");
-		goto pci_release;
+		goto pci_disable;
 	}
-
-	pr_info("[GCH] TEST: write %d to ioeventfd_addr 0x%llx", 0, (uint64_t)drv_priv->ioeventfd_addr);
-	iowrite32(0, drv_priv->ioeventfd_addr);
 
     /* Set driver private data */
     /* Now we can access mapped "hwmem" from the any driver's function */
@@ -148,15 +139,16 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		pr_err("[GCH] request_irq failed. pdev->irq: %d\n", pdev->irq);
 		goto iomap_release;
 	}
+	pr_info("[GCH] request_irq done");
 
+	pr_info("[GCH] TEST: send signal to peer_id %d", 0);
+	send_signal(0, drv_priv->ioeventfd_addr);
 	pr_info("[GCH] %s done\n", __func__);
 
     return 0;
 
 iomap_release:
 	pci_iounmap(pdev, drv_priv->ioeventfd_addr);
-pci_release:
-	pci_release_region(pdev, bar);
 pci_disable:
 	pci_disable_device(pdev);
 	return -EBUSY;
