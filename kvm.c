@@ -245,6 +245,9 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 	u32 flags = 0;
 	int ret;
 
+	pr_info("eom1 %s guest_phys 0x%llx, size 0x%llx, host_addr 0x%p type %d",
+			__func__, guest_phys, size, userspace_addr, type);
+
 	mutex_lock(&kvm->mem_banks_lock);
 	/* Check for overlap and find first empty slot. */
 	slot = 0;
@@ -331,6 +334,8 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 			ret = -errno;
 			goto out;
 		}
+		pr_info("ioctl called %s guest_phys 0x%llx, size 0x%llx, host_addr 0x%p type %d",
+				__func__, guest_phys, size, userspace_addr, type);
 	}
 
 	list_add(&bank->list, prev_entry);
