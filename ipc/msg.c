@@ -856,10 +856,12 @@ static long do_msgsnd(int msqid, long mtype, void __user *mtext,
 
 	ns = current->nsproxy->ipc_ns;
 
-	if (msgsz > ns->msg_ctlmax || (long) msgsz < 0 || msqid < 0)
+	if (msgsz > ns->msg_ctlmax || (long) msgsz < 0 || msqid < 0) {
 		return -EINVAL;
-	if (mtype < 1)
+    }
+	if (mtype < 1) {
 		return -EINVAL;
+    }
 
 	msg = load_msg(mtext, msgsz);
 	if (IS_ERR(msg))

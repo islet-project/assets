@@ -505,6 +505,10 @@ struct kvm_run {
 #define KVM_NOTIFY_CONTEXT_INVALID	(1 << 0)
 			__u32 flags;
 		} notify;
+        /* KVM_EXIT_CLOAK_HOST_CALL */
+        struct {
+            unsigned long outlen;
+        } cloak;
 		/* Fix the size of the union. */
 		char padding[256];
 	};

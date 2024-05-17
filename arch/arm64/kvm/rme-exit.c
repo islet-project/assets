@@ -99,10 +99,27 @@ static int rec_exit_ripas_change(struct kvm_vcpu *vcpu)
 	return 1;
 }
 
+#define CLOAK_HOST_CALL (799)
+#define KVM_EXIT_REASON_CLOAK_HOST_CALL CLOAK_HOST_CALL
 static int rec_exit_host_call(struct kvm_vcpu *vcpu)
 {
 	int ret, i;
 	struct rec *rec = &vcpu->arch.rec;
+
+    if (rec->run->exit.imm == CLOAK_HOST_CALL) {
+        // [JB] do something
+        //pr_info("[JB] CLOAK_HOST_CALL!\n");
+		//pr_info("[JB] rec_exit_host_call, imm: %d, gpr0: %d\n", rec->run->exit.imm, rec->run->exit.gprs[0]);
+		
+        vcpu->run->exit_reason = KVM_EXIT_REASON_CLOAK_HOST_CALL;
+		vcpu->run->cloak.outlen = rec->run->exit.gprs[0];
+
+        // dummy value setting (perhaps it's not needed?)
+        /*
+        for (i = 0; i < REC_RUN_GPRS; i++)
+            rec->run->entry.gprs[i] = vcpu_get_reg(vcpu, i); */
+        return 0;
+    }
 
 	vcpu->stat.hvc_exit_stat++;
 
