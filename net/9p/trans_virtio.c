@@ -177,6 +177,8 @@ static int pack_sg_list(struct scatterlist *sg, int start,
 		s = rest_of_page(data);
 		if (s > count)
 			s = count;
+
+        //pr_info("data: %lx-%lx\n", (unsigned long)data, virt_to_phys(data));
 		BUG_ON(index >= limit);
 		/* Make sure we don't terminate early. */
 		sg_unmark_end(&sg[index]);
@@ -244,6 +246,12 @@ pack_sg_list_p(struct scatterlist *sg, int start, int limit,
 	return index - start;
 }
 
+// [JB] for cloak
+#define VIRTIO_9P_HDR_LEN	(sizeof(u32)+sizeof(u8)+sizeof(u16))
+#include <asm/rsi.h>
+extern char __attribute__((aligned(PAGE_SIZE))) cloak_vq_desc_mem[2 * 1024 * 1024];
+extern unsigned long no_shared_region_flag;
+
 /**
  * p9_virtio_request - issue a request
  * @client: client instance issuing the request
@@ -268,18 +276,71 @@ req_retry:
 
 	out_sgs = in_sgs = 0;
 	/* Handle out VirtIO ring buffers */
+    //pr_info("[JB] pack_sg_list out start\n");
 	out = pack_sg_list(chan->sg, 0,
 			   VIRTQUEUE_NUM, req->tc.sdata, req->tc.size);
 	if (out)
 		sgs[out_sgs++] = chan->sg;
 
+    //pr_info("[JB] pack_sg_list in start\n");
 	in = pack_sg_list(chan->sg, out,
 			  VIRTQUEUE_NUM, req->rc.sdata, req->rc.capacity);
 	if (in)
 		sgs[out_sgs + in_sgs++] = chan->sg + out;
 
-	err = virtqueue_add_sgs(chan->vq, sgs, out_sgs, in_sgs, req,
-				GFP_ATOMIC);
+	// [JB]
+    // pr_info("[JB] 9p vq kick, in: %d, out: %d, tc_data: %lx-%lx, rc_data: %lx-%lx\n", in, out, (unsigned long)req->tc.sdata, virt_to_phys(req->tc.sdata), (unsigned long)req->rc.sdata, virt_to_phys(req->rc.sdata));
+	// write dma address onto cloak's shared-mem
+	#if 0
+	if (1) {
+		unsigned int n, in_cnt = 0, out_cnt = 0;
+		struct scatterlist *sg;
+		dma_addr_t addr;
+		bool is_out = false;
+		struct p9_pdu_cloak *cloak_pdu = (struct p9_pdu_cloak *)cloak_vq_desc_mem;
+		struct vring_virtqueue *vq = to_vvq(chan->vq);
+
+		for (n = 0; n < out_sgs + in_sgs; n++) {
+			for (sg = sgs[n]; sg; sg = sg_next(sg)) {
+				is_out = n < out_sgs;
+				addr = vring_map_one_sg((const struct vring_virtqueue *)vq, sg, is_out ? DMA_TO_DEVICE : DMA_FROM_DEVICE);
+				if (vring_mapping_error((const struct vring_virtqueue *)vq, addr)) {
+					pr_info("[JB] vring_mapping_error!\n");
+					goto unmap_release;
+				}
+				// addr & sg->length
+
+				if (is_out) {
+					cloak_pdu->out_iov[out_cnt].iov_base = addr;
+					cloak_pdu->out_iov[out_cnt].iov_len = sg->length;
+					out_cnt++;
+				} else {
+					cloak_pdu->in_iov[in_cnt].iov_base = addr;
+					cloak_pdu->in_iov[in_cnt].iov_len = sg->length;
+					in_cnt++;
+				}
+			}
+		}
+
+		cloak_pdu->out_iov_cnt = out_cnt;
+		cloak_pdu->in_iov_cnt = in_cnt;
+	unmap_release:
+		pr_info("[kernel] in_cnt: %d, out_cnt: %d\n", cloak_pdu->in_iov_cnt, cloak_pdu->out_iov_cnt);
+		for (n=0; n<cloak_pdu->in_iov_cnt; n++) {
+			pr_info("[kernel] in_iov-%d, addr: %lx, size: %lx\n", n, cloak_pdu->in_iov[n].iov_base, cloak_pdu->in_iov[n].iov_len);
+		}
+		for (n=0; n<cloak_pdu->out_iov_cnt; n++) {
+			pr_info("[kernel] out_iov-%d, addr: %lx, size: %lx\n", n, cloak_pdu->out_iov[n].iov_base, cloak_pdu->out_iov[n].iov_len);
+		}
+	}
+	#endif
+
+    if (no_shared_region_flag == 1) {
+	    err = cloak_virtqueue_add_sgs(chan->vq, sgs, out_sgs, in_sgs, req, GFP_ATOMIC, 1);
+    } else {
+	    err = virtqueue_add_sgs(chan->vq, sgs, out_sgs, in_sgs, req, GFP_ATOMIC);
+    }
+
 	if (err < 0) {
 		if (err == -ENOSPC) {
 			chan->ring_bufs_avail = 0;
@@ -298,6 +359,26 @@ req_retry:
 			return -EIO;
 		}
 	}
+
+	// [JB]
+	if (no_shared_region_flag == 1) {
+		unsigned int n;
+		struct p9_pdu_cloak *cloak_pdu = (struct p9_pdu_cloak *)cloak_vq_desc_mem;
+
+		cloak_pdu->read_offset = VIRTIO_9P_HDR_LEN;
+		cloak_pdu->write_offset = VIRTIO_9P_HDR_LEN;
+		// NOTE: queue_head is not used in 9p-vm.c
+
+        /*
+		pr_info("[kernel] in_cnt: %d, out_cnt: %d\n", cloak_pdu->in_iov_cnt, cloak_pdu->out_iov_cnt);
+		for (n=0; n<cloak_pdu->in_iov_cnt; n++) {
+			pr_info("[kernel] in_iov-%d, addr: %lx, size: %lx\n", n, cloak_pdu->in_iov[n].iov_base, cloak_pdu->in_iov[n].iov_len);
+		}
+		for (n=0; n<cloak_pdu->out_iov_cnt; n++) {
+			pr_info("[kernel] out_iov-%d, addr: %lx, size: %lx\n", n, cloak_pdu->out_iov[n].iov_base, cloak_pdu->out_iov[n].iov_len);
+		} */
+	}
+
 	virtqueue_kick(chan->vq);
 	spin_unlock_irqrestore(&chan->lock, flags);
 

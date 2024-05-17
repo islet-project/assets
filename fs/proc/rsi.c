@@ -16,6 +16,9 @@
 
 #include "rsi.h"
 
+#define CLOAK_READ_P9_PDU (99988)
+#define CLOAK_WAIT_P9_PDU (99987)
+
 extern unsigned long cloak_virtio_start;
 
 //MODULE_LICENSE("GPL");
@@ -38,6 +41,17 @@ static struct class *cls;
  */
 static DEFINE_MUTEX(attestation_call);
 
+/*
+#define VIRTQUEUE_NUM 128
+struct p9_pdu_cloak {
+    unsigned long         out_iov_cnt;
+    unsigned long         in_iov_cnt;
+    struct iovec in_iov[VIRTQUEUE_NUM];
+    struct iovec out_iov[VIRTQUEUE_NUM];
+}; */
+
+char __attribute__((aligned(PAGE_SIZE))) cloak_vq_desc_mem[2 * 1024 * 1024] = {0,}; // 2mb
+EXPORT_SYMBOL(cloak_vq_desc_mem);
 
 static void rsi_playground(void)
 {
@@ -232,8 +246,18 @@ unlock:
 
 static int do_cloak_create(struct rsi_cloak *cloak, unsigned long size)
 {
-	phys_addr_t page = virt_to_phys(cloak_virtio_mem);
+	phys_addr_t page; // virt_to_phys(cloak_virtio_mem);
 	struct arm_smccc_1_2_regs input = {0}, output = {0};
+
+    if (size == (16 * 1024 * 1024)) {
+        page = virt_to_phys(cloak_virtio_mem);
+    }
+    else if (size == (2 * 1024 * 1024)) {
+        page = virt_to_phys(cloak_vq_desc_mem);
+    }
+    else {
+        page = virt_to_phys(cloak_virtio_mem);
+    }
 
 	input.a0 = SMC_RSI_CHANNEL_CREATE;
 	input.a1 = cloak->id;
@@ -321,6 +345,34 @@ static int do_cloak_result(struct rsi_cloak *cloak)
         return -rsi_ret_to_errno(output.a0);
 }
 
+struct host_call_arg {
+	u16 imm;
+	unsigned long gprs[7];
+};
+struct host_call_arg host_call_mem __attribute__((aligned(PAGE_SIZE)));
+#define CLOAK_HOST_CALL (799)
+
+static int do_cloak_host_call(unsigned long outlen)
+{
+	struct arm_smccc_1_2_regs input = {0}, output = {0};
+
+	memset(&host_call_mem, 0, sizeof(host_call_mem));
+	host_call_mem.imm = CLOAK_HOST_CALL;
+	host_call_mem.gprs[0] = outlen;
+
+	input.a0 = SMC_RSI_HOST_CALL;
+	input.a1 = virt_to_phys(&host_call_mem);  // IPA of HostCall
+
+	arm_smccc_1_2_smc(&input, &output);
+    return 0;  // do not use return value as of now
+/*
+    if (output.a0 == RSI_SUCCESS) {
+        return 0;
+    }
+    else
+        return -rsi_ret_to_errno(output.a0); */
+}
+
 static long device_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
@@ -331,7 +383,21 @@ static long device_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	struct rsi_cloak cloak;
 	//phys_addr_t page;
 
+    //pr_info("[Cloak] device_ioctl: %d\n", cmd);
+
 	switch (cmd) {
+	case CLOAK_WAIT_P9_PDU:
+		//pr_info("[Cloak] CLOAK_WAIT_P9_PDU\n");
+		ret = do_cloak_host_call(arg);
+		//pr_info("[Cloak] after host_call!\n");
+		return ret;
+	case CLOAK_READ_P9_PDU:
+		//pr_info("[Cloak] CLOAK_READ_P9_PDU\n");
+		ret = copy_to_user((struct p9_pdu_cloak *)arg, (struct p9_pdu_cloak *)cloak_vq_desc_mem, sizeof(struct p9_pdu_cloak));
+		if (ret != 0) {
+			pr_info("[Cloak] ioctl: copy_to_user error: %d\n", ret);
+		}
+		return ret;
 	case RSIIO_ABI_VERSION:
 		printk(RSI_INFO "ioctl: abi_version\n");
 
@@ -535,6 +601,7 @@ end:
 }
 
 extern unsigned long no_shared_region_flag;
+extern unsigned long cloak_virtio_start;
 static int cloak_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	size_t size = vma->vm_end - vma->vm_start;
@@ -544,12 +611,12 @@ static int cloak_mmap(struct file *filp, struct vm_area_struct *vma)
 	start = (u64)vma->vm_pgoff << PAGE_SHIFT;
 	end = start + size;
 
-	if (size > (8 * 1024 * 1024)) {
+	if (size > (16 * 1024 * 1024)) {
 		return -EINVAL;
 	}
 
     if (no_shared_region_flag) {
-        pfn = (unsigned long)0x88200000 >> PAGE_SHIFT;
+        pfn = cloak_virtio_start >> PAGE_SHIFT;
         if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
             return -EINVAL;
         }
@@ -558,24 +625,22 @@ static int cloak_mmap(struct file *filp, struct vm_area_struct *vma)
         return 0;
     }
 
-    if (size == (8 * 1024 * 1024)) {
-		pfn = __pa(cloak_virtio_mem) >> PAGE_SHIFT;
+    if (size == (16 * 1024 * 1024)) {
+		pfn = virt_to_phys(cloak_virtio_mem) >> PAGE_SHIFT;
 		if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
 			return -EINVAL;
 		}	
 
-        cloak_virtio_mem[0] = 0x77;
-        cloak_virtio_mem[16 * 1024] = 0x78;
-		pr_info("[JB] cloak remap_pfn_range success! rsi_page_creator\n");
+		pr_info("[JB] cloak remap_pfn_range success! cloak_virtio_mem\n");
 		return 0;
     }
-	else if (size == (8 * 1024)) {
-		pfn = __pa(cloak_vq_elem) >> PAGE_SHIFT;
+	else if (size == (2 * 1024 * 1024)) {
+		pfn = virt_to_phys(cloak_vq_desc_mem) >> PAGE_SHIFT;
 		if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
 			return -EINVAL;
 		}	
 
-		pr_info("[JB] cloak remap_pfn_range success! cloak_vq_elem\n");
+		pr_info("[JB] cloak remap_pfn_range success! cloak_vq_desc_mem\n");
 		return 0;
 	}
 	else {
@@ -674,14 +739,23 @@ static int __init rsi_init(void)
 			cloak_virtio_mem = (char *)rsi_page_creator;
 			cloak_virtio_mem = (char *)jb_align_to_2mb((unsigned long)cloak_virtio_mem);
 
+            // for vq data
 			cl.id = 0;
 			if (do_cloak_create(&cl, 16 * 1024 * 1024) != 0) {
-				pr_info("[JB] do_cloak_create fail\n");
+				pr_info("[JB] do_cloak_create fail for vq data\n");
 			} else {
 				cloak_virtio_mem[0] = 0x8;
 				cloak_virtio_mem[4 * 1024 * 1024] = 0x12;
-				pr_info("[JB] do_cloak_create success: %lx - %lx\n", cloak_virtio_mem, virt_to_phys(cloak_virtio_mem));
+				pr_info("[JB] do_cloak_create success for vq data: %lx - %lx\n", cloak_virtio_mem, virt_to_phys(cloak_virtio_mem));
 			}
+
+            // for vq control
+            cl.id = 1;
+            if (do_cloak_create(&cl, 2 * 1024 * 1024) != 0) {
+                pr_info("[JB] do_cloak_create fail for vq control\n");
+            } else {
+                pr_info("[JB] do_cloak_create success for vq control\n");
+            }
 		}
         /*
         cl.id = 1;
@@ -690,6 +764,12 @@ static int __init rsi_init(void)
         } else {
             pr_info("[JB] do_cloak_create success, cloak_vq_elem\n");
         } */
+    } else {
+        unsigned long res;
+        unsigned long pa = virt_to_phys(cloak_vq_desc_mem);
+
+        res = rsi_cloak_channel_connect_with_size(1, pa, 2 * 1024 * 1024);
+        pr_info("[JB] rsi_cloak_channel_connect_with_size for vq control: %d\n", res);
     }
 
 	return 0;

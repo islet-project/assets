@@ -1563,7 +1563,9 @@ p9_client_read_once(struct p9_fid *fid, u64 offset, struct iov_iter *to,
 	if (count < rsize)
 		rsize = count;
 
+    // [JB] do not use zero-copy-request as of now
 	/* Don't bother zerocopy for small IO (< 1024) */
+#if 0
 	if (clnt->trans_mod->zc_request && rsize > 1024) {
 		/* response header len is 11
 		 * PDU Header(7) + IO Size (4)
@@ -1572,10 +1574,11 @@ p9_client_read_once(struct p9_fid *fid, u64 offset, struct iov_iter *to,
 				       0, 11, "dqd", fid->fid,
 				       offset, rsize);
 	} else {
-		non_zc = 1;
-		req = p9_client_rpc(clnt, P9_TREAD, "dqd", fid->fid, offset,
+#endif
+	non_zc = 1;
+	req = p9_client_rpc(clnt, P9_TREAD, "dqd", fid->fid, offset,
 				    rsize);
-	}
+	//}
 	if (IS_ERR(req)) {
 		*err = PTR_ERR(req);
 		if (!non_zc)
@@ -1637,15 +1640,18 @@ p9_client_write(struct p9_fid *fid, u64 offset, struct iov_iter *from, int *err)
 		if (count < rsize)
 			rsize = count;
 
+// [JB] do not use zerocopy as of now
+#if 0
 		/* Don't bother zerocopy for small IO (< 1024) */
 		if (clnt->trans_mod->zc_request && rsize > 1024) {
 			req = p9_client_zc_rpc(clnt, P9_TWRITE, NULL, from, 0,
 					       rsize, P9_ZC_HDR_SZ, "dqd",
 					       fid->fid, offset, rsize);
 		} else {
-			req = p9_client_rpc(clnt, P9_TWRITE, "dqV", fid->fid,
+#endif
+		req = p9_client_rpc(clnt, P9_TWRITE, "dqV", fid->fid,
 					    offset, rsize, from);
-		}
+		//}
 		if (IS_ERR(req)) {
 			iov_iter_revert(from, count - iov_iter_count(from));
 			*err = PTR_ERR(req);
@@ -2082,6 +2088,8 @@ int p9_client_readdir(struct p9_fid *fid, char *data, u32 count, u64 offset)
 	if (count < rsize)
 		rsize = count;
 
+// [JB] do not use zerocopy as of now
+#if 0
 	/* Don't bother zerocopy for small IO (< 1024) */
 	if (clnt->trans_mod->zc_request && rsize > 1024) {
 		/* response header len is 11
@@ -2090,10 +2098,11 @@ int p9_client_readdir(struct p9_fid *fid, char *data, u32 count, u64 offset)
 		req = p9_client_zc_rpc(clnt, P9_TREADDIR, &to, NULL, rsize, 0,
 				       11, "dqd", fid->fid, offset, rsize);
 	} else {
-		non_zc = 1;
-		req = p9_client_rpc(clnt, P9_TREADDIR, "dqd", fid->fid,
+#endif
+	non_zc = 1;
+	req = p9_client_rpc(clnt, P9_TREADDIR, "dqd", fid->fid,
 				    offset, rsize);
-	}
+	//}
 	if (IS_ERR(req)) {
 		err = PTR_ERR(req);
 		goto error;

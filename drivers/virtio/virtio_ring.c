@@ -114,7 +114,6 @@ struct vring_virtqueue_split {
 	u32 vring_align;
 	bool may_reduce_num;
 };
-
 struct vring_virtqueue_packed {
 	/* Actual memory layout for this queue. */
 	struct {
@@ -349,7 +348,7 @@ static inline struct device *vring_dma_dev(const struct vring_virtqueue *vq)
 }
 
 /* Map one sg entry. */
-static dma_addr_t vring_map_one_sg(const struct vring_virtqueue *vq,
+dma_addr_t vring_map_one_sg(const struct vring_virtqueue *vq,
 				   struct scatterlist *sg,
 				   enum dma_data_direction direction)
 {
@@ -384,7 +383,7 @@ static dma_addr_t vring_map_single(const struct vring_virtqueue *vq,
 			      cpu_addr, size, direction);
 }
 
-static int vring_mapping_error(const struct vring_virtqueue *vq,
+int vring_mapping_error(const struct vring_virtqueue *vq,
 			       dma_addr_t addr)
 {
 	if (!vq->use_dma_api)
@@ -514,6 +513,10 @@ static inline unsigned int virtqueue_add_desc_split(struct virtqueue *vq,
 	return next;
 }
 
+#include <asm/rsi.h>
+extern unsigned long no_shared_region_flag;
+extern char __attribute__((aligned(PAGE_SIZE))) cloak_vq_desc_mem[2 * 1024 * 1024];
+
 static inline int virtqueue_add_split(struct virtqueue *_vq,
 				      struct scatterlist *sgs[],
 				      unsigned int total_sg,
@@ -521,7 +524,8 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 				      unsigned int in_sgs,
 				      void *data,
 				      void *ctx,
-				      gfp_t gfp)
+				      gfp_t gfp,
+					  int cloak_id)
 {
 	struct vring_virtqueue *vq = to_vvq(_vq);
 	struct scatterlist *sg;
@@ -529,6 +533,12 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 	unsigned int i, n, avail, descs_used, prev, err_idx;
 	int head;
 	bool indirect;
+
+	// [JB]
+	// cloak_id == -1: do nothing
+	// cloak_id == 1: 9p vq control for cloak
+	unsigned int in_cnt = 0, out_cnt = 0;
+	struct p9_pdu_cloak *cloak_pdu = (struct p9_pdu_cloak *)cloak_vq_desc_mem;
 
 	START_USE(vq);
 
@@ -586,6 +596,14 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 			if (vring_mapping_error(vq, addr))
 				goto unmap_release;
 
+            // [JB] print dma_addr
+            //pr_info("[JB] virtqueue_add_split, out-%d, %lx\n", n, addr);
+			if (cloak_id == 1) {
+				cloak_pdu->out_iov[out_cnt].iov_base = addr;
+				cloak_pdu->out_iov[out_cnt].iov_len = sg->length;
+				out_cnt++;
+			}
+
 			prev = i;
 			/* Note that we trust indirect descriptor
 			 * table since it use stream DMA mapping.
@@ -601,6 +619,14 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 			if (vring_mapping_error(vq, addr))
 				goto unmap_release;
 
+            // [JB]
+            //pr_info("[JB] virtqueue_add_split, in-%d, %lx\n", n, addr);
+			if (cloak_id == 1) {
+				cloak_pdu->in_iov[in_cnt].iov_base = addr;
+				cloak_pdu->in_iov[in_cnt].iov_len = sg->length;
+				in_cnt++;
+			}
+
 			prev = i;
 			/* Note that we trust indirect descriptor
 			 * table since it use stream DMA mapping.
@@ -612,6 +638,12 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 						     indirect);
 		}
 	}
+
+	if (cloak_id == 1) {
+		cloak_pdu->out_iov_cnt = out_cnt;
+		cloak_pdu->in_iov_cnt = in_cnt;
+	}
+
 	/* Last one doesn't continue. */
 	desc[prev].flags &= cpu_to_virtio16(_vq->vdev, ~VRING_DESC_F_NEXT);
 	if (!indirect && vq->use_dma_api)
@@ -1348,7 +1380,8 @@ static inline int virtqueue_add_packed(struct virtqueue *_vq,
 				       unsigned int in_sgs,
 				       void *data,
 				       void *ctx,
-				       gfp_t gfp)
+				       gfp_t gfp,
+					   int cloak_id)
 {
 	struct vring_virtqueue *vq = to_vvq(_vq);
 	struct vring_packed_desc *desc;
@@ -1410,6 +1443,8 @@ static inline int virtqueue_add_packed(struct virtqueue *_vq,
 					DMA_TO_DEVICE : DMA_FROM_DEVICE);
 			if (vring_mapping_error(vq, addr))
 				goto unmap_release;
+
+            //pr_info("[JB] virtqueue_add_packed, %d, %lx\n", n, addr);
 
 			flags = cpu_to_le16(vq->packed.avail_used_flags |
 				    (++c == total_sg ? 0 : VRING_DESC_F_NEXT) |
@@ -2075,6 +2110,23 @@ err_ring:
 	return -ENOMEM;
 }
 
+static inline int cloak_virtqueue_add(struct virtqueue *_vq,
+				struct scatterlist *sgs[],
+				unsigned int total_sg,
+				unsigned int out_sgs,
+				unsigned int in_sgs,
+				void *data,
+				void *ctx,
+				gfp_t gfp,
+				int id)
+{
+	struct vring_virtqueue *vq = to_vvq(_vq);
+
+	return vq->packed_ring ? virtqueue_add_packed(_vq, sgs, total_sg,
+					out_sgs, in_sgs, data, ctx, gfp, id) :
+				 virtqueue_add_split(_vq, sgs, total_sg,
+					out_sgs, in_sgs, data, ctx, gfp, id);
+}
 
 /*
  * Generic functions and exported symbols.
@@ -2092,9 +2144,9 @@ static inline int virtqueue_add(struct virtqueue *_vq,
 	struct vring_virtqueue *vq = to_vvq(_vq);
 
 	return vq->packed_ring ? virtqueue_add_packed(_vq, sgs, total_sg,
-					out_sgs, in_sgs, data, ctx, gfp) :
+					out_sgs, in_sgs, data, ctx, gfp, -1) :
 				 virtqueue_add_split(_vq, sgs, total_sg,
-					out_sgs, in_sgs, data, ctx, gfp);
+					out_sgs, in_sgs, data, ctx, gfp, -1);
 }
 
 /**
@@ -2131,6 +2183,27 @@ int virtqueue_add_sgs(struct virtqueue *_vq,
 			     data, NULL, gfp);
 }
 EXPORT_SYMBOL_GPL(virtqueue_add_sgs);
+
+int cloak_virtqueue_add_sgs(struct virtqueue *_vq,
+		      struct scatterlist *sgs[],
+		      unsigned int out_sgs,
+		      unsigned int in_sgs,
+		      void *data,
+		      gfp_t gfp,
+			  int id)
+{
+	unsigned int i, total_sg = 0;
+
+	/* Count them first. */
+	for (i = 0; i < out_sgs + in_sgs; i++) {
+		struct scatterlist *sg;
+
+		for (sg = sgs[i]; sg; sg = sg_next(sg))
+			total_sg++;
+	}
+	return cloak_virtqueue_add(_vq, sgs, total_sg, out_sgs, in_sgs,data, NULL, gfp, id);
+}
+EXPORT_SYMBOL_GPL(cloak_virtqueue_add_sgs);
 
 /**
  * virtqueue_add_outbuf - expose output buffers to other end

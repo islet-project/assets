@@ -9,6 +9,22 @@
 #include <linux/jump_label.h>
 #include <asm/rsi_cmds.h>
 
+#define VIRTQUEUE_NUM 128
+struct cloak_iovec {
+    unsigned long iov_base;
+    unsigned long iov_len;
+};
+
+struct p9_pdu_cloak {
+    u32         queue_head;
+    size_t          read_offset;
+    size_t          write_offset;
+    u16         out_iov_cnt;
+    u16         in_iov_cnt;
+    struct cloak_iovec        in_iov[VIRTQUEUE_NUM];
+    struct cloak_iovec        out_iov[VIRTQUEUE_NUM];
+};
+
 extern struct static_key_false rsi_present;
 
 void arm64_setup_memory(void);
