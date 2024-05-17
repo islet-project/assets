@@ -24,6 +24,10 @@
 extern int cloak_single_test;
 extern bool is_no_shared_region(struct kvm *kvm);
 
+extern int send_msg(const void *msg, size_t size, bool app_to_gw);
+extern int receive_msg(void *msg, size_t size, bool app_from_gw);
+extern bool queue_exist(bool app_to_gw);
+
 static LIST_HEAD(devs);
 static int compat_id = -1;
 
@@ -1395,7 +1399,20 @@ static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 		// for CVM_App
 
 		// 1. wait for CVM_GW (virtio backend) to handle this request
-		len = virtio_p9_pdu_write_to_file(p9pdu);
+		int dummy = 0;
+		int res;
+
+		//len = virtio_p9_pdu_write_to_file(p9pdu);
+		res = send_msg(&dummy, sizeof(dummy), true);
+		if (res < 0) {
+			printf("send_msg from app to gw error: %d, %s\n", errno, strerror(errno));
+			return false;
+		}
+		res = receive_msg(&len, sizeof(len), true);
+		if (res < 0) {
+			printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
+			return false;
+		}
 
 		// 2. update results
 		virt_queue__set_used_elem(vq, p9pdu->queue_head, len);
@@ -1403,7 +1420,11 @@ static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
         return true;
     } else {
 		// for CVM_GW
+		int res;
+
 		cmd = virtio_p9_get_cmd(p9pdu);
+		//printf("[host] in_cnt: %d, out_cnt: %d, cmd: %d\n", p9pdu->in_iov_cnt, p9pdu->out_iov_cnt, cmd); // [test]
+
 		if ((cmd >= ARRAY_SIZE(virtio_9p_dotl_handler)) ||
 			!virtio_9p_dotl_handler[cmd])
 			handler = virtio_p9_eopnotsupp;
@@ -1411,6 +1432,22 @@ static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 			handler = virtio_9p_dotl_handler[cmd];
 
 		handler(p9dev, p9pdu, &len);
+
+		#if 0
+		// check if this msg_queue is already created by CVM_App. send_msg only if so
+		if (queue_exist(false)) {
+			// log to compare outlen between host and cvm_gw
+			printf("[host] in_cnt: %d, out_cnt: %d, cmd: %d, outlen: %d\n", p9pdu->in_iov_cnt, p9pdu->out_iov_cnt, cmd, len);
+
+			res = send_msg(&len, sizeof(len), false);
+			if (res < 0) {
+				printf("send_msg from gw to app error (for outlen)\n");
+			} else {
+				printf("send_msg for outlen success!\n");
+			}
+		}
+		#endif
+
 		virt_queue__set_used_elem(vq, p9pdu->queue_head, len);
 		free(p9pdu);
 		return true;

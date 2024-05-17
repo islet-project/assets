@@ -66,6 +66,7 @@ OBJS	+= kvm.o
 ifeq ($(CLOAK_VM),no)
     OBJS	+= main.o
 endif
+OBJS	+= cloak.o
 OBJS	+= mmio.o
 OBJS	+= pci.o
 OBJS	+= term.o

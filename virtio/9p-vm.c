@@ -21,7 +21,7 @@
 #include <linux/virtio_9p.h>
 #include <linux/9p.h>
 
-#define NET_VM_HOOK
+//#define NET_VM_HOOK
 #define P9_VM_HOOK
 
 // =========================================================
@@ -59,7 +59,8 @@ static char vm_root_dir[PATH_MAX] = {0,};  // equivalent to struct p9_dev.root_d
 static unsigned char *vring_mirror = NULL;
 static unsigned char *vq_elem_mirror = NULL;
 
-char vring_shared[VRING_SIZE] = {0,};
+//char vring_shared[VRING_SIZE] = {0,};
+char *vring_shared = NULL;
 unsigned long base_ipa_addr = 0x88400000;
 unsigned long base_ipa_elem_addr = 0x8c260000;
 
@@ -1658,8 +1659,10 @@ u32 run_p9_operation_in_vm(struct p9_pdu *p9pdu, char *root_dir)
 
 bool translate_addr_space(struct p9_pdu *p9pdu)
 {
-	// 1. read first
 	ssize_t res;
+
+#if 0
+	// copy-based
 	int fd = open("/dev/rsi", O_RDWR);
 	if (fd < 0) {
 		LOG_ERROR("rsi open error\n");
@@ -1673,6 +1676,7 @@ bool translate_addr_space(struct p9_pdu *p9pdu)
 		return false;
 	}
 	close(fd);
+#endif
 
 	for (unsigned i=0; i<p9pdu->in_iov_cnt; i++) {
 		unsigned long orig = (unsigned long)(p9pdu->in_iov[i].iov_base);
@@ -1699,6 +1703,7 @@ bool translate_addr_space(struct p9_pdu *p9pdu)
 	return true;
 }
 
+#if 0
 bool flush_result_to_shared(void)
 {
 	ssize_t res;
@@ -1717,19 +1722,19 @@ bool flush_result_to_shared(void)
 	close(fd);
 	return true;
 }
+#endif
 
-#if 0
-bool map_vring_mirror(void)
+bool map_vring_shared(void)
 {
 	int fd = open("/dev/rsi", O_RDWR);
 	if (fd < 0) {
-		printf("rsi open error\n");
+		LOG_ERROR("rsi open error\n");
 		return false;
 	}
 
-	vring_mirror = mmap(NULL, VRING_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-	if (vring_mirror == MAP_FAILED) {
-		printf("mmap error\n");
+	vring_shared = mmap(NULL, VRING_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if (vring_shared == MAP_FAILED) {
+		LOG_ERROR("vring_shared mmap error\n");
 		close(fd);
 		return false;
 	}
@@ -1743,11 +1748,9 @@ bool map_vring_mirror(void)
     } */
 
 	close(fd);
-	printf("mmap success: %02x, %02x\n", vring_mirror[0], vring_mirror[4 * 1024 * 1024]);
-    //printf("mmap_elem success\n");
+	LOG_DEBUG("mmap success: %02x, %02x\n", vring_shared[0], vring_shared[32]);
 	return true;
 }
-#endif
 
 // net vm threads
 void* run_vm_rx_thread(void* arg);
@@ -1755,7 +1758,7 @@ void* run_vm_rx_num_buf_thread(void* arg);
 void* run_vm_tx_thread(void* arg);
 
 // 9p vm thread
-void *run_vm_9p_thread(void *arg)
+void *run_vm_9p_thread_deprecated(void *arg)
 {
 	FILE *fp;
 	struct p9_pdu p9pdu;
@@ -1789,11 +1792,13 @@ void *run_vm_9p_thread(void *arg)
 		outlen = run_p9_operation_in_vm(&p9pdu, "/shared");
 		LOG_DEBUG("[JB] run_p9_operation_in_vm success\n");
 		
+		#if 0
 		if (flush_result_to_shared() == false) {
 			LOG_ERROR("flush_result_to_shared error\n");
 		} else {
 			LOG_DEBUG("flush_result_to_shared success\n");
 		}
+		#endif
 
 		// 3. write resp
 		fp = fopen("/shared/p9resp.bin", "wb");
@@ -1814,6 +1819,72 @@ void *run_vm_9p_thread(void *arg)
 		}
 	}
 	return NULL;
+}
+
+#define CLOAK_READ_P9_PDU (99988)
+#define CLOAK_WAIT_P9_PDU (99987)
+#define FIRST_CLOAK_OUTLEN (999999)
+
+void *run_vm_9p_thread(void *arg)
+{
+	struct p9_pdu p9pdu;
+	u32 outlen = FIRST_CLOAK_OUTLEN;
+	int fd;
+	int res;
+
+	fd = open("/dev/rsi", O_RDWR);
+	if (fd < 0) {
+		LOG_ERROR("rsi open error\n");
+		return NULL;
+	}
+
+	if (map_vring_shared() == false) {
+		LOG_ERROR("map_vring_shared error\n");
+		return NULL;
+	}
+
+	LOG_ERROR("[JB] 9p_vm main loop start...\n");
+	while (true) {
+		// 0. wait for a request. 
+		res = ioctl(fd, CLOAK_WAIT_P9_PDU, outlen);
+		if (res < 0) {
+			LOG_ERROR("[JB] 9p_vm ioctl CLOAK_WAIT_P9_PDU error: %d\n", res);
+			sleep(1);
+			continue;
+		}
+		LOG_DEBUG("[JB] 9p_vm request received\n");
+
+		memset(&p9pdu, 0, sizeof(p9pdu));
+
+		// 1. read p9_pdu
+		res = ioctl(fd, CLOAK_READ_P9_PDU, &p9pdu);
+		if (res < 0) {
+			LOG_ERROR("[JB] 9p_vm ioctl CLOAK_READ_P9_PDU error: %d\n", res);
+			sleep(1);
+			continue;
+		}
+
+		// 2. translate addr space
+		LOG_DEBUG("[JB] read p9_pdu success\n");
+		if (translate_addr_space(&p9pdu) == false) {
+			LOG_ERROR("translate_addr_space error\n");
+			exit(1);
+		}
+		LOG_DEBUG("[JB] translate_addr_space success\n");
+
+		// 3. handle this request
+		outlen = run_p9_operation_in_vm(&p9pdu, "/shared");
+		LOG_DEBUG("[JB][vm] run_p9_operation_in_vm success: in_cnt: %d, out_cnt: %d, outlen: %d\n", p9pdu.in_iov_cnt, p9pdu.out_iov_cnt, outlen);
+
+		#if 0
+		// 4. flush results
+		if (flush_result_to_shared() == false) {
+			LOG_ERROR("flush_result_to_shared error\n");
+		} else {
+			LOG_DEBUG("flush_result_to_shared success\n");
+		}
+		#endif
+	}
 }
 
 void main_loop_vm(void)

@@ -273,6 +273,9 @@ struct kvm_xen_exit {
 #define KVM_EXIT_RISCV_CSR        36
 #define KVM_EXIT_NOTIFY           37
 
+// [JB]
+#define KVM_EXIT_REASON_CLOAK_HOST_CALL 799
+
 /* For KVM_EXIT_INTERNAL_ERROR */
 /* Emulate instruction failed. */
 #define KVM_INTERNAL_ERROR_EMULATION	1
@@ -510,6 +513,10 @@ struct kvm_run {
 #define KVM_NOTIFY_CONTEXT_INVALID	(1 << 0)
 			__u32 flags;
 		} notify;
+        /* KVM_EXIT_CLOAK_HOST_CALL */
+        struct {
+            unsigned long outlen;
+        } cloak;
 		/* Fix the size of the union. */
 		char padding[256];
 	};

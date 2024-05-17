@@ -141,6 +141,34 @@ void kvm_cpu__run_on_all_cpus(struct kvm *kvm, struct kvm_cpu_task *task)
 	mutex_unlock(&task_lock);
 }
 
+extern int receive_msg(void *msg, size_t size, bool app_from_gw);
+extern bool is_no_shared_region(struct kvm *kvm);
+#define FIRST_CLOAK_OUTLEN (999999)
+
+// =========================================================
+// log
+#define LOG_ON_ERROR
+//#define LOG_ON_DEBUG
+
+#ifdef LOG_ON_DEBUG
+#define LOG_DEBUG(...) \
+do { \
+	printf(__VA_ARGS__); \
+} while(0)
+#else
+#define LOG_DEBUG(...) do {} while (0)
+#endif
+
+#ifdef LOG_ON_ERROR
+#define LOG_ERROR(...) \
+do { \
+	printf(__VA_ARGS__); \
+} while(0)
+#else
+#define LOG_ERROR(...) do {} while (0)
+#endif
+// =========================================================
+
 int kvm_cpu__start(struct kvm_cpu *cpu)
 {
 	sigset_t sigset;
@@ -173,6 +201,41 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 		switch (cpu->kvm_run->exit_reason) {
 		case KVM_EXIT_UNKNOWN:
 			break;
+        case KVM_EXIT_REASON_CLOAK_HOST_CALL: {
+			// A behavior exclusive to CVM_gateway
+            if (is_no_shared_region(cpu->kvm) == false) {
+				int dummy = 0;
+				int res;
+				unsigned long outlen = 0;
+
+				LOG_DEBUG("KVM_EXIT_REASON_CLOAK_HOST_CALL!\n");
+
+				// 1. send outlen first!
+				outlen = cpu->kvm_run->cloak.outlen;
+				if (outlen == FIRST_CLOAK_OUTLEN) {
+					LOG_DEBUG("FIRST_CLOAK_OUTLEN! skip!\n");
+				} else {
+					unsigned int len = (unsigned int)outlen;
+					res = send_msg(&len, sizeof(len), false);
+					if (res < 0) {
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", len);
+					} else {
+						LOG_DEBUG("send_msg for outlen success!: %d\n", len);
+					}
+				}
+
+				// 2. wait for a request from CVM_App front-end (handle request)
+				res = receive_msg(&dummy, sizeof(dummy), false);
+				if (res) {
+					LOG_DEBUG("CLOAK_HOST_CALL: receive_msg error\n");
+				} else {
+					LOG_DEBUG("CLOAK_HOST_CALL: receive_msg done\n");
+				}
+            }
+
+			// [JB] re-run this CVM_Gateway to handle CVM_App's virtio requests!!
+            break;
+		}
 		case KVM_EXIT_DEBUG:
 			kvm_cpu__show_registers(cpu);
 			kvm_cpu__show_code(cpu);
