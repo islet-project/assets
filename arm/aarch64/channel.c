@@ -56,8 +56,11 @@ static int vchannel_init(struct kvm *kvm) {
         return ret;
     }
 
+	vchannel_dev->pci_hdr.irq_type = IRQ_TYPE_EDGE_RISING;
     pci__assign_irq(&vchannel_dev->pci_hdr);
     vchannel_dev->gsi = vchannel_dev->pci_hdr.irq_line - KVM_IRQ_OFFSET;
+
+	ch_syslog("irq_type %d", vchannel_dev->pci_hdr.irq_type);
 
     // Setup client
     client = get_client(kvm->cfg.arch.socket_path, ioeventfd_addr, kvm);
