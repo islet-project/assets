@@ -207,18 +207,8 @@ static int recv_initial_msg(Client* client) {
     client->shm_id = (int)id;
     ch_syslog("[ID:%d] client->shm_id = %d", client->id, client->shm_id);
 
-    /* receive host channel's eventfd */
-    if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id != 0 || fd < 0) {
-        ch_syslog("[ID:%d] cannot read host channel eventfd from server", client->id);
-        return -1;
-    }
-    client->hc_eventfd = fd;
-    ch_syslog("[ID:%d] host channel eventfd = %d", client->id, client->hc_eventfd);
-    ch_syslog("[ID:%d] TEST: Write host channel eventfd = %d", client->id, client->hc_eventfd);
-    eventfd_write(client->hc_eventfd, 1);
-
 	// set ioeventfd to send events to the host channel device driver from realm
-	ret = set_ioeventfd(client, client->hc_eventfd, id);
+	//ret = set_ioeventfd(client, client->hc_eventfd, id);
 
     return ret;
 }
@@ -395,7 +385,5 @@ void close_client(Client* client) {
     close(client->eventfd);
     client->eventfd = -1;
 
-    close(client->hc_eventfd);
-    client->hc_eventfd= -1;
     free(client);
 }

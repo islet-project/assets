@@ -15,7 +15,6 @@ typedef struct Client {
 	int id; // NOTE: It's an id allocated by Eventfd Allocator Server. It's not VMID.
 	int sock_fd;
 	int eventfd;
-	int hc_eventfd; // host channel's eventfd
 	pthread_t thread;
 	int shm_id;
 	int peer_cnt;
