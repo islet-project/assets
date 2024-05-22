@@ -143,7 +143,13 @@ void kvm_cpu__run_on_all_cpus(struct kvm *kvm, struct kvm_cpu_task *task)
 
 extern int receive_msg(void *msg, size_t size, bool app_from_gw);
 extern bool is_no_shared_region(struct kvm *kvm);
+extern u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir);
+static bool is_first_exit = true;
+static unsigned int p9_outlen = 0;
+static unsigned int p9_state = 0;
 #define FIRST_CLOAK_OUTLEN (999999)
+
+#define OPTIMIZE_COPY
 
 // =========================================================
 // log
@@ -203,26 +209,28 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 			break;
         case KVM_EXIT_REASON_CLOAK_HOST_CALL: {
 			// A behavior exclusive to CVM_gateway
+		#ifndef OPTIMIZE_COPY
             if (is_no_shared_region(cpu->kvm) == false) {
 				int dummy = 0;
 				int res;
 				unsigned long outlen = 0;
+				unsigned int len;
 
 				LOG_DEBUG("KVM_EXIT_REASON_CLOAK_HOST_CALL!\n");
 
-				// 1. send outlen first!
 				outlen = cpu->kvm_run->cloak.outlen;
 				if (outlen == FIRST_CLOAK_OUTLEN) {
 					LOG_DEBUG("FIRST_CLOAK_OUTLEN! skip!\n");
-				} else {
-					unsigned int len = (unsigned int)outlen;
+				}
+				len = (unsigned int)outlen;
+				else {
 					res = send_msg(&len, sizeof(len), false);
 					if (res < 0) {
 						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", len);
 					} else {
 						LOG_DEBUG("send_msg for outlen success!: %d\n", len);
 					}
-				}
+				}	
 
 				// 2. wait for a request from CVM_App front-end (handle request)
 				res = receive_msg(&dummy, sizeof(dummy), false);
@@ -232,6 +240,65 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 					LOG_DEBUG("CLOAK_HOST_CALL: receive_msg done\n");
 				}
             }
+		#else  // OPTIMIZE_COPY
+			if (is_no_shared_region(cpu->kvm) == false) {
+				int res;
+				int dummy = 0;
+
+				// state machine
+				if (p9_state == 0) {
+					// first
+
+					// 1. receive a request within Host
+					res = receive_msg(&dummy, sizeof(dummy), false);
+					if (res) {
+						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg error\n");
+					} else {
+						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg done\n");
+					}
+
+					// 2. handle (copy-only) a request within CVM_GW (----)
+
+					// 3. state transition
+					p9_state = 1;
+				}
+				else if (p9_state == 1) {
+					// backend operation here!
+
+					// 1. handle the back-end operation
+					p9_outlen = run_p9_operation_in_host(cpu->kvm, "/shared");
+
+					// 2. do one more copy for out cases (e.g., CVM-write) within CVM_GW
+
+					// 3. state transition
+					p9_state = 2;
+				}
+				else if (p9_state == 2) {
+					// send results!
+
+					// 1. send results
+					res = send_msg(&p9_outlen, sizeof(p9_outlen), false);
+					if (res < 0) {
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", p9_outlen);
+					} else {
+						LOG_DEBUG("send_msg for outlen success!: %d\n", p9_outlen);
+					}
+
+					// 2. receive a request again
+					res = receive_msg(&dummy, sizeof(dummy), false);
+					if (res) {
+						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg error\n");
+					} else {
+						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg done\n");
+					}
+
+					// 3. handle (copy-only) a request within CVM_GW (----)
+
+					// 4. state transition
+					p9_state = 1;
+				}
+			}
+		#endif
 
 			// [JB] re-run this CVM_Gateway to handle CVM_App's virtio requests!!
             break;

@@ -1380,6 +1380,9 @@ static u32 virtio_p9_pdu_write_to_file(struct p9_pdu *p9pdu)
 	return outlen;
 }
 
+// test
+extern void print_host_mem_with_offset(struct kvm *kvm, u64 offset);
+
 static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 {
 	u8 cmd;
@@ -1447,6 +1450,10 @@ static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 			}
 		}
 		#endif
+
+		// [test]
+		//print_host_mem_with_offset(kvm, 0x88400000 + (60 * 1024 * 1024));
+		//print_host_mem_with_offset(kvm, 0x88400000 + (14 * 1024 * 1024));
 
 		virt_queue__set_used_elem(vq, p9pdu->queue_head, len);
 		free(p9pdu);

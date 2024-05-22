@@ -515,7 +515,8 @@ struct kvm_run {
 		} notify;
         /* KVM_EXIT_CLOAK_HOST_CALL */
         struct {
-            unsigned long outlen;
+            unsigned long outlen; // outlen for vm
+            unsigned long outlen_host; // outlen for host
         } cloak;
 		/* Fix the size of the union. */
 		char padding[256];

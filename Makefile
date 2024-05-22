@@ -118,8 +118,9 @@ OBJS	+= builtin-sandbox.o
 OBJS	+= virtio/mmio.o
 OBJS	+= virtio/mmio-legacy.o
 OBJS	+= virtio/mmio-modern.o
+OBJS    += virtio/9p-vm.o
 ifeq ($(CLOAK_VM),yes)
-    OBJS += virtio/9p-vm.o
+    OBJS += virtio/vm-main.o
 endif
 
 # Translate uname -m into ARCH string

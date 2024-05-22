@@ -21,8 +21,18 @@
 #include <linux/virtio_9p.h>
 #include <linux/9p.h>
 
+#define CLOAK_WRITE_P9_PDU (99989)
+#define CLOAK_READ_P9_PDU (99988)
+#define CLOAK_WAIT_P9_PDU (99987)
+#define CLOAK_OUT_COPY_P9_PDU (99986)
+#define FIRST_CLOAK_OUTLEN (999999)
+
+// ---- virtual devices ----
 //#define NET_VM_HOOK
 #define P9_VM_HOOK
+
+// ---- optimizations ----
+#define OPTIMIZE_COPY
 
 // =========================================================
 // log
@@ -60,7 +70,9 @@ static unsigned char *vring_mirror = NULL;
 static unsigned char *vq_elem_mirror = NULL;
 
 //char vring_shared[VRING_SIZE] = {0,};
-char *vring_shared = NULL;
+char *vring_shared = NULL;  // shared_mem_virtqueue between CVM_App and CVM_Gateway
+char *vring_iov_host = NULL; // shared_mem_iov between CVM_Gateway and Host
+
 unsigned long base_ipa_addr = 0x88400000;
 unsigned long base_ipa_elem_addr = 0x8c260000;
 
@@ -1632,6 +1644,87 @@ static u8 vm_virtio_p9_get_cmd(struct p9_pdu *pdu)
 	return msg->cmd;
 }
 
+#ifdef OPTIMIZE_COPY
+u32 run_p9_operation_in_vm(struct p9_pdu *p9pdu, char *root_dir)
+{
+	int res;
+	int fd = open("/dev/rsi", O_RDWR);
+	if (fd < 0) {
+		LOG_ERROR("rsi open error\n");
+		return 0;
+	}
+
+	res = ioctl(fd, CLOAK_WRITE_P9_PDU, p9pdu);
+	if (res < 0) {
+		LOG_ERROR("[JB] CLOAK_WRITE_P9_PDU error: %d\n", res);
+		close(fd);
+		return 0;
+	}
+
+	close(fd);
+	return 0;
+}
+
+extern void *get_host_addr_from_offset(struct kvm *kvm, u64 offset);
+static unsigned long p9pdu_control_addr = 0;
+static unsigned long p9pdu_data_addr = 0;
+
+void translate_addr_space_host(struct kvm *kvm, struct p9_pdu *p9pdu)
+{
+	for (unsigned i=0; i<p9pdu->in_iov_cnt; i++) {
+		unsigned long offset = (unsigned long)(p9pdu->in_iov[i].iov_base);
+		unsigned long new_addr = get_host_addr_from_offset(kvm, offset);
+
+		LOG_DEBUG("[host-in-%d] offset: %lx, new_addr: %lx\n", i, offset, new_addr);
+		p9pdu->in_iov[i].iov_base = (void *)new_addr;
+	}
+	for (unsigned i=0; i<p9pdu->out_iov_cnt; i++) {
+		unsigned long offset = (unsigned long)(p9pdu->out_iov[i].iov_base);
+		unsigned long new_addr = get_host_addr_from_offset(kvm, offset);
+
+		LOG_DEBUG("[host-out-%d] offset: %lx, new_addr: %lx\n", i, offset, new_addr);
+		p9pdu->out_iov[i].iov_base = (void *)new_addr;
+	}
+}
+
+u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir)
+{
+	size_t res;
+    u8 cmd;
+	p9_handler *handler;
+    u32 outlen = 0;
+	struct p9_pdu *p9pdu;
+
+	if (p9pdu_control_addr == 0) {
+		p9pdu_control_addr = get_host_addr_from_offset(kvm, 0x88400000 + (14 * 1024 * 1024)); // 14mb
+		if (p9pdu_control_addr == 0) {
+			LOG_ERROR("get_host_addr_from_offset: control error..\n");
+			return 0;
+		}
+	}
+
+	// 0. address translation
+	p9pdu = (struct p9_pdu *)p9pdu_control_addr;
+	translate_addr_space_host(kvm, p9pdu);
+
+    // 1. copy contexts
+    strncpy(vm_root_dir, root_dir, sizeof(vm_root_dir));
+    LOG_DEBUG("root_dir: %s\n", vm_root_dir);
+
+    // 2. read cmd
+    cmd = vm_virtio_p9_get_cmd(p9pdu);
+
+    // 3. handler
+	if ((cmd >= ARRAY_SIZE(vm_virtio_9p_dotl_handler)) || !vm_virtio_9p_dotl_handler[cmd])
+		handler = vm_virtio_p9_eopnotsupp;
+	else
+		handler = vm_virtio_9p_dotl_handler[cmd];
+
+	handler(p9pdu, &outlen);
+	LOG_DEBUG("cmd: %d - outlen: %d\n", cmd, outlen);
+    return outlen;
+}
+#else
 u32 run_p9_operation_in_vm(struct p9_pdu *p9pdu, char *root_dir)
 {
 	size_t res;
@@ -1656,6 +1749,7 @@ u32 run_p9_operation_in_vm(struct p9_pdu *p9pdu, char *root_dir)
 	LOG_DEBUG("cmd: %d - outlen: %d\n", cmd, outlen);
     return outlen;
 }
+#endif
 
 bool translate_addr_space(struct p9_pdu *p9pdu)
 {
@@ -1678,6 +1772,16 @@ bool translate_addr_space(struct p9_pdu *p9pdu)
 	close(fd);
 #endif
 
+#ifdef OPTIMIZE_COPY
+	/*
+	for (unsigned i=0; i<p9pdu->in_iov_cnt; i++) {
+		LOG_ERROR("[vm] read iov_base, in, %d: %lx\n", i, (unsigned long)(p9pdu->in_iov[i].iov_base));
+	}
+	for (unsigned i=0; i<p9pdu->out_iov_cnt; i++) {
+		LOG_ERROR("[vm] read iov_base, out, %d: %lx\n", i, (unsigned long)(p9pdu->out_iov[i].iov_base));
+	} */
+	return true;
+#else
 	for (unsigned i=0; i<p9pdu->in_iov_cnt; i++) {
 		unsigned long orig = (unsigned long)(p9pdu->in_iov[i].iov_base);
 		unsigned long offset = orig - base_ipa_addr;
@@ -1701,6 +1805,7 @@ bool translate_addr_space(struct p9_pdu *p9pdu)
 		p9pdu->out_iov[i].iov_base = (void *)new_addr;
 	}
 	return true;
+#endif
 }
 
 #if 0
@@ -1738,6 +1843,17 @@ bool map_vring_shared(void)
 		close(fd);
 		return false;
 	}
+
+/*
+	vring_iov_host = mmap(NULL, 4 * 1024 * 1024, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if (vring_iov_host == MAP_FAILED) {
+		LOG_ERROR("vring_iov_host mmap error\n");
+		close(fd);
+		return false;
+	}
+	vring_iov_host[0] = 0x77;
+	vring_iov_host[2] = 0x99;
+	LOG_ERROR("vring_iov_host mmap res: %02x, %02x\n", vring_iov_host[0], vring_iov_host[2]); */
 
 /*
     vq_elem_mirror = mmap(NULL, VQ_ELEM_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
@@ -1821,10 +1937,6 @@ void *run_vm_9p_thread_deprecated(void *arg)
 	return NULL;
 }
 
-#define CLOAK_READ_P9_PDU (99988)
-#define CLOAK_WAIT_P9_PDU (99987)
-#define FIRST_CLOAK_OUTLEN (999999)
-
 void *run_vm_9p_thread(void *arg)
 {
 	struct p9_pdu p9pdu;
@@ -1845,7 +1957,8 @@ void *run_vm_9p_thread(void *arg)
 
 	LOG_ERROR("[JB] 9p_vm main loop start...\n");
 	while (true) {
-		// 0. wait for a request. 
+		// 0. wait for a request.
+		LOG_DEBUG("[JB] 9p_vm wait for a request\n");
 		res = ioctl(fd, CLOAK_WAIT_P9_PDU, outlen);
 		if (res < 0) {
 			LOG_ERROR("[JB] 9p_vm ioctl CLOAK_WAIT_P9_PDU error: %d\n", res);
@@ -1883,6 +1996,26 @@ void *run_vm_9p_thread(void *arg)
 		} else {
 			LOG_DEBUG("flush_result_to_shared success\n");
 		}
+		#endif
+
+		#ifdef OPTIMIZE_COPY
+		// 4. wait for host-backend operations to finish
+		res = ioctl(fd, CLOAK_WAIT_P9_PDU, outlen);
+		if (res < 0) {
+			LOG_ERROR("[JB] 9p_vm ioctl CLOAK_WAIT_P9_PDU error: %d\n", res);
+			sleep(1);
+			continue;
+		}
+		LOG_DEBUG("[JB] 9p_vm: host-backend operation finished\n");
+
+		// 5. do one more copy for out iovs
+		res = ioctl(fd, CLOAK_OUT_COPY_P9_PDU, &p9pdu);
+		if (res < 0) {
+			LOG_ERROR("[JB] 9p_vm ioctl CLOAK_OUT_COPY_P9_PDU error: %d\n", res);
+			sleep(1);
+			continue;
+		}
+		LOG_DEBUG("[JB] 9p_vm: out-copy finished\n");
 		#endif
 	}
 }
@@ -1923,9 +2056,4 @@ void main_loop_vm(void)
     pthread_join(rx_num_buf, &status_rx_num_buf);
     pthread_join(tx, &status_tx);
 #endif
-}
-
-int main(int argc, char **argv)
-{
-	main_loop_vm();
 }
