@@ -27,4 +27,28 @@ config HOST_CHANNEL
 	  in realm to allocate and deallocate dynamic shared memory.
 	  Note that it should be disabled on realm kernel.
 
+config INTER_REALM_SHM_SIZE_8KB
+	bool "8KB"
+	depends on HOST_CHANNEL
+	help
+	  This enables support for 8KB pages for inter co-resident realms shared memory
+
+config INTER_REALM_SHM_SIZE_16KB
+	bool "16KB"
+	depends on HOST_CHANNEL
+	help
+	  This enables support for 16KB pages for inter co-resident realms shared memory
+
+config INTER_REALM_SHM_SIZE_32KB
+	bool "16KB"
+	depends on HOST_CHANNEL
+	help
+	  This enables support for 32KB pages for inter co-resident realms shared memory
+
+config INTER_REALM_SHM_SIZE_64KB
+	bool "16KB"
+	depends on HOST_CHANNEL
+	help
+	  This enables support for 64KB pages for inter co-resident realms shared memory
+
 endif # CHANNEL

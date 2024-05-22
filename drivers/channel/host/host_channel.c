@@ -13,12 +13,23 @@
 #include <linux/poll.h>
 #include <linux/spinlock.h>
 #include <linux/file.h>
+#include <linux/mm.h>
 
 #define DEVICE_NAME "host_channel"
 #define MINOR_BASE 0
 #define MINOR_NUM 1
 
 #define WRITE_DATA_SIZE (sizeof(int)*2) // should be matched with Eventfd Allocator Server
+
+#if defined(CONFIG_INTER_REALM_SHM_SIZE_8KB)
+#define INTER_REALM_SHM_SIZE (1 << 12) * 2
+#elif defined(CONFIG_INTER_REALM_SHM_SIZE_16KB)
+#define INTER_REALM_SHM_SIZE (1 << 12) * 4
+#elif defined(CONFIG_INTER_REALM_SHM_SIZE_32KB)
+#define INTER_REALM_SHM_SIZE (1 << 12) * 8 
+#elif defined(CONFIG_INTER_REALM_SHM_SIZE_64KB)
+#define INTER_REALM_SHM_SIZE (1 << 12) * 16
+#endif
 
 static int dev_major_num;
 
@@ -43,12 +54,6 @@ static void ch_deactivate(struct channel_priv *priv_ptr)
 	// need to add eventfd_ctx_put(irqfd->eventfd); to ch_shutdown
 }
 
-static const struct file_operations ch_fops = {
-	.owner   = THIS_MODULE,
-	.open	= channel_open,
-	.release = channel_release,
-};
-
 static int channel_open(struct inode *inode, struct file *file)
 {
 	pr_info("[CH] device opened\n");
@@ -64,6 +69,39 @@ static int channel_release(struct inode * inode, struct file * file)
     }
     return 0;
 }
+
+static int channel_mmap(struct file *filp, struct vm_area_struct *vma) 
+{
+	u64 req_size = vma->vm_end - vma->vm_start;
+	void *addr;
+
+	if (req_size != INTER_REALM_SHM_SIZE) {
+		pr_err("Incorrect req_size 0x%llx != 0x%llx\n", req_size, INTER_REALM_SHM_SIZE);
+		return -EINVAL;
+	}
+
+	addr = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO,
+					get_order(INTER_REALM_SHM_SIZE));
+	if (!addr) {
+		pr_err("%s __get_free_pages failed\n", __func__);
+		return -ENOMEM;
+	}
+
+	pr_info("[HCH] mmap addr %p, size 0x%llx\n", addr, INTER_REALM_SHM_SIZE);
+
+	vma->vm_flags |= VM_LOCKED;
+
+	/* Mapping pages to user process */
+	return remap_pfn_range(vma, vma->vm_start,
+			       PFN_DOWN(__pa(addr)), INTER_REALM_SHM_SIZE, vma->vm_page_prot);
+}
+
+static const struct file_operations ch_fops = {
+	.owner   = THIS_MODULE,
+	.open	= channel_open,
+	.release = channel_release,
+	.mmap = channel_mmap,
+};
 
 static int __init channel_init(void)
 {
