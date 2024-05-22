@@ -8,6 +8,7 @@
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
+#include <linux/io.h>
 
 #include <asm/rsi.h>
 #include <asm/rsi_cmds.h>
@@ -16,10 +17,14 @@
 
 #include "rsi.h"
 
+#define CLOAK_WRITE_P9_PDU (99989)
 #define CLOAK_READ_P9_PDU (99988)
 #define CLOAK_WAIT_P9_PDU (99987)
+#define CLOAK_OUT_COPY_P9_PDU (99986)
 
 extern unsigned long cloak_virtio_start;
+extern unsigned long no_shared_region_flag;
+static unsigned long cloak_tmp_iov_host = 0x88400000 + (14 * 1024 * 1024);
 
 //MODULE_LICENSE("GPL");
 //MODULE_AUTHOR("Havner");
@@ -373,6 +378,81 @@ static int do_cloak_host_call(unsigned long outlen)
         return -rsi_ret_to_errno(output.a0); */
 }
 
+static bool do_copy_p9pdu_request(struct p9_pdu_cloak *p9pdu)
+{
+	char *virt_iov = phys_to_virt(cloak_tmp_iov_host);
+	unsigned i = 0;
+
+	// do copy between CVM_Shared and Host_Shared
+	if (no_shared_region_flag == 1) {
+		pr_info("ERROR: this operation is only for CVM_GW\n");
+		return false;
+	}
+
+	// 1. memcpy iov first
+	memcpy(virt_iov, p9pdu, sizeof(struct p9_pdu_cloak));
+
+	// 2. copy data
+	// src: CVM_Shared, dst: Host_Shared
+	for (i=0; i<p9pdu->in_iov_cnt; i++) {
+		unsigned long offset = (unsigned long)(p9pdu->in_iov[i].iov_base) - cloak_virtio_start;
+		unsigned long len = p9pdu->in_iov[i].iov_len;
+		unsigned long src_addr = (unsigned long)cloak_virtio_mem + offset;
+		unsigned long dst_addr = phys_to_virt(p9pdu->in_iov[i].iov_base);
+
+		//pr_info("[JB] in copy start: src: %lx, dst: %lx, len: %lx\n", src_addr, dst_addr, len);
+		memcpy((char *)dst_addr, (char *)src_addr, len);
+		//pr_info("[JB] in copy end\n");
+	}
+	for (i=0; i<p9pdu->out_iov_cnt; i++) {
+		unsigned long offset = (unsigned long)(p9pdu->out_iov[i].iov_base) - cloak_virtio_start;
+		unsigned long len = p9pdu->out_iov[i].iov_len;
+		unsigned long src_addr = (unsigned long)cloak_virtio_mem + offset;
+		unsigned long dst_addr = phys_to_virt(p9pdu->out_iov[i].iov_base);
+
+		//pr_info("[JB] out copy start: src: %lx, dst: %lx, len: %lx\n", src_addr, dst_addr, len);
+		memcpy((char *)dst_addr, (char *)src_addr, len);
+		//pr_info("[JB] out copy end\n");
+	}
+
+	return true;
+}
+
+static bool do_copy_p9pdu_response(struct p9_pdu_cloak *p9pdu)
+{
+	char *virt_iov = phys_to_virt(cloak_tmp_iov_host);
+	unsigned i = 0;
+
+	// do copy between CVM_Shared and Host_Shared
+	if (no_shared_region_flag == 1) {
+		pr_info("ERROR: this operation is only for CVM_GW\n");
+		return false;
+	}
+
+	// 1. copy data
+	// src: Host_Shared, dst: CVM_Shared
+	for (i=0; i<p9pdu->in_iov_cnt; i++) {
+		unsigned long offset = (unsigned long)(p9pdu->in_iov[i].iov_base) - cloak_virtio_start;
+		unsigned long len = p9pdu->in_iov[i].iov_len;
+		unsigned long dst_addr = (unsigned long)cloak_virtio_mem + offset;
+		unsigned long src_addr = phys_to_virt(p9pdu->in_iov[i].iov_base);
+
+		//pr_info("[JB] in copy resp: src: %lx, dst: %lx, len: %lx\n", src_addr, dst_addr, len);
+		memcpy((char *)dst_addr, (char *)src_addr, len);
+	}
+	for (i=0; i<p9pdu->out_iov_cnt; i++) {
+		unsigned long offset = (unsigned long)(p9pdu->out_iov[i].iov_base) - cloak_virtio_start;
+		unsigned long len = p9pdu->out_iov[i].iov_len;
+		unsigned long dst_addr = (unsigned long)cloak_virtio_mem + offset;
+		unsigned long src_addr = phys_to_virt(p9pdu->out_iov[i].iov_base);
+
+		//pr_info("[JB] out copy resp: src: %lx, dst: %lx, len: %lx\n", src_addr, dst_addr, len);
+		memcpy((char *)dst_addr, (char *)src_addr, len);
+	}
+
+	return true;
+}
+
 static long device_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
@@ -391,6 +471,24 @@ static long device_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 		ret = do_cloak_host_call(arg);
 		//pr_info("[Cloak] after host_call!\n");
 		return ret;
+	case CLOAK_OUT_COPY_P9_PDU: {
+		struct p9_pdu_cloak p9pdu;
+
+		// 1. read p9pdu
+		ret = copy_from_user(&p9pdu, (struct p9_pdu_cloak *)arg, sizeof(struct p9_pdu_cloak));
+		if (ret != 0) {
+			pr_info("[Cloak] CLOAK_WRITE_P9_PDU ioctl: copy_from_user error: %d\n", ret);
+			return ret;
+		}
+
+		// 2. handle it
+		if (do_copy_p9pdu_response(&p9pdu) == false) {
+			return -1;
+		}
+
+		//pr_info("[Cloak] CLOAK_OUT_COPY_P9_PDU\n");
+		return ret;
+	}
 	case CLOAK_READ_P9_PDU:
 		//pr_info("[Cloak] CLOAK_READ_P9_PDU\n");
 		ret = copy_to_user((struct p9_pdu_cloak *)arg, (struct p9_pdu_cloak *)cloak_vq_desc_mem, sizeof(struct p9_pdu_cloak));
@@ -398,6 +496,25 @@ static long device_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 			pr_info("[Cloak] ioctl: copy_to_user error: %d\n", ret);
 		}
 		return ret;
+	case CLOAK_WRITE_P9_PDU: {
+		struct p9_pdu_cloak p9pdu;
+
+		// 1. read p9pdu
+		ret = copy_from_user(&p9pdu, (struct p9_pdu_cloak *)arg, sizeof(struct p9_pdu_cloak));
+		if (ret != 0) {
+			pr_info("[Cloak] CLOAK_WRITE_P9_PDU ioctl: copy_from_user error: %d\n", ret);
+			return ret;
+		}
+		//pr_info("[Cloak] CLOAK_WRITE_P9_PDU start!\n");
+
+		// 2. handle it
+		if (do_copy_p9pdu_request(&p9pdu) == false) {
+			return -1;
+		}
+
+		//pr_info("[Cloak] CLOAK_WRITE_P9_PDU\n");
+		return 0;
+	}
 	case RSIIO_ABI_VERSION:
 		printk(RSI_INFO "ioctl: abi_version\n");
 
@@ -600,8 +717,6 @@ end:
 	return ret;
 }
 
-extern unsigned long no_shared_region_flag;
-extern unsigned long cloak_virtio_start;
 static int cloak_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	size_t size = vma->vm_end - vma->vm_start;
@@ -641,6 +756,19 @@ static int cloak_mmap(struct file *filp, struct vm_area_struct *vma)
 		}	
 
 		pr_info("[JB] cloak remap_pfn_range success! cloak_vq_desc_mem\n");
+		return 0;
+	}
+	else if (size == (4 * 1024 * 1024)) {
+        char *virt_addr = phys_to_virt(cloak_tmp_iov_host);
+
+		pfn = cloak_tmp_iov_host >> PAGE_SHIFT;
+		if (remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot)) {
+			return -EINVAL;
+		}
+
+        virt_addr[0] = 0x33;
+        virt_addr[2] = 0x44;
+		pr_info("[JB] cloak remap_pfn_range success! cloak_tmp_iov_host, %02x, %02x\n", virt_addr[0], virt_addr[2]);
 		return 0;
 	}
 	else {
@@ -738,6 +866,9 @@ static int __init rsi_init(void)
 			// addr adjustment
 			cloak_virtio_mem = (char *)rsi_page_creator;
 			cloak_virtio_mem = (char *)jb_align_to_2mb((unsigned long)cloak_virtio_mem);
+
+            pr_info("[JB] 2mb align diff: %lx\n", (unsigned long)cloak_virtio_mem - (unsigned long)rsi_page_creator);
+            pr_info("[JB] cloak_virtio_mem: %lx-%lx\n", (unsigned long)cloak_virtio_mem, virt_to_phys(cloak_virtio_mem));
 
             // for vq data
 			cl.id = 0;

@@ -12,8 +12,9 @@ bool ioremap_allowed(phys_addr_t phys_addr, size_t size, unsigned long prot)
 		return false;
 
 	/* Don't allow RAM to be mapped. */
-	if (WARN_ON(pfn_is_map_memory(__phys_to_pfn(phys_addr))))
-		return false;
+    // [JB]
+	//if (WARN_ON(pfn_is_map_memory(__phys_to_pfn(phys_addr))))
+	//	return false;
 
 	return true;
 }
