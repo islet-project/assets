@@ -16,6 +16,9 @@
 #include <channel.h>
 #include <pthread.h>
 #include <kvm/ioeventfd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <kvm/kvm.h>
 
 #define PATH_MAX      4096	/* chars in a path name including nul */
 
@@ -207,8 +210,7 @@ static int recv_initial_msg(Client* client) {
     client->shm_id = (int)id;
     ch_syslog("[ID:%d] client->shm_id = %d", client->id, client->shm_id);
 
-	// set ioeventfd to send events to the host channel device driver from realm
-	//ret = set_ioeventfd(client, client->hc_eventfd, id);
+	ret = set_ioeventfd(client, client->shm_alloc_efd, SHM_ALLOC_EFD_ID);
 
     return ret;
 }
@@ -224,6 +226,14 @@ Client* get_client(const char *socket_path, uint32_t mmio_addr, struct kvm* kvm)
         return client;
 
     client = calloc(1, sizeof(Client));
+
+	/* create eventfd */
+    ret = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (ret < 0) {
+        ch_syslog("Cannot create eventfd %s\n", strerror(errno));
+        goto err_free;
+    }
+	client->shm_alloc_efd = ret;
 
     client->sock_fd = connect_socket(socket_path);
     if (client->sock_fd < 0) {
@@ -250,6 +260,7 @@ Client* get_client(const char *socket_path, uint32_t mmio_addr, struct kvm* kvm)
 
 err_close:
     close(client->sock_fd);
+err_free:
     free(client);
     return NULL;
 }
@@ -313,21 +324,66 @@ err:
     return -1;
 }
 
+static int handle_shm_alloc_req(Client* client) {
+	char* mem;
+	int ret = 0;
+	int hc_fd;
+	static u64 ipa_base = INTER_REALM_SHM_IPA_BASE;
+
+	ch_syslog("[KVMTOOL] %s start", __func__);
+	hc_fd = open(HOST_CHANNEL_PATH, O_RDONLY);
+	if (hc_fd < 0) {
+		ch_syslog("failed to open %s: %d\n", HOST_CHANNEL_PATH, hc_fd);
+		return -1;
+	}
+
+	mem = mmap(NULL, INTER_REALM_SHM_SIZE, PROT_NONE,
+		   MAP_PRIVATE | MAP_LOCKED | MAP_NORESERVE, hc_fd, 0);
+	close(hc_fd);
+
+	if (mem == MAP_FAILED) {
+		return errno;
+	}
+
+	ret = kvm__register_ram(client->kvm, ipa_base,
+				INTER_REALM_SHM_SIZE, mem);
+	if (ret) {
+		munmap(mem, INTER_REALM_SHM_SIZE);
+		ch_syslog("[KVMTOOL] %s failed with %d", __func__, ret);
+		return ret;
+	}
+	ipa_base += INTER_REALM_SHM_SIZE;
+
+	// TODO: call DATA_CREATE_UNKNOWN RMI CALL
+
+	ch_syslog("[KVMTOOL] %s done: [%p:%p]", __func__, mem, mem + INTER_REALM_SHM_SIZE);
+	return ret;
+}
+
 /* read and handle new messages on the given fd_set */
 static int handle_fds(Client* client, fd_set *fds, int maxfd) {
     int ret = -1;
 
     if (client->sock_fd < maxfd && FD_ISSET(client->sock_fd, fds)) {
         ret = handle_eventfd_manager_msg(client);
-    } else {
-        ch_syslog("invalid event. client->sock_fd %d, maxfd %d", client->sock_fd, maxfd);
-        return ret;
-    }
+		if (ret < 0 && errno != EINTR) {
+			ch_syslog("handle_eventfd_manager_msg() failed %d %s", ret, strerror(errno));
+			return ret;
+		}
+    } 
 
-    if (ret < 0 && errno != EINTR) {
-        ch_syslog("handle_eventfd_manager_msg() failed %d %s", ret, strerror(errno));
-        return ret;
-    }
+	if (client->shm_alloc_efd < maxfd && FD_ISSET(client->shm_alloc_efd, fds)) {
+		u64 efd_cnt;
+		int len;
+
+		len = read(client->shm_alloc_efd, &efd_cnt, sizeof(efd_cnt));
+		if (len == -1) {
+			ch_syslog("%s read failed on shm_alloc_efd %d", __func__, strerror(errno));
+		}
+		ch_syslog("%s shm_alloc_efd cnt: %d", __func__, efd_cnt);
+
+		ret = handle_shm_alloc_req(client);
+	}
 
     return ret;
 }
@@ -341,10 +397,14 @@ void *poll_events(void *c_ptr) {
 
     while (1) {
         FD_ZERO(&fds);
+        FD_SET(client->shm_alloc_efd, &fds);
         FD_SET(client->sock_fd, &fds);
+
         if (client->sock_fd >= maxfd) {
             maxfd = client->sock_fd + 1;
-        }
+		} else if (client->shm_alloc_efd >= maxfd) {
+            maxfd = client->shm_alloc_efd + 1;
+		}
 
         ret = select(maxfd, &fds, NULL, NULL, NULL);
         if (ret < 0) {
@@ -384,6 +444,9 @@ void close_client(Client* client) {
 
     close(client->eventfd);
     client->eventfd = -1;
+
+    close(client->shm_alloc_efd);
+    client->shm_alloc_efd = -1;
 
     free(client);
 }

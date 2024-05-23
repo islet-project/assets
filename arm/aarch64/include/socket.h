@@ -4,6 +4,8 @@
 #include <inttypes.h>
 
 #define PEER_LIST_MAX  128
+#define HOST_CHANNEL_PATH "/dev/host_channel"
+#define SHM_ALLOC_EFD_ID 0
 
 typedef struct Peer {
 	int id; // NOTE: It's not same with VMID
@@ -15,6 +17,7 @@ typedef struct Client {
 	int id; // NOTE: It's an id allocated by Eventfd Allocator Server. It's not VMID.
 	int sock_fd;
 	int eventfd;
+	int shm_alloc_efd;
 	pthread_t thread;
 	int shm_id;
 	int peer_cnt;
