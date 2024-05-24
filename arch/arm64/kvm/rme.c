@@ -11,6 +11,9 @@
 #include <asm/rmi_cmds.h>
 #include <asm/virt.h>
 
+kvm_pfn_t hva_to_pfn(unsigned long addr, bool atomic, bool interruptible,
+		     bool *async, bool write_fault, bool *writable);
+
 /************ FIXME: Copied from kvm/hyp/pgtable.c **********/
 #include <asm/kvm_pgtable.h>
 
@@ -1164,6 +1167,25 @@ static int kvm_rme_config_realm(struct kvm *kvm, struct kvm_enable_cap *cap)
 	return r;
 }
 
+
+static int kvm_map_memory_to_realm(struct kvm *kvm,
+				    struct kvm_cap_arm_rme_map_memory_to_realm_args *args)
+{
+	int ret;
+	u64 hva = args->hva;
+	kvm_pfn_t pfn;
+	struct page *page;
+
+	pfn = hva_to_pfn(hva, false, false, NULL, false, NULL);
+	page = pfn_to_page(pfn);
+
+	pr_info("%s hva %llx, ipa_base %llx size %llx phys: %llx", __func__, hva, args->ipa_base, args->size, __pfn_to_phys(pfn));
+	ret = realm_map_protected(&kvm->arch.realm, hva, args->ipa_base, page, args->size, NULL);
+	pr_err("realm_map_protected failed with %d", ret);
+
+	return ret;
+}
+
 int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 {
 	int r = 0;
@@ -1207,6 +1229,18 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 	case KVM_CAP_ARM_RME_ACTIVATE_REALM:
 		r = kvm_activate_realm(kvm);
 		break;
+	case KVM_CAP_ARM_RME_MAP_MEMORY_TO_REALM: {
+		struct kvm_cap_arm_rme_map_memory_to_realm_args args;
+		void __user *argp = u64_to_user_ptr(cap->args[1]);
+
+		if (copy_from_user(&args, argp, sizeof(args))) {
+			r = -EFAULT;
+			break;
+		}
+
+		r = kvm_map_memory_to_realm(kvm, &args);
+		break;
+	}
 	default:
 		r = -EINVAL;
 		break;

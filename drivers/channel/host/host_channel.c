@@ -21,7 +21,9 @@
 
 #define WRITE_DATA_SIZE (sizeof(int)*2) // should be matched with Eventfd Allocator Server
 
-#if defined(CONFIG_INTER_REALM_SHM_SIZE_8KB)
+#if defined(CONFIG_INTER_REALM_SHM_SIZE_4KB)
+#define INTER_REALM_SHM_SIZE (1 << 12)
+#elif defined(CONFIG_INTER_REALM_SHM_SIZE_8KB)
 #define INTER_REALM_SHM_SIZE (1 << 12) * 2
 #elif defined(CONFIG_INTER_REALM_SHM_SIZE_16KB)
 #define INTER_REALM_SHM_SIZE (1 << 12) * 4
@@ -74,22 +76,21 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	u64 req_size = vma->vm_end - vma->vm_start;
 	void *addr;
+	pr_info("[HCH] vm_flags 0x%llx vm_page_prot 0x%llx\n", vma->vm_flags, vma->vm_page_prot);
 
 	if (req_size != INTER_REALM_SHM_SIZE) {
-		pr_err("Incorrect req_size 0x%llx != 0x%llx\n", req_size, INTER_REALM_SHM_SIZE);
+		pr_err("%s Incorrect req_size 0x%llx != 0x%llx\n", __func__, req_size, INTER_REALM_SHM_SIZE);
 		return -EINVAL;
 	}
 
-	addr = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO,
+	addr = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO | __GFP_MOVABLE,
 					get_order(INTER_REALM_SHM_SIZE));
 	if (!addr) {
 		pr_err("%s __get_free_pages failed\n", __func__);
 		return -ENOMEM;
 	}
 
-	pr_info("[HCH] mmap addr %p, size 0x%llx\n", addr, INTER_REALM_SHM_SIZE);
-
-	vma->vm_flags |= VM_LOCKED;
+	pr_info("[HCH] mmap addr %p, pa %llx, size 0x%llx\n", addr, __pa(addr), INTER_REALM_SHM_SIZE);
 
 	/* Mapping pages to user process */
 	return remap_pfn_range(vma, vma->vm_start,
