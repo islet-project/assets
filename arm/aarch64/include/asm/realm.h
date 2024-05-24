@@ -9,5 +9,6 @@ void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm);
 void kvm_arm_realm_populate_kernel(struct kvm *kvm);
 void kvm_arm_realm_populate_initrd(struct kvm *kvm);
 void kvm_arm_realm_populate_dtb(struct kvm *kvm);
+void map_memory_to_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size);
 
 #endif /* ! __ASM_REALM_H */

@@ -407,6 +407,7 @@ enum {
 #define KVM_CAP_ARM_RME_INIT_IPA_REALM		2
 #define KVM_CAP_ARM_RME_POPULATE_REALM		3
 #define KVM_CAP_ARM_RME_ACTIVATE_REALM		4
+#define KVM_CAP_ARM_RME_MAP_MEMORY_TO_REALM 5
 
 #define KVM_CAP_ARM_RME_MEASUREMENT_ALGO_ZERO	(0x01ULL << 7)
 #define KVM_CAP_ARM_RME_MEASUREMENT_ALGO_SHA256 0
@@ -462,6 +463,12 @@ struct kvm_cap_arm_rme_populate_realm_args {
 struct kvm_cap_arm_rme_init_ipa_args {
 	__u64 init_ipa_base;
 	__u64 init_ipa_size;
+};
+
+struct kvm_cap_arm_rme_map_memory_to_realm_args {
+	__u64 hva; // host virtual address
+	__u64 ipa_base;
+	__u64 size;
 };
 
 /* Device Control API on vcpu fd */

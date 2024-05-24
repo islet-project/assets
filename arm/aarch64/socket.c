@@ -19,6 +19,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <kvm/kvm.h>
+#include <asm/realm.h>
 
 #define PATH_MAX      4096	/* chars in a path name including nul */
 
@@ -325,7 +326,7 @@ err:
 }
 
 static int handle_shm_alloc_req(Client* client) {
-	char* mem;
+	void* mem;
 	int ret = 0;
 	int hc_fd;
 	static u64 ipa_base = INTER_REALM_SHM_IPA_BASE;
@@ -352,9 +353,11 @@ static int handle_shm_alloc_req(Client* client) {
 		ch_syslog("[KVMTOOL] %s failed with %d", __func__, ret);
 		return ret;
 	}
-	ipa_base += INTER_REALM_SHM_SIZE;
 
 	// TODO: call DATA_CREATE_UNKNOWN RMI CALL
+    map_memory_to_realm(client->kvm, (u64)mem, ipa_base, INTER_REALM_SHM_SIZE);
+
+    ipa_base += INTER_REALM_SHM_SIZE;
 
 	ch_syslog("[KVMTOOL] %s done: [%p:%p]", __func__, mem, mem + INTER_REALM_SHM_SIZE);
 	return ret;
