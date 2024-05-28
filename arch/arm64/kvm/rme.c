@@ -671,6 +671,7 @@ int realm_map_non_secure(struct realm *realm,
 	}
 
 	ret = rmi_rtt_map_unprotected(rd, ipa, map_level, desc);
+	//pr_info("rmi_rtt_map_unprotected ipa: %lx, ret: %d\n", ipa, ret);
 
 	if (RMI_RETURN_STATUS(ret) == RMI_ERROR_RTT) {
 		/* Create missing RTTs and retry */
@@ -863,6 +864,49 @@ static int kvm_populate_realm(struct kvm *kvm,
 	return populate_par_region(kvm, ipa_base, ipa_end);
 }
 
+// [JB] Cloak
+static int cloak_map_unprotected(struct kvm_vcpu *vcpu, struct realm *realm, unsigned long ipa, unsigned long map_size, unsigned long ripas)
+{
+	bool writable, write_fault;
+	gpa_t gpa_stolen_mask;
+	gfn_t gfn;
+	kvm_pfn_t pfn;
+	struct kvm_memory_slot *memslot;
+	struct kvm_mmu_memory_cache *memcache;
+	struct page *page;
+	int ret;
+
+	// ripas == 0: RIPAS_EMPTY
+	if (ripas != 0) {
+		return 0;
+	}
+
+    ipa += 0x100000000;
+	//pr_info("cloak_map_unprotected start: ipa %lx, map_size %lx, ripas: %d\n", ipa, map_size, ripas);
+
+	write_fault = kvm_is_write_fault(vcpu);
+	gpa_stolen_mask = kvm_gpa_stolen_bits(vcpu->kvm);
+	gfn = (ipa & ~gpa_stolen_mask) >> PAGE_SHIFT;
+	memslot = gfn_to_memslot(vcpu->kvm, gfn);
+
+    if (ipa == 0x188400000 || ipa == 0x18c400000) {
+        pr_info("[JB] memslot: ipa %lx, user_addr: %lx, hva_memslot: %lx\n", ipa, memslot->userspace_addr, __gfn_to_hva_memslot(memslot, gfn));
+    }
+
+	pfn = __gfn_to_pfn_memslot(memslot, gfn, false, false, NULL, write_fault, &writable, NULL);
+	memcache = &vcpu->arch.mmu_page_cache;
+	page = pfn_to_page(pfn);
+
+	ret = realm_map_non_secure(realm, ipa, page, map_size, memcache);
+    if (ret) {
+	    pr_info("cloak_map_unprotected ret: %d\n", ret);
+    }
+    if (ipa == 0x18c400000) {
+        pr_info("set_ipa_state cloak end: %lx\n", ipa);
+    }
+	return ret;
+}
+
 static int set_ipa_state(struct kvm_vcpu *vcpu,
 			 unsigned long ipa,
 			 unsigned long end,
@@ -879,6 +923,8 @@ static int set_ipa_state(struct kvm_vcpu *vcpu,
 
 	while (ipa < end) {
 		ret = rmi_rtt_set_ripas(rd_phys, rec_phys, ipa, level, ripas);
+        if (realm->is_gateway)
+    		cloak_map_unprotected(vcpu, realm, ipa, map_size, ripas);
 
 		if (!ret) {
 			if (!ripas)
@@ -1157,6 +1203,25 @@ static int kvm_rme_config_realm(struct kvm *kvm, struct kvm_enable_cap *cap)
 	switch (cfg.cfg) {
 	case KVM_CAP_ARM_RME_CFG_RPV:
 		memcpy(&realm->params->rpv, &cfg.rpv, sizeof(cfg.rpv));
+        if (strcmp((const char *)realm->params->rpv, "gateway") == 0) {
+            realm->is_gateway = 1;
+            realm->is_no_shared_region = 0;
+        }
+        else {
+            realm->is_gateway = 0;
+            realm->is_no_shared_region = 0;
+        }
+
+        if (strcmp((const char *)realm->params->rpv, "no_shared_region") == 0) {
+            realm->is_no_shared_region = 1;
+            realm->is_gateway = 0;
+        }
+        else {
+            realm->is_no_shared_region = 0;
+            realm->is_gateway = 0;
+        }
+
+        pr_info("[JB] rpv host_kernel: %s\n", realm->params->rpv); 
 		break;
 	case KVM_CAP_ARM_RME_CFG_HASH_ALGO:
 		r = config_realm_hash_algo(realm, &cfg);

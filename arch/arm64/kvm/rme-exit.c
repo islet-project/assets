@@ -38,8 +38,8 @@ static int rec_exit_sync_iabt(struct kvm_vcpu *vcpu)
 {
 	struct rec *rec = &vcpu->arch.rec;
 
-	pr_err("[vcpu %d] Unhandled instruction abort (ESR: %#llx).\n",
-	       vcpu->vcpu_id, rec->run->exit.esr);
+	pr_err("[vcpu %d] Unhandled instruction abort (ESR: %#llx) (FAR: %lx) (HPFAR: %lx)\n",
+	       vcpu->vcpu_id, rec->run->exit.esr, rec->run->exit.far, rec->run->exit.hpfar);
 	return -ENXIO;
 }
 

@@ -28,6 +28,9 @@ struct realm {
 	unsigned long num_aux;
 	unsigned int vmid;
 	unsigned int ia_bits;
+
+    int is_gateway; // 0 or 1
+    int is_no_shared_region;  // 0 or 1
 };
 
 struct rec {
