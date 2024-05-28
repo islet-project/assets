@@ -175,6 +175,8 @@ do { \
 #endif
 // =========================================================
 
+extern void print_host_mem_with_offset(struct kvm *kvm, u64 offset);
+
 int kvm_cpu__start(struct kvm_cpu *cpu)
 {
 	sigset_t sigset;

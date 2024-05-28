@@ -411,9 +411,15 @@ void print_host_mem_with_offset(struct kvm *kvm, u64 offset)
 			printf("[print_host] bank_start: %lx, offset: %lx, host_addr: %lx, final_addr: %lx\n", bank_start, offset, bank->host_addr, bank->host_addr + (offset - bank_start));
 			final_addr = (char *)(bank->host_addr + (offset - bank_start));
 			printf("[print_host] mem: %02x, %02x\n", final_addr[0], final_addr[2]);
+            //final_addr[0] = 0x22;
+            //final_addr[2] = 0x44;
 			return offset;
 		}
 	}
+
+    pr_warning("unable to translate guest address 0x%llx to host",
+                (unsigned long long)offset);
+    return NULL;
 }
 
 void *get_host_addr_from_offset(struct kvm *kvm, u64 offset)
@@ -430,6 +436,10 @@ void *get_host_addr_from_offset(struct kvm *kvm, u64 offset)
 			return final_addr;
 		}
 	}
+
+    pr_warning("unable to translate guest address 0x%llx to host",
+                (unsigned long long)offset);
+    return NULL;
 }
 
 void *jb_guest_flat_to_host(struct kvm *kvm, u64 offset)

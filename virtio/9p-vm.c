@@ -1702,10 +1702,14 @@ u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir)
 			return 0;
 		}
 	}
+	LOG_DEBUG("p9pdu_control_addr: %lx\n", p9pdu_control_addr);
 
 	// 0. address translation
 	p9pdu = (struct p9_pdu *)p9pdu_control_addr;
+
+	LOG_DEBUG("before translate_addr_space_host: %d-%d\n", p9pdu->in_iov_cnt, p9pdu->out_iov_cnt);
 	translate_addr_space_host(kvm, p9pdu);
+	LOG_DEBUG("after translate_addr_space_host\n");
 
     // 1. copy contexts
     strncpy(vm_root_dir, root_dir, sizeof(vm_root_dir));
@@ -1713,6 +1717,7 @@ u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir)
 
     // 2. read cmd
     cmd = vm_virtio_p9_get_cmd(p9pdu);
+	LOG_DEBUG("after get_cmd: %d\n", cmd);
 
     // 3. handler
 	if ((cmd >= ARRAY_SIZE(vm_virtio_9p_dotl_handler)) || !vm_virtio_9p_dotl_handler[cmd])

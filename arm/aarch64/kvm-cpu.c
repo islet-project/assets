@@ -119,12 +119,17 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 		/* x0 = physical address of the device tree blob */
 		data	= kvm->arch.dtb_guest_start;
 		reg.id	= ARM64_CORE_REG(regs.regs[0]);
+
+        printf("[JB] set_reg, x0, dtb_addr: %lx, reg.id: %d\n", (unsigned long)data, reg.id);
+
 		if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
 			die_perror("KVM_SET_ONE_REG failed (x0)");
 
 		/* pc = start of kernel image */
 		data	= kvm->arch.kern_guest_start;
 		reg.id	= ARM64_CORE_REG(regs.pc);
+        printf("[JB] set_reg, start of kernel_image: %lx, reg.id: %d\n", (unsigned long)data, reg.id);
+
 		if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
 			die_perror("KVM_SET_ONE_REG failed (pc)");
 	}

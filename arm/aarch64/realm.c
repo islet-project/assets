@@ -199,11 +199,14 @@ void kvm_arm_realm_populate_kernel(struct kvm *kvm)
 	start = ALIGN_DOWN(kvm->arch.kern_guest_start, SZ_4K);
 	end = ALIGN(kvm->arch.kern_guest_start + kvm->arch.kern_size, SZ_4K);
 
+    printf("[JB] populate_kernel: start: %lx, end: %lx, size: %d\n", start, end, kvm->arch.kern_size);
+
 	if (is_arm64_linux_kernel_image(header))
 		mem_size = arm64_linux_kernel_image_size(header);
 	else
 		mem_size = end - start;
 
+    printf("[JB] populate_kernel: mem_size: %d\n", mem_size);
 	realm_init_ipa_range(kvm, start, mem_size);
 	__realm_populate(kvm, start, end - start);
 }

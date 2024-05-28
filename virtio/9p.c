@@ -1663,6 +1663,8 @@ int virtio_9p__init(struct kvm *kvm)
 			return r;
 	}
 
+	//print_host_mem_with_offset(kvm, 0x88400000 + (14 * 1024 * 1024));
+	//print_host_mem_with_offset(kvm, 0x188400000 + (14 * 1024 * 1024));
 	return 0;
 }
 virtio_dev_init(virtio_9p__init);
