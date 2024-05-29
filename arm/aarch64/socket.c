@@ -171,7 +171,7 @@ static int set_ioeventfd(Client* client, int eventfd, int peer_id) {
 	struct ioevent ioevent;
 
 	ioevent = (struct ioevent){
-		.io_addr = client->mmio_addr,
+		.io_addr = client->ioeventfd_addr,
 		.io_len = sizeof(int),
 		.fn_kvm = client->kvm,
 		.fd = eventfd,
@@ -220,7 +220,7 @@ bool is_valid_shm_id(Client* client, int shm_id) {
     return client->shm_id == shm_id;
 }
 
-Client* get_client(const char *socket_path, uint32_t mmio_addr, struct kvm* kvm) {
+Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm* kvm) {
     int ret;
 
     if (client)
@@ -242,7 +242,7 @@ Client* get_client(const char *socket_path, uint32_t mmio_addr, struct kvm* kvm)
         return NULL;
     }
 
-    client->mmio_addr = mmio_addr;
+    client->ioeventfd_addr = ioeventfd_addr;
     client->kvm = kvm;
 
     ch_syslog("client->sock_fd = %d", client->sock_fd);

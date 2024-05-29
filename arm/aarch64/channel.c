@@ -6,6 +6,8 @@
 #include <socket.h>
 #include <linux/types.h>
 #include <asm/realm.h>
+#include <kvm/ioport.h>
+#include <assert.h>
 
 static struct vchannel_device *vchannel_dev; // for channel module in current realm
 static u64 shm_ipa_base = INTER_REALM_SHM_IPA_BASE;
@@ -84,11 +86,80 @@ int allocate_shm_after_realm_activate(struct kvm *kvm) {
 	return ret;
 }
 
+static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
+					 u8 *data, u32 len, u8 is_write,
+					 void *ptr)
+{
+	Client* client = ptr;
+	u64 mmio_addr;
+    u64 offset;
+
+	ch_syslog("%s start. is_write %d", __func__, is_write);
+    mmio_addr = pci__bar_address(&vchannel_dev->pci_hdr, 0);
+	ch_syslog("%s bar 0 addr 0x%x, trapped addr 0x%llx", __func__, mmio_addr, addr);
+    offset = addr - mmio_addr;
+
+    if (is_write) {
+        ch_syslog("%s write is not supported", __func__);
+        return;
+    }
+
+    if (!client->peer_cnt) {
+        ioport__write32((u32*)data, INVALID_PEER_ID); // allows only the first peer
+        ch_syslog("%s there is no peer. write INVALID_PEER_ID: %d", __func__, INVALID_PEER_ID);
+        return;
+    }
+
+    if (offset == 0) {
+        ioport__write32((u32*)data, client->peers[0].id); // allows only the first peer
+        ch_syslog("%s write destination realm VMID %d", __func__, client->peers[0].id);
+    } else {
+        ch_syslog("%s wrong offset %d", __func__, offset);
+    }
+}
+
+static int vchannel_pci__bar_activate(struct kvm *kvm,
+				    struct pci_device_header *pci_hdr,
+				    int bar_num, void *data)
+{
+	u32 bar_addr, bar_size;
+	int ret = -EINVAL;
+
+	assert(bar_num == 0);
+
+	bar_addr = pci__bar_address(pci_hdr, bar_num);
+	bar_size = pci__bar_size(pci_hdr, bar_num);
+
+	ch_syslog("%s bar_addr 0x%x", __func__, bar_addr);
+
+    ret = kvm__register_mmio(kvm, bar_addr, bar_size, false, &vchannel_mmio_callback, data);
+
+    return ret;
+}
+
+static int vchannel_pci__bar_deactivate(struct kvm *kvm,
+				      struct pci_device_header *pci_hdr,
+				      int bar_num, void *data)
+{
+	u32 bar_addr;
+	int ret = -EINVAL;
+
+	assert(bar_num == 0);
+
+	bar_addr = pci__bar_address(pci_hdr, bar_num);
+	ch_syslog("%s bar_addr 0x%x", __func__, bar_addr);
+
+    ret = kvm__deregister_mmio(kvm, bar_addr);
+    /* kvm__deregister_mmio fails when the region is not found. */
+    return ret ? 0 : -ENOENT;
+}
+
 static int vchannel_init(struct kvm *kvm) {
     int class = VCHANNEL_PCI_CLASS_MEM;
     int ret = 0;
     Client *client;
     u32 ioeventfd_addr = IOEVENTFD_BASE_ADDR;
+	u32 mmio_addr = pci_get_mmio_block(PCI_IO_SIZE);
 
     // TODO: need to open host channel module and send its eventfd
 
@@ -116,7 +187,21 @@ static int vchannel_init(struct kvm *kvm) {
         .class[2] = (class >> 16) & 0xff,
         .subsys_vendor_id = cpu_to_le16(PCI_SUBSYSTEM_VENDOR_ID_REDHAT_QUMRANET),
         .subsys_id = cpu_to_le16(PCI_SUBSYSTEM_ID_PCI_SHMEM),
+		.bar[0]			= cpu_to_le32(mmio_addr
+							| PCI_BASE_ADDRESS_SPACE_MEMORY),
+		.bar_size[0]		= cpu_to_le32(PCI_IO_SIZE),
     };
+
+	// Setup client
+    client = get_client(kvm->cfg.arch.socket_path, ioeventfd_addr, kvm);
+    if (!client || !client->initialized) {
+        ch_syslog("failed to get client");
+        return -EINVAL;
+    }
+
+	ret = pci__register_bar_regions(kvm, &vchannel_dev->pci_hdr,
+				      vchannel_pci__bar_activate,
+				      vchannel_pci__bar_deactivate, client);
 
     ch_syslog("vchannel vendor_id: 0x%x, device_id: 0x%x",
 			vchannel_dev->pci_hdr.vendor_id, vchannel_dev->pci_hdr.device_id);
@@ -137,13 +222,6 @@ static int vchannel_init(struct kvm *kvm) {
     vchannel_dev->gsi = vchannel_dev->pci_hdr.irq_line - KVM_IRQ_OFFSET;
 
 	ch_syslog("irq_type %d", vchannel_dev->pci_hdr.irq_type);
-
-    // Setup client
-    client = get_client(kvm->cfg.arch.socket_path, ioeventfd_addr, kvm);
-    if (!client || !client->initialized) {
-        ch_syslog("failed to get client");
-        return -EINVAL;
-    }
 
     if (!is_valid_shm_id(client, kvm->cfg.arch.shm_id)) {
         ch_syslog("[ID:%d] shm_id expect %d but current shm_id: %d",

@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 
+#define INVALID_PEER_ID -1
 #define PEER_LIST_MAX  128
 #define HOST_CHANNEL_PATH "/dev/host_channel"
 #define SHM_ALLOC_EFD_ID 0
@@ -21,7 +22,7 @@ typedef struct Client {
 	pthread_t thread;
 	int shm_id;
 	int peer_cnt;
-	uint32_t mmio_addr;
+	uint32_t ioeventfd_addr;
 	struct kvm *kvm; // need it to setup ioeventfd
 	Peer peers[PEER_LIST_MAX];
 } Client;
