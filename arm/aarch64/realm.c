@@ -212,6 +212,10 @@ void kvm_arm_realm_populate_dtb(struct kvm *kvm)
 		realm_populate(kvm, start, end - start);
 }
 
+void kvm_arm_realm_populate_shared_mem(struct kvm *kvm, u64 ipa_start, u64 size) {
+	realm_populate(kvm, ipa_start, size);
+}
+
 static void kvm_arm_realm_activate_realm(struct kvm *kvm)
 {
 	struct kvm_enable_cap activate_realm = {

@@ -245,7 +245,7 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 	u32 flags = 0;
 	int ret;
 
-	pr_info("eom1 %s guest_phys 0x%llx, size 0x%llx, host_addr 0x%p type %d",
+	pr_info("eom1 %s guest_phys 0x%llx, size 0x%llx, host_addr %p type %d",
 			__func__, guest_phys, size, userspace_addr, type);
 
 	mutex_lock(&kvm->mem_banks_lock);
@@ -334,8 +334,8 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 			ret = -errno;
 			goto out;
 		}
-		pr_info("ioctl called %s guest_phys 0x%llx, size 0x%llx, host_addr 0x%p type %d",
-				__func__, guest_phys, size, userspace_addr, type);
+		pr_info("ioctl called %s guest_phys 0x%llx, size 0x%llx, host_addr 0x%p type %d, flags %d",
+				__func__, guest_phys, size, userspace_addr, type, flags);
 	}
 
 	list_add(&bank->list, prev_entry);

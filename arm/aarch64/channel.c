@@ -5,8 +5,84 @@
 #include <linux/byteorder.h>
 #include <socket.h>
 #include <linux/types.h>
+#include <asm/realm.h>
 
 static struct vchannel_device *vchannel_dev; // for channel module in current realm
+static u64 shm_ipa_base = INTER_REALM_SHM_IPA_BASE;
+
+static void* request_memory_to_host_channel(void) {
+    void *mem = 0;
+    int hc_fd;
+
+    hc_fd = open(HOST_CHANNEL_PATH, O_RDWR);
+	if (hc_fd < 0) {
+		ch_syslog("failed to open %s: %d\n", HOST_CHANNEL_PATH, hc_fd);
+		return mem;
+	}
+
+	ch_syslog("mmap with PROT_READ");
+	mem = mmap(NULL, INTER_REALM_SHM_SIZE, PROT_RW,
+			MAP_SHARED | MAP_NORESERVE | MAP_LOCKED, hc_fd, 0);
+	close(hc_fd);
+
+	if (mem == MAP_FAILED) {
+		ch_syslog("failed to mmap %s: %d\n", HOST_CHANNEL_PATH, strerror(errno));
+		return 0;
+	}
+	return mem;
+}
+
+static int setup_shared_memory(struct kvm *kvm) {
+    int ret = 0;
+    void *mem;
+
+    mem = request_memory_to_host_channel();
+    if (!mem) {
+        return -1;
+    }
+
+    ret = kvm__register_ram(kvm, shm_ipa_base, INTER_REALM_SHM_SIZE, mem);
+    if (ret) {
+		munmap(mem, INTER_REALM_SHM_SIZE);
+		ch_syslog("[KVMTOOL] %s failed with %d", __func__, ret);
+		return ret;
+	}
+
+    kvm_arm_realm_populate_shared_mem(kvm, shm_ipa_base, INTER_REALM_SHM_SIZE);
+    shm_ipa_base += INTER_REALM_SHM_SIZE;
+	ch_syslog("[KVMTOOL] %s updated shm_ipa_base 0x%llx", __func__, shm_ipa_base);
+
+    return ret;
+}
+
+int allocate_shm_after_realm_activate(struct kvm *kvm) {
+	void* mem;
+	int ret = 0;
+
+	ch_syslog("[KVMTOOL] %s start", __func__);
+    mem = request_memory_to_host_channel();
+    if (!mem) {
+        return -1;
+    }
+
+	ch_syslog("[KVMTOOL] %s shm_ipa_base 0x%llx", __func__, shm_ipa_base);
+
+    ret = kvm__register_ram(kvm, shm_ipa_base, INTER_REALM_SHM_SIZE, mem);
+    if (ret) {
+		munmap(mem, INTER_REALM_SHM_SIZE);
+		ch_syslog("[KVMTOOL] %s failed with %d", __func__, ret);
+		return ret;
+	}
+
+	// TODO: call DATA_CREATE_UNKNOWN RMI CALL
+    map_memory_to_realm(kvm, (u64)mem, shm_ipa_base, INTER_REALM_SHM_SIZE);
+
+    shm_ipa_base += INTER_REALM_SHM_SIZE;
+	ch_syslog("[KVMTOOL] %s updated shm_ipa_base 0x%llx", __func__, shm_ipa_base);
+
+	ch_syslog("[KVMTOOL] %s done: [%p:%p]", __func__, mem, mem + INTER_REALM_SHM_SIZE);
+	return ret;
+}
 
 static int vchannel_init(struct kvm *kvm) {
     int class = VCHANNEL_PCI_CLASS_MEM;
@@ -78,16 +154,21 @@ static int vchannel_init(struct kvm *kvm) {
         ret = pthread_create(&client->thread, NULL, poll_events, (void *)client);
         if (ret) {
             close_client(client);
-            die("failed to create a thread with poll_events()");
+            die("vchannel_init: failed to create a thread with poll_events()");
         }
         ch_syslog("[ID:%d] pthread_create returns %d", client->id, ret);
 
         ret = pthread_detach(client->thread);
         if (ret) {
             close_client(client);
-            die("failed to detach a thread");
+            die("vchannel_init: failed to detach a thread");
         }
         usleep(100000);
+    }
+    // Set first shared memory
+    ret = setup_shared_memory(kvm);
+    if (ret) {
+        die("vchannel_init: setup_shared_memory is failed");
     }
 
     ch_syslog("[ID:%d] request irq__add_irqfd gsi %d fd %d",

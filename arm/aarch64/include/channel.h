@@ -49,4 +49,6 @@ static void ch_syslog(const char *format, ...) {
 	closelog();
 }
 
+int allocate_shm_after_realm_activate(struct kvm *kvm);
+
 #endif // ARM_AARCH64__CHANNEL_H

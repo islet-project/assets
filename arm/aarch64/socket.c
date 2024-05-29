@@ -325,44 +325,6 @@ err:
     return -1;
 }
 
-static int handle_shm_alloc_req(Client* client) {
-	void* mem;
-	int ret = 0;
-	int hc_fd;
-	static u64 ipa_base = INTER_REALM_SHM_IPA_BASE;
-
-	ch_syslog("[KVMTOOL] %s start", __func__);
-	hc_fd = open(HOST_CHANNEL_PATH, O_RDONLY);
-	if (hc_fd < 0) {
-		ch_syslog("failed to open %s: %d\n", HOST_CHANNEL_PATH, hc_fd);
-		return -1;
-	}
-
-	mem = mmap(NULL, INTER_REALM_SHM_SIZE, PROT_NONE,
-		   MAP_PRIVATE | MAP_LOCKED | MAP_NORESERVE, hc_fd, 0);
-	close(hc_fd);
-
-	if (mem == MAP_FAILED) {
-		return errno;
-	}
-
-	ret = kvm__register_ram(client->kvm, ipa_base,
-				INTER_REALM_SHM_SIZE, mem);
-	if (ret) {
-		munmap(mem, INTER_REALM_SHM_SIZE);
-		ch_syslog("[KVMTOOL] %s failed with %d", __func__, ret);
-		return ret;
-	}
-
-	// TODO: call DATA_CREATE_UNKNOWN RMI CALL
-    map_memory_to_realm(client->kvm, (u64)mem, ipa_base, INTER_REALM_SHM_SIZE);
-
-    ipa_base += INTER_REALM_SHM_SIZE;
-
-	ch_syslog("[KVMTOOL] %s done: [%p:%p]", __func__, mem, mem + INTER_REALM_SHM_SIZE);
-	return ret;
-}
-
 /* read and handle new messages on the given fd_set */
 static int handle_fds(Client* client, fd_set *fds, int maxfd) {
     int ret = -1;
@@ -385,7 +347,7 @@ static int handle_fds(Client* client, fd_set *fds, int maxfd) {
 		}
 		ch_syslog("%s shm_alloc_efd cnt: %d", __func__, efd_cnt);
 
-		ret = handle_shm_alloc_req(client);
+		ret = allocate_shm_after_realm_activate(client->kvm);
 	}
 
     return ret;
