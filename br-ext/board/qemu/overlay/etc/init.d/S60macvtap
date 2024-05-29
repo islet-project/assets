@@ -1,13 +1,15 @@
 #!/bin/sh
 case "$1" in
   start)
-	printf "Starting network (udhcpc): "
-	udhcpc >> /var/log/udhcpc.log 2>&1
+	printf "Setting up macvtap... "
+	ip link add link eth0 name macvtap0 type macvtap
+	[ $? != 0 ] && echo "FAIL" && exit 1
+	ip link set macvtap0 up
 	[ $? = 0 ] && echo "OK" || echo "FAIL"
 	;;
   stop)
-	printf "Stopping network (udhcpc): "
-	killall udhcpc
+	printf "Destroying macvtap... "
+	ip link del macvtap0
 	[ $? = 0 ] && echo "OK" || echo "FAIL"
 	;;
   restart|reload)
@@ -20,4 +22,3 @@ case "$1" in
 esac
 
 exit $?
-
