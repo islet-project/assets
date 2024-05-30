@@ -10,9 +10,10 @@
 #define DEVICE_ID 0x1110 // temporarily uses ivshmem's device id
 #define MINOR_BASE 0
 
-#define PEER_LIST_MAX  128
 #define IOEVENTFD_BASE_ADDR 0x7fffff00
 #define IOEVENTFD_BASE_SIZE 0x100
+
+#define INVALID_PEER_ID -1
 
 
 
@@ -37,20 +38,14 @@ static struct pci_driver channel_driver = {
 
 struct peer {
     int id;      /* This is for identifying peers. It's NOT vmid */
-    int sock_fd; /* connected unix sock */
     int eventfd;
-};
-
-struct peer_list {
-	int cnt;
-	struct peer peers[PEER_LIST_MAX];
 };
 
 /* This is a "private" data structure */
 /* You can store there any data that should be passed between driver's functions */
 struct channel_priv {
 	uint32_t* ioeventfd_addr;
-	struct peer_list peer_list;
+	struct peer peer;
 };
 
 static int __init channel_init(void)
@@ -83,7 +78,7 @@ static void send_signal(int peer_id, uint32_t* ioeventfd_addr) {
  */
 static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 {
-	//struct peer_list *peer_list = (struct peer_list *)dev_instance;
+	//struct peer* peer = (struct peer*)dev_instance;
 	static int cnt = 0;
 	pr_info("[GCH] IRQ #%d cnt %d\n", irq, cnt);
 	return (cnt++) ? IRQ_NONE : IRQ_HANDLED;
@@ -93,9 +88,10 @@ static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 /* This function is called by the kernel */
 static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
-    int bar = 0, ret;
+    int bar = 0, ret, peer_id;
     u16 vendor, device;
     uint32_t dev_ioeventfd_addr, dev_ioeventfd_size;
+    uint32_t bar_addr, bar_size, *mapped_bar_addr;
     struct channel_priv *drv_priv;
 
     pr_info("[GCH] %s start\n", __func__);
@@ -119,6 +115,29 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		goto pci_disable;
     }
 
+	/* Request memory region for the BAR */
+	ret = pci_request_region(pdev, bar, DRIVER_NAME);
+	if (ret) {
+		pr_err("[GCH] pci_request_region failed %d\n", ret);
+		goto pci_disable;
+	}
+
+	bar_addr = pci_resource_start(pdev, bar);
+	bar_size = pci_resource_len(pdev, bar);
+
+	mapped_bar_addr = pci_iomap(pdev, bar, 0);
+	if (!mapped_bar_addr) {
+		pr_info("[GCH] pci_iomap is failed %llx", (u64)mapped_bar_addr);
+		return -1;
+	}
+
+	peer_id = readl(mapped_bar_addr);
+	if (peer_id == INVALID_PEER_ID) {
+		pr_info("[GCH] peer_id is not valid %d", peer_id);
+	} else {
+		drv_priv->peer.id = peer_id;
+	}
+
 	dev_ioeventfd_addr = IOEVENTFD_BASE_ADDR;
 	dev_ioeventfd_size = IOEVENTFD_BASE_SIZE;
 	drv_priv->ioeventfd_addr = ioremap(dev_ioeventfd_addr, dev_ioeventfd_size);
@@ -135,7 +154,7 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
     pci_set_drvdata(pdev, drv_priv);
 
 	ret = request_irq(pdev->irq, channel_irq_handler, IRQF_SHARED,
-			DRIVER_NAME, &drv_priv->peer_list);
+			DRIVER_NAME, &drv_priv->peer);
 	if (ret) {
 		pr_err("[GCH] request_irq failed. pdev->irq: %d\n", pdev->irq);
 		goto iomap_release;
