@@ -3,6 +3,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/pci.h>
+#include <asm/rsi_cmds.h>
 
 #define DRIVER_NAME "guest_channel"
 #define VENDOR_ID 0x1af4
@@ -153,6 +154,12 @@ pci_disable:
 	pci_disable_device(pdev);
 	return -EBUSY;
 }
+
+/*
+ * About inter co-resident realm shared memory
+ * 1. Setup the first shared memory before REALM_ACTIVATE state
+ * 2. Runtime shared memory allocation request
+ */
 
 static void channel_remove(struct pci_dev *pdev)
 {

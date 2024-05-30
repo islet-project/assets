@@ -68,4 +68,14 @@ static inline unsigned long rsi_set_addr_range_state(phys_addr_t start,
 	return res.a0;
 }
 
+static inline unsigned long rsi_get_addr_page_ripas(phys_addr_t ipa_base, phys_addr_t *ripas)
+{
+	struct arm_smccc_res res;
+
+	invoke_rsi_fn_smc_with_res(SMC_RSI_IPA_STATE_GET, ipa_base, 0, 0, 0, &res);
+
+	*ripas = res.a1;
+	return res.a0;
+}
+
 #endif
