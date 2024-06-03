@@ -135,6 +135,7 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	if (peer_id == INVALID_PEER_ID) {
 		pr_info("[GCH] peer_id is not valid %d", peer_id);
 	} else {
+		pr_info("[GCH] get peer_id %d", peer_id);
 		drv_priv->peer.id = peer_id;
 	}
 
@@ -163,6 +164,11 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	pr_info("[GCH] TEST: send signal to peer_id %d", 0);
 	send_signal(0, drv_priv->ioeventfd_addr);
+
+
+	pr_info("[GCH] TEST: send signal to destination peer_id %d", drv_priv->peer.id);
+	send_signal(drv_priv->peer.id, drv_priv->ioeventfd_addr);
+
 	pr_info("[GCH] %s done\n", __func__);
 
     return 0;
