@@ -37,16 +37,16 @@ static bool push_back(Client* client, Peer new_peer) {
         return false;
     }
 	ch_syslog("[ID:%d] push_back peer.id %d, peer.eventfd %d",
-            client->id, new_peer.id, new_peer.eventfd);
+            client->vmid, new_peer.id, new_peer.eventfd);
     client->peers[client->peer_cnt++] = new_peer;
     return true;
 }
 
 static int search_peer_idx(Client *client, int id) {
-	ch_syslog("[ID:%d] search_peer_idx start, peer_cnt %d", client->id, client->peer_cnt);
+	ch_syslog("[ID:%d] search_peer_idx start, peer_cnt %d", client->vmid, client->peer_cnt);
     for (int i = 0; i < client->peer_cnt; i++) {
-		ch_syslog("[ID:%d] peer[%d].id: %d", client->id, i, client->peers[i].id);
-		ch_syslog("[ID:%d] peer[%d].eventfd: %d", client->id, i, client->peers[i].eventfd);
+		ch_syslog("[ID:%d] peer[%d].id: %d", client->vmid, i, client->peers[i].id);
+		ch_syslog("[ID:%d] peer[%d].eventfd: %d", client->vmid, i, client->peers[i].eventfd);
         if (id == client->peers[i].id) {
             return i;
         }
@@ -166,7 +166,7 @@ err_close:
     return -1;
 }
 
-static int set_ioeventfd(Client* client, int eventfd, int peer_id) {
+int set_ioeventfd(Client* client, int eventfd, int peer_id) {
 	int ret;
 	struct ioevent ioevent;
 
@@ -181,11 +181,11 @@ static int set_ioeventfd(Client* client, int eventfd, int peer_id) {
 	ret = ioeventfd__add_event(&ioevent, 0);
 	if (ret) {
 		ch_syslog("[ID:%d] ioeventfd__add_event fail(%d) for eventfd: %d, peer_id: %d",
-				client->id, ret, eventfd, peer_id);
+				client->vmid, ret, eventfd, peer_id);
 		return ret;
 	}
 	ch_syslog("[ID:%d] set_ioeventfd done. io_addr 0x%llx, io_len %d, fd %d, datamatch %lld",
-			client->id, ioevent.io_addr, ioevent.io_len, ioevent.fd, ioevent.datamatch);
+			client->vmid, ioevent.io_addr, ioevent.io_len, ioevent.fd, ioevent.datamatch);
 	return 0;
 }
 
@@ -193,25 +193,23 @@ static int recv_initial_msg(Client* client) {
     int fd, ret = 0;
     int64_t id;
 
-    /* receive client's id and eventfd */
+    /* receive current realm vmid and eventfd */
     if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id < 0 || fd < 0) {
         ch_syslog("cannot read client's id & eventfd from server");
         return -1;
     }
-    client->id = id;
+    client->vmid = id;
     client->eventfd = fd;
-    ch_syslog("[ID:%d] client->id = %d, client->eventfd = %d",
-			client->id, client->id, client->eventfd);
+    ch_syslog("[ID:%d] client->vmid = %d, client->eventfd = %d",
+			client->vmid, client->vmid, client->eventfd);
 
     /* receive eventfd manager's shm_id */
     if (read_one_msg(client->sock_fd, &id, &fd) < 0 || id <= 0 || fd != -1) {
-        ch_syslog("[ID:%d] cannot read Eventfd Manager's shm_id", client->id);
+        ch_syslog("[ID:%d] cannot read Eventfd Manager's shm_id", client->vmid);
         return -1;
     }
     client->shm_id = (int)id;
-    ch_syslog("[ID:%d] client->shm_id = %d", client->id, client->shm_id);
-
-	ret = set_ioeventfd(client, client->shm_alloc_efd, SHM_ALLOC_EFD_ID);
+    ch_syslog("[ID:%d] client->shm_id = %d", client->vmid, client->shm_id);
 
     return ret;
 }
@@ -225,6 +223,10 @@ Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm*
 
     if (client)
         return client;
+
+    if (socket_path == NULL || kvm == NULL) {
+        return NULL;
+    }
 
     client = calloc(1, sizeof(Client));
 
@@ -252,7 +254,7 @@ Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm*
         goto err_close;
     }
 
-	ch_syslog("[ID:%d] client addr %p", client->id, client);
+	ch_syslog("[ID:%d] client addr %p", client->vmid, client);
 
     memset(client->peers, -1, sizeof(Peer) * PEER_LIST_MAX);
 
@@ -278,12 +280,12 @@ static int handle_eventfd_manager_msg(Client* client) {
         goto err;
     }
 
-    if (peer_id < 0 || peer_id == client->id) {
+    if (peer_id < 0 || peer_id == client->vmid) {
         ch_syslog("invalid peer_id %ld", peer_id);
         goto err;
     }
 
-	ch_syslog("[ID:%d] recv a peer_id: %ld", client->id, peer_id);
+	ch_syslog("[ID:%d] recv a peer_id: %ld", client->vmid, peer_id);
     peer_idx = search_peer(client, peer_id);
 
     /* delete peer */
@@ -309,14 +311,14 @@ static int handle_eventfd_manager_msg(Client* client) {
             goto err;
         }
 		ch_syslog("[ID:%d] a new peer is added. peer_id: %d",
-				client->id, client->peers[client->peer_cnt-1].id);
+				client->vmid, client->peers[client->peer_cnt-1].id);
 
 		ret = set_ioeventfd(client, new_peer.eventfd, new_peer.id);
 		if (ret) {
 			goto err;
 		}
     } else {
-        ch_syslog("[ID:%d] The peer_id %ld is already exist", client->id, peer_id);
+        ch_syslog("[ID:%d] The peer_id %ld is already exist", client->vmid, peer_id);
         goto err;
     }
 
@@ -358,7 +360,7 @@ void *poll_events(void *c_ptr) {
     int ret, maxfd = 0;
     Client* client = c_ptr;
 
-	ch_syslog("[ID:%d] Start poll_events()", client->id);
+	ch_syslog("[ID:%d] Start poll_events()", client->vmid);
 
     while (1) {
         FD_ZERO(&fds);
@@ -376,7 +378,7 @@ void *poll_events(void *c_ptr) {
             if (errno == EINTR) {
                 continue;
             }
-            fprintf(stderr, "[ID:%d] select error: %s\n", client->id, strerror(errno));
+            fprintf(stderr, "[ID:%d] select error: %s\n", client->vmid, strerror(errno));
             break;
         }
         if (ret == 0) { // timeout
@@ -385,12 +387,12 @@ void *poll_events(void *c_ptr) {
 
         ret = handle_fds(client, &fds, maxfd);
         if (ret < 0) {
-            fprintf(stderr, "[ID:%d] handle_fds() failed %d\n", client->id, ret);
+            fprintf(stderr, "[ID:%d] handle_fds() failed %d\n", client->vmid, ret);
             break;
         }
     }
 
-    ch_syslog("[ID:%d] close all fd & free client", client->id);
+    ch_syslog("[ID:%d] close all fd & free client", client->vmid);
     close_client(client);
     free(client);
 
@@ -399,7 +401,7 @@ void *poll_events(void *c_ptr) {
 }
 
 void close_client(Client* client) {
-    ch_syslog("[ID:%d] close_client() start", client->id);
+    ch_syslog("[ID:%d] close_client() start", client->vmid);
     for (int i = 0; i < client->peer_cnt; i++) {
         close(client->peers[i].eventfd);
     }
@@ -414,4 +416,53 @@ void close_client(Client* client) {
     client->shm_alloc_efd = -1;
 
     free(client);
+}
+
+int create_polling_thread(Client *client) {
+    int ret = 0;
+
+    ch_syslog("[ID:%d] Create pthread for socket fd polling", client->vmid);
+    ret = pthread_create(&client->thread, NULL, poll_events, (void *)client);
+    if (ret) {
+        close_client(client);
+        ch_syslog("vchannel_init: failed to create a thread with poll_events()");
+        return ret;
+    }
+    ch_syslog("[ID:%d] pthread_create returns %d", client->vmid, ret);
+
+    ret = pthread_detach(client->thread);
+    if (ret)
+    {
+        close_client(client);
+        ch_syslog("vchannel_init: failed to detach a thread");
+        return ret;
+    }
+
+    usleep(100000);
+
+    return 0;
+}
+
+int client_init(struct kvm* kvm) {
+    int ret = 0;
+    Client *client;
+
+    // Setup client
+    client = get_client(kvm->cfg.arch.socket_path, IOEVENTFD_BASE_ADDR, kvm);
+    if (!client || !client->initialized) {
+        ch_syslog("failed to get client");
+        return -1;
+    }
+
+    if (!is_valid_shm_id(client, kvm->cfg.arch.shm_id)) {
+        ch_syslog("[ID:%d] shm_id expect %d but current shm_id: %d",
+                 client->vmid, client->shm_id, kvm->cfg.arch.shm_id);
+        return -1;
+    }
+
+    return ret;
+}
+
+int get_vmid(void) {
+    return (!client) ? -1 : client->vmid;
 }

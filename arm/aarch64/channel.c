@@ -22,7 +22,6 @@ static void* request_memory_to_host_channel(void) {
 		return mem;
 	}
 
-	ch_syslog("mmap with PROT_READ");
 	mem = mmap(NULL, INTER_REALM_SHM_SIZE, PROT_RW,
 			MAP_SHARED | MAP_NORESERVE | MAP_LOCKED, hc_fd, 0);
 	close(hc_fd);
@@ -157,14 +156,10 @@ static int vchannel_pci__bar_deactivate(struct kvm *kvm,
 static int vchannel_init(struct kvm *kvm) {
     int class = VCHANNEL_PCI_CLASS_MEM;
     int ret = 0;
-    Client *client;
-    u32 ioeventfd_addr = IOEVENTFD_BASE_ADDR;
 	u32 mmio_addr = pci_get_mmio_block(PCI_IO_SIZE);
-
-    // TODO: need to open host channel module and send its eventfd
+    Client* client = get_client(kvm->cfg.arch.socket_path, IOEVENTFD_BASE_ADDR, kvm);
 
     ch_syslog("%s start", __func__);
-    ch_syslog("vchannel ioeventfd_addr: 0x%x", ioeventfd_addr);
 
     if (!kvm->cfg.arch.socket_path) {
         ch_syslog("vchannel_init: empty socket_path");
@@ -192,13 +187,6 @@ static int vchannel_init(struct kvm *kvm) {
 		.bar_size[0]		= cpu_to_le32(PCI_IO_SIZE),
     };
 
-	// Setup client
-    client = get_client(kvm->cfg.arch.socket_path, ioeventfd_addr, kvm);
-    if (!client || !client->initialized) {
-        ch_syslog("failed to get client");
-        return -EINVAL;
-    }
-
 	ret = pci__register_bar_regions(kvm, &vchannel_dev->pci_hdr,
 				      vchannel_pci__bar_activate,
 				      vchannel_pci__bar_deactivate, client);
@@ -222,42 +210,27 @@ static int vchannel_init(struct kvm *kvm) {
     vchannel_dev->gsi = vchannel_dev->pci_hdr.irq_line - KVM_IRQ_OFFSET;
 
 	ch_syslog("irq_type %d", vchannel_dev->pci_hdr.irq_type);
-
-    if (!is_valid_shm_id(client, kvm->cfg.arch.shm_id)) {
-        ch_syslog("[ID:%d] shm_id expect %d but current shm_id: %d",
-                 client->id, client->shm_id, kvm->cfg.arch.shm_id);
-        return -EINVAL;
-    } else {
-        ch_syslog("[ID:%d] Create pthread for socket fd polling", client->id);
-        ret = pthread_create(&client->thread, NULL, poll_events, (void *)client);
-        if (ret) {
-            close_client(client);
-            die("vchannel_init: failed to create a thread with poll_events()");
-        }
-        ch_syslog("[ID:%d] pthread_create returns %d", client->id, ret);
-
-        ret = pthread_detach(client->thread);
-        if (ret) {
-            close_client(client);
-            die("vchannel_init: failed to detach a thread");
-        }
-        usleep(100000);
-    }
+    
     // Set first shared memory
     ret = setup_shared_memory(kvm);
     if (ret) {
         die("vchannel_init: setup_shared_memory is failed");
     }
 
+	ret = set_ioeventfd(client, client->shm_alloc_efd, SHM_ALLOC_EFD_ID);
+
     ch_syslog("[ID:%d] request irq__add_irqfd gsi %d fd %d",
-            client->id, vchannel_dev->gsi, client->eventfd);
+              client->vmid, vchannel_dev->gsi, client->eventfd);
+
     // Setup notification channel to receive as a guest interrupt
     ret = irq__add_irqfd(kvm, vchannel_dev->gsi, client->eventfd, 0);
+
+    create_polling_thread(client);
 
     ch_syslog("vchannel_init done successfully");
 
     return 0;
-}
+    }
 dev_base_init(vchannel_init);
 
 static int vchannel_exit(struct kvm *kvm) {

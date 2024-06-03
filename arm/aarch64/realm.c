@@ -72,11 +72,14 @@ static void realm_configure_parameters(struct kvm *kvm)
 	realm_configure_sve(kvm);
 }
 
+int get_vmid(void);
+
 void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm)
 {
 	struct kvm_enable_cap rme_create_rd = {
 		.cap = KVM_CAP_ARM_RME,
 		.args[0] = KVM_CAP_ARM_RME_CREATE_RD,
+		.args[1] = get_vmid(),
 	};
 
 	realm_configure_parameters(kvm);

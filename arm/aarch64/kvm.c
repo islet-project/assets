@@ -8,7 +8,8 @@
 #include <linux/virtio_config.h>
 
 #include <kvm/util.h>
-#include <socket.h>
+
+int client_init(struct kvm* kvm);
 
 int vcpu_affinity_parser(const struct option *opt, const char *arg, int unset)
 {
@@ -104,6 +105,13 @@ static void validate_realm_cfg(struct kvm *kvm)
 	if (kvm->cfg.arch.realm_pv) {
 		if (strlen(kvm->cfg.arch.realm_pv) > KVM_CAP_ARM_RME_RPV_SIZE)
 			die("Invalid size for Realm Personalization Value\n");
+	}
+
+	if (kvm->cfg.arch.socket_path) {
+		int ret = client_init(kvm);
+		if (ret) {
+			die("client_init failed with %d\n", ret);
+		}
 	}
 }
 
