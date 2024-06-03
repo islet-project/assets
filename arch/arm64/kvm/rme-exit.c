@@ -87,11 +87,12 @@ static int rec_exit_ripas_change(struct kvm_vcpu *vcpu)
 	unsigned long base = rec->run->exit.ripas_base;
 	unsigned long size = rec->run->exit.ripas_size;
 	unsigned long ripas = rec->run->exit.ripas_value & 1;
+	unsigned long dest_vmid = rec->run->exit.ripas_dest_vmid;
 	int ret = -EINVAL;
 
 	if (realm_is_addr_protected(realm, base) &&
 	    realm_is_addr_protected(realm, base + size))
-		ret = realm_set_ipa_state(vcpu, base, base + size, ripas);
+		ret = realm_set_ipa_state(vcpu, base, base + size, ripas, dest_vmid);
 
 	WARN(ret, "Unable to satisfy SET_IPAS for %#lx - %#lx, ripas: %#lx\n",
 	     base, base + size, ripas);
