@@ -1068,7 +1068,18 @@ static void rme_vmid_release(unsigned int vmid)
 	spin_unlock(&rme_vmid_lock);
 }
 
-static int kvm_create_realm(struct kvm *kvm)
+static bool rme_vmid_allocate(unsigned int vmid)
+{
+	int ret;
+
+	spin_lock(&rme_vmid_lock);
+	ret = bitmap_allocate_region(rme_vmid_bitmap, vmid, 0);
+	spin_unlock(&rme_vmid_lock);
+
+	return (ret == 0) ? true : false;
+}
+
+static int kvm_create_realm(struct kvm *kvm, int vmid)
 {
 	struct realm *realm = &kvm->arch.realm;
 	int ret;
@@ -1076,9 +1087,14 @@ static int kvm_create_realm(struct kvm *kvm)
 	if (!kvm_is_realm(kvm) || kvm_realm_state(kvm) != REALM_STATE_NONE)
 		return -EEXIST;
 
-	ret = rme_vmid_reserve();
-	if (ret < 0)
-		return ret;
+	if (vmid >= 0 && rme_vmid_allocate(vmid)) {
+		ret = vmid;
+	} else {
+		ret = rme_vmid_reserve();
+		if (ret < 0)
+			return ret;
+	}
+
 	realm->vmid = ret;
 
 	ret = realm_create_rd(kvm);
@@ -1200,7 +1216,7 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 			break;
 		}
 
-		r = kvm_create_realm(kvm);
+		r = kvm_create_realm(kvm, cap->args[1]);
 		break;
 	case KVM_CAP_ARM_RME_INIT_IPA_REALM: {
 		struct kvm_cap_arm_rme_init_ipa_args args;
