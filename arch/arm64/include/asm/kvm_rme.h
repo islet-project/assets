@@ -66,7 +66,7 @@ int realm_map_non_secure(struct realm *realm,
 			 struct kvm_mmu_memory_cache *memcache);
 int realm_set_ipa_state(struct kvm_vcpu *vcpu,
 			unsigned long addr, unsigned long end,
-			unsigned long ripas, unsigned long dest_vmid);
+			unsigned long ripas);
 int realm_psci_complete(struct kvm_vcpu *calling, struct kvm_vcpu *target);
 
 #define RME_RTT_BLOCK_LEVEL	2

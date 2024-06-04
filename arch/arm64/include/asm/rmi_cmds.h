@@ -229,12 +229,12 @@ static inline int rmi_rtt_read_entry(unsigned long rd, unsigned long map_addr,
 
 static inline int rmi_rtt_set_ripas(unsigned long rd, unsigned long rec,
 				    unsigned long map_addr, unsigned long level,
-				    unsigned long ripas, unsigned long dest_vmid)
+				    unsigned long ripas)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_1_1_invoke(SMC_RMI_RTT_SET_RIPAS, rd, rec, map_addr, level,
-			     ripas, dest_vmid, &res);
+			     ripas, &res);
 
 	return res.a0;
 }

@@ -209,7 +209,6 @@ struct rec_exit {
 			u64 ripas_base;
 			u64 ripas_size;
 			u64 ripas_value; /* Only lowest bit */
-			u64 ripas_dest_vmid; /* Only used for SHARED state */
 		};
 		u8 padding5[0x100];
 	};

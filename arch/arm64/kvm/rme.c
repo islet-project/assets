@@ -863,7 +863,7 @@ static int set_ipa_state(struct kvm_vcpu *vcpu,
 			 unsigned long ipa,
 			 unsigned long end,
 			 int level,
-			 unsigned long ripas, unsigned long dest_vmid)
+			 unsigned long ripas)
 {
 	struct kvm *kvm = vcpu->kvm;
 	struct realm *realm = &kvm->arch.realm;
@@ -874,7 +874,7 @@ static int set_ipa_state(struct kvm_vcpu *vcpu,
 	int ret;
 
 	while (ipa < end) {
-		ret = rmi_rtt_set_ripas(rd_phys, rec_phys, ipa, level, ripas, dest_vmid);
+		ret = rmi_rtt_set_ripas(rd_phys, rec_phys, ipa, level, ripas);
 
 		if (!ret) {
 			if (!ripas)
@@ -896,7 +896,7 @@ static int set_ipa_state(struct kvm_vcpu *vcpu,
 
 			/* Recurse one level lower */
 			ret = set_ipa_state(vcpu, ipa, ipa + map_size,
-					    level + 1, ripas, dest_vmid);
+					    level + 1, ripas);
 			if (ret)
 				return ret;
 		} else {
@@ -970,7 +970,7 @@ static int find_map_level(struct kvm *kvm, unsigned long start, unsigned long en
 
 int realm_set_ipa_state(struct kvm_vcpu *vcpu,
 			unsigned long addr, unsigned long end,
-			unsigned long ripas, unsigned long dest_vmid)
+			unsigned long ripas)
 {
 	int ret = 0;
 
@@ -978,7 +978,7 @@ int realm_set_ipa_state(struct kvm_vcpu *vcpu,
 		int level = find_map_level(vcpu->kvm, addr, end);
 		unsigned long map_size = rme_rtt_level_mapsize(level);
 
-		ret = set_ipa_state(vcpu, addr, addr + map_size, level, ripas, dest_vmid);
+		ret = set_ipa_state(vcpu, addr, addr + map_size, level, ripas);
 		if (ret)
 			break;
 
