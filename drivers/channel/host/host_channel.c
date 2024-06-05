@@ -33,10 +33,13 @@
 #define INTER_REALM_SHM_SIZE (1 << 12) * 16
 #endif
 
+#define VMID_MAX 256
+
 static int dev_major_num;
 
 /* This is a "private" data structure */
 struct channel_priv {
+	u64 shm_pa[VMID_MAX];
 	bool is_active; // TODO: do we need this ?
 };
 
@@ -76,6 +79,8 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	u64 req_size = vma->vm_end - vma->vm_start;
 	void *addr;
+	u64 shm_owner_vmid = vma->vm_pgoff;
+
 	pr_info("[HCH] vm_flags 0x%llx vm_page_prot 0x%llx\n", vma->vm_flags, vma->vm_page_prot);
 
 	if (req_size != INTER_REALM_SHM_SIZE) {
@@ -90,7 +95,10 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		return -ENOMEM;
 	}
 
-	pr_info("[HCH] mmap addr %p, pa %llx, size 0x%llx\n", addr, __pa(addr), INTER_REALM_SHM_SIZE);
+	drv_priv.shm_pa[shm_owner_vmid] = __pa(addr);
+
+	pr_info("[HCH] mmap addr %p, pa %llx, size 0x%llx, shm_owner_vmid %d \n",
+			addr, __pa(addr), INTER_REALM_SHM_SIZE, shm_owner_vmid);
 
 	/* Mapping pages to user process */
 	return remap_pfn_range(vma, vma->vm_start,
