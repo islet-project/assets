@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <asm/rsi_cmds.h>
+#include <linux/workqueue.h>
 
 #define DRIVER_NAME "guest_channel"
 #define VENDOR_ID 0x1af4
@@ -36,6 +37,12 @@ static struct pci_driver channel_driver = {
     .remove = channel_remove
 };
 
+enum role {
+	SHM_ALLOCATOR = 0, // It's host module
+	SERVER = 1,
+	CLIENT = 2,
+}
+
 struct peer {
     int id;      /* This is for identifying peers. It's NOT vmid */
     int eventfd;
@@ -46,6 +53,7 @@ struct peer {
 struct channel_priv {
 	uint32_t* ioeventfd_addr;
 	struct peer peer;
+	enum role;
 };
 
 static int __init channel_init(void)
@@ -132,11 +140,12 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	}
 
 	peer_id = readl(mapped_bar_addr);
-	if (peer_id == INVALID_PEER_ID) {
+	if (peer_id == INVALID_PEER_ID || peer_id == SHM_ALLOCATOR) {
 		pr_info("[GCH] peer_id is not valid %d", peer_id);
 	} else {
 		pr_info("[GCH] get peer_id %d", peer_id);
 		drv_priv->peer.id = peer_id;
+		drv_priv->role = (peer_id == CLIENT) ? SERVER: CLIENT;
 	}
 
 	dev_ioeventfd_addr = IOEVENTFD_BASE_ADDR;
