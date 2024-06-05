@@ -27,10 +27,37 @@
 #include <sys/wait.h>
 #include <sys/eventfd.h>
 
+static unsigned long realm_base_ipa_addr = 0x88400000;
+
 #define VIRTIO_NET_QUEUE_SIZE		256
 #define VIRTIO_NET_NUM_QUEUES		8
+#define MAX_PACKET_SIZE 65550
 
 #define SLEEP_SEC (1)
+
+#define CLOAK_MSG_TYPE_NET_TX (3)
+#define CLOAK_MSG_TYPE_NET_RX (4)
+#define CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS (5)
+
+extern bool is_no_shared_region(struct kvm *kvm);
+extern int send_msg(const void *msg, size_t size, int type, bool app_to_gw);
+extern int receive_msg(void *msg, size_t size, int in_type, int *out_type, bool app_from_gw);
+extern int receive_msg_nowait(void *msg, size_t size, int in_type, int *out_type, bool app_from_gw);
+extern int write_to_shm(char *src, unsigned int size);
+extern int read_from_shm(char *dst, unsigned int size);
+extern void *get_shm(void);
+//extern void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned char *buf, size_t len);
+//extern void run_net_rx_write_num_buffers(struct kvm *kvm, unsigned long iov_base, u16 num_buffers);
+
+struct cloak_rx_data_req {
+	struct iovec iov[VIRTIO_NET_QUEUE_SIZE];
+	unsigned char buffer[MAX_PACKET_SIZE + sizeof(struct virtio_net_hdr_mrg_rxbuf)];
+	unsigned long iovsize;
+};
+struct cloak_rx_num_buffer_req {
+	unsigned long iov_base;
+	u16 num_buffers;
+};
 
 struct net_dev;
 
@@ -75,8 +102,6 @@ struct net_dev {
 
 static LIST_HEAD(ndevs);
 static int compat_id = -1;
-
-#define MAX_PACKET_SIZE 65550
 
 extern int cloak_single_test;
 
@@ -190,6 +215,7 @@ static void run_vm_data_memcpy_to_iovec(struct iovec *iov, unsigned char *buf, s
 {
 	run_vm_memcpy_to_iovec(iov, buf, len, "/shared/net_rx.bin", "/shared/net_rx_data.bin");
 }
+
 static void run_vm_ctrl_memcpy_to_iovec(struct iovec *iov, unsigned char *buf, size_t len)
 {
 	run_vm_memcpy_to_iovec(iov, buf, len, "/shared/net_ctrl_to.bin", "/shared/net_ctrl_to_data.bin");
@@ -208,7 +234,7 @@ static void *virtio_net_rx_thread(void *p)
 	struct kvm *kvm;
 	u16 out, in;
 	u16 head;
-	int len, copied;
+	int len, copied, res, cloak_len, dummy;
 
 	kvm__set_thread_name("virtio-net-rx");
 
@@ -228,54 +254,16 @@ static void *virtio_net_rx_thread(void *p)
 			struct virtio_net_hdr_mrg_rxbuf *hdr;
 			u16 num_buffers;
 
-			printf("[host-rx] invoke rx()\n");
 			len = ndev->ops->rx(&dummy_iov, 1, ndev);
 			if (len < 0) {
-				printf("ndev->ops->rx error!\n");
 				pr_warning("%s: rx on vq %u failed (%d), exiting thread\n",
 						__func__, queue->id, len);
 				goto out_err;
 			}
-			printf("[host-rx] after invoke rx()\n");
-
-			/*
-			printf("[host-rx-data] dummy_iov: ");
-			for (unsigned j=0; j<len; j++) {
-				printf("%02x ", buffer[j]);
-				if (j >= 64)
-					break;
-			}
-			printf("\n"); */
 
 			copied = num_buffers = 0;
 			head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
 			//head = virt_queue__get_iov_host(vq, iov, &out, &in, kvm);
-
-			printf("[host-rx] ops->rx len: %d\n", len);
-			for (unsigned i = 0; i < in; i++) {
-				printf("[host-rx-in-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
-
-				/*
-				printf("[host-rx-data] ");
-				for (unsigned j=0; j<iov[i].iov_len; j++) {
-					printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
-					if (j >= 64)
-						break;
-				}
-				printf("\n"); */
-			}
-			for (unsigned i = 0; i < out; i++) {
-				printf("[host-rx-out-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
-
-				/*
-				printf("[host-rx-data] ");
-				for (unsigned j=0; j<iov[i].iov_len; j++) {
-					printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
-					if (j >= 64)
-						break;
-				}
-				printf("\n"); */
-			}
 
 			// ===== vm-level emulation required ===== 
 			hdr = iov[0].iov_base;
@@ -283,15 +271,43 @@ static void *virtio_net_rx_thread(void *p)
 				size_t iovsize = min_t(size_t, len - copied, iov_size(iov, in));
 
 				if (is_no_shared_region(kvm)) {
-					printf("[host-rx] run_vm_memcpy_to_iovec: %d, num_buffers: %d\n", iovsize, num_buffers);
-					run_vm_data_memcpy_to_iovec(iov, buffer + copied, iovsize);  // test
+					int type;
+					struct cloak_rx_data_req req;
+
+					// it needs to copy iov as well as buffer itself.
+					if ((unsigned long)(iov[0].iov_base) >= (realm_base_ipa_addr + (10 * 1024 * 1024))) {
+						printf("large iov_base rx: %lx\n", (unsigned long)(iov[0].iov_base));
+					}
+
+					// store request
+					memcpy(req.iov, iov, sizeof(iov));
+					memcpy(req.buffer, buffer + copied, sizeof(buffer) - copied);
+					req.iovsize = iovsize;
+					write_to_shm(&req, sizeof(req));
+					//run_net_rx_memcpy_to_iovec(kvm, iov, buffer + copied, iovsize);
+
+					// 1. send_msg() for CVM_GW to handle this RX message
+					res = send_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_NET_RX, true);
+					if (res < 0) {
+						printf("send_msg from app to gw error: %d, %s\n", errno, strerror(errno));
+					}
+
+					// 2. receive_msg() to get a response
+					// TODO: do sleep(0) for a better scheduling
+					res = receive_msg(&cloak_len, sizeof(cloak_len), CLOAK_MSG_TYPE_NET_RX, &type, true);
+					if (res < 0) {
+						printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
+					}
+
+					//run_vm_data_memcpy_to_iovec(iov, buffer + copied, iovsize);  // test
 				} else {
 					memcpy_toiovec(iov, buffer + copied, iovsize);
 				}
 				copied += iovsize;
 				virt_queue__set_used_elem_no_update(vq, head, iovsize, num_buffers++);
-				if (copied == len)
+				if (copied == len) {
 					break;
+				}
 				while (!virt_queue__available(vq))
 					sleep(0);
 				head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
@@ -307,19 +323,40 @@ static void *virtio_net_rx_thread(void *p)
 			if (has_virtio_feature(ndev, VIRTIO_NET_F_MRG_RXBUF) ||
 			    !ndev->vdev.legacy) {
 				if (is_no_shared_region(kvm)) {
-					write_vm_num_buffers((unsigned long)hdr, virtio_host_to_guest_u16(vq, num_buffers));
-					printf("num_buffers write: %d\n", virtio_host_to_guest_u16(vq, num_buffers));
+					int type;
+					unsigned char *shm;
+					//struct cloak_rx_num_buffer_req req;
+
+					//run_net_rx_write_num_buffers(kvm, (unsigned long)hdr, virtio_host_to_guest_u16(vq, num_buffers));
+					//write_vm_num_buffers((unsigned long)hdr, virtio_host_to_guest_u16(vq, num_buffers));
+					shm = (unsigned char *)get_shm();
+					memcpy(shm, &hdr, sizeof(hdr));
+					shm += sizeof(hdr);
+					memcpy(shm, &num_buffers, sizeof(num_buffers));
+					shm += sizeof(num_buffers);
+
+					// 1. send_msg() for CVM_GW to handle this RX message
+					res = send_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS, true);
+					if (res < 0) {
+						printf("send_msg from app to gw error: %d, %s\n", errno, strerror(errno));
+					}
+
+					// 2. receive_msg() to get a response
+					res = receive_msg(&cloak_len, sizeof(cloak_len), CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS, &type, true);
+					if (res < 0) {
+						printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
+					}
 				} else {
 					hdr->num_buffers = virtio_host_to_guest_u16(vq, num_buffers);
-					printf("hdr->num_buffers write: %d\n", hdr->num_buffers);
 				}
 			}
 
 			virt_queue__used_idx_advance(vq, num_buffers);
 
 			/* We should interrupt guest right now, otherwise latency is huge. */
-			if (virtio_queue__should_signal(vq))
+			if (virtio_queue__should_signal(vq)) {
 				ndev->vdev.ops->signal_vq(kvm, &ndev->vdev, queue->id);
+			}
 		}
 	}
 
@@ -358,7 +395,6 @@ static void virtio_net_tx_write_to_file(struct iovec *iov, u16 out)
 
 static int tap_ops_tx(struct iovec *iov, u16 out, struct net_dev *ndev);
 static unsigned char read_tx_inter_buf[16 * 1024 * 1024] = {0,};
-static unsigned long realm_base_ipa_addr = 0x88400000;
 
 static void translate_addr_for_tx(struct iovec *iov, u16 out)
 {
@@ -418,6 +454,7 @@ static void *virtio_net_tx_thread(void *p)
 	u16 out, in;
 	u16 head;
 	int len;
+	int res;
 
 	kvm__set_thread_name("virtio-net-tx");
 
@@ -433,37 +470,48 @@ static void *virtio_net_tx_thread(void *p)
 			head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
 
 			if (is_no_shared_region(kvm)) {
-				virtio_net_tx_write_to_file(iov, out);
-				len = read_vm_data_and_tx(iov, out, ndev);
-				for (unsigned i = 0; i < out; i++) {
-					printf("[host-tx-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
-					len += iov[i].iov_len;  // test!
+				int dummy = 0, len, type;
+				unsigned char *shm;
+				unsigned int tx_out = 0, tx_len = 0;
+				unsigned long offset = 0;
 
-					/*
-					printf("[host-tx-data] ");
-					for (unsigned j=0; j<iov[i].iov_len; j++) {
-						printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
-						if (j >= 16)
-							break;
-					}
-					printf("\n"); */
+				// 1. send_msg() for CVM_GW to handle this TX message
+				res = send_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_NET_TX, true);
+				if (res < 0) {
+					printf("send_msg from app to gw error: %d, %s\n", errno, strerror(errno));
 				}
-				printf("tx len: %d\n", len);
+
+				// 2. receive_msg() to get a response
+				res = receive_msg(&len, sizeof(len), CLOAK_MSG_TYPE_NET_TX, &type, true);
+				if (res < 0) {
+					printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
+				}
+
+				// 3. do tx operation
+				shm = get_shm();
+				shm += (1 * 1024 * 1024);
+
+				memcpy(&tx_out, shm, sizeof(tx_out));
+				shm += sizeof(tx_out);
+
+				for (unsigned int i=0; i<tx_out; i++) {
+					memcpy(&iov[i], shm, sizeof(struct iovec));
+					shm += sizeof(struct iovec);
+
+					if ((unsigned long)(iov[i].iov_base) >= (realm_base_ipa_addr + (10 * 1024 * 1024))) {
+						printf("large iov_base: %lx\n", (unsigned long)(iov[i].iov_base));
+					}
+
+					offset = (unsigned long)(iov[i].iov_base) - realm_base_ipa_addr;
+					memcpy(read_tx_inter_buf + offset, shm, iov[i].iov_len);
+					iov[i].iov_base = (void *)((unsigned long)read_tx_inter_buf + offset);
+
+					shm += iov[i].iov_len;
+					tx_len += iov[i].iov_len;
+				}
+				len = tap_ops_tx(iov, tx_out, ndev);
 			} else {
-				for (unsigned i = 0; i < out; i++) {
-					printf("[host-tx-%d] iov_base: %lx, iov_len: %lx\n", i, (unsigned long)iov[i].iov_base, iov[i].iov_len);
-					
-					/*
-					printf("[host-tx-data] ");
-					for (unsigned j=0; j<iov[i].iov_len; j++) {
-						printf("%02x ", ((unsigned char *)(iov[i].iov_base))[j]);
-						if (j >= 64)
-							break;
-					}
-					printf("\n"); */
-				}
 				len = ndev->ops->tx(iov, out, ndev);
-				printf("tx len: %d\n", len);
 			}
 
 			if (len < 0) {
@@ -502,8 +550,6 @@ static void *virtio_net_ctrl_thread(void *p)
 	virtio_net_ctrl_ack ack;
 	size_t len;
 
-	printf("[JB] virtio_net_ctrl_thread!\n");
-
 	kvm__set_thread_name("virtio-net-ctrl");
 
 	while (1) {
@@ -513,8 +559,6 @@ static void *virtio_net_ctrl_thread(void *p)
 		mutex_unlock(&queue->lock);
 
 		while (virt_queue__available(vq)) {
-            printf("virtio_net_ctrl_thread vq avail start!\n");
-
 			//head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
 			head = virt_queue__get_head_iov_host(vq, iov, &out, &in, kvm);
 			len = min(iov_size(iov, in), sizeof(ctrl));
@@ -525,7 +569,6 @@ static void *virtio_net_ctrl_thread(void *p)
 			//} else {
 				memcpy_fromiovec((void *)&ctrl, iov, len);
 			//}
-			printf("[JB] after memcpy_fromiovec\n");
 
 			switch (ctrl.class) {
 			case VIRTIO_NET_CTRL_MQ:
@@ -541,7 +584,6 @@ static void *virtio_net_ctrl_thread(void *p)
 			//} else {
 				memcpy_toiovec(iov + in, &ack, sizeof(ack));
 			//}
-			printf("[JB] after memcpy_toiovec\n");
 			// -----------------------------------------------------
 
 			virt_queue__set_used_elem(vq, head, sizeof(ack));

@@ -77,9 +77,7 @@ OBJS	+= virtio/scsi.o
 OBJS	+= virtio/console.o
 OBJS	+= virtio/core.o
 OBJS	+= virtio/net.o
-ifeq ($(CLOAK_VM),yes)
-    OBJS += virtio/net-vm.o
-endif
+OBJS    += virtio/net-vm.o
 OBJS	+= virtio/rng.o
 OBJS    += virtio/balloon.o
 OBJS	+= virtio/pci.o

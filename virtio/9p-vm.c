@@ -1665,6 +1665,10 @@ u32 run_p9_operation_in_vm(struct p9_pdu *p9pdu, char *root_dir)
 	return 0;
 }
 
+#define CLOAK_VQ_HOST_9P (0x88400000 + (14 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_TX (0x88400000 + (18 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_RX (0x88400000 + (22 * 1024 * 1024))
+
 extern void *get_host_addr_from_offset(struct kvm *kvm, u64 offset);
 static unsigned long p9pdu_control_addr = 0;
 static unsigned long p9pdu_data_addr = 0;
@@ -1696,7 +1700,7 @@ u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir)
 	struct p9_pdu *p9pdu;
 
 	if (p9pdu_control_addr == 0) {
-		p9pdu_control_addr = get_host_addr_from_offset(kvm, 0x88400000 + (14 * 1024 * 1024)); // 14mb
+		p9pdu_control_addr = get_host_addr_from_offset(kvm, CLOAK_VQ_HOST_9P); // 14mb
 		if (p9pdu_control_addr == 0) {
 			LOG_ERROR("get_host_addr_from_offset: control error..\n");
 			return 0;

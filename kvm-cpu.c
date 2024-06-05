@@ -15,6 +15,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <linux/virtio_net.h>
 
 extern __thread struct kvm_cpu *current_kvm_cpu;
 
@@ -141,13 +142,46 @@ void kvm_cpu__run_on_all_cpus(struct kvm *kvm, struct kvm_cpu_task *task)
 	mutex_unlock(&task_lock);
 }
 
-extern int receive_msg(void *msg, size_t size, bool app_from_gw);
+// one-way
+#define CLOAK_MSG_TYPE_P9 (2)
+#define CLOAK_MSG_TYPE_NET_TX (3)
+#define CLOAK_MSG_TYPE_NET_RX (4)
+#define CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS (5)
+
+// two-way
+#define CLOAK_MSG_TYPE_P9_RESP (12)
+#define CLOAK_MSG_TYPE_NET_RX_RESP (14)
+#define CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS_RESP (15)
+
+#define VIRTIO_NET_QUEUE_SIZE		256
+#define VIRTIO_NET_NUM_QUEUES		8
+#define MAX_PACKET_SIZE 65550
+
+extern int send_msg(void *msg, size_t size, int type, bool app_to_gw);
+extern int receive_msg(void *msg, size_t size, int in_type, int *out_type, bool app_from_gw);
+
 extern bool is_no_shared_region(struct kvm *kvm);
 extern u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir);
+extern int run_net_tx_operation_in_host(struct kvm *kvm);
+extern void *get_shm(void);
+
+extern void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned char *buf, size_t len);
+extern void run_net_rx_write_num_buffers(struct kvm *kvm, unsigned long iov_base, u16 num_buffers);
+
 static bool is_first_exit = true;
-static unsigned int p9_outlen = 0;
-static unsigned int p9_state = 0;
+static int cloak_outlen = 0;
+static unsigned int cloak_state = 0;
 #define FIRST_CLOAK_OUTLEN (999999)
+
+struct cloak_rx_data_req {
+	struct iovec iov[VIRTIO_NET_QUEUE_SIZE];
+	unsigned char buffer[MAX_PACKET_SIZE + sizeof(struct virtio_net_hdr_mrg_rxbuf)];
+	unsigned long iovsize;
+};
+struct cloak_rx_num_buffer_req {
+	unsigned long iov_base;
+	u16 num_buffers;
+};
 
 #define OPTIMIZE_COPY
 
@@ -176,6 +210,26 @@ do { \
 // =========================================================
 
 extern void print_host_mem_with_offset(struct kvm *kvm, u64 offset);
+
+void record_cloak_msg_type(unsigned long type)
+{
+	int fd;
+	int res;
+
+	fd = open("/dev/cloak_host", O_RDWR);
+	if (fd < 0) {
+		LOG_ERROR("cloak_host open error\n");
+		return;
+	}
+
+	res = ioctl(fd, 9999, type);
+	if (res < 0) {
+		LOG_ERROR("[JB] cloak_host ioctl error: %d\n", res);
+		return;
+	}
+
+	LOG_DEBUG("record_cloak_msg_type: next_type: %d\n", type);
+}
 
 int kvm_cpu__start(struct kvm_cpu *cpu)
 {
@@ -235,7 +289,7 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 				}	
 
 				// 2. wait for a request from CVM_App front-end (handle request)
-				res = receive_msg(&dummy, sizeof(dummy), false);
+				res = receive_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_P9, false);
 				if (res) {
 					LOG_DEBUG("CLOAK_HOST_CALL: receive_msg error\n");
 				} else {
@@ -244,17 +298,18 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
             }
 		#else  // OPTIMIZE_COPY
 			if (is_no_shared_region(cpu->kvm) == false) {
-				int res;
+				int res, type;
 				int dummy = 0;
 
+			STATE_CHECK:
 				// state machine
-				if (p9_state == 0) {
+				if (cloak_state == 0) {
 					// first
 
 					// 1. receive a request within Host
-					res = receive_msg(&dummy, sizeof(dummy), false);
-					if (res) {
-						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg error\n");
+					res = receive_msg(&dummy, sizeof(dummy), 0, &type, false);
+					if (res < 0) {
+						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
 					} else {
 						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg done\n");
 					}
@@ -262,46 +317,106 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 					// 2. handle (copy-only) a request within CVM_GW (----)
 
 					// 3. state transition
-					p9_state = 1;
+					cloak_state = type;
+					LOG_DEBUG("CLOAK: message type %d\n", type);
+
+					record_cloak_msg_type((unsigned long)type);
 				}
-				else if (p9_state == 1) {
+				else if (cloak_state == CLOAK_MSG_TYPE_P9) {  // 9P backend operation
 					// backend operation here!
 
 					// 1. handle the back-end operation
-					p9_outlen = run_p9_operation_in_host(cpu->kvm, "/shared");
+					cloak_outlen = run_p9_operation_in_host(cpu->kvm, "/shared");
 
 					// 2. do one more copy for out cases (e.g., CVM-write) within CVM_GW
 
 					// 3. state transition
-					p9_state = 2;
+					cloak_state = CLOAK_MSG_TYPE_P9_RESP;
+					record_cloak_msg_type(cloak_state);
 				}
-				else if (p9_state == 2) {
-					// send results!
-
-					// 1. send results
-					res = send_msg(&p9_outlen, sizeof(p9_outlen), false);
+				else if (cloak_state == CLOAK_MSG_TYPE_P9_RESP) {
+					res = send_msg(&cloak_outlen, sizeof(cloak_outlen), CLOAK_MSG_TYPE_P9, false);
 					if (res < 0) {
-						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", p9_outlen);
-					} else {
-						LOG_DEBUG("send_msg for outlen success!: %d\n", p9_outlen);
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", cloak_outlen);
+					}
+					res = receive_msg(&dummy, sizeof(dummy), 0, &type, false);
+					if (res < 0) {
+						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
 					}
 
-					// 2. receive a request again
-					res = receive_msg(&dummy, sizeof(dummy), false);
-					if (res) {
-						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg error\n");
-					} else {
-						LOG_DEBUG("CLOAK_HOST_CALL: receive_msg done\n");
+					cloak_state = type;
+					LOG_DEBUG("CLOAK: message type %d\n", type);
+					record_cloak_msg_type((unsigned long)type);
+				}
+				else if (cloak_state == CLOAK_MSG_TYPE_NET_TX) {
+					// 1. do TX operation
+					cloak_outlen = run_net_tx_operation_in_host(cpu->kvm);
+
+					// 2. send result
+					res = send_msg(&cloak_outlen, sizeof(cloak_outlen), CLOAK_MSG_TYPE_NET_TX, false);
+					if (res < 0) {
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", cloak_outlen);
 					}
 
-					// 3. handle (copy-only) a request within CVM_GW (----)
+					res = receive_msg(&dummy, sizeof(dummy), 0, &type, false);
+					if (res < 0) {
+						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
+					}
 
-					// 4. state transition
-					p9_state = 1;
+					cloak_state = type;
+					record_cloak_msg_type((unsigned long)type);
+				}
+				else if (cloak_state == CLOAK_MSG_TYPE_NET_RX) {
+					// 1. RX copy operation (to host_shared)
+					struct cloak_rx_data_req *req = (struct cloak_rx_data_req *)get_shm();
+					run_net_rx_memcpy_to_iovec(cpu->kvm, &req->iov, &req->buffer, req->iovsize);
+
+					// 2. trigger CVM_GW
+					cloak_state = CLOAK_MSG_TYPE_NET_RX_RESP;
+					record_cloak_msg_type(CLOAK_MSG_TYPE_NET_RX_RESP);
+				}
+				else if (cloak_state == CLOAK_MSG_TYPE_NET_RX_RESP) {
+					res = send_msg(&cloak_outlen, sizeof(cloak_outlen), CLOAK_MSG_TYPE_NET_RX, false);
+					if (res < 0) {
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", cloak_outlen);
+					}
+
+					res = receive_msg(&dummy, sizeof(dummy), 0, &type, false);
+					if (res < 0) {
+						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
+					}
+
+					cloak_state = type;
+					record_cloak_msg_type((unsigned long)type);
+				}
+				else if (cloak_state == CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS) {
+					struct cloak_rx_num_buffer_req *req = (struct cloak_rx_num_buffer_req *)get_shm();
+					run_net_rx_write_num_buffers(cpu->kvm, req->iov_base, req->num_buffers);
+
+					cloak_state = CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS_RESP;
+					record_cloak_msg_type(CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS_RESP);
+				}
+				else if (cloak_state == CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS_RESP) {
+					res = send_msg(&cloak_outlen, sizeof(cloak_outlen), CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS, false);
+					if (res < 0) {
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", cloak_outlen);
+					}
+					res = receive_msg(&dummy, sizeof(dummy), 0, &type, false);
+					if (res < 0) {
+						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
+					}
+
+					cloak_state = type;
+					record_cloak_msg_type((unsigned long)type);
 				}
 			}
 		#endif
 
+			if (cloak_state == CLOAK_MSG_TYPE_NET_RX || cloak_state == CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS) {
+				goto STATE_CHECK;
+			}
+		
+			// send cloak_state to the kernel (down to the return value of HostCall)
 			// [JB] re-run this CVM_Gateway to handle CVM_App's virtio requests!!
             break;
 		}

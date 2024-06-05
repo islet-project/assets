@@ -31,7 +31,7 @@
 // =========================================================
 // log
 #define LOG_ON_ERROR
-#define LOG_ON_DEBUG
+//#define LOG_ON_DEBUG
 
 #ifdef LOG_ON_DEBUG
 #define LOG_DEBUG(...) \
@@ -63,6 +63,163 @@ do { \
 extern char vring_shared[VRING_SIZE];
 extern unsigned long base_ipa_addr;
 extern unsigned long base_ipa_elem_addr;
+
+// ------------------------------------------------------------------------------------
+struct net_tx {
+	unsigned int out;
+	struct iovec iovs[];
+};
+struct net_rx {
+	unsigned int in_cnt;
+	struct iovec iovs[];
+};
+
+#define CLOAK_VQ_HOST_9P (0x88400000 + (14 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_TX (0x88400000 + (18 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_RX (0x88400000 + (22 * 1024 * 1024))
+
+extern void *get_host_addr_from_offset(struct kvm *kvm, u64 offset);
+static unsigned long net_tx_control_addr = 0;
+static unsigned long net_tx_data_addr = 0;
+static unsigned long net_rx_control_addr = 0;
+static unsigned long net_rx_data_addr = 0;
+int cloak_tap_fd_tx = -1;
+
+static inline int cloak_tap_ops_tx(struct iovec *iov, u16 out)
+{
+    if (cloak_tap_fd_tx == -1) {
+        cloak_tap_fd_tx = open("/dev/net/tun", O_RDWR);
+        if (cloak_tap_fd_tx < 0) {
+            printf("tun device open error\n");
+        } else {
+            printf("kvm-cpu: tap_fd_tx: %d\n", cloak_tap_fd_tx);
+        }
+    }
+	return writev(cloak_tap_fd_tx, iov, out);
+}
+
+static void net_translate_addr_space_host(struct kvm *kvm, struct net_tx *tx)
+{
+	for (unsigned i=0; i<tx->out; i++) {
+		unsigned long offset = (unsigned long)(tx->iovs[i].iov_base);
+		unsigned long new_addr = (unsigned long)get_host_addr_from_offset(kvm, offset);
+
+		LOG_DEBUG("[host-out-%d] offset: %lx, new_addr: %lx, len: %lx\n", i, offset, new_addr, tx->iovs[i].iov_len);
+		tx->iovs[i].iov_base = (void *)new_addr;
+	}
+}
+
+void run_net_rx_write_num_buffers(struct kvm *kvm, unsigned long iov_base, u16 num_buffers)
+{
+    unsigned char *ptr;
+
+    if (net_rx_control_addr == 0) {
+		net_rx_control_addr = (unsigned long)get_host_addr_from_offset(kvm, CLOAK_VQ_HOST_NET_RX);
+		if (net_rx_control_addr == 0) {
+			LOG_ERROR("net_rx_control_addr: control error..\n");
+            return;
+		}
+	}
+	LOG_DEBUG("net_rx_control_addr: %lx\n", net_rx_control_addr);
+
+    ptr = (unsigned char *)net_rx_control_addr;
+
+    // write iov_base and num_buffers
+    memcpy(ptr, &iov_base, sizeof(iov_base));
+    ptr += sizeof(iov_base);
+
+    memcpy(ptr, &num_buffers, sizeof(num_buffers));
+    ptr += sizeof(num_buffers);
+}
+
+void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned char *buf, size_t len)
+{
+    struct iovec *iiov = iov;
+	unsigned int llen = len;
+    unsigned int in_cnt = 0;
+	unsigned char *data = buf;
+    unsigned char *ptr;
+
+    if (net_rx_control_addr == 0) {
+		net_rx_control_addr = (unsigned long)get_host_addr_from_offset(kvm, CLOAK_VQ_HOST_NET_RX);
+		if (net_rx_control_addr == 0) {
+			LOG_ERROR("net_rx_control_addr: control error..\n");
+			return;
+		}
+	}
+	LOG_DEBUG("net_rx_control_addr: %lx\n", net_rx_control_addr);
+    ptr = (unsigned char *)net_rx_control_addr;
+
+    // 1. write total len
+    memcpy(ptr, &llen, sizeof(llen));
+    ptr += sizeof(llen);
+
+    // 2. iterate iovs
+    while (llen > 0) {
+        if (iiov->iov_len) {
+            int copy = min_t(unsigned int, iiov->iov_len, llen);
+
+            // write iov first
+            memcpy(ptr, iiov, sizeof(struct iovec));
+            ptr += sizeof(struct iovec);
+
+            // write data next
+            memcpy(ptr, data, copy);
+            ptr += copy;
+
+            data += copy;
+            llen -= copy;
+            iiov->iov_len -= copy;
+            iiov->iov_base += copy;
+        }
+        iiov++;
+        in_cnt++;
+    }
+
+    LOG_DEBUG("run_net_rx_memcpy_to_iovec done\n");
+}
+
+extern void *get_shm(void);
+int run_net_tx_operation_in_host(struct kvm *kvm)
+{
+	int len;
+    struct net_tx *tx;
+    unsigned char *shm;
+    unsigned long offset, new_addr;
+
+	if (net_tx_control_addr == 0) {
+		net_tx_control_addr = get_host_addr_from_offset(kvm, CLOAK_VQ_HOST_NET_TX); // 18 mb
+		if (net_tx_control_addr == 0) {
+			LOG_ERROR("net_tx_control_addr: control error..\n");
+			return 0;
+		}
+	}
+	LOG_DEBUG("net_tx_control_addr: %lx\n", net_tx_control_addr);
+
+	// 0. address translation
+	tx = (struct net_tx *)net_tx_control_addr;
+
+    // 1. copy to shm instead of doing tap-tx-operation
+    shm = get_shm();
+    shm += (1 * 1024 * 1024);
+
+    // out, iov-data, ...
+    memcpy(shm, &(tx->out), sizeof(tx->out));
+    shm += sizeof(tx->out);
+
+    for (unsigned int i=0; i<tx->out; i++) {
+        memcpy(shm, &(tx->iovs[i]), sizeof(struct iovec));
+        shm += sizeof(struct iovec);
+
+        offset = (unsigned long)(tx->iovs[i].iov_base);
+		new_addr = (unsigned long)get_host_addr_from_offset(kvm, offset);
+
+        memcpy(shm, (unsigned char *)new_addr, tx->iovs[i].iov_len);
+        shm += tx->iovs[i].iov_len;
+    }
+    return len;
+}
+// ------------------------------------------------------------------------------------
 
 static bool read_from_vring(void)
 {
@@ -265,7 +422,7 @@ void* run_vm_tx_thread(void* arg) {
             for (unsigned i = 0; i < out; i++) {
                 fwrite((unsigned char *)iov[i].iov_base, sizeof(unsigned char), iov[i].iov_len, fp);
 
-                printf("[vm] tx write data-%d %d: ", i, iov[i].iov_len);
+                //printf("[vm] tx write data-%d %d: ", i, iov[i].iov_len);
                 for (unsigned j=0; j<iov[i].iov_len; j++) {
                     printf("%02x ", ((unsigned char *)iov[i].iov_base)[j]);
                     if (j >= 64)

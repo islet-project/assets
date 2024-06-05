@@ -24,9 +24,9 @@
 extern int cloak_single_test;
 extern bool is_no_shared_region(struct kvm *kvm);
 
-extern int send_msg(const void *msg, size_t size, bool app_to_gw);
-extern int receive_msg(void *msg, size_t size, bool app_from_gw);
-extern bool queue_exist(bool app_to_gw);
+#define CLOAK_MSG_TYPE_P9 (2)
+extern int send_msg(const void *msg, size_t size, int type, bool app_to_gw);
+int receive_msg(void *msg, size_t size, int in_type, int *out_type, bool app_from_gw);
 
 static LIST_HEAD(devs);
 static int compat_id = -1;
@@ -1403,15 +1403,15 @@ static bool virtio_p9_do_io_request(struct kvm *kvm, struct p9_dev_job *job)
 
 		// 1. wait for CVM_GW (virtio backend) to handle this request
 		int dummy = 0;
-		int res;
+		int res, type;
 
 		//len = virtio_p9_pdu_write_to_file(p9pdu);
-		res = send_msg(&dummy, sizeof(dummy), true);
+		res = send_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_P9, true);
 		if (res < 0) {
 			printf("send_msg from app to gw error: %d, %s\n", errno, strerror(errno));
 			return false;
 		}
-		res = receive_msg(&len, sizeof(len), true);
+		res = receive_msg(&len, sizeof(len), CLOAK_MSG_TYPE_P9, &type, true);
 		if (res < 0) {
 			printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
 			return false;
