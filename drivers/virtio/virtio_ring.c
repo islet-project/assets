@@ -514,8 +514,23 @@ static inline unsigned int virtqueue_add_desc_split(struct virtqueue *vq,
 }
 
 #include <asm/rsi.h>
+#include <linux/uio.h>
 extern unsigned long no_shared_region_flag;
 extern char __attribute__((aligned(PAGE_SIZE))) cloak_vq_desc_mem[2 * 1024 * 1024];
+
+struct net_tx_cloak {
+	unsigned int out;
+	struct iovec iovs[];
+};
+
+struct net_rx_cloak {
+	unsigned int in_cnt;
+	struct iovec iovs[];
+};
+
+#define CLOAK_VQ_DESC_9P (cloak_vq_desc_mem)
+#define CLOAK_VQ_DESC_NET_TX (cloak_vq_desc_mem + (1 * 1024 * 1024))
+#define CLOAK_VQ_DESC_NET_RX (cloak_vq_desc_mem + (1 * 1024 * 1024) + (512 * 1024))
 
 static inline int virtqueue_add_split(struct virtqueue *_vq,
 				      struct scatterlist *sgs[],
@@ -537,8 +552,23 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 	// [JB]
 	// cloak_id == -1: do nothing
 	// cloak_id == 1: 9p vq control for cloak
+	// cloak_id == 2: net tap tx for cloak
+	// cloak_id == 3: net tap rx for cloak
 	unsigned int in_cnt = 0, out_cnt = 0;
-	struct p9_pdu_cloak *cloak_pdu = (struct p9_pdu_cloak *)cloak_vq_desc_mem;
+	struct p9_pdu_cloak *cloak_pdu = NULL;
+	struct net_tx_cloak *cloak_tx = NULL;
+	struct net_rx_cloak *cloak_rx = NULL;
+	
+	if (cloak_id == 1)
+		cloak_pdu = (struct p9_pdu_cloak *)CLOAK_VQ_DESC_9P;
+	else if (cloak_id == 2) {
+		cloak_tx = (struct net_tx_cloak *)CLOAK_VQ_DESC_NET_TX;
+		//pr_info("[JB] net_tap_tx: out: %d, in: %d, total: %d\n", out_sgs, in_sgs, total_sg);
+	}
+	else if (cloak_id == 3) {
+		cloak_rx = (struct net_rx_cloak *)CLOAK_VQ_DESC_NET_RX;
+		//pr_info("[JB] net_tap_rx: out: %d, in: %d, total: %d\n", out_sgs, in_sgs, total_sg);
+	}
 
 	START_USE(vq);
 
@@ -597,10 +627,16 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 				goto unmap_release;
 
             // [JB] print dma_addr
-            //pr_info("[JB] virtqueue_add_split, out-%d, %lx\n", n, addr);
+            //pr_info("[JB] virtqueue_add_split, out-%d, %lx\n", n, addr);	
 			if (cloak_id == 1) {
 				cloak_pdu->out_iov[out_cnt].iov_base = addr;
 				cloak_pdu->out_iov[out_cnt].iov_len = sg->length;
+				out_cnt++;
+			}
+			else if (cloak_id == 2) {
+				cloak_tx->iovs[out_cnt].iov_base = addr;
+				cloak_tx->iovs[out_cnt].iov_len = sg->length;
+				//pr_info("[JB] net_tx_tap: out-%d: %lx-%lx\n", out_cnt, addr, sg->length);
 				out_cnt++;
 			}
 
@@ -626,6 +662,20 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 				cloak_pdu->in_iov[in_cnt].iov_len = sg->length;
 				in_cnt++;
 			}
+			#if 0
+			else if (cloak_id == 3) {
+				pr_info("front-end, rx %d, %lx-%lx\n", in_cnt, (unsigned long)addr, sg->length);
+
+				cloak_rx->iovs[in_cnt].iov_base = addr;
+				cloak_rx->iovs[in_cnt].iov_len = sg->length;
+				//pr_info("[JB] net_rx_tap: in-%d: %lx-%lx\n", in_cnt, addr, sg->length);
+				in_cnt++;
+			}
+			else {
+				// [JB] test
+				pr_info("[test] front-end, rx %d, %lx-%lx\n", in_cnt, (unsigned long)addr, sg->length);
+			}
+			#endif
 
 			prev = i;
 			/* Note that we trust indirect descriptor
@@ -643,6 +693,14 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 		cloak_pdu->out_iov_cnt = out_cnt;
 		cloak_pdu->in_iov_cnt = in_cnt;
 	}
+	else if (cloak_id == 2) {
+		cloak_tx->out = out_cnt;
+	}
+	#if 0
+	else if (cloak_id == 3)	{
+		cloak_rx->in_cnt = in_cnt;
+	}
+	#endif
 
 	/* Last one doesn't continue. */
 	desc[prev].flags &= cpu_to_virtio16(_vq->vdev, ~VRING_DESC_F_NEXT);
@@ -871,6 +929,8 @@ static void *virtqueue_get_buf_ctx_split(struct virtqueue *_vq,
 	LAST_ADD_TIME_INVALID(vq);
 
 	END_USE(vq);
+
+	//pr_info("[JB] virtqueue_get_buf_ctx_split: data: %lx - %lx, len: %d\n", (unsigned long)ret, virt_to_phys(ret), *len);
 	return ret;
 }
 
@@ -1390,6 +1450,10 @@ static inline int virtqueue_add_packed(struct virtqueue *_vq,
 	__le16 head_flags, flags;
 	u16 head, id, prev, curr, avail_used_flags;
 	int err;
+
+	if (cloak_id != -1) {
+		pr_info("virtqueue_add_packed: cloak_id %d\n", cloak_id);
+	}
 
 	START_USE(vq);
 
@@ -2227,6 +2291,16 @@ int virtqueue_add_outbuf(struct virtqueue *vq,
 }
 EXPORT_SYMBOL_GPL(virtqueue_add_outbuf);
 
+int cloak_virtqueue_add_outbuf(struct virtqueue *vq,
+			 struct scatterlist *sg, unsigned int num,
+			 void *data,
+			 gfp_t gfp,
+			 int id)
+{
+	return cloak_virtqueue_add(vq, &sg, num, 1, 0, data, NULL, gfp, id);
+}
+EXPORT_SYMBOL_GPL(cloak_virtqueue_add_outbuf);
+
 /**
  * virtqueue_add_inbuf - expose input buffers to other end
  * @vq: the struct virtqueue we're talking about.
@@ -2248,6 +2322,16 @@ int virtqueue_add_inbuf(struct virtqueue *vq,
 	return virtqueue_add(vq, &sg, num, 0, 1, data, NULL, gfp);
 }
 EXPORT_SYMBOL_GPL(virtqueue_add_inbuf);
+
+int cloak_virtqueue_add_inbuf(struct virtqueue *vq,
+			struct scatterlist *sg, unsigned int num,
+			void *data,
+			gfp_t gfp,
+			int id)
+{
+	return cloak_virtqueue_add(vq, &sg, num, 0, 1, data, NULL, gfp, id);
+}
+EXPORT_SYMBOL_GPL(cloak_virtqueue_add_inbuf);
 
 /**
  * virtqueue_add_inbuf_ctx - expose input buffers to other end
@@ -2272,6 +2356,17 @@ int virtqueue_add_inbuf_ctx(struct virtqueue *vq,
 	return virtqueue_add(vq, &sg, num, 0, 1, data, ctx, gfp);
 }
 EXPORT_SYMBOL_GPL(virtqueue_add_inbuf_ctx);
+
+int cloak_virtqueue_add_inbuf_ctx(struct virtqueue *vq,
+			struct scatterlist *sg, unsigned int num,
+			void *data,
+			void *ctx,
+			gfp_t gfp,
+			int id)
+{
+	return cloak_virtqueue_add(vq, &sg, num, 0, 1, data, ctx, gfp, id);
+}
+EXPORT_SYMBOL_GPL(cloak_virtqueue_add_inbuf_ctx);
 
 /**
  * virtqueue_kick_prepare - first half of split virtqueue_kick call.

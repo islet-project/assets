@@ -23,6 +23,12 @@
 #include <net/xdp.h>
 #include <net/net_failover.h>
 
+// [JB] for Cloak
+#define ENABLE_CLOAK
+#include <asm/rsi.h>
+extern char __attribute__((aligned(PAGE_SIZE))) cloak_vq_desc_mem[2 * 1024 * 1024];
+extern unsigned long no_shared_region_flag;
+
 static int napi_weight = NAPI_POLL_WEIGHT;
 module_param(napi_weight, int, 0444);
 
@@ -1325,7 +1331,16 @@ static int add_recvbuf_small(struct virtnet_info *vi, struct receive_queue *rq,
 	alloc_frag->offset += len;
 	sg_init_one(rq->sg, buf + VIRTNET_RX_PAD + xdp_headroom,
 		    vi->hdr_len + GOOD_PACKET_LEN);
+
+#ifdef ENABLE_CLOAK
+	if (no_shared_region_flag)
+		err = cloak_virtqueue_add_inbuf_ctx(rq->vq, rq->sg, 1, buf, ctx, gfp, 3);
+	else
+		err = virtqueue_add_inbuf_ctx(rq->vq, rq->sg, 1, buf, ctx, gfp);
+#else
 	err = virtqueue_add_inbuf_ctx(rq->vq, rq->sg, 1, buf, ctx, gfp);
+#endif
+
 	if (err < 0)
 		put_page(virt_to_head_page(buf));
 	return err;
@@ -1372,8 +1387,19 @@ static int add_recvbuf_big(struct virtnet_info *vi, struct receive_queue *rq,
 
 	/* chain first in list head */
 	first->private = (unsigned long)list;
+
+#ifdef ENABLE_CLOAK
+	if (no_shared_region_flag)
+		err = cloak_virtqueue_add_inbuf(rq->vq, rq->sg, vi->big_packets_num_skbfrags + 2,
+				  first, gfp, 3);
+	else
+		err = virtqueue_add_inbuf(rq->vq, rq->sg, vi->big_packets_num_skbfrags + 2,
+				  first, gfp);
+#else
 	err = virtqueue_add_inbuf(rq->vq, rq->sg, vi->big_packets_num_skbfrags + 2,
 				  first, gfp);
+#endif
+
 	if (err < 0)
 		give_pages(rq, first);
 
@@ -1433,7 +1459,16 @@ static int add_recvbuf_mergeable(struct virtnet_info *vi,
 
 	sg_init_one(rq->sg, buf, len);
 	ctx = mergeable_len_to_ctx(len, headroom);
+
+#ifdef ENABLE_CLOAK
+	if (no_shared_region_flag)
+		err = cloak_virtqueue_add_inbuf_ctx(rq->vq, rq->sg, 1, buf, ctx, gfp, 3);
+	else
+		err = virtqueue_add_inbuf_ctx(rq->vq, rq->sg, 1, buf, ctx, gfp);
+#else
 	err = virtqueue_add_inbuf_ctx(rq->vq, rq->sg, 1, buf, ctx, gfp);
+#endif
+
 	if (err < 0)
 		put_page(virt_to_head_page(buf));
 
@@ -1846,7 +1881,15 @@ static int xmit_skb(struct send_queue *sq, struct sk_buff *skb)
 	for(unsigned i=0; i<num_sg; i++) {
 		pr_info("[JB] sg-%d: offset: %lx, page_link: %lx, length: %lx, addr: %lx\n", i, sq->sg[i].offset, sq->sg[i].page_link, sq->sg[i].length, sq->sg[i].dma_address);
 	} */
+
+#ifdef ENABLE_CLOAK
+	if (no_shared_region_flag)
+		return cloak_virtqueue_add_outbuf(sq->vq, sq->sg, num_sg, skb, GFP_ATOMIC, 2);
+	else
+		return virtqueue_add_outbuf(sq->vq, sq->sg, num_sg, skb, GFP_ATOMIC);
+#else
 	return virtqueue_add_outbuf(sq->vq, sq->sg, num_sg, skb, GFP_ATOMIC);
+#endif
 }
 
 // [JB] for handling tx
@@ -2207,8 +2250,6 @@ static void virtnet_set_rx_mode(struct net_device *dev)
 	void *buf;
 	int i;
 
-    //pr_info("[JB] virtnet_set_rx_mode start\n");
-
 	/* We can't dynamically set ndo_set_rx_mode, so return gracefully */
 	if (!virtio_has_feature(vi->vdev, VIRTIO_NET_F_CTRL_RX))
 		return;
@@ -2266,7 +2307,7 @@ static void virtnet_set_rx_mode(struct net_device *dev)
 		dev_warn(&dev->dev, "Failed to set MAC filter table.\n");
 
 	kfree(buf);
-    //pr_info("[JB] virtnet_set_rx_mode end\n");
+    pr_info("[JB] virtnet_set_rx_mode end\n");
 }
 
 static int virtnet_vlan_rx_add_vid(struct net_device *dev,

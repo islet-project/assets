@@ -69,6 +69,25 @@ int cloak_virtqueue_add_sgs(struct virtqueue *vq,
               gfp_t gfp,
               int id);
 
+int cloak_virtqueue_add_outbuf(struct virtqueue *vq,
+			 struct scatterlist *sg, unsigned int num,
+			 void *data,
+			 gfp_t gfp,
+			 int id);
+
+int cloak_virtqueue_add_inbuf_ctx(struct virtqueue *vq,
+			struct scatterlist *sg, unsigned int num,
+			void *data,
+			void *ctx,
+			gfp_t gfp,
+			int id);
+
+int cloak_virtqueue_add_inbuf(struct virtqueue *vq,
+			struct scatterlist *sg, unsigned int num,
+			void *data,
+			gfp_t gfp,
+			int id);
+
 bool virtqueue_kick(struct virtqueue *vq);
 
 bool virtqueue_kick_prepare(struct virtqueue *vq);
