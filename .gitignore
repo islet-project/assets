@@ -1,0 +1,13 @@
+# Ignore miscellaneous files
+cscope.*
+*.swp
+*~
+.project
+.cproject
+.vscode/*
+*.o*
+tags
+log.*
+#Ignore build directory
+build/
+BUILD/
