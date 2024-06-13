@@ -923,8 +923,8 @@ static int set_ipa_state(struct kvm_vcpu *vcpu,
 
 	while (ipa < end) {
 		ret = rmi_rtt_set_ripas(rd_phys, rec_phys, ipa, level, ripas);
-        if (realm->is_gateway)
-    		cloak_map_unprotected(vcpu, realm, ipa, map_size, ripas);
+        //if (realm->is_gateway)
+    	//	cloak_map_unprotected(vcpu, realm, ipa, map_size, ripas);
 
 		if (!ret) {
 			if (!ripas)
@@ -1207,18 +1207,13 @@ static int kvm_rme_config_realm(struct kvm *kvm, struct kvm_enable_cap *cap)
             realm->is_gateway = 1;
             realm->is_no_shared_region = 0;
         }
-        else {
-            realm->is_gateway = 0;
-            realm->is_no_shared_region = 0;
-        }
-
-        if (strcmp((const char *)realm->params->rpv, "no_shared_region") == 0) {
+        else if (strcmp((const char *)realm->params->rpv, "no_shared_region") == 0) {
             realm->is_no_shared_region = 1;
             realm->is_gateway = 0;
         }
         else {
-            realm->is_no_shared_region = 0;
             realm->is_gateway = 0;
+            realm->is_no_shared_region = 0;
         }
 
         pr_info("[JB] rpv host_kernel: %s\n", realm->params->rpv); 
@@ -1344,12 +1339,22 @@ void kvm_destroy_realm(struct kvm *kvm)
 	kvm_free_stage2_pgd(&kvm->arch.mmu);
 }
 
+extern unsigned long cloak_host_call_response;
 int kvm_rec_enter(struct kvm_vcpu *vcpu)
 {
 	struct rec *rec = &vcpu->arch.rec;
+    struct realm *realm = &vcpu->kvm->arch.realm;
 
 	if (kvm_realm_state(vcpu->kvm) != REALM_STATE_ACTIVE)
 		return -EINVAL;
+
+    // [JB]
+    if (realm->is_gateway == 1) {
+        if (cloak_host_call_response != -1) {
+            rec->run->entry.gprs[6] = cloak_host_call_response;
+            cloak_host_call_response = -1;
+        }
+    }
 
 	return rmi_rec_enter(virt_to_phys(rec->rec_page),
 			     virt_to_phys(rec->run));
