@@ -1,0 +1,333 @@
+use crate::rsi::*;
+
+core::arch::global_asm!(include_str!("memcpy.S"));
+extern "C" {
+    fn asm_memcpy(dst: usize, src: usize, len: usize);
+}
+
+#[repr(C)]
+#[repr(align(4096))]
+#[derive(Copy, Clone)]
+struct VQCtrl {
+    buf: [u8; 2 * 1024 * 1024],
+}
+
+#[repr(C)]
+#[repr(align(4096))]
+#[derive(Copy, Clone)]
+struct VQData {
+    buf: [u8; 20 * 1024 * 1024],
+}
+
+static mut VQ_CTRL: VQCtrl = VQCtrl {
+    buf: [0; 2 * 1024 * 1024],
+};
+
+static mut VQ_DATA: VQData = VQData {
+    buf: [0; 20 * 1024 * 1024],
+};
+
+static mut VQ_DATA_PTR: usize = 0;
+static mut VQ_CTRL_9P: usize = 0;
+static mut VQ_CTRL_NET_TX: usize = 0;
+static mut VQ_CTRL_NET_RX: usize = 0;
+
+const IPA_OFFSET: usize = 0x100000000;
+const VQ_START: usize = 0x88400000;
+const VQ_DATA_HOST: usize = 0x188400000;
+const VQ_CTRL_9P_HOST: usize = VQ_DATA_HOST + (14 * 1024 * 1024);
+const VQ_CTRL_NET_TX_HOST: usize = VQ_DATA_HOST + (18 * 1024 * 1024);
+const VQ_CTRL_NET_RX_HOST: usize = VQ_DATA_HOST + (22 * 1024 * 1024);
+const VIRTQUEUE_NUM: usize = 128;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct IOVec {
+    iov_base: usize,
+    iov_len: usize,
+}
+
+// p9 structs
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct P9pdu {
+    queue_head: u32,
+    read_offset: usize,
+    write_offset: usize,
+    out_iov_cnt: u16,
+    in_iov_cnt: u16,
+    in_iov: [IOVec; VIRTQUEUE_NUM],
+    out_iov: [IOVec; VIRTQUEUE_NUM],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct P9msg {
+    size: u32,
+    cmd: u8,
+    tag: u16,
+}
+
+static mut P9PDU: P9pdu = P9pdu {
+    queue_head: 0,
+    read_offset: 0,
+    write_offset: 0,
+    out_iov_cnt: 0,
+    in_iov_cnt: 0,
+    in_iov: [IOVec { iov_base: 0, iov_len: 0 }; VIRTQUEUE_NUM],
+    out_iov: [IOVec { iov_base: 0, iov_len: 0 }; VIRTQUEUE_NUM],
+};
+
+// net tap device
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct NetTX {
+    out_cnt: u32,
+    iovs: [IOVec; VIRTQUEUE_NUM],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct NetRX {
+    in_cnt: u32,
+    iovs: [IOVec; VIRTQUEUE_NUM],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct VirtioNetHdr {
+    flags: u8,
+    gso_type: u8,
+    hdr_len: u16,
+    gso_size: u16,
+    csum_start: u16,
+    csum_offset: u16,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct VirtioNetHdrMgrRxbuf {
+    hdr: VirtioNetHdr,
+    num_buffers: u16,
+}
+
+struct Accessor {
+    addr: usize,
+}
+
+impl Accessor {
+    fn new(addr: usize) -> Self {
+        Self { addr }
+    }
+    
+    fn from<T: Copy>(&self) -> &T {
+        unsafe { &*(self.addr as *const T) }
+    }
+
+    /*
+    fn from_raw<T: Copy>(&self) -> *const T {
+        self.addr as *const T
+    } */
+
+    fn from_mut<T: Copy>(&mut self) -> &mut T {
+        unsafe { &mut *(self.addr as *mut T) }
+    }
+
+    /*
+    fn from_mut_raw<T: Copy>(&mut self) -> *mut T {
+        self.addr as *mut T
+    } */
+}
+
+fn vq_data() -> usize {
+    unsafe { VQ_DATA_PTR }
+}
+fn vq_ctrl() -> usize {
+    unsafe { &VQ_CTRL as *const _ as usize }
+}
+fn vq_ctrl_9p() -> usize {
+    unsafe { VQ_CTRL_9P }
+}
+fn vq_ctrl_net_tx() -> usize {
+    unsafe { VQ_CTRL_NET_TX }
+}
+/*
+fn vq_ctrl_net_rx() -> usize {
+    unsafe { VQ_CTRL_NET_RX }
+} */
+
+fn align_to_2mb(addr: usize) -> usize {
+    let align_min = 2 * 1024 * 1024;
+    let remainder = addr % align_min;
+    let aligned_addr = addr + (align_min - remainder);
+    aligned_addr
+}
+
+pub fn create_memory_cvm_shared() {
+    unsafe {
+        let ptr = &VQ_DATA as *const _ as usize;
+        let aligned_ptr = align_to_2mb(ptr);
+        let ctrl_ptr = &VQ_CTRL as *const _ as usize;
+
+        VQ_DATA_PTR = aligned_ptr;
+        VQ_CTRL_9P = ctrl_ptr;
+        VQ_CTRL_NET_TX = ctrl_ptr + (1 * 1024 * 1024);
+        VQ_CTRL_NET_RX = ctrl_ptr + (1 * 1024 * 1024) + (512 * 1024);
+
+        rsi_cloak_create_memory_shared(0, vq_data(), 16 * 1024 * 1024);
+        rsi_cloak_create_memory_shared(1, vq_ctrl(), 2 * 1024 * 1024);
+    }
+}
+
+// virtio common functions
+fn copy_iovs(iovs: &[IOVec; VIRTQUEUE_NUM], cnt: usize, to_host_shared: bool) {
+    let mut offset: usize;
+    let mut len: usize;
+    let mut src_addr: usize;
+    let mut dst_addr: usize;
+
+    for i in 0..cnt {
+        offset = iovs[i].iov_base - VQ_START;
+        len = iovs[i].iov_len;
+
+        if to_host_shared {
+            src_addr = vq_data() + offset;
+            dst_addr = iovs[i].iov_base + IPA_OFFSET;
+        } else {
+            dst_addr = vq_data() + offset;
+            src_addr = iovs[i].iov_base + IPA_OFFSET;
+        }
+
+        // ISSUE: without this dummy memcpy, the main copy function is going to cause a data abort. why?
+        //   - TODO: solve this issue
+        let test_1: usize = 0;
+        unsafe {
+            asm_memcpy(&test_1 as *const _ as usize, src_addr, 8);
+        }
+
+        let test_2: usize = 0;
+        unsafe {
+            asm_memcpy(dst_addr, &test_2 as *const _ as usize, 8);
+        }
+
+        unsafe {
+            asm_memcpy(dst_addr, src_addr, len);
+        }
+    }
+}
+
+// p9 (file)
+pub fn handle_p9_request() {
+    let mut host_acc = Accessor::new(VQ_CTRL_9P_HOST);
+    let cvm_acc = Accessor::new(vq_ctrl_9p());
+    let p9pdu_host_shared = host_acc.from_mut::<P9pdu>();
+    let p9pdu_cvm_shared = cvm_acc.from::<P9pdu>();
+    let p9pdu = unsafe { &mut P9PDU };
+
+    // 1. copy iov
+    *p9pdu = *p9pdu_cvm_shared;
+    *p9pdu_host_shared = *p9pdu;
+
+    // 2. copy data
+    copy_iovs(&p9pdu.in_iov, p9pdu.in_iov_cnt as usize, true);
+    copy_iovs(&p9pdu.out_iov, p9pdu.out_iov_cnt as usize, true);
+}
+
+pub fn handle_p9_response() {
+    let p9pdu = unsafe { &mut P9PDU };
+    copy_iovs(&p9pdu.in_iov, p9pdu.in_iov_cnt as usize, false);
+    copy_iovs(&p9pdu.out_iov, p9pdu.out_iov_cnt as usize, false);
+}
+
+// tap (net)
+pub fn handle_net_tx_request() {
+    let mut host_acc = Accessor::new(VQ_CTRL_NET_TX_HOST);
+    let cvm_acc = Accessor::new(vq_ctrl_net_tx());
+    let net_tx_host = host_acc.from_mut::<NetTX>();
+    let net_tx_cvm = cvm_acc.from::<NetTX>();
+
+    // 1. copy iov
+    if net_tx_cvm.out_cnt as usize >= VIRTQUEUE_NUM {
+        rsi_print("net_tx_request out_cnt too big", net_tx_cvm.out_cnt as usize, 0);
+        return;
+    }
+    if net_tx_cvm.out_cnt == 0 {
+        rsi_print("no net_tx_request", 0, 0);
+        return;
+    }
+
+    net_tx_host.out_cnt = net_tx_cvm.out_cnt;
+    for i in 0..net_tx_cvm.out_cnt {
+        let dst_addr = &net_tx_host.iovs[i as usize] as *const _ as usize;
+        let src_addr = &net_tx_cvm.iovs[i as usize] as *const _ as usize;
+        unsafe {
+            asm_memcpy(dst_addr, src_addr, core::mem::size_of::<IOVec>());
+        }
+    }
+
+    // 2. copy data
+    copy_iovs(&net_tx_cvm.iovs, net_tx_cvm.out_cnt as usize, true);
+}
+
+pub fn handle_net_rx_response() {
+    let len: u32;
+    let mut llen: usize;
+    let mut iiov: IOVec = IOVec {
+        iov_base: 0,
+        iov_len: 0,
+    };
+    let mut ptr_addr: usize = VQ_CTRL_NET_RX_HOST;
+    let mut offset: usize;
+    let mut dst_addr: usize;
+
+    // read total_len first
+    let acc = Accessor::new(ptr_addr);
+    len = *(acc.from::<u32>());
+    llen = len as usize;
+    ptr_addr += core::mem::size_of::<u32>();
+
+    // iov iteration
+    while llen > 0 {
+        // read iovec
+        let iiov_addr = &iiov as *const _ as usize;
+        unsafe {
+            asm_memcpy(iiov_addr, ptr_addr, core::mem::size_of::<IOVec>());
+        }
+        ptr_addr += core::mem::size_of::<IOVec>();
+
+        // translate addr
+        offset = iiov.iov_base - VQ_START;
+        dst_addr = vq_data() + offset;
+
+        if iiov.iov_len > 0 {
+            let copy: usize = core::cmp::min(iiov.iov_len, llen);
+            
+            unsafe {
+                asm_memcpy(dst_addr, ptr_addr, copy);
+            }
+            ptr_addr += copy;
+            llen -= copy;
+            iiov.iov_len -= copy;
+            iiov.iov_base += copy;
+        }
+    }
+}
+
+pub fn handle_net_rx_num_buffers() {
+    let mut ptr_addr: usize = VQ_CTRL_NET_RX_HOST;
+    let iov_base: usize;
+    let new_addr: usize;
+    let num_buffers: u16;
+
+    let acc = Accessor::new(ptr_addr);
+    iov_base = *(acc.from::<usize>());
+    ptr_addr += core::mem::size_of::<usize>();
+
+    let acc = Accessor::new(ptr_addr);
+    num_buffers = *(acc.from::<u16>());
+
+    new_addr = vq_data() + (iov_base - VQ_START);
+    let mut acc = Accessor::new(new_addr);
+    let hdr = acc.from_mut::<VirtioNetHdrMgrRxbuf>();
+    hdr.num_buffers = num_buffers;
+}

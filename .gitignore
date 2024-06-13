@@ -11,3 +11,7 @@ log.*
 #Ignore build directory
 build/
 BUILD/
+target/
+Cargo.lock
+*.dump
+*.bin

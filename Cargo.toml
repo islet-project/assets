@@ -1,0 +1,15 @@
+[package]
+name = "gateway"
+version = "0.0.1"
+authors = ["Islet Contributors"]
+edition = "2021"
+
+[[bin]]
+name = "gateway"
+path = "src/main.rs"
+
+[features]
+
+[dependencies]
+
+[build-dependencies]

@@ -1,19 +1,14 @@
 #!/bin/sh
 
-rm -rf build/
-mkdir build/
-cd build/
+OBJCOPY=/home/jinbum/github/islet/assets/toolchain/aarch64-none-elf/bin/aarch64-none-elf-objcopy
+OBJDUMP=/home/jinbum/github/islet/assets/toolchain/aarch64-none-elf/bin/aarch64-none-elf-objdump
 
-aarch64-linux-gnu-gcc -E -P -I../inc/ ../image.ld.S -o image.ld
+# build
+rm -rf target/
+cargo build
 
-cmake ..
-make
+# generate .bin
+${OBJCOPY} -Obinary ./target/aarch64-unknown-none-softfloat/debug/gateway cvm_gateway.bin
+${OBJDUMP} -D ./target/aarch64-unknown-none-softfloat/debug/gateway > cvm_gateway.dump
 
-# create a kvmtool-loadable binary
-#aarch64-linux-gnu-gcc -E -P -I../inc/ ../image.ld.S -o image.ld
-#aarch64-linux-gnu-ld --fatal-warnings -pie --no-dynamic-linker -O1 --gc-sections --build-id=none \
-#    -T image.ld -o gateway.elf libgateway.a
-
-
-#aarch64-linux-gnu-ld -T image.ld -o gateway.elf libgateway.a
-#aarch64-linux-gnu-ld -o gateway.elf libgateway.a -entry acs_realm_entry
+cp -f cvm_gateway.bin ~/ssd/github/islet/out/shared/cvm_gateway.bin
