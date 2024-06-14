@@ -7,6 +7,24 @@
 #include <linux/workqueue.h>
 #include <linux/io.h>
 
+#include <linux/string.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include <linux/kthread.h>
+#include <linux/file.h>
+#include <linux/mm.h>
+
+/* for the character device */
+#define DEVICE_NAME "gch_char"
+#define MINOR_BASE 0
+#define MINOR_NUM 1
+
+static int dev_major_num;
+static struct cdev ch_cdev;
+static struct class *ch_class;
+static u64 global_msg;
+
+/* for the PCI device */
 #define DRIVER_NAME "guest_channel"
 #define VENDOR_ID 0x1af4
 #define DEVICE_ID 0x1110 // temporarily uses ivshmem's device id
@@ -72,8 +90,10 @@ struct channel_priv {
 static void set_peer_id(void) {
 	int peer_id;
 
-	if (drv_priv->peer.id)
+	if (drv_priv->peer.id) {
+		pr_info("[GCH] %s peer id is already set %d",__func__, drv_priv->peer.id);
 		return;
+	}
 	
 	peer_id = readl(drv_priv->mapped_bar_addr + BAR_MMIO_OFFSET_PEER_VMID);
 
@@ -93,7 +113,7 @@ static void send_signal(int peer_id, uint32_t* ioeventfd_addr) {
 }
 
 static void ch_send(struct work_struct *work) {
-	char msg[8] = "BEEF";
+	u64 msg = 0xBEEF;
 
 	set_peer_id();
 
@@ -118,18 +138,18 @@ static void ch_send(struct work_struct *work) {
 		set_memory_shared(SHM_RW_BASE_IPA, 1);
 	}
 
-	strncpy((char*)drv_priv->shm_base_va, msg, sizeof(msg));
-	pr_err("[GCH] %s strncpy msg to drv_priv->shm_base_va: %s\n", __func__, drv_priv->shm_base_va);
+	//strncpy((char*)drv_priv->shm_base_va, msg, sizeof(msg));
+	*drv_priv->shm_base_va = msg;
+	pr_err("[GCH] %s write msg to drv_priv->shm_base_va: 0x%llx\n", __func__, *drv_priv->shm_base_va);
 	send_signal(drv_priv->peer.id, drv_priv->ioeventfd_addr);
 }
 
 static void ch_receive(struct work_struct *work) {
 	u64 shm_ro_base_ipa = 0;
-	char msg[8];
 
 	set_peer_id();
 
-	pr_err("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
+	pr_err("[GCH] %s start. And my role: %d, global_msg: 0x%llx", __func__, drv_priv->role, global_msg);
 	if (drv_priv->role != SERVER) {
 		pr_err("[GCH] My role is not SERVER but %d", drv_priv->role);
 		return;
@@ -156,7 +176,11 @@ static void ch_receive(struct work_struct *work) {
 	}
 
 	if (drv_priv->shm_ro_base_va)  {
-		pr_err("[GCH] let's read the msg one by one:");
+		pr_err("[GCH] %s let's read & write the shm_ro_base_va to global_msg", __func__);
+
+		global_msg = *drv_priv->shm_ro_base_va;
+
+		/*
 		for (int i; i < 4; i++) {
 			char* ptr = (char*)drv_priv->shm_ro_base_va;
 			pr_err("shm_ro_base_va[%d]: %c\n", i, ptr[i]);
@@ -164,35 +188,139 @@ static void ch_receive(struct work_struct *work) {
 
 		pr_err("[GCH] strncpy start from shm_ro_base_va: %llx to msg\n", drv_priv->shm_ro_base_va);
 		strncpy(msg, (const char *)drv_priv->shm_ro_base_va, sizeof(msg));
-		pr_err("[GCH] %s msg read result: %s\n", __func__, msg);
-
-		pr_err("[GCH] let's read the msg one by one:");
-		for (int i; i < 4; i++) {
-			char* ptr = (char*)drv_priv->shm_ro_base_va;
-			pr_err("shm_ro_base_va[%d]: %c\n", i, ptr[i]);
-		}
+		*/
+		pr_err("[GCH] %s global_msg read result: 0x%llx\n", __func__, global_msg);
 	} else {
 		pr_err("[GCH] drv_priv->shm_ro_base_va is zero.\n");
 	}
 }
 
+static int channel_open(struct inode *inode, struct file *file)
+{
+	pr_info("[GCH] %s start", __func__);
+    return 0;
+}
+
+static int channel_release(struct inode * inode, struct file * file)
+{
+	pr_info("[GCH] %s start", __func__);
+    if (file->private_data) {
+        kfree(file->private_data);
+        file->private_data = NULL;
+    }
+    return 0;
+}
+
+static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *f_pos) {
+	pr_info("[GCH] %s start, global_msg 0x%llx", __func__, global_msg);
+
+	if (drv_priv->role == CLIENT) {
+		pr_info("[GCH] %s start schedule_work for send", __func__);
+		schedule_work(&drv_priv->send);
+	} else if (drv_priv->role == SERVER) {
+		pr_info("[GCH] %s start schedule_work for receive", __func__);
+		schedule_work(&drv_priv->receive);
+	} else {
+		pr_info("[GCH] %s start have no peer. set_peer_id start", __func__);
+		set_peer_id();
+	}
+    return 0;
+}
+
+static ssize_t channel_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	u64 buffer[10] = {};
+
+    pr_info("%s Before calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
+    if (copy_from_user(&buffer, buf, count) != 0) {
+        return -EFAULT;
+    }
+    pr_info("%s After calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
+
+	pr_info("%s write 0x%llx to the drv_priv->shm_ro_base_va 0x%llx", __func__, buffer[0], drv_priv->shm_ro_base_va);
+
+	if (drv_priv->shm_ro_base_va) {
+		*drv_priv->shm_ro_base_va = buffer[0];
+	} else {
+		pr_err("%s drv_priv->shm_ro_base_va is zero", __func__);
+	}
+
+    return count;
+}
+
+static const struct file_operations ch_fops = {
+	.owner   = THIS_MODULE,
+	.open	= channel_open,
+	.release = channel_release,
+	.read = channel_read,
+	.write = channel_write,
+};
+
 static int __init channel_init(void)
 {
 	int ret = 0;
+	struct device *dev_struct;
+	dev_t ch_dev;
 
 	pr_info("[GCH] %s start\n", __func__);
 
+	/* setup character device */
+	ret = alloc_chrdev_region(&ch_dev, MINOR_BASE, MINOR_NUM, DEVICE_NAME);
+	if (ret) {
+		pr_err("[CH] %s alloc_chrdev_region failed %d\n", __func__, ret);
+		return ret;
+	}
+
+	cdev_init(&ch_cdev, &ch_fops);
+
+	ret = cdev_add(&ch_cdev, ch_dev, MINOR_NUM);
+	if (ret) {
+		pr_err("[CH] %s cdev_add failed %d\n", __func__, ret);
+		goto unreg_dev_num;
+	}
+
+	ch_class = class_create(THIS_MODULE, DEVICE_NAME);
+	if (IS_ERR(ch_class)) {
+		pr_err("[CH] %s class_create failed\n", __func__);
+		goto unreg_cdev;
+	}
+
+	dev_struct = device_create(ch_class, NULL, ch_dev, NULL, DEVICE_NAME);
+	if (IS_ERR(dev_struct)) {
+		pr_err("[CH] %s device_create failed\n", __func__);
+		goto unreg_class;
+	}
+	dev_major_num = MAJOR(ch_dev);
+	pr_info("[CH] %s major:minor = %d:%d\n", __func__, dev_major_num, MINOR(ch_dev));
+
+	/* setup pci device */
 	ret = pci_register_driver(&channel_driver);
 	if (ret) {
 		pr_err("[GCH] pci_register_driver failed %d\n", ret);
 	}
 
 	return ret;
+
+unreg_class:
+	class_destroy(ch_class);
+unreg_cdev:
+	cdev_del(&ch_cdev);
+unreg_dev_num:
+	unregister_chrdev_region(ch_dev, MINOR_NUM);
+	return ret ? ret : -1;
 }
 
 static void __exit channel_exit(void)
 {
+	dev_t dev = MKDEV(dev_major_num, MINOR_BASE);
+
 	pr_info("[GCH] %s start\n", __func__);
+
+	device_destroy(ch_class, dev);
+	class_destroy(ch_class);
+	cdev_del(&ch_cdev);
+	unregister_chrdev_region(dev, MINOR_NUM);
+
     pci_unregister_driver(&channel_driver);
 }
 
@@ -207,9 +335,10 @@ static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 {
 	//struct peer* peer = (struct peer*)dev_instance;
 	static int cnt = 0;
-	pr_info("[GCH] IRQ #%d cnt %d\n", irq, cnt);
+	pr_info("[GCH] IRQ #%d cnt %d, global_msg: 0x%llx\n", irq, cnt, global_msg);
 
 	if (drv_priv->role == SERVER) {
+		pr_info("[GCH] %s start schedule_work for receive", __func__);
 		schedule_work(&drv_priv->receive);
 	}
 
@@ -225,7 +354,8 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
     uint32_t dev_ioeventfd_addr, dev_ioeventfd_size;
     uint32_t bar_addr, bar_size;
 
-    pr_info("[GCH] %s start\n", __func__);
+	global_msg = 0;
+    pr_info("[GCH] %s start, global_msg 0x%llx\n", __func__, global_msg);
 
     /* Let's read data from the PCI device configuration registers */
     pci_read_config_word(pdev, PCI_VENDOR_ID, &vendor);
@@ -301,10 +431,12 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	send_signal(drv_priv->peer.id, drv_priv->ioeventfd_addr);
 	*/
 
+	/*
 	if (drv_priv->role == CLIENT) {
 		pr_info("[GCH] start schedule_work for send");
 		schedule_work(&drv_priv->send);
 	}
+	*/
 
 	pr_info("[GCH] %s done\n", __func__);
 
