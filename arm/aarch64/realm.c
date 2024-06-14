@@ -130,10 +130,11 @@ static void realm_populate(struct kvm *kvm, u64 start, u64 size)
 
 void map_memory_to_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size)
 {
-	struct kvm_cap_arm_rme_map_memory_to_realm_args args= {
+	int ret;
+	struct kvm_cap_arm_rme_map_memory_to_realm_args args = {
 		.hva = hva,
-		.ipa_base = ipa_base, 
-		.size = size, 
+		.ipa_base = ipa_base,
+		.size = size,
 	};
 	struct kvm_enable_cap rme_map_mem_to_realm = {
 		.cap = KVM_CAP_ARM_RME,
@@ -141,9 +142,11 @@ void map_memory_to_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size)
 		.args[1] = (u64)&args
 	};
 
-	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_map_mem_to_realm) < 0)
-		die("unable to map memory to realm. hva: %llx, ipa: %llx - %llx (size %llu)",
-		    hva, ipa_base, ipa_base + size, size);
+	ret = ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_map_mem_to_realm);
+	if (ret < 0) {
+		die("unable to map memory to realm. ret:%d, hva: %llx, ipa: %llx - %llx (size %llu)",
+		    ret, hva, ipa_base, ipa_base + size, size);
+	}
 }
 
 static bool is_arm64_linux_kernel_image(void *header)

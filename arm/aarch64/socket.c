@@ -349,7 +349,7 @@ static int handle_fds(Client* client, fd_set *fds, int maxfd) {
 		}
 		ch_syslog("%s shm_alloc_efd cnt: %d", __func__, efd_cnt);
 
-		ret = allocate_shm_after_realm_activate(client->kvm);
+		ret = allocate_shm_after_realm_activate(client->kvm, client->vmid, false);
 	}
 
     return ret;

@@ -25,9 +25,22 @@
 #define INTER_REALM_SHM_SIZE (1 << 12) // 4KB or 2MB only
 // INTER_REALM_SHM_IPA_RANGE = [0xC000_0000:0xFFFF_FFFF]
 #define INTER_REALM_SHM_IPA_BASE 0xC0000000
+#define INTER_REALM_SHM_RW_IPA_START 0xC0000000
+#define INTER_REALM_SHM_RO_IPA_START 0xD0000000
 #define INTER_REALM_SHM_IPA_END 0xC0000000 + 0x40000000 // 0x1_0000_0000
 
+#define BAR_MMIO_OFFSET_PEER_VMID 0
+#define BAR_MMIO_OFFSET_SHM_RO_IPA_BASE 64 // 8 byte
+
 #define SYSLOG_PREFIX "KVMTOOL"
+
+struct channel_ioctl_info {
+	__u64 owner_vmid;
+	__u64 shm_pa;
+};
+
+#define CHANNEL_IO 0xC
+#define CH_GET_SHM_PA _IOWR(CHANNEL_IO, 0x1, struct channel_ioctl_info)
 
 struct vchannel_device {
 	struct pci_device_header	pci_hdr;
@@ -49,6 +62,6 @@ static void ch_syslog(const char *format, ...) {
 	closelog();
 }
 
-int allocate_shm_after_realm_activate(struct kvm *kvm);
+int allocate_shm_after_realm_activate(struct kvm *kvm, int vmid, bool need_allocated_mem);
 
 #endif // ARM_AARCH64__CHANNEL_H
