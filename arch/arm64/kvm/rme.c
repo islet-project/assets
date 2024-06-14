@@ -522,6 +522,83 @@ static int fold_rtt(phys_addr_t rd, unsigned long addr, int level,
 	return 0;
 }
 
+int realm_map_protected_ro(struct realm *realm,
+			unsigned long hva,
+			unsigned long base_ipa,
+			struct page *dst_page,
+			unsigned long map_size,
+			struct kvm_mmu_memory_cache *memcache)
+{
+	phys_addr_t dst_phys = page_to_phys(dst_page);
+	phys_addr_t rd = virt_to_phys(realm->rd);
+	unsigned long phys = dst_phys;
+	unsigned long ipa = base_ipa;
+	unsigned long size;
+	int map_level;
+	int ret = 0;
+
+	if (WARN_ON(!IS_ALIGNED(ipa, map_size)))
+		return -EINVAL;
+
+	switch (map_size) {
+	case PAGE_SIZE:
+		map_level = 3;
+		break;
+	case RME_L2_BLOCK_SIZE:
+		map_level = 2;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if (map_level < RME_RTT_MAX_LEVEL) {
+		/*
+		 * A temporary RTT is needed during the map, precreate it,
+		 * however if there is an error (e.g. missing parent tables)
+		 * this will be handled below.
+		 */
+		realm_create_rtt_levels(realm, ipa, map_level,
+					RME_RTT_MAX_LEVEL, memcache);
+	}
+
+	for (size = 0; size < map_size; size += PAGE_SIZE) {
+		ret = rmi_map_shared_mem_as_ro(phys, rd, ipa);
+
+		if (RMI_RETURN_STATUS(ret) == RMI_ERROR_RTT) {
+			/* Create missing RTTs and retry */
+			int level = RMI_RETURN_INDEX(ret);
+
+			pr_err("%s realm_create_rtt_levels start", __func__);
+			ret = realm_create_rtt_levels(realm, ipa, level,
+						      RME_RTT_MAX_LEVEL,
+						      memcache);
+			WARN_ON(ret);
+			if (ret)
+				goto err;
+
+			pr_err("%s rmi_map_shared_mem_as_ro start again!", __func__);
+			ret = rmi_map_shared_mem_as_ro(phys, rd, ipa);
+		}
+		WARN_ON(ret);
+
+		if (ret)
+			goto err;
+
+		phys += PAGE_SIZE;
+		ipa += PAGE_SIZE;
+	}
+
+	if (map_size == RME_L2_BLOCK_SIZE)
+		ret = fold_rtt(rd, base_ipa, map_level, realm);
+	if (WARN_ON(ret))
+		goto err;
+
+	return 0;
+
+err:
+	return -ENXIO;
+}
+
 int realm_map_protected(struct realm *realm,
 			unsigned long hva,
 			unsigned long base_ipa,
@@ -1197,7 +1274,32 @@ static int kvm_map_memory_to_realm(struct kvm *kvm,
 
 	pr_info("%s hva %llx, ipa_base %llx size %llx phys: %llx", __func__, hva, args->ipa_base, args->size, __pfn_to_phys(pfn));
 	ret = realm_map_protected(&kvm->arch.realm, hva, args->ipa_base, page, args->size, NULL);
-	pr_err("realm_map_protected failed with %d", ret);
+	if (ret) {
+		pr_err("realm_map_protected failed with %d", ret);
+		return ret;
+	}
+
+	return ret;
+}
+
+static int kvm_map_memory_to_realm_as_ro(struct kvm *kvm,
+				    struct kvm_cap_arm_rme_map_memory_to_realm_args *args)
+{
+	int ret;
+	u64 hva = args->hva;
+	kvm_pfn_t pfn;
+	struct page *page;
+
+	pfn = hva_to_pfn(hva, false, false, NULL, false, NULL);
+	page = pfn_to_page(pfn);
+
+	pr_info("%s hva %llx, ipa_base %llx size %llx phys: %llx", __func__, hva, args->ipa_base, args->size, __pfn_to_phys(pfn));
+	ret = realm_map_protected_ro(&kvm->arch.realm, hva, args->ipa_base, page, args->size, NULL);
+	if (ret) {
+		pr_err("realm_map_protected_ro failed with %d", ret);
+		return ret;
+	}
+	pr_info("realm_map_protected_ro done");
 
 	return ret;
 }
@@ -1254,7 +1356,11 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 			break;
 		}
 
-		r = kvm_map_memory_to_realm(kvm, &args);
+		if (args.read_only) {
+			r = kvm_map_memory_to_realm_as_ro(kvm, &args);
+		} else {
+			r = kvm_map_memory_to_realm(kvm, &args);
+		}
 		break;
 	}
 	default:

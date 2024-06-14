@@ -29,6 +29,19 @@ static inline int rmi_data_create(unsigned long data, unsigned long rd,
 	return res.a0;
 }
 
+static inline int rmi_map_shared_mem_as_ro(unsigned long phys,
+					  unsigned long rd,
+					  unsigned long map_addr)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_1_1_invoke(SMC_RMI_MAP_SHARED_MEM_AS_RO, phys, rd, map_addr,
+			     &res);
+
+	return res.a0;
+}
+
+
 static inline int rmi_data_create_unknown(unsigned long data,
 					  unsigned long rd,
 					  unsigned long map_addr)

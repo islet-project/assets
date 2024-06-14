@@ -35,6 +35,9 @@
 
 #define VMID_MAX 256
 
+#define MMAP_VMID_MASK 0xFF
+#define MMAP_GET_ALLOCED_MEM_MASK 0x100
+
 static int dev_major_num;
 
 /* This is a "private" data structure */
@@ -78,31 +81,36 @@ static int channel_release(struct inode * inode, struct file * file)
 static int channel_mmap(struct file *filp, struct vm_area_struct *vma) 
 {
 	u64 req_size = vma->vm_end - vma->vm_start;
-	void *addr;
-	u64 shm_owner_vmid = vma->vm_pgoff;
+	u64 phys_addr = NULL;
+	u64 offset = vma->vm_pgoff;
+	u64 shm_owner_vmid = offset & MMAP_VMID_MASK;
 
-	pr_info("[HCH] vm_flags 0x%llx vm_page_prot 0x%llx\n", vma->vm_flags, vma->vm_page_prot);
+	pr_info("[HCH] vm_flags 0x%llx vm_page_prot 0x%llx offset 0x%llx\n", vma->vm_flags, vma->vm_page_prot, offset);
 
 	if (req_size != INTER_REALM_SHM_SIZE) {
 		pr_err("%s Incorrect req_size 0x%llx != 0x%llx\n", __func__, req_size, INTER_REALM_SHM_SIZE);
 		return -EINVAL;
 	}
 
-	addr = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO | __GFP_MOVABLE,
-					get_order(INTER_REALM_SHM_SIZE));
-	if (!addr) {
-		pr_err("%s __get_free_pages failed\n", __func__);
-		return -ENOMEM;
+	if (offset & MMAP_GET_ALLOCED_MEM_MASK) {
+		phys_addr = drv_priv.shm_pa[shm_owner_vmid];
+	} else {
+		void *va = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO | __GFP_MOVABLE,
+				get_order(INTER_REALM_SHM_SIZE));
+		if (!va) {
+			pr_err("%s __get_free_pages failed\n", __func__);
+			return -ENOMEM;
+		}
+		phys_addr = __pa(va);
+
+		drv_priv.shm_pa[shm_owner_vmid] = phys_addr;
+		pr_info("[HCH] mmap va %p, pa %llx, size 0x%llx, shm_owner_vmid %d \n",
+				va, phys_addr, INTER_REALM_SHM_SIZE, shm_owner_vmid);
 	}
-
-	drv_priv.shm_pa[shm_owner_vmid] = __pa(addr);
-
-	pr_info("[HCH] mmap addr %p, pa %llx, size 0x%llx, shm_owner_vmid %d \n",
-			addr, __pa(addr), INTER_REALM_SHM_SIZE, shm_owner_vmid);
 
 	/* Mapping pages to user process */
 	return remap_pfn_range(vma, vma->vm_start,
-			       PFN_DOWN(__pa(addr)), INTER_REALM_SHM_SIZE, vma->vm_page_prot);
+			       PFN_DOWN(phys_addr), INTER_REALM_SHM_SIZE, vma->vm_page_prot);
 }
 
 static const struct file_operations ch_fops = {

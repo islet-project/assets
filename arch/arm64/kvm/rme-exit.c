@@ -86,7 +86,7 @@ static int rec_exit_ripas_change(struct kvm_vcpu *vcpu)
 	struct rec *rec = &vcpu->arch.rec;
 	unsigned long base = rec->run->exit.ripas_base;
 	unsigned long size = rec->run->exit.ripas_size;
-	unsigned long ripas = rec->run->exit.ripas_value & 1;
+	unsigned long ripas = rec->run->exit.ripas_value & 3;
 	int ret = -EINVAL;
 
 	if (realm_is_addr_protected(realm, base) &&
