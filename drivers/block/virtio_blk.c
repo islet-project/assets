@@ -30,6 +30,8 @@
 #define VIRTIO_BLK_INLINE_SG_CNT	2
 #endif
 
+extern unsigned long no_shared_region_flag;
+
 static unsigned int num_request_queues;
 module_param(num_request_queues, uint, 0644);
 MODULE_PARM_DESC(num_request_queues,
@@ -118,16 +120,22 @@ static int virtblk_add_req(struct virtqueue *vq, struct virtblk_req *vbr)
 	sgs[num_out++] = &hdr;
 
 	if (vbr->sg_table.nents) {
-		if (vbr->out_hdr.type & cpu_to_virtio32(vq->vdev, VIRTIO_BLK_T_OUT))
+		if (vbr->out_hdr.type & cpu_to_virtio32(vq->vdev, VIRTIO_BLK_T_OUT)) {
 			sgs[num_out++] = vbr->sg_table.sgl;
-		else
+		}
+		else {
 			sgs[num_out + num_in++] = vbr->sg_table.sgl;
+		}
 	}
 
 	sg_init_one(&status, &vbr->status, sizeof(vbr->status));
 	sgs[num_out + num_in++] = &status;
 
-	return virtqueue_add_sgs(vq, sgs, num_out, num_in, vbr, GFP_ATOMIC);
+	if (no_shared_region_flag) {
+		return cloak_virtqueue_add_sgs(vq, sgs, num_out, num_in, vbr, GFP_ATOMIC, 4);
+	} else {
+		return virtqueue_add_sgs(vq, sgs, num_out, num_in, vbr, GFP_ATOMIC);
+	}
 }
 
 static int virtblk_setup_discard_write_zeroes_erase(struct request *req, bool unmap)
@@ -935,6 +943,13 @@ static int virtblk_probe(struct virtio_device *vdev)
 	err = init_vq(vblk);
 	if (err)
 		goto out_free_vblk;
+
+	// [JB] test!
+	if (virtio_has_feature(vdev, VIRTIO_RING_F_INDIRECT_DESC)) {
+		pr_info("[JB] VIRTIO_RING_F_INDIRECT_DESC enabled for virtio-blk!\n");
+	} else {
+		pr_info("[JB] VIRTIO_RING_F_INDIRECT_DESC disabled for virtio-blk!\n");
+	}
 
 	/* Default queue sizing is to fill the ring. */
 	if (!virtblk_queue_depth) {

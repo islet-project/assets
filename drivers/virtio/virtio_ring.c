@@ -236,6 +236,9 @@ static inline bool virtqueue_use_indirect(struct vring_virtqueue *vq,
 	 * buffers, then go indirect. FIXME: tune this threshold
 	 */
 	return (vq->indirect && total_sg > 1 && vq->vq.num_free);
+
+    // [JB] disable it for testing purpose
+    //return false;
 }
 
 /*
@@ -528,9 +531,16 @@ struct net_rx_cloak {
 	struct iovec iovs[];
 };
 
+struct blk_cloak {
+    unsigned int out_cnt;
+	unsigned int in_cnt;
+    struct iovec iovs[];  // out comes first, then in comes
+};
+
 #define CLOAK_VQ_DESC_9P (cloak_vq_desc_mem)
 #define CLOAK_VQ_DESC_NET_TX (cloak_vq_desc_mem + (1 * 1024 * 1024))
 #define CLOAK_VQ_DESC_NET_RX (cloak_vq_desc_mem + (1 * 1024 * 1024) + (512 * 1024))
+#define CLOAK_VQ_DESC_BLK (cloak_vq_desc_mem + (1 * 1024 * 1024) + (800 * 1024))
 
 static inline int virtqueue_add_split(struct virtqueue *_vq,
 				      struct scatterlist *sgs[],
@@ -554,10 +564,12 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 	// cloak_id == 1: 9p vq control for cloak
 	// cloak_id == 2: net tap tx for cloak
 	// cloak_id == 3: net tap rx for cloak
-	unsigned int in_cnt = 0, out_cnt = 0;
+    // cloak_id == 4: blk for cloak
+	unsigned int in_cnt = 0, out_cnt = 0, total_cnt = 0;
 	struct p9_pdu_cloak *cloak_pdu = NULL;
 	struct net_tx_cloak *cloak_tx = NULL;
 	struct net_rx_cloak *cloak_rx = NULL;
+    struct blk_cloak *cloak_blk = NULL;
 	
 	if (cloak_id == 1)
 		cloak_pdu = (struct p9_pdu_cloak *)CLOAK_VQ_DESC_9P;
@@ -569,6 +581,10 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 		cloak_rx = (struct net_rx_cloak *)CLOAK_VQ_DESC_NET_RX;
 		//pr_info("[JB] net_tap_rx: out: %d, in: %d, total: %d\n", out_sgs, in_sgs, total_sg);
 	}
+    else if (cloak_id == 4) {
+        cloak_blk = (struct blk_cloak *)CLOAK_VQ_DESC_BLK;
+        //pr_info("[JB] blk: out: %d, in: %d, total: %d\n", out_sgs, in_sgs, total_sg);
+    }
 
 	START_USE(vq);
 
@@ -639,6 +655,12 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 				//pr_info("[JB] net_tx_tap: out-%d: %lx-%lx\n", out_cnt, addr, sg->length);
 				out_cnt++;
 			}
+            else if (cloak_id == 4) {
+                cloak_blk->iovs[total_cnt].iov_base = addr;
+                cloak_blk->iovs[total_cnt].iov_len = sg->length;
+                total_cnt++;
+				out_cnt++;
+            }
 
 			prev = i;
 			/* Note that we trust indirect descriptor
@@ -662,6 +684,12 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 				cloak_pdu->in_iov[in_cnt].iov_len = sg->length;
 				in_cnt++;
 			}
+            else if (cloak_id == 4) {
+                cloak_blk->iovs[total_cnt].iov_base = addr;
+                cloak_blk->iovs[total_cnt].iov_len = sg->length;
+                total_cnt++;
+				in_cnt++;
+            }
 			#if 0
 			else if (cloak_id == 3) {
 				pr_info("front-end, rx %d, %lx-%lx\n", in_cnt, (unsigned long)addr, sg->length);
@@ -696,6 +724,10 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 	else if (cloak_id == 2) {
 		cloak_tx->out = out_cnt;
 	}
+    else if (cloak_id == 4) {
+        cloak_blk->out_cnt = out_cnt;
+		cloak_blk->in_cnt = in_cnt;
+    }
 	#if 0
 	else if (cloak_id == 3)	{
 		cloak_rx->in_cnt = in_cnt;
@@ -2243,6 +2275,7 @@ int virtqueue_add_sgs(struct virtqueue *_vq,
 		for (sg = sgs[i]; sg; sg = sg_next(sg))
 			total_sg++;
 	}
+
 	return virtqueue_add(_vq, sgs, total_sg, out_sgs, in_sgs,
 			     data, NULL, gfp);
 }
@@ -2265,7 +2298,7 @@ int cloak_virtqueue_add_sgs(struct virtqueue *_vq,
 		for (sg = sgs[i]; sg; sg = sg_next(sg))
 			total_sg++;
 	}
-	return cloak_virtqueue_add(_vq, sgs, total_sg, out_sgs, in_sgs,data, NULL, gfp, id);
+	return cloak_virtqueue_add(_vq, sgs, total_sg, out_sgs, in_sgs, data, NULL, gfp, id);
 }
 EXPORT_SYMBOL_GPL(cloak_virtqueue_add_sgs);
 
