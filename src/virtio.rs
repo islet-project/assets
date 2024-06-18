@@ -1,8 +1,44 @@
 use crate::rsi::*;
+use crate::module::*;
 
 core::arch::global_asm!(include_str!("memcpy.S"));
 extern "C" {
     fn asm_memcpy(dst: usize, src: usize, len: usize);
+}
+
+struct Accessor {
+    addr: usize,
+}
+
+impl Accessor {
+    fn new(addr: usize) -> Self {
+        Self { addr }
+    }
+    
+    fn from<T: Copy>(&self) -> &T {
+        unsafe { &*(self.addr as *const T) }
+    }
+
+    /*
+    fn from_raw<T: Copy>(&self) -> *const T {
+        self.addr as *const T
+    } */
+
+    fn from_mut<T: Copy>(&mut self) -> &mut T {
+        unsafe { &mut *(self.addr as *mut T) }
+    }
+
+    /*
+    fn mut_slice<T: Copy>(&mut self, len: usize) -> &mut [T] {
+        unsafe {
+            let ptr: *mut T = self.from_mut_raw();
+            let mut slice = core::slice::from_raw_parts(ptr, len);
+        }
+    } */
+
+    fn from_mut_raw<T: Copy>(&mut self) -> *mut T {
+        self.addr as *mut T
+    }
 }
 
 #[repr(C)]
@@ -142,35 +178,7 @@ struct VirtioBlkOuthdr {
 }
 
 //const VIRTIO_BLK_T_IN: usize = 0;
-//const VIRTIO_BLK_T_OUT: usize = 1;
-
-struct Accessor {
-    addr: usize,
-}
-
-impl Accessor {
-    fn new(addr: usize) -> Self {
-        Self { addr }
-    }
-    
-    fn from<T: Copy>(&self) -> &T {
-        unsafe { &*(self.addr as *const T) }
-    }
-
-    /*
-    fn from_raw<T: Copy>(&self) -> *const T {
-        self.addr as *const T
-    } */
-
-    fn from_mut<T: Copy>(&mut self) -> &mut T {
-        unsafe { &mut *(self.addr as *mut T) }
-    }
-
-    /*
-    fn from_mut_raw<T: Copy>(&mut self) -> *mut T {
-        self.addr as *mut T
-    } */
-}
+const VIRTIO_BLK_T_OUT: usize = 1;
 
 fn vq_data() -> usize {
     unsafe { VQ_DATA_PTR }
@@ -425,6 +433,20 @@ pub fn handle_blk() {
     block_host.cnt = iovcount as u32;
     block_host.sector = out_hdr.sector;
 
+    // module check before iov/data copy
+    if block_host.blk_type as usize == VIRTIO_BLK_T_OUT {
+        for i in 0..iovcount {
+            let new_addr = iovs[iov_idx + i].iov_base + IPA_OFFSET;
+            let len = iovs[iov_idx + i].iov_len;
+
+            let mut acc = Accessor::new(new_addr);
+            let ptr = acc.from_mut_raw::<u8>();
+            let data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+
+            monitor_blk_write(data);
+        }
+    }
+
     // iov metadata copy
     for i in 0..iovcount {
         block_host.iovs[i].iov_base = iovs[iov_idx + i].iov_base;
@@ -439,6 +461,17 @@ pub fn handle_blk_in_resp() {
     let mut host_acc = Accessor::new(VQ_CTRL_BLK_IN_HOST);
     let block_host = host_acc.from_mut::<BlockReqHost>();
     let iovcount: usize = block_host.cnt as usize;
+
+    for i in 0..iovcount {
+        let new_addr = block_host.iovs[i].iov_base + IPA_OFFSET;
+        let len = block_host.iovs[i].iov_len;
+
+        let mut acc = Accessor::new(new_addr);
+        let ptr = acc.from_mut_raw::<u8>();
+        let data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+
+        monitor_blk_read(data);
+    }
 
     // copy data
     copy_iovs(&block_host.iovs, iovcount, false);

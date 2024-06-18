@@ -9,9 +9,13 @@ pub mod entry;
 pub mod def;
 pub mod rsi;
 pub mod virtio;
+pub mod module;
+pub mod module_cvm_hardening;
 
 use crate::rsi::*;
 use crate::virtio::*;
+use crate::module::*;
+use crate::module_cvm_hardening as cvm_hardening;
 
 const FIRST_CLOAK_OUTLEN: usize = 999999;
 const CLOAK_MSG_TYPE_P9: usize = 2;
@@ -69,7 +73,7 @@ fn gateway_main_loop() -> ! {
             },
             CLOAK_MSG_TYPE_BLK_IN_RESP => {
                 handle_blk_in_resp();
-            }
+            },
             _ => {
                 rsi_print("unsupported msg type", msg_type, 0);
             },
@@ -90,6 +94,9 @@ pub unsafe fn main() {
 
     // 3. MMU configuration (todo)
 
-    // 4. Main loop
+    // 4. register modules
+    let _ = add_module("cvm_hardening", 0, cvm_hardening::blk_write, cvm_hardening::blk_read);
+
+    // 5. Main loop
     gateway_main_loop();
 }
