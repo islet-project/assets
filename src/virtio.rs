@@ -31,6 +31,7 @@ static mut VQ_DATA_PTR: usize = 0;
 static mut VQ_CTRL_9P: usize = 0;
 static mut VQ_CTRL_NET_TX: usize = 0;
 static mut VQ_CTRL_NET_RX: usize = 0;
+static mut VQ_CTRL_BLK: usize = 0;
 
 const IPA_OFFSET: usize = 0x100000000;
 const VQ_START: usize = 0x88400000;
@@ -38,6 +39,8 @@ const VQ_DATA_HOST: usize = 0x188400000;
 const VQ_CTRL_9P_HOST: usize = VQ_DATA_HOST + (14 * 1024 * 1024);
 const VQ_CTRL_NET_TX_HOST: usize = VQ_DATA_HOST + (18 * 1024 * 1024);
 const VQ_CTRL_NET_RX_HOST: usize = VQ_DATA_HOST + (22 * 1024 * 1024);
+const VQ_CTRL_BLK_HOST: usize = VQ_DATA_HOST + (26 * 1024 * 1024);
+const VQ_CTRL_BLK_IN_HOST: usize = VQ_DATA_HOST + (30 * 1024 * 1024);
 const VIRTQUEUE_NUM: usize = 128;
 
 #[repr(C)]
@@ -111,6 +114,36 @@ struct VirtioNetHdrMgrRxbuf {
     num_buffers: u16,
 }
 
+// blk
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct BlockReq {
+    out_cnt: u32,
+    in_cnt: u32,
+    iovs: [IOVec; VIRTQUEUE_NUM],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct BlockReqHost {
+    blk_type: u32,
+    cnt: u32,  // iov count
+    sector: usize,
+    status: usize, 
+    iovs: [IOVec; VIRTQUEUE_NUM],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct VirtioBlkOuthdr {
+    blk_type: u32,
+    ioprio: u32,
+    sector: usize,
+}
+
+//const VIRTIO_BLK_T_IN: usize = 0;
+//const VIRTIO_BLK_T_OUT: usize = 1;
+
 struct Accessor {
     addr: usize,
 }
@@ -151,6 +184,9 @@ fn vq_ctrl_9p() -> usize {
 fn vq_ctrl_net_tx() -> usize {
     unsafe { VQ_CTRL_NET_TX }
 }
+fn vq_ctrl_blk() -> usize {
+    unsafe { VQ_CTRL_BLK }
+}
 /*
 fn vq_ctrl_net_rx() -> usize {
     unsafe { VQ_CTRL_NET_RX }
@@ -173,6 +209,7 @@ pub fn create_memory_cvm_shared() {
         VQ_CTRL_9P = ctrl_ptr;
         VQ_CTRL_NET_TX = ctrl_ptr + (1 * 1024 * 1024);
         VQ_CTRL_NET_RX = ctrl_ptr + (1 * 1024 * 1024) + (512 * 1024);
+        VQ_CTRL_BLK = ctrl_ptr + (1 * 1024 * 1024) + (800 * 1024);
 
         rsi_cloak_create_memory_shared(0, vq_data(), 16 * 1024 * 1024);
         rsi_cloak_create_memory_shared(1, vq_ctrl(), 2 * 1024 * 1024);
@@ -330,4 +367,87 @@ pub fn handle_net_rx_num_buffers() {
     let mut acc = Accessor::new(new_addr);
     let hdr = acc.from_mut::<VirtioNetHdrMgrRxbuf>();
     hdr.num_buffers = num_buffers;
+}
+
+// blk
+pub fn handle_blk() {
+    let mut host_acc = Accessor::new(VQ_CTRL_BLK_HOST);
+    let mut cvm_acc = Accessor::new(vq_ctrl_blk());
+    let block_host = host_acc.from_mut::<BlockReqHost>();
+    let block_cvm = cvm_acc.from_mut::<BlockReq>();
+    let iovs = &mut block_cvm.iovs;
+
+    // parse out header
+    let mut last_iov: usize;
+    let mut iovcount: usize = block_cvm.out_cnt as usize;
+    let out_hdr: VirtioBlkOuthdr = VirtioBlkOuthdr {
+        blk_type: 0,
+        ioprio: 0,
+        sector: 0,
+    };
+    let mut len: usize = core::mem::size_of::<VirtioBlkOuthdr>();
+    let mut copy;
+    let mut iov_idx: usize = 0;
+    let mut dst_addr: usize = &out_hdr as *const _ as usize;
+    let mut src_addr: usize;
+
+    while len > 0 && iovcount > 0 {
+        copy = core::cmp::min(len, iovs[iov_idx].iov_len);
+        src_addr = vq_data() + (iovs[iov_idx].iov_base - VQ_START);
+        unsafe {
+            asm_memcpy(dst_addr, src_addr, copy);
+        }
+
+        dst_addr += copy;
+        len -= copy;
+
+        iovs[iov_idx].iov_base += copy;
+        iovs[iov_idx].iov_len -= copy;
+
+        if iovs[iov_idx].iov_len == 0 {
+            iov_idx += 1;
+            iovcount -= 1;
+        }
+    }
+
+    /* Extract status byte from iovec */
+    iovcount += block_cvm.in_cnt as usize;
+	last_iov = iovcount - 1;
+	while iovs[iov_idx + last_iov].iov_len == 0 {
+		last_iov -= 1;
+    }
+	iovs[iov_idx + last_iov].iov_len -= 1;
+	block_host.status = iovs[iov_idx + last_iov].iov_base + iovs[iov_idx + last_iov].iov_len;
+	if iovs[iov_idx + last_iov].iov_len == 0 {
+		iovcount -= 1;
+    }
+    block_host.blk_type = out_hdr.blk_type;
+    block_host.cnt = iovcount as u32;
+    block_host.sector = out_hdr.sector;
+
+    // iov metadata copy
+    for i in 0..iovcount {
+        block_host.iovs[i].iov_base = iovs[iov_idx + i].iov_base;
+        block_host.iovs[i].iov_len = iovs[iov_idx + i].iov_len;
+    }
+
+    // copy data
+    copy_iovs(&block_host.iovs, iovcount, true);
+}
+
+pub fn handle_blk_in_resp() {
+    let mut host_acc = Accessor::new(VQ_CTRL_BLK_IN_HOST);
+    let block_host = host_acc.from_mut::<BlockReqHost>();
+    let iovcount: usize = block_host.cnt as usize;
+
+    // copy data
+    copy_iovs(&block_host.iovs, iovcount, false);
+
+    // status update
+    let offset = block_host.status - VQ_START;
+    let new_addr = vq_data() + offset;
+    unsafe {
+        let ptr = new_addr as *mut u8;
+        *ptr = 0x00;  // todo: if len <= 0, setting 1 to *ptr.
+    }
 }

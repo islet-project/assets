@@ -22,6 +22,10 @@ const CLOAK_MSG_TYPE_NET_RX: usize = 4;
 const CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS: usize = 5;
 const CLOAK_MSG_TYPE_NET_RX_RESP: usize = 14;
 const CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS_RESP: usize = 15;
+const CLOAK_MSG_TYPE_BLK_IN_RESP: usize = 16;
+
+const CLOAK_MSG_TYPE_BLK: usize = 6;
+const CLOAK_MSG_TYPE_BLK_IN: usize = 7;
 
 fn gateway_main_loop() -> ! {
     let mut outlen: usize = FIRST_CLOAK_OUTLEN;
@@ -56,6 +60,16 @@ fn gateway_main_loop() -> ! {
             CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS_RESP => {
                 handle_net_rx_num_buffers();
             },
+            CLOAK_MSG_TYPE_BLK => {
+                handle_blk();
+            },
+            CLOAK_MSG_TYPE_BLK_IN => {
+                // it shouldn't be called
+                rsi_print("CLOAK_MSG_TYPE_BLK_IN called", 0, 0);
+            },
+            CLOAK_MSG_TYPE_BLK_IN_RESP => {
+                handle_blk_in_resp();
+            }
             _ => {
                 rsi_print("unsupported msg type", msg_type, 0);
             },
