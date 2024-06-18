@@ -557,6 +557,7 @@ int __attribute__((weak)) kvm__get_vm_type(struct kvm *kvm)
 	return KVM_VM_TYPE;
 }
 
+extern int virtio_blk__init(struct kvm *kvm);
 int kvm__init(struct kvm *kvm)
 {
 	int ret;
@@ -622,6 +623,9 @@ int kvm__init(struct kvm *kvm)
 		if (ret < 0)
 			die("kvm__arch_setup_firmware() failed with error %d\n", ret);
 	}
+
+    // [JB] init virtio-blk forcefully
+    //virtio_blk__init(kvm);
 
 	return 0;
 

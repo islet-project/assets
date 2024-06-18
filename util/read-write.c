@@ -304,8 +304,9 @@ ssize_t preadv_in_full(int fd, const struct iovec *iov, int iovcnt, off_t offset
 
 		nr = xpreadv(fd, iov, iovcnt, offset);
 		if (nr <= 0) {
-			if (total > 0)
+			if (total > 0) {
 				return total;
+            }
 
 			return -1;
 		}

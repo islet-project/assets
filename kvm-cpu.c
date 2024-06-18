@@ -147,11 +147,14 @@ void kvm_cpu__run_on_all_cpus(struct kvm *kvm, struct kvm_cpu_task *task)
 #define CLOAK_MSG_TYPE_NET_TX (3)
 #define CLOAK_MSG_TYPE_NET_RX (4)
 #define CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS (5)
+#define CLOAK_MSG_TYPE_BLK (6)
+#define CLOAK_MSG_TYPE_BLK_IN (7)
 
 // two-way
 #define CLOAK_MSG_TYPE_P9_RESP (12)
 #define CLOAK_MSG_TYPE_NET_RX_RESP (14)
 #define CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS_RESP (15)
+#define CLOAK_MSG_TYPE_BLK_IN_RESP (16)
 
 #define VIRTIO_NET_QUEUE_SIZE		256
 #define VIRTIO_NET_NUM_QUEUES		8
@@ -163,6 +166,8 @@ extern int receive_msg(void *msg, size_t size, int in_type, int *out_type, bool 
 extern bool is_no_shared_region(struct kvm *kvm);
 extern u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir);
 extern int run_net_tx_operation_in_host(struct kvm *kvm);
+extern void run_blk_operation_in_host(struct kvm *kvm);
+extern void run_blk_in_operation_in_host(struct kvm *kvm);
 extern void *get_shm(void);
 
 extern void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned char *buf, size_t len);
@@ -409,10 +414,47 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 					cloak_state = type;
 					record_cloak_msg_type((unsigned long)type);
 				}
+				else if (cloak_state == CLOAK_MSG_TYPE_BLK) {
+					// 1. do BLK operation
+					run_blk_operation_in_host(cpu->kvm);
+
+					// 2. send result
+					res = send_msg(&cloak_outlen, sizeof(cloak_outlen), CLOAK_MSG_TYPE_BLK, false);
+					if (res < 0) {
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", cloak_outlen);
+					}
+
+					res = receive_msg(&dummy, sizeof(dummy), 0, &type, false);
+					if (res < 0) {
+						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
+					}
+
+					cloak_state = type;
+					record_cloak_msg_type((unsigned long)type);
+				}
+				else if (cloak_state == CLOAK_MSG_TYPE_BLK_IN) {
+					run_blk_in_operation_in_host(cpu->kvm);
+					cloak_state = CLOAK_MSG_TYPE_BLK_IN_RESP;
+					record_cloak_msg_type(CLOAK_MSG_TYPE_BLK_IN_RESP);
+				}
+				else if (cloak_state == CLOAK_MSG_TYPE_BLK_IN_RESP) {
+					res = send_msg(&cloak_outlen, sizeof(cloak_outlen), CLOAK_MSG_TYPE_BLK_IN, false);
+					if (res < 0) {
+						LOG_ERROR("send_msg from gw to app error (for outlen): %d\n", cloak_outlen);
+					}
+
+					res = receive_msg(&dummy, sizeof(dummy), 0, &type, false);
+					if (res < 0) {
+						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
+					}
+
+					cloak_state = type;
+					record_cloak_msg_type((unsigned long)type);
+				}
 			}
 		#endif
 
-			if (cloak_state == CLOAK_MSG_TYPE_NET_RX || cloak_state == CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS) {
+			if (cloak_state == CLOAK_MSG_TYPE_NET_RX || cloak_state == CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS || cloak_state == CLOAK_MSG_TYPE_BLK_IN) {
 				goto STATE_CHECK;
 			}
 		

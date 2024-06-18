@@ -136,13 +136,14 @@ u16 virt_queue__get_head_iov(struct virt_queue *vq, struct iovec iov[], u16 *out
 	desc = vq->vring.desc;
 
 	if (virt_desc__test_flag(vq, &desc[idx], VRING_DESC_F_INDIRECT)) {
-        printf("in VRING_DESC_F_INDIRECT: cloak_single_test: %d\n", cloak_single_test);
+        //printf("in VRING_DESC_F_INDIRECT: cloak_single_test: %d\n", cloak_single_test);
 		max = virtio_guest_to_host_u32(vq, desc[idx].len) / sizeof(struct vring_desc);
 		if (cloak_single_test == 1) {
 			desc = vm_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
 		} else {
 			desc = jb_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
 		}
+        desc = host_guest_flat_to_host(kvm, virtio_guest_to_host_u64(vq, desc[idx].addr));
 		idx = 0;
 	}
 

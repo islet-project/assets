@@ -147,7 +147,7 @@ void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned cha
 			return;
 		}
 	}
-	LOG_DEBUG("net_rx_control_addr: %lx\n", net_rx_control_addr);
+	LOG_DEBUG("net_rx_control_addr: %lx, %d\n", net_rx_control_addr, llen);
     ptr = (unsigned char *)net_rx_control_addr;
 
     // 1. write total len
@@ -156,6 +156,8 @@ void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned cha
 
     // 2. iterate iovs
     while (llen > 0) {
+        LOG_DEBUG("net_rx: iov_len: %d\n", iiov->iov_len);
+
         if (iiov->iov_len) {
             int copy = min_t(unsigned int, iiov->iov_len, llen);
 
@@ -203,6 +205,8 @@ int run_net_tx_operation_in_host(struct kvm *kvm)
     shm = get_shm();
     shm += (1 * 1024 * 1024);
 
+    LOG_DEBUG("tx_operation, out_cnt: %d\n", tx->out);
+
     // out, iov-data, ...
     memcpy(shm, &(tx->out), sizeof(tx->out));
     shm += sizeof(tx->out);
@@ -211,6 +215,7 @@ int run_net_tx_operation_in_host(struct kvm *kvm)
         memcpy(shm, &(tx->iovs[i]), sizeof(struct iovec));
         shm += sizeof(struct iovec);
 
+        LOG_DEBUG("tx_operation, iov_base: %lx, iov_len: %d\n", tx->iovs[i].iov_base, tx->iovs[i].iov_len);
         offset = (unsigned long)(tx->iovs[i].iov_base);
 		new_addr = (unsigned long)get_host_addr_from_offset(kvm, offset);
 

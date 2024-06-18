@@ -26,7 +26,7 @@ void *get_shm(void);
 #define CLOAK_MSG_TYPE_NET_RX (4)
 #define CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS (5)
 
-#define SHM_SIZE (2 * 1024 * 1024)
+#define SHM_SIZE (4 * 1024 * 1024)
 
 /*
 #define CLOAK_MSG_ID_NET_APP_TO_GW (8767)
