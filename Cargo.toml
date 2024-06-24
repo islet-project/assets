@@ -11,5 +11,7 @@ path = "src/main.rs"
 [features]
 
 [dependencies]
+linked_list_allocator = "0.10.4"
+aes-gcm = { default-features = false, features = ["aes", "alloc"] }
 
 [build-dependencies]

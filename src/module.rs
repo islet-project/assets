@@ -1,5 +1,3 @@
-use crate::rsi::*;
-
 pub enum ModuleAction {
     Allow,
     Deny,
@@ -12,11 +10,11 @@ pub struct ModuleReturn {
 
 // input: bytes to write
 // output: ModuleReturn
-pub type BlkWriteFunc = fn(&mut [u8]) -> ModuleReturn;
+pub type BlkWriteFunc = fn(&mut [u8], usize, usize) -> ModuleReturn;
 
 // input: bytes to read
 // output: ModuleReturn
-pub type BlkReadFunc = fn(&mut [u8]) -> ModuleReturn;
+pub type BlkReadFunc = fn(&mut [u8], usize, usize) -> ModuleReturn;
 
 pub struct Module {
     #[allow(dead_code)]
@@ -46,11 +44,11 @@ pub fn add_module(name: &'static str, priority: usize, blk_write: BlkWriteFunc, 
 }
 
 // root functions
-pub fn monitor_blk_write(data: &mut [u8]) -> ModuleReturn {
+pub fn monitor_blk_write(data: &mut [u8], arg1: usize, arg2: usize) -> ModuleReturn {
     let mut modified: bool = false;
 
     if let Some(module) = unsafe { &MODULES } {
-        let res = (module.blk_write)(data);
+        let res = (module.blk_write)(data, arg1, arg2);
         match res.action {
             ModuleAction::Deny => panic!("monitor_blk_write denied!"),
             _ => {},
@@ -60,19 +58,17 @@ pub fn monitor_blk_write(data: &mut [u8]) -> ModuleReturn {
         }
     }
 
-    rsi_print("monitor_blk_write passed", data[0] as usize, data[1] as usize);
-
     ModuleReturn {
         modified: modified,
         action: ModuleAction::Allow,
     }
 }
 
-pub fn monitor_blk_read(data: &mut [u8]) -> ModuleReturn {
+pub fn monitor_blk_read(data: &mut [u8], arg1: usize, arg2: usize) -> ModuleReturn {
     let mut modified: bool = false;
 
     if let Some(module) = unsafe { &MODULES } {
-        let res = (module.blk_read)(data);
+        let res = (module.blk_read)(data, arg1, arg2);
         match res.action {
             ModuleAction::Deny => panic!("blk_read denied!"),
             _ => {},
@@ -81,8 +77,6 @@ pub fn monitor_blk_read(data: &mut [u8]) -> ModuleReturn {
             modified = true;
         }
     }
-
-    rsi_print("monitor_blk_read passed", data[0] as usize, data[1] as usize);
 
     ModuleReturn {
         modified: modified,

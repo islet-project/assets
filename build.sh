@@ -12,3 +12,5 @@ ${OBJCOPY} -Obinary ./target/aarch64-unknown-none-softfloat/debug/gateway cvm_ga
 ${OBJDUMP} -D ./target/aarch64-unknown-none-softfloat/debug/gateway > cvm_gateway.dump
 
 cp -f cvm_gateway.bin ~/ssd/github/islet/out/shared/cvm_gateway.bin
+cp -f disk.img ~/ssd/github/islet/out/shared/disk.img
+cp -f disk.tag ~/ssd/github/islet/out/shared/disk.tag

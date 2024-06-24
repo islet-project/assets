@@ -1,21 +1,22 @@
 use crate::rsi::*;
 use crate::module::*;
+use crate::aes::*;
 
 core::arch::global_asm!(include_str!("memcpy.S"));
 extern "C" {
     fn asm_memcpy(dst: usize, src: usize, len: usize);
 }
 
-struct Accessor {
+pub struct Accessor {
     addr: usize,
 }
 
 impl Accessor {
-    fn new(addr: usize) -> Self {
+    pub fn new(addr: usize) -> Self {
         Self { addr }
     }
     
-    fn from<T: Copy>(&self) -> &T {
+    pub fn from<T: Copy>(&self) -> &T {
         unsafe { &*(self.addr as *const T) }
     }
 
@@ -24,7 +25,7 @@ impl Accessor {
         self.addr as *const T
     } */
 
-    fn from_mut<T: Copy>(&mut self) -> &mut T {
+    pub fn from_mut<T: Copy>(&mut self) -> &mut T {
         unsafe { &mut *(self.addr as *mut T) }
     }
 
@@ -36,7 +37,7 @@ impl Accessor {
         }
     } */
 
-    fn from_mut_raw<T: Copy>(&mut self) -> *mut T {
+    pub fn from_mut_raw<T: Copy>(&mut self) -> *mut T {
         self.addr as *mut T
     }
 }
@@ -77,6 +78,7 @@ const VQ_CTRL_NET_TX_HOST: usize = VQ_DATA_HOST + (18 * 1024 * 1024);
 const VQ_CTRL_NET_RX_HOST: usize = VQ_DATA_HOST + (22 * 1024 * 1024);
 const VQ_CTRL_BLK_HOST: usize = VQ_DATA_HOST + (26 * 1024 * 1024);
 const VQ_CTRL_BLK_IN_HOST: usize = VQ_DATA_HOST + (30 * 1024 * 1024);
+const VQ_CTRL_BLK_AES_TAG_HOST: usize = VQ_DATA_HOST + (34 * 1024 * 1024);
 const VIRTQUEUE_NUM: usize = 128;
 
 #[repr(C)]
@@ -192,9 +194,10 @@ fn vq_ctrl_9p() -> usize {
 fn vq_ctrl_net_tx() -> usize {
     unsafe { VQ_CTRL_NET_TX }
 }
+/*
 fn vq_ctrl_blk() -> usize {
     unsafe { VQ_CTRL_BLK }
-}
+} */
 /*
 fn vq_ctrl_net_rx() -> usize {
     unsafe { VQ_CTRL_NET_RX }
@@ -379,15 +382,27 @@ pub fn handle_net_rx_num_buffers() {
 
 // blk
 pub fn handle_blk() {
-    let mut host_acc = Accessor::new(VQ_CTRL_BLK_HOST);
-    let mut cvm_acc = Accessor::new(vq_ctrl_blk());
-    let block_host = host_acc.from_mut::<BlockReqHost>();
-    let block_cvm = cvm_acc.from_mut::<BlockReq>();
-    let iovs = &mut block_cvm.iovs;
+    let mut host_acc = Accessor::new(VQ_CTRL_BLK_HOST); // this is a in-out address
+    let block_req = host_acc.from_mut::<BlockReq>();
+
+    // copy block_req first to avoid double-fetch situation
+    let in_cnt: usize = block_req.in_cnt as usize;
+    let out_cnt: usize = block_req.out_cnt as usize;
+    let mut iovs: [IOVec; 16] = [
+        { IOVec { iov_base: 0, iov_len: 0 } }; 16
+    ];
+    if in_cnt + out_cnt >= 16 {
+        rsi_print("block_req too many", in_cnt, out_cnt);
+        return;
+    }
+    for i in 0..in_cnt + out_cnt {
+        iovs[i].iov_len = block_req.iovs[i].iov_len;
+        iovs[i].iov_base = block_req.iovs[i].iov_base;
+    }
 
     // parse out header
     let mut last_iov: usize;
-    let mut iovcount: usize = block_cvm.out_cnt as usize;
+    let mut iovcount: usize = out_cnt as usize;
     let out_hdr: VirtioBlkOuthdr = VirtioBlkOuthdr {
         blk_type: 0,
         ioprio: 0,
@@ -398,6 +413,7 @@ pub fn handle_blk() {
     let mut iov_idx: usize = 0;
     let mut dst_addr: usize = &out_hdr as *const _ as usize;
     let mut src_addr: usize;
+    let status: usize;    
 
     while len > 0 && iovcount > 0 {
         copy = core::cmp::min(len, iovs[iov_idx].iov_len);
@@ -419,31 +435,44 @@ pub fn handle_blk() {
     }
 
     /* Extract status byte from iovec */
-    iovcount += block_cvm.in_cnt as usize;
+    iovcount += in_cnt as usize;
 	last_iov = iovcount - 1;
 	while iovs[iov_idx + last_iov].iov_len == 0 {
 		last_iov -= 1;
     }
 	iovs[iov_idx + last_iov].iov_len -= 1;
-	block_host.status = iovs[iov_idx + last_iov].iov_base + iovs[iov_idx + last_iov].iov_len;
+    status = iovs[iov_idx + last_iov].iov_base + iovs[iov_idx + last_iov].iov_len;
 	if iovs[iov_idx + last_iov].iov_len == 0 {
 		iovcount -= 1;
     }
+
+    // update block_host from now on
+    let mut host_acc = Accessor::new(VQ_CTRL_BLK_HOST);
+    let block_host = host_acc.from_mut::<BlockReqHost>();
+
     block_host.blk_type = out_hdr.blk_type;
     block_host.cnt = iovcount as u32;
     block_host.sector = out_hdr.sector;
+    block_host.status = status;
+
+    // [JB] update req->status forcefully here (always success) todo: do it later-
+    let status_addr = block_host.status + IPA_OFFSET;
+    let mut status_acc = Accessor::new(status_addr);
+    let status_ptr = status_acc.from_mut::<u8>();
+    *status_ptr = 0x00;
 
     // module check before iov/data copy
     if block_host.blk_type as usize == VIRTIO_BLK_T_OUT {
         for i in 0..iovcount {
-            let new_addr = iovs[iov_idx + i].iov_base + IPA_OFFSET;
+            let offset = iovs[iov_idx + i].iov_base - VQ_START;
+            let new_addr = vq_data() + offset;
             let len = iovs[iov_idx + i].iov_len;
 
             let mut acc = Accessor::new(new_addr);
             let ptr = acc.from_mut_raw::<u8>();
             let data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
 
-            monitor_blk_write(data);
+            monitor_blk_write(data, block_host.sector, VQ_CTRL_BLK_AES_TAG_HOST + core::mem::size_of::<TagStorage>() * block_host.sector);
         }
     }
 
@@ -470,7 +499,7 @@ pub fn handle_blk_in_resp() {
         let ptr = acc.from_mut_raw::<u8>();
         let data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
 
-        monitor_blk_read(data);
+        monitor_blk_read(data, block_host.sector, VQ_CTRL_BLK_AES_TAG_HOST + core::mem::size_of::<TagStorage>() * block_host.sector);
     }
 
     // copy data

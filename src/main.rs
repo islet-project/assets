@@ -11,11 +11,15 @@ pub mod rsi;
 pub mod virtio;
 pub mod module;
 pub mod module_cvm_hardening;
+pub mod allocator;
+pub mod aes;
 
 use crate::rsi::*;
 use crate::virtio::*;
 use crate::module::*;
 use crate::module_cvm_hardening as cvm_hardening;
+
+extern crate alloc;
 
 const FIRST_CLOAK_OUTLEN: usize = 999999;
 const CLOAK_MSG_TYPE_P9: usize = 2;
@@ -83,6 +87,35 @@ fn gateway_main_loop() -> ! {
     }
 }
 
+/*
+fn test_aes() {
+    let key_bytes: [u8; 32] = [0; 32];
+    let nonce_bytes: [u8; 12] = [0; 12];
+    let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
+    let cipher = Aes256Gcm::new(&key);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let mut data: [u8; 64] = [0; 64];
+    let payload = Payload {
+        msg: &mut data,
+        aad: b"",
+    };
+
+    let mut ciphertext = cipher.encrypt(nonce, payload).unwrap();
+    let plaintext = cipher.decrypt(nonce, ciphertext.as_ref()).unwrap();
+    
+    // encryption test
+    rsi_print("before enc_check", 0, 0);
+    assert_eq!(&plaintext, b"plaintext message");
+    rsi_print("after enc_check", 0, 0);
+
+    // tag match test
+    <Vec<u8> as AsMut<[u8]>>::as_mut(&mut ciphertext)[1] = 0x77; // modification
+    match cipher.decrypt(nonce, ciphertext.as_ref()) {
+        Ok(_) => rsi_print("tag match!", 0, 0),
+        Err(_) => rsi_print("tag mismatch!", 0, 0),
+    }
+} */
+
 #[no_mangle]
 pub unsafe fn main() {
     // 1. IPA state set
@@ -92,7 +125,8 @@ pub unsafe fn main() {
     // 2. Create a shared memory with CVM_App
     create_memory_cvm_shared();
 
-    // 3. MMU configuration (todo)
+    // 3. memory configuration (todo)
+    allocator::init();  // initialize heap memory
 
     // 4. register modules
     let _ = add_module("cvm_hardening", 0, cvm_hardening::blk_write, cvm_hardening::blk_read);
