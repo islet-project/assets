@@ -32,13 +32,27 @@ do { \
 
 #define CLOAK_VQ_HOST_BLK (0x88400000 + (26 * 1024 * 1024))
 #define CLOAK_VQ_HOST_BLK_IN (0x88400000 + (30 * 1024 * 1024))
+#define CLOAK_VQ_HOST_BLK_AES_TAG (0x88400000 + (34 * 1024 * 1024))
 #define VIRTIO_START (0x88400000)
 
 static unsigned long blk_control_addr = 0;
 static unsigned long blk_in_control_addr = 0;
+static unsigned long blk_tag_addr = 0;
+
+// aes gcm tag storage
+struct blk_aes_tag {
+    unsigned char tag[16];
+};
+static struct blk_aes_tag tag_storage[32000];  // idx=sector, todo: hard-coded value
 
 extern void *get_host_addr_from_offset(struct kvm *kvm, u64 offset);
 extern void *get_shm(void);
+
+struct block_req {
+    unsigned int out_cnt;
+    unsigned int in_cnt;
+    struct iovec iovs[];
+};
 
 struct block_req_host {
 	unsigned int blk_type;
@@ -48,6 +62,85 @@ struct block_req_host {
 	struct iovec iovs[];
     // data copy--
 };
+
+#define TAG_STORAGE_FILE_NAME "/shared/disk.tag"
+
+void load_tag_storage(struct kvm *kvm)
+{
+    FILE *fp = NULL;
+
+    if (blk_tag_addr != 0) {
+        // already loaded
+        return;
+    } else {
+        blk_tag_addr = (unsigned long)get_host_addr_from_offset(kvm, CLOAK_VQ_HOST_BLK_AES_TAG);
+        if (blk_tag_addr == 0) {
+            LOG_ERROR("blk_tag_addr: error..\n");
+            return;
+        }
+        LOG_ERROR("blk_tag_addr: %lx\n", blk_tag_addr);
+        LOG_ERROR("tag_storage size: %d\n", sizeof(tag_storage));
+    }
+    memset(&tag_storage, 0, sizeof(tag_storage));
+
+    fp = fopen(TAG_STORAGE_FILE_NAME, "rb");
+    if (fp) {
+        fread((unsigned char *)&tag_storage, sizeof(unsigned char *), sizeof(tag_storage), fp);
+        memcpy((unsigned char *)blk_tag_addr, &tag_storage, sizeof(tag_storage));
+        fclose(fp);
+    } else {
+        LOG_ERROR("tag_storage file open error\n");
+    }
+}
+
+void sync_tag_storage(void)
+{
+    FILE *fp = NULL;
+
+    if (blk_tag_addr == 0) {
+        LOG_ERROR("blk_tag_addr 0, error\n");
+        return;
+    }
+
+    memcpy(&tag_storage, (unsigned char *)blk_tag_addr, sizeof(tag_storage));
+
+    fp = fopen(TAG_STORAGE_FILE_NAME, "wb");
+    if (fp) {
+        fwrite((unsigned char *)&tag_storage, sizeof(unsigned char *), sizeof(tag_storage), fp);
+        fclose(fp);
+    } else {
+        LOG_ERROR("tag_storage file open error\n");
+    }
+}
+
+void send_block_req_to_gw(struct kvm *kvm)
+{
+    struct block_req *src_req = NULL;
+    struct block_req *dst_req = NULL;
+    unsigned char *shm = get_shm();
+
+    if (blk_control_addr == 0) {
+        blk_control_addr = (unsigned long)get_host_addr_from_offset(kvm, CLOAK_VQ_HOST_BLK);
+        if (blk_control_addr == 0) {
+            LOG_ERROR("blk_control_addr: control error..\n");
+            return;
+        }
+        load_tag_storage(kvm);
+    }
+    LOG_DEBUG("blk_control_addr: %lx\n", blk_control_addr);
+
+    // read block_req and pass it on to CVM_GW first
+    shm += (2 * 1024 * 1024);
+    src_req = (struct block_req *)shm;
+    dst_req = (struct block_req *)blk_control_addr;
+
+    dst_req->out_cnt = src_req->out_cnt;
+    dst_req->in_cnt = src_req->in_cnt;
+    for (unsigned i=0; i<dst_req->out_cnt + dst_req->in_cnt; i++) {
+        dst_req->iovs[i].iov_base = src_req->iovs[i].iov_base;
+        dst_req->iovs[i].iov_len = src_req->iovs[i].iov_len;
+    }
+}
 
 void run_blk_operation_in_host(struct kvm *kvm)
 {
@@ -65,6 +158,7 @@ void run_blk_operation_in_host(struct kvm *kvm)
             LOG_ERROR("blk_control_addr: control error..\n");
             return;
         }
+        load_tag_storage(kvm);
     }
     LOG_DEBUG("blk_control_addr: %lx\n", blk_control_addr);
 
@@ -111,6 +205,7 @@ void run_blk_in_operation_in_host(struct kvm *kvm)
             LOG_ERROR("blk_in_control_addr: control error..\n");
             return;
         }
+        load_tag_storage(kvm);
     }
     LOG_DEBUG("blk_in_control_addr: %lx\n", blk_in_control_addr);
     LOG_DEBUG("dst_req->cnt: %d, dst_req->status: %lx\n", dst_req->cnt, dst_req->status);

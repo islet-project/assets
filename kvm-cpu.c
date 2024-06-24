@@ -168,6 +168,7 @@ extern u32 run_p9_operation_in_host(struct kvm *kvm, char *root_dir);
 extern int run_net_tx_operation_in_host(struct kvm *kvm);
 extern void run_blk_operation_in_host(struct kvm *kvm);
 extern void run_blk_in_operation_in_host(struct kvm *kvm);
+extern void send_block_req_to_gw(struct kvm *kvm);
 extern void *get_shm(void);
 
 extern void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned char *buf, size_t len);
@@ -215,6 +216,7 @@ do { \
 // =========================================================
 
 extern void print_host_mem_with_offset(struct kvm *kvm, u64 offset);
+extern void sync_tag_storage(void);
 
 void record_cloak_msg_type(unsigned long type)
 {
@@ -429,6 +431,9 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 						LOG_ERROR("CLOAK_HOST_CALL: receive_msg error\n");
 					}
 
+					// by this point, tag is updated
+					sync_tag_storage();
+
 					cloak_state = type;
 					record_cloak_msg_type((unsigned long)type);
 				}
@@ -453,6 +458,11 @@ int kvm_cpu__start(struct kvm_cpu *cpu)
 				}
 			}
 		#endif
+
+			if (cloak_state == CLOAK_MSG_TYPE_BLK) {
+				// should send block_req first at this point
+				send_block_req_to_gw(cpu->kvm);
+			}
 
 			if (cloak_state == CLOAK_MSG_TYPE_NET_RX || cloak_state == CLOAK_MSG_TYPE_NET_RX_NUM_BUFFERS || cloak_state == CLOAK_MSG_TYPE_BLK_IN) {
 				goto STATE_CHECK;

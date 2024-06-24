@@ -57,6 +57,12 @@ struct blk_dev {
 	struct kvm			*kvm;
 };
 
+struct block_req {
+	unsigned int out_cnt;
+	unsigned int in_cnt;
+	struct iovec iovs[];
+};
+
 struct block_req_host {
 	unsigned int blk_type;
 	unsigned int cnt;
@@ -102,22 +108,24 @@ void virtio_blk_complete(void *param, long len)
 		dst_ptr = (unsigned char *)&req_host->iovs[iovcount];
 		src_ptr = buffer;
 
-		// iov data
-		for (unsigned i=0; i<iovcount; i++) {
-			memcpy(dst_ptr, src_ptr, iovs[i].iov_len);
-			src_ptr += iovs[i].iov_len;
-			dst_ptr += iovs[i].iov_len;
-		}
+		if (req_host->blk_type == VIRTIO_BLK_T_IN) {
+			// iov data
+			for (unsigned i=0; i<iovcount; i++) {
+				memcpy(dst_ptr, src_ptr, iovs[i].iov_len);
+				src_ptr += iovs[i].iov_len;
+				dst_ptr += iovs[i].iov_len;
+			}
 
-		// send msg
-		res = send_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_BLK_IN, true);
-		if (res < 0) {
-			printf("send_msg from app to gw error: %d, %s\n", errno, strerror(errno));
-		}
+			// send msg
+			res = send_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_BLK_IN, true);
+			if (res < 0) {
+				printf("send_msg from app to gw error: %d, %s\n", errno, strerror(errno));
+			}
 
-		res = receive_msg(&len, sizeof(len), CLOAK_MSG_TYPE_BLK_IN, &msg_type, true);
-		if (res < 0) {
-			printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
+			res = receive_msg(&len, sizeof(len), CLOAK_MSG_TYPE_BLK_IN, &msg_type, true);
+			if (res < 0) {
+				printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
+			}
 		}
 	}
 
@@ -144,6 +152,7 @@ static void virtio_blk_do_io_request(struct kvm *kvm, struct virt_queue *vq, str
 	u32 type;
 	u64 sector;
 
+	struct block_req *breq = NULL;
 	struct block_req_host *req_host = NULL;
 	unsigned char *dst_ptr = NULL;
 	unsigned char *src_ptr = NULL;
@@ -160,6 +169,15 @@ static void virtio_blk_do_io_request(struct kvm *kvm, struct virt_queue *vq, str
 		int msg_type, res, dummy, len = 0;
 
 		blk_no_shared_region = true;
+
+		// here, send iov info
+		breq = (struct block_req *)((char *)get_shm() + (2 * 1024 * 1024));
+		breq->out_cnt = req->out;
+		breq->in_cnt = req->in;
+		for (unsigned i=0; i<breq->out_cnt + breq->in_cnt; i++) {
+			breq->iovs[i].iov_base = iov[i].iov_base;
+			breq->iovs[i].iov_len = iov[i].iov_len;
+		}
 
 		res = send_msg(&dummy, sizeof(dummy), CLOAK_MSG_TYPE_BLK, true);
 		if (res < 0) {
@@ -181,9 +199,10 @@ static void virtio_blk_do_io_request(struct kvm *kvm, struct virt_queue *vq, str
 		dst_ptr = buffer;
 
 		// iov len
-		for (unsigned i=0; i<iovcount; i++) { 
+		for (unsigned i=0; i<iovcount; i++) {
 			iovs[i].iov_len = req_host->iovs[i].iov_len;
 		}
+
 		// iov data
 		for (unsigned i=0; i<iovcount; i++) {
 			iovs[i].iov_base = dst_ptr;
@@ -226,7 +245,6 @@ static void virtio_blk_do_io_request(struct kvm *kvm, struct virt_queue *vq, str
 	}
 	// -----------------------------------
 	// 2. copy-2: real iov copy!
-
 	switch (type) {
 	case VIRTIO_BLK_T_IN:
 		// [JB] do CVM_GW
@@ -239,12 +257,15 @@ static void virtio_blk_do_io_request(struct kvm *kvm, struct virt_queue *vq, str
 	case VIRTIO_BLK_T_OUT:
 		// [JB] do nothing for write.  In no_shared_region, all the data is already stored in iov.
 		disk_image__write(bdev->disk, sector, iov, iovcount, req);
+		// [JB] in case of no_shared_region, should we update req->status??
 		break;
 	case VIRTIO_BLK_T_FLUSH:
+		printf("VIRTIO_BLK_T_FLUSH!\n");
 		len = disk_image__flush(bdev->disk);
 		virtio_blk_complete(req, len);
 		break;
 	case VIRTIO_BLK_T_GET_ID:
+		printf("VIRTIO_BLK_T_GET_ID!\n");
 		len = disk_image__get_serial(bdev->disk, iov, iovcount,
 					     VIRTIO_BLK_ID_BYTES);
 		virtio_blk_complete(req, len);
@@ -289,6 +310,7 @@ static u64 get_host_features(struct kvm *kvm, void *dev)
 	struct blk_dev *bdev = dev;
 
 	// [JB] disable VIRTIO_RING_F_INDIRECT_DESC to make things simple
+	//      disable VIRTIO_BLK_F_FLUSH
 	return	1UL << VIRTIO_BLK_F_SEG_MAX
 		| 1UL << VIRTIO_BLK_F_FLUSH
 		| 1UL << VIRTIO_RING_F_EVENT_IDX
