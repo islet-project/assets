@@ -5,6 +5,7 @@
 #include <kvm/devices.h>
 #include <syslog.h>
 #include <stdarg.h>
+#include <kvm/kvm.h>
 
 /*
  * The device id should be included in the following range to avoid conflict with other device ids:
@@ -33,6 +34,10 @@
 #define BAR_MMIO_OFFSET_SHM_RO_IPA_BASE 64 // 8 byte
 
 #define SYSLOG_PREFIX "KVMTOOL"
+
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define MMAP_OWNER_VMID_MASK 0xFF
+#define MMAP_SHARE_OTHER_REALM_MEM_MASK 0x100
 
 struct channel_ioctl_info {
 	__u64 owner_vmid;

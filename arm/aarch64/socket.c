@@ -18,7 +18,6 @@
 #include <kvm/ioeventfd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <kvm/kvm.h>
 #include <asm/realm.h>
 
 #define PATH_MAX      4096	/* chars in a path name including nul */

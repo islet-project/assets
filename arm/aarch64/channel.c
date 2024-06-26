@@ -1,4 +1,3 @@
-#include <kvm/kvm.h>
 #include <channel.h>
 #include <arm-common/kvm-config-arch.h>
 #include <kvm/virtio-pci-dev.h>
@@ -9,21 +8,19 @@
 #include <kvm/ioport.h>
 #include <assert.h>
 
-#define MMAP_VMID_MASK 0xFF
-#define MMAP_GET_ALLOCED_MEM 0x100
-
 static struct vchannel_device *vchannel_dev; // for channel module in current realm
 static u64 shm_ipa_base = INTER_REALM_SHM_RW_IPA_START;
 static u64 shm_ro_ipa_base = INTER_REALM_SHM_RO_IPA_START;
+static u64 *shm_ro_userspace_va;
 
 static void* request_memory_to_host_channel(int vmid, bool need_allocated_mem) {
     void *mem = 0;
     int hc_fd;
-    u64 offset = vmid & MMAP_VMID_MASK;
+    u64 offset = vmid & MMAP_OWNER_VMID_MASK;
 
     // Request already allocated peer vmid's memory
     if (need_allocated_mem) {
-        offset |= MMAP_GET_ALLOCED_MEM;
+        offset |= MMAP_SHARE_OTHER_REALM_MEM_MASK;
     }
 
     hc_fd = open(HOST_CHANNEL_PATH, O_RDWR);
@@ -49,12 +46,22 @@ static void* request_memory_to_host_channel(int vmid, bool need_allocated_mem) {
 static int setup_shared_memory_before_realm_activate(struct kvm *kvm, int target_vmid, bool need_allocated_mem) {
     int ret = 0;
     void *mem;
-    u64* ipa = (need_allocated_mem) ? &shm_ro_ipa_base : &shm_ipa_base;
+    u64 *test_ptr;
+    u64 test_val = 0xABCD;
+    u64 *ipa = (need_allocated_mem) ? &shm_ro_ipa_base : &shm_ipa_base;
 
     mem = request_memory_to_host_channel(target_vmid, need_allocated_mem);
     if (!mem) {
         return -1;
     }
+
+    ch_syslog("[KVMTOOL] write test before registering this memory to realm. mem user va: 0x%llx", mem);
+    test_ptr = (u64 *)mem;
+
+    ch_syslog("[KVMTOOL] [TEST] Let's write 0x%llx to the mem: 0x%llx", test_val, test_ptr);
+    ch_syslog("[KVMTOOL] [TEST] before writing a value to the mem: 0x%llx", *test_ptr);
+    *test_ptr = test_val;
+    ch_syslog("[KVMTOOL] [TEST] after writing a value to the mem: 0x%llx", *test_ptr);
 
     ret = kvm__register_ram(kvm, *ipa, INTER_REALM_SHM_SIZE, mem);
     if (ret) {
@@ -74,18 +81,19 @@ static int setup_first_shared_memory(struct kvm *kvm, int cur_vmid) {
     return setup_shared_memory_before_realm_activate(kvm, cur_vmid, false);
 }
 
-int allocate_shm_after_realm_activate(struct kvm *kvm, int target_vmid, bool need_allocated_mem) {
+int allocate_shm_after_realm_activate(struct kvm *kvm, int target_vmid, bool need_ro_mem) {
 	int ret = 0;
 	void* mem;
-    u64* ipa = (need_allocated_mem) ? &shm_ro_ipa_base : &shm_ipa_base;
+    u64* ipa = (need_ro_mem) ? &shm_ro_ipa_base : &shm_ipa_base;
 
 	ch_syslog("[KVMTOOL] %s start", __func__);
-    mem = request_memory_to_host_channel(target_vmid, need_allocated_mem);
+    mem = request_memory_to_host_channel(target_vmid, need_ro_mem);
     if (!mem) {
         return -1;
     }
 
-	ch_syslog("[KVMTOOL] %s ipa 0x%llx", __func__, *ipa);
+    shm_ro_userspace_va = mem;
+    ch_syslog("[KVMTOOL] %s ipa 0x%llx, shm_ro_userspace_va 0x%llx", __func__, *ipa, shm_ro_userspace_va);
 
     ret = kvm__register_ram(kvm, *ipa, INTER_REALM_SHM_SIZE, mem);
     if (ret) {
@@ -111,15 +119,16 @@ static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
 	Client* client = ptr;
 	u64 mmio_addr;
     u64 offset;
+    u64 test_val = 0xffff;
 
-	ch_syslog("%s start. is_write %d", __func__, is_write);
+    ch_syslog("%s start. is_write %d", __func__, is_write);
     mmio_addr = pci__bar_address(&vchannel_dev->pci_hdr, 0);
 	ch_syslog("%s bar 0 addr 0x%x, trapped addr 0x%llx", __func__, mmio_addr, addr);
     offset = addr - mmio_addr;
 
     if (is_write) {
-        ch_syslog("%s write is not supported", __func__);
-        return;
+        //ch_syslog("%s [TEST] Write 0x%llx to the realm shm_ro_userspace_va: 0x%llx", __func__, test_val, shm_ro_userspace_va);
+        ch_syslog("%s [TEST] Read the realm shm_ro_userspace_va: 0x%llx", __func__, shm_ro_userspace_va);
     }
 
     if (!client->peer_cnt) {
@@ -134,10 +143,17 @@ static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
     } else if (offset == BAR_MMIO_OFFSET_SHM_RO_IPA_BASE) {
         u64 shm_ro_ipa = shm_ro_ipa_base;
 
-        allocate_shm_after_realm_activate(client->kvm, client->peers[0].id, true);
+        if (!is_write) {
+            allocate_shm_after_realm_activate(client->kvm, client->peers[0].id, true);
 
-        ioport__write32((u32*)data, shm_ro_ipa);
-        ch_syslog("%s write shm_ro_ipa 0x%llx", __func__, shm_ro_ipa);
+            ioport__write32((u32 *)data, shm_ro_ipa);
+            ch_syslog("%s write shm_ro_ipa 0x%llx", __func__, shm_ro_ipa);
+        } else {
+            ch_syslog("%s [TEST] It should get panic because The host doesn't have any permission to access the memory.", __func__);
+            test_val = *shm_ro_userspace_va;
+            //*shm_ro_userspace_va = 0xDEAD;
+            ch_syslog("%s [TEST] shouldn't reach here. something's wrong 0x%llx", __func__, test_val);
+        }
     } else {
         ch_syslog("%s wrong offset %d", __func__, offset);
     }
