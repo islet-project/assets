@@ -22,7 +22,6 @@
 static int dev_major_num;
 static struct cdev ch_cdev;
 static struct class *ch_class;
-static u64 global_msg;
 
 /* for the PCI device */
 #define DRIVER_NAME "guest_channel"
@@ -145,11 +144,11 @@ static void ch_send(struct work_struct *work) {
 }
 
 static void ch_receive(struct work_struct *work) {
-	u64 shm_ro_base_ipa = 0;
+	u64 shm_ro_base_ipa = 0, msg = 0;
 
 	set_peer_id();
 
-	pr_err("[GCH] %s start. And my role: %d, global_msg: 0x%llx", __func__, drv_priv->role, global_msg);
+	pr_err("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
 	if (drv_priv->role != SERVER) {
 		pr_err("[GCH] My role is not SERVER but %d", drv_priv->role);
 		return;
@@ -176,9 +175,9 @@ static void ch_receive(struct work_struct *work) {
 	}
 
 	if (drv_priv->shm_ro_base_va)  {
-		pr_err("[GCH] %s let's read & write the shm_ro_base_va to global_msg", __func__);
+		pr_err("[GCH] %s let's read & write the shm_ro_base_va to msg", __func__);
 
-		global_msg = *drv_priv->shm_ro_base_va;
+		msg = *drv_priv->shm_ro_base_va;
 
 		/*
 		for (int i; i < 4; i++) {
@@ -189,7 +188,7 @@ static void ch_receive(struct work_struct *work) {
 		pr_err("[GCH] strncpy start from shm_ro_base_va: %llx to msg\n", drv_priv->shm_ro_base_va);
 		strncpy(msg, (const char *)drv_priv->shm_ro_base_va, sizeof(msg));
 		*/
-		pr_err("[GCH] %s global_msg read result: 0x%llx\n", __func__, global_msg);
+		pr_err("[GCH] %s msg read result: 0x%llx\n", __func__, msg);
 	} else {
 		pr_err("[GCH] drv_priv->shm_ro_base_va is zero.\n");
 	}
@@ -212,7 +211,7 @@ static int channel_release(struct inode * inode, struct file * file)
 }
 
 static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *f_pos) {
-	pr_info("[GCH] %s start, global_msg 0x%llx", __func__, global_msg);
+	pr_info("[GCH] %s start", __func__);
 
 	if (drv_priv->role == CLIENT) {
 		pr_info("[GCH] %s start schedule_work for send", __func__);
@@ -237,13 +236,10 @@ static ssize_t channel_write(struct file *filp, const char __user *buf, size_t c
     }
     pr_info("%s After calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
 
-	pr_info("%s write 0x%llx to the drv_priv->shm_ro_base_va 0x%llx", __func__, buffer[0], drv_priv->shm_ro_base_va);
+	pr_info("%s write 0x%llx to the bar_addr + BAR_MMIO_OFFSET_SHM_RO_IPA_BASE 0x%llx",
+			__func__, buffer[0]);
 
-	if (drv_priv->shm_ro_base_va) {
-		*drv_priv->shm_ro_base_va = buffer[0];
-	} else {
-		pr_err("%s drv_priv->shm_ro_base_va is zero", __func__);
-	}
+	writel(buffer[0], drv_priv->mapped_bar_addr + BAR_MMIO_OFFSET_SHM_RO_IPA_BASE);
 
     return count;
 }
@@ -335,7 +331,7 @@ static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 {
 	//struct peer* peer = (struct peer*)dev_instance;
 	static int cnt = 0;
-	pr_info("[GCH] IRQ #%d cnt %d, global_msg: 0x%llx\n", irq, cnt, global_msg);
+	pr_info("[GCH] IRQ #%d cnt %d\n", irq, cnt);
 
 	if (drv_priv->role == SERVER) {
 		pr_info("[GCH] %s start schedule_work for receive", __func__);
@@ -354,8 +350,7 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
     uint32_t dev_ioeventfd_addr, dev_ioeventfd_size;
     uint32_t bar_addr, bar_size;
 
-	global_msg = 0;
-    pr_info("[GCH] %s start, global_msg 0x%llx\n", __func__, global_msg);
+    pr_info("[GCH] %s start\n", __func__);
 
     /* Let's read data from the PCI device configuration registers */
     pci_read_config_word(pdev, PCI_VENDOR_ID, &vendor);
