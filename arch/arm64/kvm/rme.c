@@ -537,6 +537,8 @@ int realm_map_protected_ro(struct realm *realm,
 	int map_level;
 	int ret = 0;
 
+	pr_err("%s is called", __func__);
+
 	if (WARN_ON(!IS_ALIGNED(ipa, map_size)))
 		return -EINVAL;
 

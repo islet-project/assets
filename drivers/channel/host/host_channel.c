@@ -35,14 +35,24 @@
 
 #define VMID_MAX 256
 
-#define MMAP_VMID_MASK 0xFF
-#define MMAP_GET_ALLOCED_MEM_MASK 0x100
+#define MMAP_OWNER_VMID_MASK 0xFF
+#define MMAP_SHARE_OTHER_REALM_MEM_MASK 0x100
 
 static int dev_major_num;
 
-/* This is a "private" data structure */
-struct channel_priv {
-	u64 shm_pa[VMID_MAX];
+struct shared_realm_memory {
+	struct list_head list;
+	int vmid;
+	int peer_cnt; // NOTE: It should be [0:1]
+	u64 phys;
+	u64 ipa;
+};
+
+struct channel_priv { // This is a "private" data structure
+	struct {
+		spinlock_t lock;
+		struct list_head heads[VMID_MAX];
+	} shrms;
 	bool is_active; // TODO: do we need this ?
 };
 
@@ -50,16 +60,10 @@ static struct channel_priv drv_priv;
 static struct cdev ch_cdev;
 static struct class *ch_class;
 
-/*
- * Mark the drv_priv as inactive and schedule it for removal
- * assumes drv_priv.lock is held
- */
 static void ch_deactivate(struct channel_priv *priv_ptr)
 {
 	BUG_ON(!priv_ptr->is_active);
 	priv_ptr->is_active = false;
-	// TODO: schedule_work(&ch_shutdown);
-	// need to add eventfd_ctx_put(irqfd->eventfd); to ch_shutdown
 }
 
 static int channel_open(struct inode *inode, struct file *file)
@@ -81,19 +85,47 @@ static int channel_release(struct inode * inode, struct file * file)
 static int channel_mmap(struct file *filp, struct vm_area_struct *vma) 
 {
 	u64 req_size = vma->vm_end - vma->vm_start;
-	u64 phys_addr = NULL;
 	u64 offset = vma->vm_pgoff;
-	u64 shm_owner_vmid = offset & MMAP_VMID_MASK;
+	struct shared_realm_memory *shrm;
 
-	pr_info("[HCH] vm_flags 0x%llx vm_page_prot 0x%llx offset 0x%llx\n", vma->vm_flags, vma->vm_page_prot, offset);
+	shrm = kzalloc(sizeof(*shrm), GFP_KERNEL_ACCOUNT);
+	if (!shrm) 
+		return -ENOMEM;
+
+	shrm->ipa = offset & PAGE_MASK;
+	shrm->vmid = offset & MMAP_OWNER_VMID_MASK;
+	INIT_LIST_HEAD(&shrm->list);
+
+	pr_info("[HCH] mmap vm_flags 0x%llx vm_page_prot 0x%llx offset 0x%llx\n",
+			vma->vm_flags, vma->vm_page_prot, offset);
 
 	if (req_size != INTER_REALM_SHM_SIZE) {
 		pr_err("%s Incorrect req_size 0x%llx != 0x%llx\n", __func__, req_size, INTER_REALM_SHM_SIZE);
 		return -EINVAL;
 	}
 
-	if (offset & MMAP_GET_ALLOCED_MEM_MASK) {
-		phys_addr = drv_priv.shm_pa[shm_owner_vmid];
+	if (offset & MMAP_SHARE_OTHER_REALM_MEM_MASK) {
+		struct shared_realm_memory *tmp;
+
+		spin_lock_irq(&drv_priv.shrms.lock);
+		list_for_each_entry(tmp, &drv_priv.shrms.heads[shrm->vmid], list) {
+			if (shrm->ipa == tmp->ipa) {
+				shrm->phys = tmp->phys;
+				shrm->peer_cnt++;
+				break;
+			}
+		}
+		spin_unlock_irq(&drv_priv.shrms.lock);
+
+		if (!shrm->phys) {
+			pr_err("%s there is no matched shrm with the ipa 0x%llx", __func__, shrm->ipa);
+			return -EINVAL;
+		} else if (shrm->peer_cnt > 1) {
+			pr_err("%s peer_cnt shouldn't be greater than 1 but %d", __func__, shrm->peer_cnt);
+			return -EINVAL;
+		}
+
+		pr_info("[HCH] %s founded the target shrm with ipa 0x%llx", __func__, shrm->ipa);
 	} else {
 		void *va = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO | __GFP_MOVABLE,
 				get_order(INTER_REALM_SHM_SIZE));
@@ -101,16 +133,19 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 			pr_err("%s __get_free_pages failed\n", __func__);
 			return -ENOMEM;
 		}
-		phys_addr = __pa(va);
+		shrm->phys = __pa(va);
 
-		drv_priv.shm_pa[shm_owner_vmid] = phys_addr;
+		spin_lock_irq(&drv_priv.shrms.lock);
+		list_add_tail(&shrm->list, &drv_priv.shrms.heads[shrm->vmid]);
+		spin_unlock_irq(&drv_priv.shrms.lock);
+
 		pr_info("[HCH] mmap va %p, pa %llx, size 0x%llx, shm_owner_vmid %d \n",
-				va, phys_addr, INTER_REALM_SHM_SIZE, shm_owner_vmid);
+				va, shrm->phys, INTER_REALM_SHM_SIZE, shrm->vmid);
 	}
 
 	/* Mapping pages to user process */
 	return remap_pfn_range(vma, vma->vm_start,
-			       PFN_DOWN(phys_addr), INTER_REALM_SHM_SIZE, vma->vm_page_prot);
+			       PFN_DOWN(shrm->phys), INTER_REALM_SHM_SIZE, vma->vm_page_prot);
 }
 
 static const struct file_operations ch_fops = {
@@ -155,7 +190,14 @@ static int __init channel_init(void)
 	}
 
 	memset(&drv_priv, 0, sizeof(drv_priv));
+	spin_lock_init(&drv_priv.shrms.lock);
 	drv_priv.is_active = true;
+
+	spin_lock_irq(&drv_priv.shrms.lock);
+	for(int i = 0 ; i < VMID_MAX; i++) {
+		INIT_LIST_HEAD(&drv_priv.shrms.heads[i]);
+	}
+	spin_unlock_irq(&drv_priv.shrms.lock);
 
 	dev_major_num = MAJOR(ch_dev);
 	pr_info("[CH] %s major:minor = %d:%d\n", __func__, dev_major_num, MINOR(ch_dev));
