@@ -6,6 +6,7 @@
 #include <syslog.h>
 #include <stdarg.h>
 #include <kvm/kvm.h>
+#include <socket.h>
 
 /*
  * The device id should be included in the following range to avoid conflict with other device ids:
@@ -23,15 +24,10 @@
 #define IOEVENTFD_BASE_SIZE 0x100
 #define IOEVENTFD_BASE_ADDR (KVM_PCI_MMIO_AREA + ARM_PCI_MMIO_SIZE - IOEVENTFD_BASE_SIZE) // use end address of KVM_PCI_MMIO_AREA
 
-#define INTER_REALM_SHM_SIZE (1 << 12) // 4KB or 2MB only
-// INTER_REALM_SHM_IPA_RANGE = [0xC000_0000:0xFFFF_FFFF]
-#define INTER_REALM_SHM_IPA_BASE 0xC0000000
-#define INTER_REALM_SHM_RW_IPA_START 0xC0000000
-#define INTER_REALM_SHM_RO_IPA_START 0xD0000000
-#define INTER_REALM_SHM_IPA_END 0xC0000000 + 0x40000000 // 0x1_0000_0000
 
-#define BAR_MMIO_OFFSET_PEER_VMID 0
-#define BAR_MMIO_OFFSET_SHM_RO_IPA_BASE 64 // 8 byte
+#define BAR_MMIO_PEER_VMID 0
+#define BAR_MMIO_SHM_RW_IPA_BASE 32 // 4 byte
+#define BAR_MMIO_SHM_RO_IPA_BASE 64 // 8 byte
 
 #define SYSLOG_PREFIX "KVMTOOL"
 
@@ -67,6 +63,6 @@ static void ch_syslog(const char *format, ...) {
 	closelog();
 }
 
-int allocate_shm_after_realm_activate(struct kvm *kvm, int vmid, bool need_allocated_mem);
+int allocate_shm_after_realm_activate(Client *client, int vmid, bool need_allocated_mem, u64 other_shrm_ipa);
 
 #endif // ARM_AARCH64__CHANNEL_H

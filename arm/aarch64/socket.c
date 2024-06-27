@@ -15,10 +15,10 @@
 #include <socket.h>
 #include <channel.h>
 #include <pthread.h>
-#include <kvm/ioeventfd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <asm/realm.h>
+#include <kvm/ioeventfd.h>
 
 #define PATH_MAX      4096	/* chars in a path name including nul */
 
@@ -228,8 +228,9 @@ Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm*
     }
 
     client = calloc(1, sizeof(Client));
+    INIT_LIST_HEAD(&client->dyn_shrm);
 
-	/* create eventfd */
+    /* create eventfd */
     ret = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     if (ret < 0) {
         ch_syslog("Cannot create eventfd %s\n", strerror(errno));
@@ -253,7 +254,9 @@ Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm*
         goto err_close;
     }
 
-	ch_syslog("[ID:%d] client addr %p", client->vmid, client);
+    client->shrm_ipa_start = INTER_REALM_SHM_IPA_BASE + ((client->vmid - 1) * MAX_SHRM_IPA_SIZE_PER_REALM);
+
+    ch_syslog("[ID:%d] client addr %p, shrm_ipa_start", client->vmid, client, client->shrm_ipa_start);
 
     memset(client->peers, -1, sizeof(Peer) * PEER_LIST_MAX);
 
@@ -348,7 +351,7 @@ static int handle_fds(Client* client, fd_set *fds, int maxfd) {
 		}
 		ch_syslog("%s shm_alloc_efd cnt: %d", __func__, efd_cnt);
 
-		ret = allocate_shm_after_realm_activate(client->kvm, client->vmid, false);
+		ret = allocate_shm_after_realm_activate(client, client->vmid, false, 0);
 	}
 
     return ret;
@@ -464,4 +467,33 @@ int client_init(struct kvm* kvm) {
 
 int get_vmid(void) {
     return (!client) ? -1 : client->vmid;
+}
+
+bool is_mapped(u64 ipa) {
+    u32 bit = ipa / PAGE_SIZE;
+    return test_bit(bit, client->ipa_bits);
+}
+
+void set_ipa_bit(u64 ipa) {
+    u32 bit = ipa / PAGE_SIZE;
+    set_bit(bit, client->ipa_bits);
+}
+
+void clear_ipa_bit(u64 ipa) {
+    u32 bit = ipa / PAGE_SIZE;
+    clear_bit(bit, client->ipa_bits);
+}
+
+u64 get_unmapped_ipa(void) {
+    u64 ipa = client->shrm_ipa_start;
+    u64 max_ipa = client->shrm_ipa_start + MAX_SHRM_IPA_SIZE_PER_REALM;
+
+    for (; ipa < max_ipa; ipa += PAGE_SIZE) {
+        if (!is_mapped(ipa)) {
+            set_ipa_bit(ipa);
+            return ipa;
+        }
+    }
+
+    die("%s all ipa regions are already mapped", __func__);
 }

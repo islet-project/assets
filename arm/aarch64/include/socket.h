@@ -2,11 +2,28 @@
 #define ARM_AARCH64__SOCKET_H
 
 #include <inttypes.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <linux/list.h>
+#include <linux/bitmap.h>
 
 #define INVALID_PEER_ID -1
 #define PEER_LIST_MAX  128
 #define HOST_CHANNEL_PATH "/dev/host_channel"
 #define SHM_ALLOC_EFD_ID 0
+
+#define INTER_REALM_SHM_SIZE (1 << 12) // 4KB or 2MB only
+#define INTER_REALM_SHM_IPA_BASE 0xC0000000
+#define INTER_REALM_SHM_IPA_END 0xC0000000 + 0x40000000 // 0x1_0000_0000
+
+#define MAX_SHRM_IPA_SIZE_PER_REALM 0x10000000 // 256 MB
+#define MIN_IPA_REGION_SIZE (1 << 12)
+
+struct shared_realm_memory {
+	struct list_head list;
+    u64 ipa;
+};
 
 typedef struct Peer {
 	int id; // NOTE: It's not same with VMID
@@ -24,7 +41,11 @@ typedef struct Client {
 	int peer_cnt;
 	uint32_t ioeventfd_addr;
 	struct kvm *kvm; // need it to setup ioeventfd
+    //struct stailhead dyn_shrm; /* Singly linked tail queue head */
+	struct list_head dyn_shrm;
+	u64 shrm_ipa_start;
 	Peer peers[PEER_LIST_MAX];
+	DECLARE_BITMAP(ipa_bits, MAX_SHRM_IPA_SIZE_PER_REALM / MIN_IPA_REGION_SIZE);
 } Client;
 
 // create & connect socket fd
@@ -36,5 +57,9 @@ int get_vmid(void);
 int client_init(struct kvm* kvm);
 int set_ioeventfd(Client *client, int eventfd, int peer_id);
 int create_polling_thread(Client *client);
+bool is_mapped(u64 ipa);
+void set_ipa_bit(u64 ipa);
+void clear_ipa_bit(u64 ipa);
+u64 get_unmapped_ipa(void);
 
 #endif // ARM_AARCH64__SOCKET_H
