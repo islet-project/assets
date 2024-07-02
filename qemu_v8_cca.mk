@@ -73,6 +73,7 @@ EDK2_BUILD		?= DEBUG
 else
 EDK2_BUILD		?= RELEASE
 endif
+EDK2_BIN		?= $(EDK2_PATH)/Build/ArmVirtQemuKernel-$(EDK2_ARCH)/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/QEMU_EFI.fd
 RMM_PATH		?= $(ROOT)/rmm
 ifeq ($(DEBUG),1)
 RMM_BUILD		?= Debug
@@ -110,8 +111,8 @@ else
 BL32_DEPS		?= optee-os
 endif
 
-BL33_BIN		?= $(UBOOT_BIN)
-BL33_DEPS		?= u-boot
+BL33_BIN		?= $(EDK2_BIN)
+BL33_DEPS		?= edk2
 
 XEN_PATH		?= $(ROOT)/xen
 XEN_IMAGE		?= $(XEN_PATH)/xen/xen.efi
@@ -129,9 +130,9 @@ endif
 ################################################################################
 # Targets
 ################################################################################
-TARGET_DEPS := arm-tf buildroot linux optee-os qemu edk2 rmm
+TARGET_DEPS := arm-tf buildroot linux optee-os qemu
 TARGET_CLEAN := arm-tf-clean buildroot-clean linux-clean optee-os-clean \
-	qemu-clean edk2-clean rmm-clean check-clean
+	qemu-clean check-clean
 
 TARGET_DEPS 		+= $(BL33_DEPS)
 
@@ -174,15 +175,10 @@ TF_A_FLAGS ?= \
 	BL33=$(BL33_BIN) \
 	PLAT=qemu \
 	QEMU_USE_GIC_DRIVER=$(TFA_GIC_DRIVER) \
-	ENABLE_SVE_FOR_NS=2 \
-	ENABLE_SME_FOR_NS=2 \
-	ENABLE_SVE_FOR_SWD=1 \
-	ENABLE_SME_FOR_SWD=1 \
-	ENABLE_FEAT_FGT=2 \
-	ENABLE_FEAT_HCX=2 \
-	BL32_RAM_LOCATION=tdram \
 	DEBUG=$(TF_A_DEBUG) \
-	LOG_LEVEL=$(TF_A_LOGLVL)
+	LOG_LEVEL=$(TF_A_LOGLVL) \
+	ENABLE_RME=1 \
+	RMM=$(RMM_BIN)
 
 TF_A_FLAGS_BL32_OPTEE  = BL32=$(OPTEE_OS_HEADER_V2_BIN)
 TF_A_FLAGS_BL32_OPTEE += BL32_EXTRA1=$(OPTEE_OS_PAGER_V2_BIN)
@@ -216,7 +212,7 @@ TF_A_FLAGS_SPMC_AT_EL_3 += ENABLE_SME_FOR_NS=0 ENABLE_SME_FOR_SWD=0
 TF_A_FLAGS_SPMC_AT_EL_3 += BL32=$(OPTEE_OS_PAGER_V2_BIN)
 TF_A_FLAGS_SPMC_AT_EL_3 += QEMU_TOS_FW_CONFIG_DTS=../build/qemu_v8/spmc_el3_manifest.dts
 
-TF_A_FLAGS += $(TF_A_FLAGS_SPMC_AT_EL_$(SPMC_AT_EL))
+#TF_A_FLAGS += $(TF_A_FLAGS_SPMC_AT_EL_$(SPMC_AT_EL))
 
 ifeq ($(TF_A_TRUSTED_BOARD_BOOT),y)
 TF_A_FLAGS += \
@@ -232,7 +228,7 @@ ifeq ($(MEMTAG),y)
 TF_A_FLAGS += CTX_INCLUDE_MTE_REGS=1
 endif
 
-arm-tf: $(BL32_DEPS) $(BL33_DEPS)
+arm-tf: $(BL32_DEPS) $(BL33_DEPS) rmm
 	$(TF_A_EXPORTS) $(MAKE) -C $(TF_A_PATH) $(TF_A_FLAGS) all fip
 	mkdir -p $(BINARIES_PATH)
 	ln -sf $(TF_A_OUT)/bl1.bin $(BINARIES_PATH)
@@ -271,13 +267,14 @@ else ifeq ($(SPMC_AT_EL),3)
 		$(BINARIES_PATH)/tos_fw_config.dtb
 	ln -sf $(OPTEE_OS_PAGER_V2_BIN) $(BINARIES_PATH)/bl32.bin
 else
-	ln -sf $(OPTEE_OS_HEADER_V2_BIN) $(BINARIES_PATH)/bl32.bin
-	ln -sf $(OPTEE_OS_PAGER_V2_BIN) $(BINARIES_PATH)/bl32_extra1.bin
-	ln -sf $(OPTEE_OS_PAGEABLE_V2_BIN) $(BINARIES_PATH)/bl32_extra2.bin
+	# Pack the whole image into a single flash.bin
+	dd if=$(TF_A_OUT)/bl1.bin of=$(TF_A_OUT)/flash.bin
+	dd if=$(TF_A_OUT)/fip.bin of=$(TF_A_OUT)/flash.bin seek=64 bs=4096
+	ln -sf $(TF_A_OUT)/flash.bin $(BINARIES_PATH)/flash.bin
 endif
 	ln -sf $(BL33_BIN) $(BINARIES_PATH)/bl33.bin
 
-arm-tf-clean:
+arm-tf-clean: edk2-clean rmm-clean
 	$(TF_A_EXPORTS) $(MAKE) -C $(TF_A_PATH) $(TF_A_FLAGS) clean
 
 ################################################################################
