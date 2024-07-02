@@ -175,6 +175,13 @@ pub extern "C" fn irq_current() -> usize {
 }
 
 #[panic_handler]
-pub fn panic_handler(_info: &core::panic::PanicInfo<'_>) -> ! {
+pub fn panic_handler(info: &core::panic::PanicInfo<'_>) -> ! {
+    rsi_print("panic!", 0, 0);
+    if let Some(loc) = info.location() {
+        rsi_print(loc.file(), 0, 0);
+        rsi_print("line-num", loc.line() as usize, 0);
+    } else {
+        rsi_print("no location info", 0, 0);
+    }
     loop {}
 }

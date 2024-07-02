@@ -3,6 +3,11 @@ use aes_gcm::{
     aead::{Aead, KeyInit, Payload},
     Aes256Gcm, Key, Nonce
 };
+use aes::Aes128;
+use aes::cipher::{
+    BlockEncrypt, BlockDecrypt,
+    generic_array::GenericArray,
+};
 use alloc::vec::Vec;
 const TAG_SIZE: usize = 16;
 
@@ -32,6 +37,7 @@ pub fn encrypt(data: &mut [u8], tag: &mut TagStorage) -> bool {
         for (dst, src) in data.iter_mut().zip(ct) {
             *dst = *src;
         }
+
         // tag copy
         for (dst, src) in tag.tag.iter_mut().zip(auth_tag) {
             *dst = *src;
@@ -75,4 +81,46 @@ pub fn decrypt(data: &mut [u8], tag: &mut TagStorage) -> bool {
         rsi_print("decrypt fail!", 0, 0);
         false
     }
+}
+
+fn __encrypt_no_auth(data: &mut [u8], is_encrypt: bool) -> bool {
+    let key = GenericArray::from([0u8; 16]);
+    let cipher = Aes128::new(&key);
+    let len = data.len();
+    let mut curr = 0;
+
+    if data.len() % 16 != 0 {
+        return false;
+    }
+
+    // blocks
+    while curr < len {
+        let mut d: [u8; 16] = [0; 16];
+        for (dst, src) in d.iter_mut().zip(&data[curr..curr+16]) {
+            *dst = *src;
+        }
+        let mut block = GenericArray::from(d);
+
+        if is_encrypt {
+            cipher.encrypt_block(&mut block);
+        } else {
+            cipher.decrypt_block(&mut block);
+        }
+
+        for (dst, src) in (&mut data[curr..curr+16]).iter_mut().zip(&block) {
+            *dst = *src;
+        }
+
+        curr += 16;
+    }
+
+    true
+}
+
+pub fn encrypt_no_auth(data: &mut [u8]) -> bool {
+    __encrypt_no_auth(data, true)
+}
+
+pub fn decrypt_no_auth(data: &mut [u8]) -> bool {
+    __encrypt_no_auth(data, false)
 }

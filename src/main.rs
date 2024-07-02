@@ -129,7 +129,9 @@ pub unsafe fn main() {
     allocator::init();  // initialize heap memory
 
     // 4. register modules
-    let _ = add_module("cvm_hardening", 0, cvm_hardening::blk_write, cvm_hardening::blk_read);
+    let _ = add_module("cvm_hardening", 0,
+                        cvm_hardening::blk_write, cvm_hardening::blk_read,
+                        cvm_hardening::net_tx, cvm_hardening::net_rx);
 
     // 5. Main loop
     gateway_main_loop();

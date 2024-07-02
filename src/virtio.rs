@@ -1,6 +1,8 @@
 use crate::rsi::*;
 use crate::module::*;
 use crate::aes::*;
+use alloc::vec;
+//use alloc::vec::Vec;
 
 core::arch::global_asm!(include_str!("memcpy.S"));
 extern "C" {
@@ -287,6 +289,16 @@ pub fn handle_p9_response() {
     copy_iovs(&p9pdu.out_iov, p9pdu.out_iov_cnt as usize, false);
 }
 
+macro_rules! translate_cvm_data {
+    ($addr:expr, $len:expr) => {{
+        let new_addr = vq_data() + ($addr - VQ_START);
+        let mut acc = Accessor::new(new_addr);
+        let ptr = acc.from_mut_raw::<u8>();
+        let data = unsafe { core::slice::from_raw_parts_mut(ptr, $len) };
+        data
+    }};
+}
+
 // tap (net)
 pub fn handle_net_tx_request() {
     let mut host_acc = Accessor::new(VQ_CTRL_NET_TX_HOST);
@@ -294,7 +306,7 @@ pub fn handle_net_tx_request() {
     let net_tx_host = host_acc.from_mut::<NetTX>();
     let net_tx_cvm = cvm_acc.from::<NetTX>();
 
-    // 1. copy iov
+    // 1. check
     if net_tx_cvm.out_cnt as usize >= VIRTQUEUE_NUM {
         rsi_print("net_tx_request out_cnt too big", net_tx_cvm.out_cnt as usize, 0);
         return;
@@ -304,8 +316,42 @@ pub fn handle_net_tx_request() {
         return;
     }
 
+    // do monitor function
+    if net_tx_cvm.out_cnt == 1 {
+        // zero-copy path (udp falls down in this case)
+        let data = translate_cvm_data!(net_tx_cvm.iovs[0].iov_base, net_tx_cvm.iovs[0].iov_len);
+        let _ = monitor_net_tx(data, 0);
+    } else if net_tx_cvm.out_cnt == 2 {
+        // copy path (out_cnt == 2) (tcp typically falls down in this case)
+        // todo: when it comes with out_cnt being larger than 2?
+        let mut merged_data = vec![];
+        for i in 0..net_tx_cvm.out_cnt {
+            let data = translate_cvm_data!(net_tx_cvm.iovs[i as usize].iov_base, net_tx_cvm.iovs[i as usize].iov_len);
+            merged_data.extend_from_slice(data);
+        }
+
+        let res = monitor_net_tx(&mut merged_data, 0);
+        if res.modified {
+            let mut offset: usize = 0;
+            for i in 0..net_tx_cvm.out_cnt {
+                let len = net_tx_cvm.iovs[i as usize].iov_len;
+                let src_slice = &merged_data[offset..offset+len];
+                let dst_slice = translate_cvm_data!(net_tx_cvm.iovs[i as usize].iov_base, net_tx_cvm.iovs[i as usize].iov_len);
+
+                for (dst, src) in dst_slice.iter_mut().zip(src_slice) {
+                    *dst = *src;
+                }
+                offset += len;
+            }
+        }
+    }
+
+    // 2. copy iovs
     net_tx_host.out_cnt = net_tx_cvm.out_cnt;
     for i in 0..net_tx_cvm.out_cnt {
+        //net_tx_host.iovs[i as usize].iov_base = net_tx_cvm.iovs[i as usize].iov_base;
+        //net_tx_host.iovs[i as usize].iov_len = net_tx_cvm.iovs[i as usize].iov_len;
+
         let dst_addr = &net_tx_host.iovs[i as usize] as *const _ as usize;
         let src_addr = &net_tx_cvm.iovs[i as usize] as *const _ as usize;
         unsafe {
@@ -313,7 +359,7 @@ pub fn handle_net_tx_request() {
         }
     }
 
-    // 2. copy data
+    // 3. copy data
     copy_iovs(&net_tx_cvm.iovs, net_tx_cvm.out_cnt as usize, true);
 }
 
@@ -353,6 +399,13 @@ pub fn handle_net_rx_response() {
             unsafe {
                 asm_memcpy(dst_addr, ptr_addr, copy);
             }
+
+            // do monitor function (udp only now)
+            let mut acc = Accessor::new(dst_addr);
+            let ptr = acc.from_mut_raw::<u8>();
+            let data = unsafe { core::slice::from_raw_parts_mut(ptr, copy) };
+            let _ = monitor_net_rx(data, 0);
+
             ptr_addr += copy;
             llen -= copy;
             iiov.iov_len -= copy;
