@@ -56,10 +56,15 @@ AARCH64_CROSS_COMPILE 		?= $(AARCH64_PATH)/bin/aarch64-linux-gnu-
 AARCH64_GCC_VERSION 		?= arm-gnu-toolchain-11.3.rel1-x86_64-aarch64-none-linux-gnu
 SRC_AARCH64_GCC 		?= https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/$(AARCH64_GCC_VERSION).tar.xz
 
+AARCH64_NONE_ELF_PATH		?= $(TOOLCHAIN_ROOT)/aarch64-none-elf
+AARCH64_NONE_ELF_CROSS_COMPILE	?= $(AARCH64_NONE_ELF_PATH)/bin/aarch64-none-elf-
+AARCH64_NONE_ELF_GCC_VERSION	?= gcc-arm-11.2-2022.02-x86_64-aarch64-none-elf
+SRC_AARCH64_NONE_ELF_GCC	?= https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/$(AARCH64_NONE_ELF_GCC_VERSION).tar.xz
+
 RUST_TOOLCHAIN_PATH 		?= $(TOOLCHAIN_ROOT)/rust
 
 .PHONY: toolchains
-toolchains: aarch32-toolchain aarch64-toolchain rust-toolchain
+toolchains: aarch32-toolchain aarch64-toolchain aarch64-none-elf rust-toolchain
 
 .PHONY: aarch32-toolchain
 aarch32-toolchain:
@@ -68,6 +73,10 @@ aarch32-toolchain:
 .PHONY: aarch64-toolchain
 aarch64-toolchain:
 	$(call dltc,$(AARCH64_PATH),$(SRC_AARCH64_GCC),$(AARCH64_GCC_VERSION))
+
+.PHONY: aarch64-none-elf
+aarch64-none-elf:
+	$(call dltc,$(AARCH64_NONE_ELF_PATH),$(SRC_AARCH64_NONE_ELF_GCC),$(AARCH64_NONE_ELF_GCC_VERSION))
 
 # Download the Rust toolchain
 define dl-rust-toolchain
