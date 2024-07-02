@@ -130,6 +130,8 @@ void run_net_rx_write_num_buffers(struct kvm *kvm, unsigned long iov_base, u16 n
 
     memcpy(ptr, &num_buffers, sizeof(num_buffers));
     ptr += sizeof(num_buffers);
+
+    LOG_DEBUG("net_rx_write_num_buffers done\n");
 }
 
 void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned char *buf, size_t len)
@@ -156,7 +158,7 @@ void run_net_rx_memcpy_to_iovec(struct kvm *kvm, struct iovec *iov, unsigned cha
 
     // 2. iterate iovs
     while (llen > 0) {
-        LOG_DEBUG("net_rx: iov_len: %d\n", iiov->iov_len);
+        LOG_DEBUG("net_rx: iov_len: %d, %d\n", iiov->iov_len, in_cnt);
 
         if (iiov->iov_len) {
             int copy = min_t(unsigned int, iiov->iov_len, llen);
@@ -221,6 +223,7 @@ int run_net_tx_operation_in_host(struct kvm *kvm)
 
         memcpy(shm, (unsigned char *)new_addr, tx->iovs[i].iov_len);
         shm += tx->iovs[i].iov_len;
+        LOG_DEBUG("tx_operation, copy done!\n");
     }
     return len;
 }

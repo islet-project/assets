@@ -124,9 +124,12 @@ static bool has_virtio_feature(struct net_dev *ndev, u32 feature)
 static int virtio_net_hdr_len(struct net_dev *ndev)
 {
 	if (has_virtio_feature(ndev, VIRTIO_NET_F_MRG_RXBUF) ||
-	    !ndev->vdev.legacy)
+	    !ndev->vdev.legacy) {
+		printf("[JB] vnet_hdr_len: mgr_rxbuf: %d\n", sizeof(struct virtio_net_hdr_mrg_rxbuf));
 		return sizeof(struct virtio_net_hdr_mrg_rxbuf);
+	}
 
+	printf("[JB] vnet_hdr_len:  %d\n", sizeof(struct virtio_net_hdr));
 	return sizeof(struct virtio_net_hdr);
 }
 
@@ -265,6 +268,10 @@ static void *virtio_net_rx_thread(void *p)
 			head = virt_queue__get_iov(vq, iov, &out, &in, kvm);
 			//head = virt_queue__get_iov_host(vq, iov, &out, &in, kvm);
 
+			if (out > 0 || in > 1) {
+				printf("rx_therad, out: %d, in: %d\n", out, in);
+			}
+
 			// ===== vm-level emulation required ===== 
 			hdr = iov[0].iov_base;
 			while (copied < len) {
@@ -298,7 +305,6 @@ static void *virtio_net_rx_thread(void *p)
 					if (res < 0) {
 						printf("receive_msg from gw to app error, %d, %s\n", errno, strerror(errno));
 					}
-
 					//run_vm_data_memcpy_to_iovec(iov, buffer + copied, iovsize);  // test
 				} else {
 					memcpy_toiovec(iov, buffer + copied, iovsize);
@@ -503,12 +509,16 @@ static void *virtio_net_tx_thread(void *p)
 					}
 
 					offset = (unsigned long)(iov[i].iov_base) - realm_base_ipa_addr;
+
 					memcpy(read_tx_inter_buf + offset, shm, iov[i].iov_len);
 					iov[i].iov_base = (void *)((unsigned long)read_tx_inter_buf + offset);
 
 					shm += iov[i].iov_len;
 					tx_len += iov[i].iov_len;
 				}
+
+				printf("tx, out: %d\n", tx_out);
+
 				len = tap_ops_tx(iov, tx_out, ndev);
 			} else {
 				len = ndev->ops->tx(iov, out, ndev);
@@ -828,6 +838,20 @@ static u64 get_host_features(struct kvm *kvm, void *dev)
 	u64 features;
 	struct net_dev *ndev = dev;
 
+	// [JB] eliminates VIRTIO_RING_F_INDIRECT_DESC
+	features = 1UL << VIRTIO_NET_F_MAC
+		| 1UL << VIRTIO_NET_F_CSUM
+		| 1UL << VIRTIO_NET_F_HOST_TSO4
+		| 1UL << VIRTIO_NET_F_HOST_TSO6
+		| 1UL << VIRTIO_NET_F_GUEST_TSO4
+		| 1UL << VIRTIO_NET_F_GUEST_TSO6
+		| 1UL << VIRTIO_RING_F_EVENT_IDX 
+		| 1UL << VIRTIO_NET_F_CTRL_VQ
+		| 1UL << VIRTIO_NET_F_MRG_RXBUF
+		| 1UL << (ndev->queue_pairs > 1 ? VIRTIO_NET_F_MQ : 0)
+		| 1UL << VIRTIO_F_ANY_LAYOUT;
+
+	/*
 	features = 1UL << VIRTIO_NET_F_MAC
 		| 1UL << VIRTIO_NET_F_CSUM
 		| 1UL << VIRTIO_NET_F_HOST_TSO4
@@ -839,7 +863,7 @@ static u64 get_host_features(struct kvm *kvm, void *dev)
 		| 1UL << VIRTIO_NET_F_CTRL_VQ
 		| 1UL << VIRTIO_NET_F_MRG_RXBUF
 		| 1UL << (ndev->queue_pairs > 1 ? VIRTIO_NET_F_MQ : 0)
-		| 1UL << VIRTIO_F_ANY_LAYOUT;
+		| 1UL << VIRTIO_F_ANY_LAYOUT; */
 
 	/*
 	 * The UFO feature for host and guest only can be enabled when the
@@ -1301,7 +1325,9 @@ static int virtio_net__init_one(struct virtio_net_params *params)
 		ndev->ops = &tap_ops;
 		if (!virtio_net__tap_create(ndev))
 			die_perror("You have requested a TAP device, but creation of one has failed because");
+
 		printf("[JB] virtio_net__tap_create success!\n");
+		virtio_net_hdr_len(ndev);  // [JB] to print out vnet_hdr_size
 	} else {
 		ndev->info.host_ip		= ntohl(inet_addr(params->host_ip));
 		ndev->info.guest_ip		= ntohl(inet_addr(params->guest_ip));
