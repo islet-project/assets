@@ -73,6 +73,15 @@ EDK2_BUILD		?= DEBUG
 else
 EDK2_BUILD		?= RELEASE
 endif
+RMM_PATH		?= $(ROOT)/rmm
+ifeq ($(DEBUG),1)
+RMM_BUILD		?= Debug
+RMM_LOG_LEVEL		?= 50
+else
+RMM_BUILD		?= Release
+RMM_LOG_LEVEL		?= 40
+endif
+RMM_BIN			?= $(RMM_PATH)/build/$(RMM_BUILD)/rmm.img
 MKIMAGE_PATH		?= $(UBOOT_PATH)/tools
 HAFNIUM_PATH		?= $(ROOT)/hafnium
 HAFNIUM_BIN		?= $(HAFNIUM_PATH)/out/reference/secure_qemu_aarch64_clang/hafnium.bin
@@ -120,9 +129,9 @@ endif
 ################################################################################
 # Targets
 ################################################################################
-TARGET_DEPS := arm-tf buildroot linux optee-os qemu edk2
+TARGET_DEPS := arm-tf buildroot linux optee-os qemu edk2 rmm
 TARGET_CLEAN := arm-tf-clean buildroot-clean linux-clean optee-os-clean \
-	qemu-clean edk2-clean check-clean
+	qemu-clean edk2-clean rmm-clean check-clean
 
 TARGET_DEPS 		+= $(BL33_DEPS)
 
@@ -317,6 +326,24 @@ u-boot-clean:
 	$(MAKE) -C $(UBOOT_PATH) $(UBOOT_COMMON_FLAGS) distclean
 
 ################################################################################
+# RMM
+################################################################################
+
+RMM_EXPORTS = CROSS_COMPILE=$(AARCH64_NONE_ELF_CROSS_COMPILE)
+
+.PHONY: rmm
+rmm:
+	pushd $(RMM_PATH)
+	$(RMM_EXPORTS) cmake -DRMM_CONFIG=qemu_virt_defcfg \
+                                -DCMAKE_BUILD_TYPE=$(RMM_BUILD) \
+                                -DLOG_LEVEL=$(RMM_LOG_LEVEL) \
+                                -S $(RMM_PATH) \
+                                -B $(RMM_PATH)/build; \
+        $(RMM_EXPORTS) cmake --build $(RMM_PATH)/build
+
+.PHONY: rmm-clean
+rmm-clean:
+	rm -rf $(RMM_PATH)/build
 
 ################################################################################
 # EDK2 / Tianocore
