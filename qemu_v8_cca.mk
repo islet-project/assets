@@ -65,6 +65,14 @@ QEMU_BUILD		?= $(QEMU_PATH)/build
 MODULE_OUTPUT		?= $(ROOT)/out/kernel_modules
 UBOOT_PATH		?= $(ROOT)/u-boot
 UBOOT_BIN		?= $(UBOOT_PATH)/u-boot.bin
+EDK2_PATH		?= $(ROOT)/edk2
+EDK2_TOOLCHAIN		?= GCC5
+EDK2_ARCH		?= AARCH64
+ifeq ($(DEBUG),1)
+EDK2_BUILD		?= DEBUG
+else
+EDK2_BUILD		?= RELEASE
+endif
 MKIMAGE_PATH		?= $(UBOOT_PATH)/tools
 HAFNIUM_PATH		?= $(ROOT)/hafnium
 HAFNIUM_BIN		?= $(HAFNIUM_PATH)/out/reference/secure_qemu_aarch64_clang/hafnium.bin
@@ -112,9 +120,9 @@ endif
 ################################################################################
 # Targets
 ################################################################################
-TARGET_DEPS := arm-tf buildroot linux optee-os qemu
+TARGET_DEPS := arm-tf buildroot linux optee-os qemu edk2
 TARGET_CLEAN := arm-tf-clean buildroot-clean linux-clean optee-os-clean \
-	qemu-clean check-clean
+	qemu-clean edk2-clean check-clean
 
 TARGET_DEPS 		+= $(BL33_DEPS)
 
@@ -309,6 +317,23 @@ u-boot-clean:
 	$(MAKE) -C $(UBOOT_PATH) $(UBOOT_COMMON_FLAGS) distclean
 
 ################################################################################
+
+################################################################################
+# EDK2 / Tianocore
+################################################################################
+define edk2-env
+        export WORKSPACE=$(EDK2_PATH)
+endef
+
+define edk2-call
+        $(EDK2_TOOLCHAIN)_$(EDK2_ARCH)_PREFIX=$(AARCH64_CROSS_COMPILE) \
+        build -n `getconf _NPROCESSORS_ONLN` -a $(EDK2_ARCH) \
+                -t $(EDK2_TOOLCHAIN) -p ArmVirtPkg/ArmVirtQemuKernel.dsc -b $(EDK2_BUILD)
+endef
+
+edk2: edk2-common
+
+edk2-clean: edk2-clean-common
 
 ################################################################################
 # Linux kernel
