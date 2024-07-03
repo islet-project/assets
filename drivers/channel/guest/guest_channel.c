@@ -14,6 +14,8 @@
 #include <linux/file.h>
 #include <linux/mm.h>
 
+#include "dyn_shrm_manager.h"
+
 /* for the character device */
 #define DEVICE_NAME "gch_char"
 #define MINOR_BASE 0
@@ -32,11 +34,16 @@ static struct class *ch_class;
 #define IOEVENTFD_BASE_ADDR 0x7fffff00
 #define IOEVENTFD_BASE_SIZE 0x100
 
-#define SHM_RW_BASE_IPA 0xC0000000
-#define SHM_RO_BASE_IPA 0xD0000000
+#define SHRM_BASE_IPA     0xC0000000
+#define MAX_SHRM_IPA_SIZE 0x10000000
 
-#define BAR_MMIO_OFFSET_PEER_VMID 0
-#define BAR_MMIO_OFFSET_SHM_RO_IPA_BASE 8
+#define BAR_MMIO_CURRENT_VMID 0
+#define BAR_MMIO_PEER_VMID 4 
+#define BAR_MMIO_SHM_RW_IPA_BASE 8
+#define BAR_MMIO_SHM_RO_IPA_BASE 12
+
+#define BAR_MMIO_MIN_OFFSET BAR_MMIO_CURRENT_VMID
+#define BAR_MMIO_MAX_OFFSET BAR_MMIO_SHM_RO_IPA_BASE
 
 #define INVALID_PEER_ID -1
 
@@ -77,14 +84,61 @@ struct peer {
 /* You can store there any data that should be passed between driver's functions */
 struct channel_priv {
 	uint32_t* ioeventfd_addr;
+	int vmid;
 	struct peer peer;
 	ROLE role;
 	struct work_struct send;
 	struct work_struct receive;
-	u64* shm_base_va;
-	u64* shm_ro_base_va;
 	u64* mapped_bar_addr;
+	u64 *rw_shrm_va_start;
+	u64 *ro_shrm_va_start;
 };
+
+static u64 get_ipa_start(int vmid) {
+	if (vmid <= 0) {
+		pr_err("%s vmid should be greater than 0 but %d", __func__, vmid);
+		return 0;
+	}
+	return SHRM_BASE_IPA + (vmid-1) * MAX_SHRM_IPA_SIZE;
+}
+
+u64* get_shrm_va(bool read_only, u64 ipa) {
+	u64 shrm_va = (read_only) ? (u64)drv_priv->ro_shrm_va_start : (u64)drv_priv->rw_shrm_va_start;
+
+	if (!shrm_va) {
+		pr_err("%s shrm_va shouldn't be non-zero. read_only %d. ipa 0x%llx",
+				__func__, read_only, ipa);
+		return NULL;
+	}
+
+	shrm_va += ipa % MAX_SHRM_IPA_SIZE;
+	return (u64*)shrm_va;
+}
+
+void send_signal(int peer_id) {
+	pr_info("[GCH] write %d to ioeventfd_addr 0x%x", peer_id, (uint32_t)drv_priv->ioeventfd_addr);
+	iowrite32(peer_id, drv_priv->ioeventfd_addr);
+}
+
+static void get_cur_vmid(void) {
+	int vmid;
+
+	if (drv_priv->vmid) {
+		pr_info("[GCH] %s vmid is already set %d",__func__, drv_priv->vmid);
+		return;
+	}
+	
+	vmid = readl(drv_priv->mapped_bar_addr + BAR_MMIO_CURRENT_VMID);
+
+	if (vmid == INVALID_PEER_ID || vmid == SHM_ALLOCATOR) {
+		pr_info("[GCH] The vmid is not valid %d", vmid);
+	} else {
+		pr_info("[GCH] get vmid %d", vmid);
+		drv_priv->vmid = vmid;
+		drv_priv->role = (vmid == CLIENT) ? CLIENT : SERVER;
+		pr_info("[GCH] my role is %d", drv_priv->role);
+	}
+}
 
 static void set_peer_id(void) {
 	int peer_id;
@@ -94,25 +148,21 @@ static void set_peer_id(void) {
 		return;
 	}
 	
-	peer_id = readl(drv_priv->mapped_bar_addr + BAR_MMIO_OFFSET_PEER_VMID);
+	peer_id = readl(drv_priv->mapped_bar_addr + BAR_MMIO_PEER_VMID);
 
 	if (peer_id == INVALID_PEER_ID || peer_id == SHM_ALLOCATOR) {
 		pr_info("[GCH] peer_id is not valid %d", peer_id);
 	} else {
 		pr_info("[GCH] get peer_id %d", peer_id);
 		drv_priv->peer.id = peer_id;
-		drv_priv->role = (peer_id == CLIENT) ? SERVER: CLIENT;
-		pr_info("[GCH] my role is %d", drv_priv->role);
 	}
 }
 
-static void send_signal(int peer_id, uint32_t* ioeventfd_addr) {
-	pr_info("[GCH] write %d to ioeventfd_addr 0x%x", peer_id, (uint32_t)ioeventfd_addr);
-	iowrite32(peer_id, ioeventfd_addr);
-}
-
 static void ch_send(struct work_struct *work) {
+	int ret;
 	u64 msg = 0xBEEF;
+	u64 *rw_shrm_va = get_shrm_va(false, 0x1000);
+	//u64 *rw_shrm_va = drv_priv->rw_shrm_va_start;
 
 	set_peer_id();
 
@@ -121,30 +171,31 @@ static void ch_send(struct work_struct *work) {
 		pr_err("[GCH] My role is not CLIENT but %d", drv_priv->role);
 		return;
 	}
+	write_to_shrm(NULL, NULL, 0); // for the build test
 
-	if (!drv_priv->shm_base_va) {
-		pr_info("[GCH] %s call memremap() with SHM_RW_BASE_IPA %llx", __func__, SHM_RW_BASE_IPA);
-
-		drv_priv->shm_base_va = memremap(SHM_RW_BASE_IPA, 0x1000, MEMREMAP_WB);
-		if (!drv_priv->shm_base_va) {
-			pr_err("%s memremap for 0x%llx failed \n", __func__, SHM_RW_BASE_IPA);
-			return;
-		}
-		pr_info("[GCH] %s memremap() done. shm_base_va: 0x%llx", __func__, drv_priv->shm_base_va);
-
-		pr_info("[GCH] %s call set_memory_shared with SHM_RW_BASE_IPA 0x%llx shm_base_va: 0x%llx",
-				__func__, SHM_RW_BASE_IPA, drv_priv->shm_base_va);
-		set_memory_shared(SHM_RW_BASE_IPA, 1);
+	if (!rw_shrm_va) {
+		pr_err("[GCH] %s rw_shrm_va shouldn't be NULL", __func__);
+		return;
 	}
 
-	//strncpy((char*)drv_priv->shm_base_va, msg, sizeof(msg));
-	*drv_priv->shm_base_va = msg;
-	pr_err("[GCH] %s write msg to drv_priv->shm_base_va: 0x%llx\n", __func__, *drv_priv->shm_base_va);
-	send_signal(drv_priv->peer.id, drv_priv->ioeventfd_addr);
+	pr_info("[GCH] %s drv_priv->rw_shrm_va_start 0x%llx, rw_shrm_va: 0x%llx",
+			__func__, drv_priv->rw_shrm_va_start, rw_shrm_va);
+
+	ret = add_shrm_chunk();
+	if (ret) { //for the test
+		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
+		return;
+	}
+
+	pr_err("[GCH] %s before writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
+	*rw_shrm_va = msg;
+	pr_err("[GCH] %s after writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
+	send_signal(drv_priv->peer.id);
+	pr_info("[GCH] %s done without write on shrm & no signal to the server");
 }
 
 static void ch_receive(struct work_struct *work) {
-	u64 shm_ro_base_ipa = 0, msg = 0;
+	u64 shrm_ipa, ipa_offset = 0x1000, msg = 0;
 
 	set_peer_id();
 
@@ -153,44 +204,46 @@ static void ch_receive(struct work_struct *work) {
 		pr_err("[GCH] My role is not SERVER but %d", drv_priv->role);
 		return;
 	}
+	copy_from_shrm(NULL, NULL); // for the build test
+	shrm_ipa = get_ipa_start(drv_priv->peer.id);
 
-	if (!drv_priv->shm_ro_base_va) {
-		shm_ro_base_ipa = readl(drv_priv->mapped_bar_addr + BAR_MMIO_OFFSET_SHM_RO_IPA_BASE);
-		if (!shm_ro_base_ipa) {
-			pr_err("[GCH] %s failed to get shm_ro_base_ipa", __func__);
+	if (!drv_priv->ro_shrm_va_start) {
+		u64 shrm_ro_ipa_start = shrm_ipa;
+		shrm_ipa += ipa_offset;
+
+		drv_priv->ro_shrm_va_start = memremap(shrm_ro_ipa_start, MAX_SHRM_IPA_SIZE, MEMREMAP_WB);
+		if (!drv_priv->ro_shrm_va_start) {
+			pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_ro_ipa_start);
 			return;
 		}
+		pr_info("[GCH] %s memremap result: 0x%llx for [0x%llx:0x%llx)", __func__,
+				drv_priv->ro_shrm_va_start, shrm_ro_ipa_start, shrm_ro_ipa_start + MAX_SHRM_IPA_SIZE);
 
-		pr_info("[GCH] %s call memremap() with shm_ro_base_ipa %llx", __func__, shm_ro_base_ipa);
-		drv_priv->shm_ro_base_va = memremap(shm_ro_base_ipa, 0x1000, MEMREMAP_WB);
-		if (!drv_priv->shm_ro_base_va) {
-			pr_err("%s memremap for 0x%llx failed \n", __func__, shm_ro_base_ipa);
-			return;
-		}
-		pr_info("[GCH] %s memremap() done. shm_ro_base_va: 0x%llx", __func__, drv_priv->shm_ro_base_va);
+		writel(shrm_ipa, drv_priv->mapped_bar_addr + BAR_MMIO_SHM_RO_IPA_BASE);
 
-		//pr_info("[GCH] %s call set_memory_shared with shm_ro_base_ipa 0x%llx va: %p",
-		//		__func__, shm_ro_base_ipa, drv_priv->shm_ro_base_va);
-		//set_memory_shared(shm_ro_base_ipa, 1);
+		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx va: %p",
+				__func__, shrm_ipa, drv_priv->ro_shrm_va_start);
+		set_memory_shared(shrm_ipa, 1);
 	}
 
-	if (drv_priv->shm_ro_base_va)  {
-		pr_err("[GCH] %s let's read & write the shm_ro_base_va to msg", __func__);
+	if (drv_priv->ro_shrm_va_start)  {
+		u64 *ro_shrm_va = get_shrm_va(true, ipa_offset);
+		pr_err("[GCH] %s let's read & write the ro_shrm_va 0x%llx to msg", __func__, ro_shrm_va);
 
-		msg = *drv_priv->shm_ro_base_va;
+		msg = *ro_shrm_va;
 
 		/*
 		for (int i; i < 4; i++) {
-			char* ptr = (char*)drv_priv->shm_ro_base_va;
-			pr_err("shm_ro_base_va[%d]: %c\n", i, ptr[i]);
+			char* ptr = (char*)drv_priv->ro_shrm_va_start;
+			pr_err("ro_shrm_va_start[%d]: %c\n", i, ptr[i]);
 		}
 
-		pr_err("[GCH] strncpy start from shm_ro_base_va: %llx to msg\n", drv_priv->shm_ro_base_va);
-		strncpy(msg, (const char *)drv_priv->shm_ro_base_va, sizeof(msg));
+		pr_err("[GCH] strncpy start from ro_shrm_va_start: %llx to msg\n", drv_priv->ro_shrm_va_start);
+		strncpy(msg, (const char *)drv_priv->ro_shrm_va_start, sizeof(msg));
 		*/
 		pr_err("[GCH] %s msg read result: 0x%llx\n", __func__, msg);
 	} else {
-		pr_err("[GCH] drv_priv->shm_ro_base_va is zero.\n");
+		pr_err("[GCH] drv_priv->ro_shrm_va_start is zero.\n");
 	}
 }
 
@@ -220,7 +273,7 @@ static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *
 		pr_info("[GCH] %s start schedule_work for receive", __func__);
 		schedule_work(&drv_priv->receive);
 	} else {
-		pr_info("[GCH] %s start have no peer. set_peer_id start", __func__);
+		pr_info("[GCH] %s set_peer_id start", __func__);
 		set_peer_id();
 	}
     return 0;
@@ -236,10 +289,10 @@ static ssize_t channel_write(struct file *filp, const char __user *buf, size_t c
     }
     pr_info("%s After calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
 
-	pr_info("%s write 0x%llx to the bar_addr + BAR_MMIO_OFFSET_SHM_RO_IPA_BASE 0x%llx",
+	pr_info("%s write 0x%llx to the bar_addr + BAR_MMIO_SHM_RO_IPA_BASE 0x%llx",
 			__func__, buffer[0]);
 
-	writel(buffer[0], drv_priv->mapped_bar_addr + BAR_MMIO_OFFSET_SHM_RO_IPA_BASE);
+	writel(buffer[0], drv_priv->mapped_bar_addr + BAR_MMIO_SHM_RO_IPA_BASE);
 
     return count;
 }
@@ -345,10 +398,11 @@ static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 /* This function is called by the kernel */
 static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
-    int bar = 0, ret;
+    int bar = 0, ret = -EBUSY;
     u16 vendor, device;
     uint32_t dev_ioeventfd_addr, dev_ioeventfd_size;
     uint32_t bar_addr, bar_size;
+	u64 shrm_rw_ipa_start;
 
     pr_info("[GCH] %s start\n", __func__);
 
@@ -390,8 +444,37 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	drv_priv->mapped_bar_addr = pci_iomap(pdev, bar, 0);
 	if (!drv_priv->mapped_bar_addr) {
 		pr_info("[GCH] pci_iomap is failed %llx", (u64)drv_priv->mapped_bar_addr);
-		return -1;
+		ret = -ENOMEM;
+		goto pci_disable;
 	}
+
+	pr_info("[GCH] %s call get_cur_vmid", __func__);
+	get_cur_vmid();
+
+	pr_info("[GCH] %s call get_ipa_start", __func__);
+	shrm_rw_ipa_start = get_ipa_start(drv_priv->vmid);
+	if (!shrm_rw_ipa_start) {
+		ret = -EINVAL;
+		goto pci_disable;
+	}
+	//shrm_rw_ipa_start += 0x1000;
+
+	ret = init_shrm_list(shrm_rw_ipa_start, MAX_SHRM_IPA_SIZE);
+	if (ret) {
+		goto pci_disable;
+	}
+
+	pr_info("[GCH] %s call memremap to map 0x%llx", __func__, shrm_rw_ipa_start);
+	//drv_priv->rw_shrm_va_start = memremap(shrm_rw_ipa_start, 0x1000, MEMREMAP_WB);
+	drv_priv->rw_shrm_va_start = memremap(shrm_rw_ipa_start, MAX_SHRM_IPA_SIZE, MEMREMAP_WB);
+	if (!drv_priv->rw_shrm_va_start) {
+		pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_rw_ipa_start);
+		ret = -ENOMEM;
+		goto pci_disable;
+	}
+
+	pr_info("[GCH] %s memremap result: 0x%llx for [0x%llx:0x%llx)", __func__,
+			drv_priv->rw_shrm_va_start, shrm_rw_ipa_start, shrm_rw_ipa_start + MAX_SHRM_IPA_SIZE);
 
 	set_peer_id();
 
@@ -418,12 +501,16 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	}
 	pr_info("[GCH] request_irq done");
 
-	/*
-	pr_info("[GCH] TEST: send signal to peer_id %d", 0);
-	send_signal(0, drv_priv->ioeventfd_addr);
+	pr_info("[GCH] DYN_ALLOC_REQ_TEST: send signal to peer_id %d", 0);
 
+	ret = add_shrm_chunk();
+	if (ret) { //for the test
+		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
+	}
+
+	/*
 	pr_info("[GCH] TEST: send signal to destination peer_id %d", drv_priv->peer.id);
-	send_signal(drv_priv->peer.id, drv_priv->ioeventfd_addr);
+	send_signal(drv_priv->peer.id);
 	*/
 
 	/*
@@ -441,7 +528,7 @@ iomap_release:
 	pci_iounmap(pdev, drv_priv->ioeventfd_addr);
 pci_disable:
 	pci_disable_device(pdev);
-	return -EBUSY;
+	return ret;
 }
 
 /*
@@ -462,6 +549,28 @@ static void channel_remove(struct pci_dev *pdev)
 	pci_release_region(pdev, 0);
 	pci_disable_device(pdev);
 }
+
+static s64 mmio_read(u64 offset) {
+	s64 ret;
+
+	switch(offset) {
+		case BAR_MMIO_CURRENT_VMID:
+		case BAR_MMIO_PEER_VMID:
+		case BAR_MMIO_SHM_RW_IPA_BASE:
+		case BAR_MMIO_SHM_RO_IPA_BASE:
+			ret = readl(drv_priv->mapped_bar_addr + offset);
+			return ret;
+		default:
+			pr_err("%s wrong mmio offset 0x%llx", __func__, offset);
+			return -EINVAL;
+	}
+}
+
+s64 mmio_read_shrm_ipa(void) {
+	return mmio_read(BAR_MMIO_SHM_RW_IPA_BASE);
+}
+
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sunwook Eom <speed.eom@samsung.com>");
