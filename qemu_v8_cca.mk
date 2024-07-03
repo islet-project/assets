@@ -21,6 +21,7 @@ BR2_TARGET_ROOTFS_EXT2=y
 BR2_TARGET_ROOTFS_EXT2_4=y
 BR2_TARGET_ROOTFS_EXT2_LABEL="rootfs"
 BR2_TARGET_ROOTFS_EXT2_SIZE="256M"
+BR2_PACKAGE_KVMTOOL=y
 
 OPTEE_OS_PLATFORM = vexpress-qemu_armv8a
 
@@ -88,6 +89,7 @@ RMM_BUILD		?= Release
 RMM_LOG_LEVEL		?= 40
 endif
 RMM_BIN			?= $(RMM_PATH)/build/$(RMM_BUILD)/rmm.img
+KVMTOOL_TARGET_PATH	?= $(ROOT)/kvmtool
 MKIMAGE_PATH		?= $(UBOOT_PATH)/tools
 HAFNIUM_PATH		?= $(ROOT)/hafnium
 HAFNIUM_BIN		?= $(HAFNIUM_PATH)/out/reference/secure_qemu_aarch64_clang/hafnium.bin

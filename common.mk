@@ -337,6 +337,7 @@ buildroot: optee-os
 	@rm -f ../out-br/build/optee_*/.stamp_*
 	@rm -f ../out-br/extra.conf
 	@$(call append-br2-vars,../out-br/extra.conf)
+	@echo 'KVMTOOL_OVERRIDE_SRCDIR=$(KVMTOOL_TARGET_PATH)' > ../out-br/local.mk
 	@(cd .. && $(PYTHON3) build/br-ext/scripts/make_def_config.py \
 		--br buildroot --out out-br --br-ext build/br-ext \
 		--top-dir "$(ROOT)" \
