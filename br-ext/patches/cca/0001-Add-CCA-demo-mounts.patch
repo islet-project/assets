@@ -1,0 +1,25 @@
+From 838e60450e2380cc274ec095512a04c1c017dbd4 Mon Sep 17 00:00:00 2001
+From: Jean-Philippe Brucker <jean-philippe@linaro.org>
+Date: Fri, 3 May 2024 16:23:32 +0100
+Subject: [PATCH] Add CCA demo mounts
+
+Add a couple mounts to avoid having to enter the command every time.
+
+Signed-off-by: Jean-Philippe Brucker <jean-philippe@linaro.org>
+---
+ package/skeleton-init-sysv/skeleton/etc/fstab | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/package/skeleton-init-sysv/skeleton/etc/fstab b/package/skeleton-init-sysv/skeleton/etc/fstab
+index 169054b7..b54fcc83 100644
+--- a/package/skeleton-init-sysv/skeleton/etc/fstab
++++ b/package/skeleton-init-sysv/skeleton/etc/fstab
+@@ -6,3 +6,5 @@ tmpfs		/dev/shm	tmpfs	mode=0777	0	0
+ tmpfs		/tmp		tmpfs	mode=1777	0	0
+ tmpfs		/run		tmpfs	mode=0755,nosuid,nodev	0	0
+ sysfs		/sys		sysfs	defaults	0	0
++configfs	/sys/kernel/config	configfs defaults	0	0
++shr0		/mnt/		9p	nofail		0	0
+-- 
+2.44.0
+
