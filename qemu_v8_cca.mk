@@ -380,6 +380,25 @@ edk2: edk2-common
 edk2-clean: edk2-clean-common
 
 ################################################################################
+# cloud-hypervisor Rules
+################################################################################
+
+CLOUDHV ?= n
+CLOUDHV_PATH ?= $(ROOT)/cloud-hypervisor
+
+ifeq ($(CLOUDHV),y)
+all run: cloud-hypervisor
+endif
+
+.PHONY: cloud-hypervisor
+cloud-hypervisor: buildroot $(BINARIES_PATH)
+	rustup target add aarch64-unknown-linux-gnu
+	export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=$(ROOT)/out-br/host/bin/aarch64-buildroot-linux-gnu-gcc && \
+	cd $(CLOUDHV_PATH) && \
+	cargo build --target aarch64-unknown-linux-gnu --features arm_rme
+	cp $(CLOUDHV_PATH)/target/aarch64-unknown-linux-gnu/debug/cloud-hypervisor $(BINARIES_PATH)
+
+################################################################################
 # Linux kernel
 ################################################################################
 LINUX_DEFCONFIG_COMMON_ARCH := arm64
