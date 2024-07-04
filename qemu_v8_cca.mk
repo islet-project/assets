@@ -35,6 +35,8 @@ BR2_PACKAGE_QEMU_TARGET_AARCH64=y
 BR2_PACKAGE_QEMU_SLIRP=y
 BR2_PACKAGE_SLIRP=y
 
+BR2_PACKAGE_CCA_WORKLOAD_ATTESTATION=y
+
 OPTEE_OS_PLATFORM = vexpress-qemu_armv8a
 
 ########################################################################################
