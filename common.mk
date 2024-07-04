@@ -331,12 +331,18 @@ ifneq (y,$(BR2_PER_PACKAGE_DIRECTORIES))
 br-make-flags := -j1
 endif
 
+
+.patch_buildroot:
+	cd $(BUILDROOT_PATH); \
+	git am $(BUILD_PATH)/br-ext/patches/cca/*.patch
+	touch $@
+
 .qemu_target:
 	cd $(QEMU_TARGET_PATH); ./configure --target-list=aarch64-softmmu; make clean
 	touch $@
 
 .PHONY: buildroot
-buildroot: optee-os .qemu_target
+buildroot: optee-os .qemu_target .patch_buildroot
 	@mkdir -p ../out-br
 	@rm -f ../out-br/build/optee_*/.stamp_*
 	@rm -f ../out-br/extra.conf

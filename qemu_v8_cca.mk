@@ -114,6 +114,8 @@ KERNEL_IMAGE		?= $(LINUX_PATH)/arch/arm64/boot/Image
 KERNEL_IMAGEGZ		?= $(LINUX_PATH)/arch/arm64/boot/Image.gz
 KERNEL_UIMAGE		?= $(BINARIES_PATH)/uImage
 
+BUILDROOT_PATH		?= $(ROOT)/buildroot
+
 SCMI_DTSO 		?= $(ROOT)/build/qemu_v8/qemu-v8-scmi-overlay.dtso
 SCMI_DTBO 		?= $(BINARIES_PATH)/qemu-v8-scmi-overlay.dtbo
 SCMI_DTB 		?= $(BINARIES_PATH)/qemu-v8-scmi.dtb
