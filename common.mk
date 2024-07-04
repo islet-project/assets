@@ -331,13 +331,18 @@ ifneq (y,$(BR2_PER_PACKAGE_DIRECTORIES))
 br-make-flags := -j1
 endif
 
+.qemu_target:
+	cd $(QEMU_TARGET_PATH); ./configure --target-list=aarch64-softmmu; make clean
+	touch $@
+
 .PHONY: buildroot
-buildroot: optee-os
+buildroot: optee-os .qemu_target
 	@mkdir -p ../out-br
 	@rm -f ../out-br/build/optee_*/.stamp_*
 	@rm -f ../out-br/extra.conf
 	@$(call append-br2-vars,../out-br/extra.conf)
 	@echo 'KVMTOOL_OVERRIDE_SRCDIR=$(KVMTOOL_TARGET_PATH)' > ../out-br/local.mk
+	@echo 'QEMU_OVERRIDE_SRCDIR=$(QEMU_TARGET_PATH)' >> ../out-br/local.mk
 	@(cd .. && $(PYTHON3) build/br-ext/scripts/make_def_config.py \
 		--br buildroot --out out-br --br-ext build/br-ext \
 		--top-dir "$(ROOT)" \
