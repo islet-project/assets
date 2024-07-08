@@ -1,0 +1,20 @@
+From 767c89d80881158b999dc92578f8234ae3387c96 Mon Sep 17 00:00:00 2001
+From: Mathieu Poirier <mathieu.poirier@linaro.org>
+Date: Wed, 22 May 2024 11:54:35 -0600
+Subject: [PATCH] system: Add address for Linaro veraison verifier
+
+Signed-off-by: Mathieu Poirier <mathieu.poirier@linaro.org>
+---
+ system/skeleton/etc/hosts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/system/skeleton/etc/hosts b/system/skeleton/etc/hosts
+index ba712fe03341..3ed7579bca4f 100644
+--- a/system/skeleton/etc/hosts
++++ b/system/skeleton/etc/hosts
+@@ -1 +1,2 @@
+ 127.0.0.1	localhost
++213.146.141.101	veraison.example
+--
+2.34.1
+
