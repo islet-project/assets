@@ -228,7 +228,7 @@ Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm*
     }
 
     client = calloc(1, sizeof(Client));
-    INIT_LIST_HEAD(&client->dyn_shrm);
+    INIT_LIST_HEAD(&client->dyn_shrms_head);
 
     /* create eventfd */
     ret = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);

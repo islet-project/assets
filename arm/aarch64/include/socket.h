@@ -22,7 +22,8 @@
 
 struct shared_realm_memory {
 	struct list_head list;
-    u64 ipa;
+    u64 ipa, va;
+	bool mapped_to_realm;
 };
 
 typedef struct Peer {
@@ -41,8 +42,7 @@ typedef struct Client {
 	int peer_cnt;
 	uint32_t ioeventfd_addr;
 	struct kvm *kvm; // need it to setup ioeventfd
-    //struct stailhead dyn_shrm; /* Singly linked tail queue head */
-	struct list_head dyn_shrm;
+	struct list_head dyn_shrms_head; // shrm will be keeped in this list until current realm request a shrm
 	u64 shrm_ipa_start;
 	Peer peers[PEER_LIST_MAX];
 	DECLARE_BITMAP(ipa_bits, MAX_SHRM_IPA_SIZE_PER_REALM / MIN_IPA_REGION_SIZE);

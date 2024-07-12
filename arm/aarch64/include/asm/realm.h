@@ -10,6 +10,7 @@ void kvm_arm_realm_populate_kernel(struct kvm *kvm);
 void kvm_arm_realm_populate_initrd(struct kvm *kvm);
 void kvm_arm_realm_populate_dtb(struct kvm *kvm);
 void kvm_arm_realm_populate_shared_mem(struct kvm *kvm, u64 ipa_start, u64 size);
-void map_memory_to_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size);
+void map_memory_to_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size, bool read_only);
+void unmap_memory_from_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size);
 
 #endif /* ! __ASM_REALM_H */
