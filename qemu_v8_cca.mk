@@ -375,8 +375,11 @@ define edk2-env
         export WORKSPACE=$(EDK2_PATH)
 endef
 
+# Clear MAKEFLAGS to avoid passing '-j' to the edk2 Makefiles. They don't
+# support parallel build at the moment.
 define edk2-call
         $(EDK2_TOOLCHAIN)_$(EDK2_ARCH)_PREFIX=$(AARCH64_CROSS_COMPILE) \
+        MAKEFLAGS= \
         build -n `getconf _NPROCESSORS_ONLN` -a $(EDK2_ARCH) \
                 -t $(EDK2_TOOLCHAIN) -p ArmVirtPkg/ArmVirtQemuKernel.dsc -b $(EDK2_BUILD)
 endef
