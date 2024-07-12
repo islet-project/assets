@@ -423,7 +423,7 @@ LINUX_COMMON_TARGETS += Image scripts_gdb
 
 linux: linux-common
 	mkdir -p $(BINARIES_PATH)
-	ln -sf $(LINUX_PATH)/arch/arm64/boot/Image $(BINARIES_PATH)
+	ln -rsf $(LINUX_PATH)/arch/arm64/boot/Image $(BINARIES_PATH)
 
 linux-modules: linux
 	$(MAKE) -C $(LINUX_PATH) $(LINUX_COMMON_FLAGS) modules
@@ -522,7 +522,7 @@ $(KERNEL_UIMAGE): u-boot linux | $(BINARIES_PATH)
 uImage: $(KERNEL_UIMAGE)
 
 $(ROOTFS_UGZ): u-boot buildroot | $(BINARIES_PATH)
-	ln -sf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)
 	$(MKIMAGE_PATH)/mkimage -A arm64 \
 				-T ramdisk \
 				-C gzip \
@@ -638,7 +638,7 @@ $(SCMI_DTBO): $(SCMI_DTSO)
 	dtc -I dts -O dtb -o $(SCMI_DTBO) $(SCMI_DTSO)
 
 $(SCMI_DTB): $(SCMI_DTBO) $(QEMU_BUILD)/.stamp_qemu linux arm-tf buildroot
-	ln -sf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
 	cd $(BINARIES_PATH) && $(QEMU_BUILD)/aarch64-softmmu/qemu-system-aarch64 \
 		$(QEMU_BASE_ARGS) -machine dumpdtb=qemu_v8.dtb
 	cd $(BINARIES_PATH) && fdtoverlay -i qemu_v8.dtb -o $(SCMI_DTB) $(SCMI_DTBO)
@@ -650,7 +650,7 @@ QEMU_RUN_ARGS += -s -S -serial tcp:127.0.0.1:$(QEMU_NW_PORT) -serial tcp:127.0.0
 
 .PHONY: run-only
 run-only:
-	ln -sf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
 	$(call check-terminal)
 	$(call run-help)
 	$(call launch-terminal,54321,"Secure")
@@ -704,7 +704,7 @@ QEMU_CHECK_ARGS += -fsdev local,id=fsdev0,path=../..,security_model=none -device
 endif
 
 check: $(CHECK_DEPS)
-	ln -sf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
 	cd $(BINARIES_PATH) && \
 		export QEMU=$(QEMU_BUILD)/aarch64-softmmu/qemu-system-aarch64 && \
 		export QEMU_CHECK_ARGS="$(QEMU_CHECK_ARGS)" && \
