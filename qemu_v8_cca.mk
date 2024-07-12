@@ -413,7 +413,8 @@ cloud-hypervisor: buildroot $(BINARIES_PATH)
 LINUX_DEFCONFIG_COMMON_ARCH := arm64
 LINUX_DEFCONFIG_COMMON_FILES := \
 		$(LINUX_PATH)/arch/arm64/configs/defconfig \
-		$(CURDIR)/kconfigs/qemu.conf
+		$(CURDIR)/kconfigs/qemu.conf \
+		$(CURDIR)/kconfigs/cca.conf
 
 linux-defconfig: $(LINUX_PATH)/.config
 
