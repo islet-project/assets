@@ -2346,6 +2346,7 @@ static int __init vsock_init(void)
 		       AF_VSOCK, err);
 		goto err_unregister_proto;
 	}
+    pr_info("[JB] vsock init success!\n");
 
 	return 0;
 

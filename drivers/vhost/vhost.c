@@ -2081,6 +2081,9 @@ static int translate_desc(struct vhost_virtqueue *vq, u64 addr, u32 len,
 		_iov->iov_len = min((u64)len - s, size);
 		_iov->iov_base = (void __user *)(unsigned long)
 				 (map->addr + addr - map->start);
+		
+		//pr_info("[JB] translate_desc: addr %lx, offset: %lx, map->addr: %lx, final: %lx\n", addr, addr - map->start, map->addr, map->addr + addr - map->start);
+
 		s += size;
 		addr += size;
 		++ret;

@@ -19,6 +19,20 @@
 #include <net/af_vsock.h>
 #include "vhost.h"
 
+// ------------------------------------------------------------------
+
+// Cloak [JB]
+#define CLOAK_MSG_TYPE_VSOCK_TX (8)
+#define CLOAK_MSG_TYPE_VSOCK_RX (9)
+#define CLOAK_MSG_TYPE_VSOCK_RX_RESP (19)
+
+// 
+extern void complete_gw_recv(unsigned long arg);
+extern void wait_gw_send(bool is_tx);
+extern void complete_gw_send(unsigned long arg, bool is_tx);
+
+// ------------------------------------------------------------------
+
 #define VHOST_VSOCK_DEFAULT_HOST_CID	2
 /* Max number of bytes transferred before requeueing the job.
  * Using this limit prevents one virtqueue from starving others. */
@@ -137,6 +151,9 @@ vhost_transport_do_send_pkt(struct vhost_vsock *vsock,
 			break;
 		}
 
+		//pr_info("[JB] after vhost_get_vq_desc, head %d, out %d, in %d\n", head, out, in);
+		//pr_info("[JB] after vhost_get_vq_desc iov info\n");
+
 		if (head == vq->num) {
 			spin_lock_bh(&vsock->send_pkt_list_lock);
 			list_add(&pkt->list, &vsock->send_pkt_list);
@@ -196,9 +213,18 @@ vhost_transport_do_send_pkt(struct vhost_vsock *vsock,
 			}
 		}
 
+		// 1. Cloak operation: send_msg() and receive_msg()
+		// 1. wake-up gateway
+		complete_gw_recv(CLOAK_MSG_TYPE_VSOCK_RX);
+
+		// 2. wait for gateway to get this task done
+		wait_gw_send(false);
+		// [TODO] The original workflow: replace the following copy_to_iter() with copy_function happening inside CVM_Gateway
+
 		/* Set the correct length in the header */
 		pkt->hdr.len = cpu_to_le32(payload_len);
 
+		// [JB] vhost_transport_do_send_pkt! (TX? host to guest?)
 		nbytes = copy_to_iter(&pkt->hdr, sizeof(pkt->hdr), &iov_iter);
 		if (nbytes != sizeof(pkt->hdr)) {
 			virtio_transport_free_pkt(pkt);
@@ -274,6 +300,7 @@ static void vhost_transport_send_pkt_work(struct vhost_work *work)
 	vsock = container_of(work, struct vhost_vsock, send_pkt_work);
 	vq = &vsock->vqs[VSOCK_VQ_RX];
 
+	//pr_info("[JB] vhost_transport_send_pkt_work! do_send_pkt!\n");
 	vhost_transport_do_send_pkt(vsock, vq);
 }
 
@@ -532,6 +559,14 @@ static void vhost_vsock_handle_tx_kick(struct vhost_work *work)
 			break;
 		}
 
+		// TX happens!
+		// 1. wake-up gateway
+		complete_gw_recv(CLOAK_MSG_TYPE_VSOCK_TX);
+
+		// 2. wait for gateway to get this task done
+		wait_gw_send(true);
+
+		// 3. do operation.. vhost_vsock_alloc_pkt() does the actual work (copy from iov to a new packet buffer)
 		pkt = vhost_vsock_alloc_pkt(vq, out, in);
 		if (!pkt) {
 			vq_err(vq, "Faulted on pkt\n");
@@ -539,6 +574,9 @@ static void vhost_vsock_handle_tx_kick(struct vhost_work *work)
 		}
 
 		total_len += sizeof(pkt->hdr) + pkt->len;
+
+		// TxKick: guest to host data
+		//pr_info("[JB] host-kernel, tx-kick, guest-to-host, hdr %d, len %d\n", sizeof(pkt->hdr), pkt->len);
 
 		/* Deliver to monitoring devices all received packets */
 		virtio_transport_deliver_tap_pkt(pkt);
@@ -570,6 +608,7 @@ static void vhost_vsock_handle_rx_kick(struct vhost_work *work)
 	struct vhost_vsock *vsock = container_of(vq->dev, struct vhost_vsock,
 						 dev);
 
+	//pr_info("[JB] vhost_vsock_handle_rx_kick! do_send_pkt!\n");
 	vhost_transport_do_send_pkt(vsock, vq);
 }
 
