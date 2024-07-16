@@ -71,6 +71,8 @@ static mut VQ_CTRL_9P: usize = 0;
 static mut VQ_CTRL_NET_TX: usize = 0;
 static mut VQ_CTRL_NET_RX: usize = 0;
 static mut VQ_CTRL_BLK: usize = 0;
+static mut VQ_CTRL_VSOCK_TX: usize = 0;
+static mut VQ_CTRL_VSOCK_RX: usize = 0;
 
 const IPA_OFFSET: usize = 0x100000000;
 const VQ_START: usize = 0x88400000;
@@ -81,6 +83,8 @@ const VQ_CTRL_NET_RX_HOST: usize = VQ_DATA_HOST + (22 * 1024 * 1024);
 const VQ_CTRL_BLK_HOST: usize = VQ_DATA_HOST + (26 * 1024 * 1024);
 const VQ_CTRL_BLK_IN_HOST: usize = VQ_DATA_HOST + (30 * 1024 * 1024);
 const VQ_CTRL_BLK_AES_TAG_HOST: usize = VQ_DATA_HOST + (34 * 1024 * 1024);
+//const VQ_CTRL_VSOCK_TX_HOST: usize = VQ_DATA_HOST + (38 * 1024 * 1024);
+//const VQ_CTRL_VSOCK_RX_HOST: usize = VQ_DATA_HOST + (42 * 1024 * 1024);
 const VIRTQUEUE_NUM: usize = 128;
 
 #[repr(C)]
@@ -204,6 +208,12 @@ fn vq_ctrl_blk() -> usize {
 fn vq_ctrl_net_rx() -> usize {
     unsafe { VQ_CTRL_NET_RX }
 } */
+fn vq_ctrl_vsock_tx() -> usize {
+    unsafe { VQ_CTRL_VSOCK_TX }
+}
+fn vq_ctrl_vsock_rx() -> usize {
+    unsafe { VQ_CTRL_VSOCK_RX }
+}
 
 fn align_to_2mb(addr: usize) -> usize {
     let align_min = 2 * 1024 * 1024;
@@ -220,6 +230,8 @@ pub fn create_memory_cvm_shared() {
 
         VQ_DATA_PTR = aligned_ptr;
         VQ_CTRL_9P = ctrl_ptr;
+        VQ_CTRL_VSOCK_TX = ctrl_ptr + (512 * 1024);
+        VQ_CTRL_VSOCK_RX = ctrl_ptr + (800 * 1024);
         VQ_CTRL_NET_TX = ctrl_ptr + (1 * 1024 * 1024);
         VQ_CTRL_NET_RX = ctrl_ptr + (1 * 1024 * 1024) + (512 * 1024);
         VQ_CTRL_BLK = ctrl_ptr + (1 * 1024 * 1024) + (800 * 1024);
@@ -565,4 +577,53 @@ pub fn handle_blk_in_resp() {
         let ptr = new_addr as *mut u8;
         *ptr = 0x00;  // todo: if len <= 0, setting 1 to *ptr.
     }
+}
+
+pub fn __handle_vsock(cvm_addr: usize) {
+    // emulate performance overhead
+    // [TODO] do the actual job
+    let mut dest_tx: NetTX = NetTX {
+        out_cnt: 0,
+        iovs: [IOVec { iov_base: 0, iov_len: 0 }; VIRTQUEUE_NUM],
+    };
+    let dest_buffer: [u8; 8192] = [2; 8192];
+    let src_buffer: [u8; 8192] = [1; 8192];
+    let cvm_acc = Accessor::new(cvm_addr);
+    let net_tx_cvm = cvm_acc.from::<NetTX>();
+
+    // 1. check
+    if net_tx_cvm.out_cnt as usize >= VIRTQUEUE_NUM {
+        rsi_print("vsock out_cnt too big", net_tx_cvm.out_cnt as usize, 0);
+        return;
+    }
+    if net_tx_cvm.out_cnt == 0 {
+        rsi_print("no vsock", 0, 0);
+        return;
+    }
+
+    // 2. copy iovs (emulation)
+    dest_tx.out_cnt = net_tx_cvm.out_cnt;
+    for i in 0..net_tx_cvm.out_cnt {
+        dest_tx.iovs[i as usize].iov_base = net_tx_cvm.iovs[i as usize].iov_base;
+        dest_tx.iovs[i as usize].iov_len = net_tx_cvm.iovs[i as usize].iov_len;
+    }
+
+    // 3. copy data (emulation)
+    for i in 0..dest_tx.out_cnt {
+        let mut len = dest_tx.iovs[i as usize].iov_len;
+        if len >= 8192 {
+            len = 8190;
+        }
+        unsafe {
+            asm_memcpy(&dest_buffer as *const _ as usize, &src_buffer as *const _ as usize, len);
+        }
+    }
+}
+
+pub fn handle_vsock_tx() {
+    __handle_vsock(vq_ctrl_vsock_tx());
+}
+
+pub fn handle_vsock_rx() {
+    __handle_vsock(vq_ctrl_vsock_rx());
 }

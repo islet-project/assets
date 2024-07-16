@@ -35,6 +35,9 @@ const CLOAK_MSG_TYPE_BLK_IN_RESP: usize = 16;
 const CLOAK_MSG_TYPE_BLK: usize = 6;
 const CLOAK_MSG_TYPE_BLK_IN: usize = 7;
 
+const CLOAK_MSG_TYPE_VSOCK_TX: usize = 8;
+const CLOAK_MSG_TYPE_VSOCK_RX: usize = 9;
+
 fn gateway_main_loop() -> ! {
     let mut outlen: usize = FIRST_CLOAK_OUTLEN;
     let mut msg_type: usize = 0;
@@ -77,6 +80,12 @@ fn gateway_main_loop() -> ! {
             },
             CLOAK_MSG_TYPE_BLK_IN_RESP => {
                 handle_blk_in_resp();
+            },
+            CLOAK_MSG_TYPE_VSOCK_TX => {
+                handle_vsock_tx();
+            },
+            CLOAK_MSG_TYPE_VSOCK_RX => {
+                handle_vsock_rx();
             },
             _ => {
                 rsi_print("unsupported msg type", msg_type, 0);
