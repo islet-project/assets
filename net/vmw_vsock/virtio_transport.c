@@ -21,6 +21,9 @@
 #include <linux/mutex.h>
 #include <net/af_vsock.h>
 
+extern unsigned long no_shared_region_flag;
+extern char __attribute__((aligned(PAGE_SIZE))) cloak_vq_desc_mem[2 * 1024 * 1024];
+
 static struct workqueue_struct *virtio_vsock_workqueue;
 static struct virtio_vsock __rcu *the_virtio_vsock;
 static DEFINE_MUTEX(the_virtio_vsock_mutex); /* protects the_virtio_vsock */
@@ -128,7 +131,12 @@ virtio_transport_send_pkt_work(struct work_struct *work)
 			sgs[out_sg++] = &buf;
 		}
 
-		ret = virtqueue_add_sgs(vq, sgs, out_sg, in_sg, pkt, GFP_KERNEL);
+		if (no_shared_region_flag)  // vsock tx
+			ret = cloak_virtqueue_add_sgs(vq, sgs, out_sg, in_sg, pkt, GFP_KERNEL, 5);
+		else
+			ret = virtqueue_add_sgs(vq, sgs, out_sg, in_sg, pkt, GFP_KERNEL);
+		//pr_info("[JB] vsock tx, hdr %d, buf %d, pkt %lx\n", sizeof(pkt->hdr), pkt->len, (unsigned long)pkt);
+
 		/* Usually this means that there is no more space available in
 		 * the vq
 		 */
@@ -173,6 +181,7 @@ virtio_transport_send_pkt(struct virtio_vsock_pkt *pkt)
 	vsock = rcu_dereference(the_virtio_vsock);
 	if (!vsock) {
 		virtio_transport_free_pkt(pkt);
+        pr_info("[JB] virtio_transport_send_pkt: rcu_dereference fail\n");
 		len = -ENODEV;
 		goto out_rcu;
 	}
@@ -180,6 +189,7 @@ virtio_transport_send_pkt(struct virtio_vsock_pkt *pkt)
 	if (le64_to_cpu(pkt->hdr.dst_cid) == vsock->guest_cid) {
 		virtio_transport_free_pkt(pkt);
 		len = -ENODEV;
+        pr_info("[JB] virtio_transport_send_pk dst_cid != guest_cid, dst_cid %d, guest_cid: %d\n", le64_to_cpu(pkt->hdr.dst_cid), vsock->guest_cid);
 		goto out_rcu;
 	}
 
@@ -244,7 +254,7 @@ out_rcu:
 	return ret;
 }
 
-static void virtio_vsock_rx_fill(struct virtio_vsock *vsock)
+static void virtio_vsock_rx_fill(struct virtio_vsock *vsock)	
 {
 	int buf_len = VIRTIO_VSOCK_DEFAULT_RX_BUF_SIZE;
 	struct virtio_vsock_pkt *pkt;
@@ -273,7 +283,14 @@ static void virtio_vsock_rx_fill(struct virtio_vsock *vsock)
 
 		sg_init_one(&buf, pkt->buf, buf_len);
 		sgs[1] = &buf;
-		ret = virtqueue_add_sgs(vq, sgs, 0, 2, pkt, GFP_KERNEL);
+
+		// [JB] rx here!
+		if (no_shared_region_flag) // vsock rx
+			ret = cloak_virtqueue_add_sgs(vq, sgs, 0, 2, pkt, GFP_KERNEL, 6);
+		else
+			ret = virtqueue_add_sgs(vq, sgs, 0, 2, pkt, GFP_KERNEL);
+		//pr_info("[JB] vsock rx, hdr %d, buf %d\n", sizeof(pkt->hdr), buf_len);
+
 		if (ret) {
 			virtio_transport_free_pkt(pkt);
 			break;
@@ -339,6 +356,8 @@ static int virtio_vsock_event_fill_one(struct virtio_vsock *vsock,
 
 	sg_init_one(&sg, event, sizeof(*event));
 
+	// [JB] should we handle this?
+	//pr_info("[JB] vsock virtqueue_add_inbuf in virtio_vsock_event_fill_one");
 	return virtqueue_add_inbuf(vq, &sg, 1, event, GFP_KERNEL);
 }
 
@@ -664,13 +683,18 @@ static int virtio_vsock_probe(struct virtio_device *vdev)
 	struct virtio_vsock *vsock = NULL;
 	int ret;
 
+    pr_info("[JB] virtio_vsock_probe!\n");
+
 	ret = mutex_lock_interruptible(&the_virtio_vsock_mutex);
-	if (ret)
+	if (ret) {
+        pr_info("[JB] mutex_lock_interruptible error\n");
 		return ret;
+    }
 
 	/* Only one virtio-vsock device per guest is supported */
 	if (rcu_dereference_protected(the_virtio_vsock,
 				lockdep_is_held(&the_virtio_vsock_mutex))) {
+        pr_info("[JB] rcu_dereference_protected error\n");
 		ret = -EBUSY;
 		goto out;
 	}
@@ -678,6 +702,7 @@ static int virtio_vsock_probe(struct virtio_device *vdev)
 	vsock = kzalloc(sizeof(*vsock), GFP_KERNEL);
 	if (!vsock) {
 		ret = -ENOMEM;
+        pr_info("[JB] vsock alloc error\n");
 		goto out;
 	}
 
@@ -703,13 +728,16 @@ static int virtio_vsock_probe(struct virtio_device *vdev)
 	vdev->priv = vsock;
 
 	ret = virtio_vsock_vqs_init(vsock);
-	if (ret < 0)
+	if (ret < 0) {
+        pr_info("[JB] virtio_vsock_vqs_init error: %d\n", ret);
 		goto out;
+    }
 
 	rcu_assign_pointer(the_virtio_vsock, vsock);
 
 	mutex_unlock(&the_virtio_vsock_mutex);
 
+    pr_info("[JB] virtio_vsock_probe end!\n");
 	return 0;
 
 out:
@@ -813,6 +841,7 @@ static int __init virtio_vsock_init(void)
 {
 	int ret;
 
+    pr_info("[JB] virtio_vsock_init start\n");
 	virtio_vsock_workqueue = alloc_workqueue("virtio_vsock", 0, 0);
 	if (!virtio_vsock_workqueue)
 		return -ENOMEM;
@@ -826,6 +855,7 @@ static int __init virtio_vsock_init(void)
 	if (ret)
 		goto out_vci;
 
+    pr_info("[JB] virtio_vsock_init success\n");
 	return 0;
 
 out_vci:

@@ -459,13 +459,16 @@ int vsock_assign_transport(struct vsock_sock *vsk, struct vsock_sock *psk)
 		break;
 	case SOCK_STREAM:
 	case SOCK_SEQPACKET:
-		if (vsock_use_local_transport(remote_cid))
+		if (vsock_use_local_transport(remote_cid)) {
 			new_transport = transport_local;
+        }
 		else if (remote_cid <= VMADDR_CID_HOST || !transport_h2g ||
-			 (remote_flags & VMADDR_FLAG_TO_HOST))
+			 (remote_flags & VMADDR_FLAG_TO_HOST)) {
 			new_transport = transport_g2h;
-		else
+        }
+		else {
 			new_transport = transport_h2g;
+        }
 		break;
 	default:
 		return -ESOCKTNOSUPPORT;
@@ -1354,8 +1357,10 @@ static int vsock_connect(struct socket *sock, struct sockaddr *addr,
 		       sizeof(vsk->remote_addr));
 
 		err = vsock_assign_transport(vsk, NULL);
-		if (err)
+		if (err) {
+            pr_info("[JB] vsock_assign_transport error: %d\n", err);
 			goto out;
+        }
 
 		transport = vsk->transport;
 
@@ -1370,14 +1375,18 @@ static int vsock_connect(struct socket *sock, struct sockaddr *addr,
 		}
 
 		err = vsock_auto_bind(vsk);
-		if (err)
+		if (err) {
+            pr_info("[JB] vsock_auto_bind error: %d\n", err);
 			goto out;
+        }
 
 		sk->sk_state = TCP_SYN_SENT;
 
 		err = transport->connect(vsk);
-		if (err < 0)
+		if (err < 0) {
+            pr_info("[JB] transport->connect error: %d\n", err);
 			goto out;
+        }
 
 		/* Mark sock as connecting and set the error code to in
 		 * progress in case this is a non-blocking connect.
@@ -1441,6 +1450,7 @@ static int vsock_connect(struct socket *sock, struct sockaddr *addr,
 		err = -sk->sk_err;
 		sk->sk_state = TCP_CLOSE;
 		sock->state = SS_UNCONNECTED;
+        pr_info("[JB] sk_err %d\n", err);
 	} else {
 		err = 0;
 	}
@@ -2346,6 +2356,7 @@ static int __init vsock_init(void)
 		       AF_VSOCK, err);
 		goto err_unregister_proto;
 	}
+    pr_info("[JB] vsock register success\n");
 
 	return 0;
 

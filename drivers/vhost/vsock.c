@@ -136,6 +136,13 @@ vhost_transport_do_send_pkt(struct vhost_vsock *vsock,
 			spin_unlock_bh(&vsock->send_pkt_list_lock);
 			break;
 		}
+		//pr_info("[JB] after vhost_get_vq_desc, head %d, out %d, in %d\n", head, out, in);
+		//pr_info("[JB] after vhost_get_vq_desc iov info\n");
+        /*
+		for (unsigned i=0; i<out+in; i++) {
+			struct iovec *iov = &vq->iov[i];
+			pr_info("[JB] desc %d - %lx, %d", i, (unsigned long)iov->iov_base, iov->iov_len);
+		} */
 
 		if (head == vq->num) {
 			spin_lock_bh(&vsock->send_pkt_list_lock);
@@ -199,6 +206,7 @@ vhost_transport_do_send_pkt(struct vhost_vsock *vsock,
 		/* Set the correct length in the header */
 		pkt->hdr.len = cpu_to_le32(payload_len);
 
+		// [JB] vhost_transport_do_send_pkt! (TX? host to guest?)
 		nbytes = copy_to_iter(&pkt->hdr, sizeof(pkt->hdr), &iov_iter);
 		if (nbytes != sizeof(pkt->hdr)) {
 			virtio_transport_free_pkt(pkt);
@@ -274,6 +282,7 @@ static void vhost_transport_send_pkt_work(struct vhost_work *work)
 	vsock = container_of(work, struct vhost_vsock, send_pkt_work);
 	vq = &vsock->vqs[VSOCK_VQ_RX];
 
+	//pr_info("[JB] vhost_transport_send_pkt_work! do_send_pkt!\n");
 	vhost_transport_do_send_pkt(vsock, vq);
 }
 
@@ -570,6 +579,7 @@ static void vhost_vsock_handle_rx_kick(struct vhost_work *work)
 	struct vhost_vsock *vsock = container_of(vq->dev, struct vhost_vsock,
 						 dev);
 
+	//pr_info("[JB] vhost_vsock_handle_rx_kick! do_send_pkt!\n");
 	vhost_transport_do_send_pkt(vsock, vq);
 }
 

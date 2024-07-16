@@ -14,6 +14,9 @@
 #include <asm/set_memory.h>
 #include <asm/tlbflush.h>
 
+// no_shared_region but without restriction for testing purpose
+#define EMUL_NO_SHARED_REGION
+
 unsigned long cloak_virtio_start = 0x88400000;
 
 struct page_change_data {
@@ -238,6 +241,7 @@ int set_memory_decrypted(unsigned long addr, int numpages)
     // [JB] for testing virtio-mirroring!
     //return 0;
     if (no_shared_region_flag) {
+        #ifndef EMUL_NO_SHARED_REGION
         phys_addr_t start, end;
         start = __virt_to_phys(addr);
 
@@ -264,6 +268,9 @@ int set_memory_decrypted(unsigned long addr, int numpages)
         else {
             return __set_memory_encrypted(addr, numpages, false);
         }
+        #else
+        return __set_memory_encrypted(addr, numpages, false);
+        #endif
     } else {
 	    return __set_memory_encrypted(addr, numpages, false);
     }

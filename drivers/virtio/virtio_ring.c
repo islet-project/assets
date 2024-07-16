@@ -538,6 +538,8 @@ struct blk_cloak {
 };
 
 #define CLOAK_VQ_DESC_9P (cloak_vq_desc_mem)
+#define CLOAK_VQ_DESC_VSOCK_TX (cloak_vq_desc_mem + (512 * 1024))
+#define CLOAK_VQ_DESC_VSOCK_RX (cloak_vq_desc_mem + (800 * 1024))
 #define CLOAK_VQ_DESC_NET_TX (cloak_vq_desc_mem + (1 * 1024 * 1024))
 #define CLOAK_VQ_DESC_NET_RX (cloak_vq_desc_mem + (1 * 1024 * 1024) + (512 * 1024))
 #define CLOAK_VQ_DESC_BLK (cloak_vq_desc_mem + (1 * 1024 * 1024) + (800 * 1024))
@@ -565,6 +567,8 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
 	// cloak_id == 2: net tap tx for cloak
 	// cloak_id == 3: net tap rx for cloak
     // cloak_id == 4: blk for cloak
+	// cloak_id == 5: vsock tx
+	// cloak_id == 6: vsock rx
 	unsigned int in_cnt = 0, out_cnt = 0, total_cnt = 0;
 	struct p9_pdu_cloak *cloak_pdu = NULL;
 	struct net_tx_cloak *cloak_tx = NULL;
@@ -584,6 +588,14 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
     else if (cloak_id == 4) {
         cloak_blk = (struct blk_cloak *)CLOAK_VQ_DESC_BLK;
         //pr_info("[JB] blk: out: %d, in: %d, total: %d\n", out_sgs, in_sgs, total_sg);
+    }
+	else if (cloak_id == 5) {
+        cloak_tx = (struct net_tx_cloak *)CLOAK_VQ_DESC_VSOCK_TX;
+        //pr_info("[JB] vsock tx: out: %d, in: %d, total: %d\n", out_sgs, in_sgs, total_sg);
+    }
+	else if (cloak_id == 6) {
+        cloak_rx = (struct net_rx_cloak *)CLOAK_VQ_DESC_VSOCK_RX;
+        //pr_info("[JB] vsock rx: out: %d, in: %d, total: %d\n", out_sgs, in_sgs, total_sg);
     }
 
 	START_USE(vq);
@@ -661,6 +673,18 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
                 total_cnt++;
 				out_cnt++;
             }
+			else if (cloak_id == 5) {
+				cloak_tx->iovs[out_cnt].iov_base = addr;
+				cloak_tx->iovs[out_cnt].iov_len = sg->length;
+				//pr_info("[JB] vsock tx: out-%d: %lx-%lx\n", out_cnt, addr, sg->length);
+				out_cnt++;
+			}
+			/*
+			do {
+				unsigned long phys = virt_to_phys(addr);
+				pr_info("[JB] vsock tx: out-%d: %lx-%lx-%lx\n", out_cnt, addr, phys, sg->length);  // [test][JB]
+				out_cnt++;
+			} while(0); */
 
 			prev = i;
 			/* Note that we trust indirect descriptor
@@ -690,6 +714,19 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
                 total_cnt++;
 				in_cnt++;
             }
+			else if (cloak_id == 6) { // vsock rx
+				//pr_info("vsock rx, rx %d, %lx-%lx\n", in_cnt, (unsigned long)addr, sg->length);
+				cloak_rx->iovs[in_cnt].iov_base = addr;
+				cloak_rx->iovs[in_cnt].iov_len = sg->length;
+				in_cnt++;
+			}
+			/*
+			do {
+				unsigned long phys = virt_to_phys(addr);
+				pr_info("vsock rx, rx %d, %lx-%lx-%lx\n", in_cnt, (unsigned long)addr, phys, sg->length); // [test][JB]
+				in_cnt++;
+			} while(0); */
+
 			#if 0
 			else if (cloak_id == 3) {
 				pr_info("front-end, rx %d, %lx-%lx\n", in_cnt, (unsigned long)addr, sg->length);
@@ -727,6 +764,12 @@ static inline int virtqueue_add_split(struct virtqueue *_vq,
     else if (cloak_id == 4) {
         cloak_blk->out_cnt = out_cnt;
 		cloak_blk->in_cnt = in_cnt;
+    }
+	else if (cloak_id == 5) {
+        cloak_tx->out = out_cnt;
+    }
+	else if (cloak_id == 6) {
+        cloak_rx->in_cnt = in_cnt;
     }
 	#if 0
 	else if (cloak_id == 3)	{
