@@ -1365,6 +1365,23 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 		}
 		break;
 	}
+	case KVM_CAP_ARM_RME_UNMAP_MEMORY_FROM_REALM: {
+		struct kvm_cap_arm_rme_unmap_memory_from_realm_args args;
+		void __user *argp = u64_to_user_ptr(cap->args[1]);
+		kvm_pfn_t pfn;
+
+		if (copy_from_user(&args, argp, sizeof(args))) {
+			r = -EFAULT;
+			break;
+		}
+
+		pr_info("%s: hva 0x%llx, ipa 0x%llx, size 0x%llx", __func__, args.hva, args.ipa_base, args.size);
+		pfn = hva_to_pfn(args.hva, false, false, NULL, false, NULL);
+		pr_info("%s: hva 0x%llx, ipa 0x%llx, size 0x%llx, phys 0x%llx",
+				__func__,  args.hva, args.ipa_base, args.size, pfn << PAGE_SHIFT);
+		realm_destroy_undelegate_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, args.size);
+		break;
+	}
 	default:
 		r = -EINVAL;
 		break;
