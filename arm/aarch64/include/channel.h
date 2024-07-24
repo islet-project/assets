@@ -29,6 +29,7 @@
 #define BAR_MMIO_PEER_VMID 4 * 8
 #define BAR_MMIO_SHM_RW_IPA_BASE 8 * 8 // 8 byte
 #define BAR_MMIO_SHM_RO_IPA_BASE 12 * 8 // 12 byte
+#define BAR_MMIO_UNMAP_SHRM_IPA  16 * 8 // 12 byte
 
 #define SYSLOG_PREFIX "KVMTOOL"
 

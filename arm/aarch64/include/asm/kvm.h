@@ -477,6 +477,7 @@ struct kvm_cap_arm_rme_unmap_memory_to_realm_args {
 	__u64 hva; // host virtual address
 	__u64 ipa_base;
 	__u64 size;
+	int unmap_only;
 };
 
 /* Device Control API on vcpu fd */

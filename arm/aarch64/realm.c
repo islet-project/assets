@@ -152,13 +152,18 @@ void map_memory_to_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size, bool 
 	}
 }
 
-void unmap_memory_from_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size)
+/* unmap_only:
+ * - false: call RMI::DATA_DESTROY & UNDELEGATE
+ * - true: call RMI::UNMAP_SHARED_REALM_MEM only
+ */
+void unmap_memory_from_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size, bool unmap_only)
 {
 	int ret;
-	struct kvm_cap_arm_rme_map_memory_to_realm_args unmap_mem_from_realm_args = {
+	struct kvm_cap_arm_rme_unmap_memory_to_realm_args unmap_mem_from_realm_args = {
 		.hva = hva,
 		.ipa_base = ipa_base,
 		.size = size,
+		.unmap_only = unmap_only,
 	};
 	struct kvm_enable_cap rme_unmap_mem_from_realm = {
 		.cap = KVM_CAP_ARM_RME,
@@ -166,7 +171,7 @@ void unmap_memory_from_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size)
 		.args[1] = (u64)&unmap_mem_from_realm_args
 	};
 
-	pr_info("%s start. hva 0x%llx, ipa 0x%llx, size 0x%llx", __func__, hva, ipa_base, size);
+	pr_info("%s start. hva 0x%llx, ipa 0x%llx, size 0x%llx, unmap_only %d", __func__, hva, ipa_base, size, unmap_only);
 
 	ret = ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_unmap_mem_from_realm);
 	if (ret < 0) {

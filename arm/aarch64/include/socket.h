@@ -23,6 +23,7 @@
 struct shared_realm_memory {
 	struct list_head list;
     u64 ipa, va;
+	int owner_vmid;
 	bool mapped_to_realm;
 };
 

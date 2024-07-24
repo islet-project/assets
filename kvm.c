@@ -331,6 +331,7 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 
 		ret = ioctl(kvm->vm_fd, KVM_SET_USER_MEMORY_REGION, &mem);
 		if (ret < 0) {
+			pr_err("%s ioctl is failed with %d", __func__, ret);
 			ret = -errno;
 			goto out;
 		}
