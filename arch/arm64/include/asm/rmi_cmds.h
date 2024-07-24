@@ -31,12 +31,36 @@ static inline int rmi_data_create(unsigned long data, unsigned long rd,
 
 static inline int rmi_map_shared_mem_as_ro(unsigned long phys,
 					  unsigned long rd,
-					  unsigned long map_addr)
+					  unsigned long ipa,
+					  unsigned long size)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_1_1_invoke(SMC_RMI_MAP_SHARED_MEM_AS_RO, phys, rd, map_addr,
+	arm_smccc_1_1_invoke(SMC_RMI_MAP_SHARED_MEM_AS_RO, phys, rd, ipa, size,
 			     &res);
+
+	return res.a0;
+}
+
+static inline int rmi_unmap_shared_realm_mem(unsigned long phys,
+					  unsigned long rd,
+					  unsigned long ipa,
+					  unsigned long size)
+{
+	struct arm_smccc_res res;
+	u64 rmi_cmd = SMC_RMI_MAP_SHARED_MEM_AS_RO;
+	//u64 rmi_cmd = SMC_RMI_UNMAP_SHARED_MEM;
+	//pr_err("%s SMC_RMI_UNMAP_SHARED_RMEM 0x%llx", __func__, SMC_RMI_UNMAP_SHARED_RMEM);
+	//pr_err("%s just for the test SMC_RMI_MAP_SHARED_MEM_AS_RO 0x%llx", __func__, SMC_RMI_MAP_SHARED_MEM_AS_RO);
+	//pr_err("%s rmi_cmd 0x%llx", __func__, rmi_cmd);
+
+	//just for the test
+	arm_smccc_1_1_invoke(rmi_cmd, phys, rd, ipa, size,
+			     &res);
+	/*
+	arm_smccc_1_1_invoke(SMC_RMI_UNMAP_SHARED_RMEM, phys, rd, ipa,
+			     &res);
+	 */
 
 	return res.a0;
 }

@@ -177,6 +177,24 @@ static void realm_destroy_undelegate_range(struct realm *realm,
 	}
 }
 
+static void realm_unmap_shared_realm_memory_range(struct realm *realm,
+					   unsigned long ipa,
+					   unsigned long phys,
+					   ssize_t size)
+{
+	unsigned long rd = virt_to_phys(realm->rd);
+	int ret;
+
+	while (size > 0) {
+		ret = rmi_unmap_shared_realm_mem(phys, rd, ipa, size);
+		WARN_ON(ret);
+
+		phys += PAGE_SIZE;
+		ipa += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+}
+
 static unsigned long create_realm_feat_reg0(struct kvm *kvm)
 {
 	unsigned long ia_bits = VTCR_EL2_IPA(kvm->arch.vtcr);
@@ -564,7 +582,7 @@ int realm_map_protected_ro(struct realm *realm,
 	}
 
 	for (size = 0; size < map_size; size += PAGE_SIZE) {
-		ret = rmi_map_shared_mem_as_ro(phys, rd, ipa);
+		ret = rmi_map_shared_mem_as_ro(phys, rd, ipa, map_size);
 
 		if (RMI_RETURN_STATUS(ret) == RMI_ERROR_RTT) {
 			/* Create missing RTTs and retry */
@@ -579,7 +597,7 @@ int realm_map_protected_ro(struct realm *realm,
 				goto err;
 
 			pr_err("%s rmi_map_shared_mem_as_ro start again!", __func__);
-			ret = rmi_map_shared_mem_as_ro(phys, rd, ipa);
+			ret = rmi_map_shared_mem_as_ro(phys, rd, ipa, map_size);
 		}
 		WARN_ON(ret);
 
@@ -1379,7 +1397,11 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 		pfn = hva_to_pfn(args.hva, false, false, NULL, false, NULL);
 		pr_info("%s: hva 0x%llx, ipa 0x%llx, size 0x%llx, phys 0x%llx",
 				__func__,  args.hva, args.ipa_base, args.size, pfn << PAGE_SHIFT);
-		realm_destroy_undelegate_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, args.size);
+		if (args.unmap_only) {
+			realm_unmap_shared_realm_memory_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, 0);
+		} else {
+			realm_destroy_undelegate_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, args.size);
+		}
 		break;
 	}
 	default:
