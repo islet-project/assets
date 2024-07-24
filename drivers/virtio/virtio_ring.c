@@ -514,7 +514,7 @@ static inline unsigned int virtqueue_add_desc_split(struct virtqueue *vq,
 	return next;
 }
 
-static inline int virtqueue_add_split(struct virtqueue *_vq,
+static inline int virtqueue_add_split(struct virtqueue *_vq, // eom: send 
 				      struct scatterlist *sgs[],
 				      unsigned int total_sg,
 				      unsigned int out_sgs,
@@ -784,7 +784,7 @@ static inline bool more_used_split(const struct vring_virtqueue *vq)
 			vq->split.vring.used->idx);
 }
 
-static void *virtqueue_get_buf_ctx_split(struct virtqueue *_vq,
+static void *virtqueue_get_buf_ctx_split(struct virtqueue *_vq, // eom: receive 
 					 unsigned int *len,
 					 void **ctx)
 {
