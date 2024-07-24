@@ -49,7 +49,6 @@ static struct class *ch_class;
 #define INVALID_PEER_ID -1
 
 struct channel_priv *drv_priv;
-void set_memory_empty_ripas(phys_addr_t start, int numpages);
 
 /* This sample driver supports device with VID = 0x010F, and PID = 0x0F0E*/
 static struct pci_device_id channel_id_table[] = {
@@ -237,7 +236,7 @@ static void ch_send(struct work_struct *work) {
 	*rw_shrm_va = msg;
 	pr_err("[GCH] %s after writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
 	send_signal(drv_priv->peer.id);
-	pr_info("[GCH] %s done without write on shrm & no signal to the server");
+	pr_info("[GCH] %s done");
 }
 
 static void ch_receive(struct work_struct *work) {
@@ -349,11 +348,9 @@ static ssize_t channel_write(struct file *filp, const char __user *buf, size_t c
 	u64 client_shrm_ipa = get_ipa_start(CLIENT) + 0x1000;
 
 	pr_info("%s client_shrm_ipa: 0x%llx", __func__, client_shrm_ipa);
-    pr_info("%s Before calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
     if (copy_from_user(&buffer, buf, count) != 0) {
         return -EFAULT;
     }
-    pr_info("%s After calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
 
 	switch(drv_priv->role) {
 		case CLIENT:
@@ -363,11 +360,6 @@ static ssize_t channel_write(struct file *filp, const char __user *buf, size_t c
 		case SERVER:
 			pr_info("[GCH] %s start schedule_work for rt_receiver", __func__);
 			schedule_work(&drv_priv->rt_receiver);
-			/*
-			pr_info("set_memory_empty_ripas start");
-			set_memory_empty_ripas(client_shrm_ipa, 1);
-			pr_info("set_memory_empty_ripas done");
-			*/
 			break;
 		default:
 			pr_err("%s role %d is invalid", __func__, drv_priv->role);

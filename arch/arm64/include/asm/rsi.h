@@ -44,7 +44,7 @@ static inline void set_memory_range_shared(phys_addr_t start, phys_addr_t end)
 	set_memory_range(start, end, RSI_RIPAS_EMPTY);
 }
 
-static inline void _set_memory_shared_ripas(phys_addr_t start, phys_addr_t end)
+static inline void set_memory_shared_ripas(phys_addr_t start, phys_addr_t end)
 {
 	set_memory_range(start, end, RSI_RIPAS_SHARED);
 }
