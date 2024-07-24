@@ -5,8 +5,9 @@
 static struct shrm_list* rw_shrms;
 
 void send_signal(int peer_id);
-s64 mmio_read_shrm_ipa(void);
-void set_memory_shared(phys_addr_t start, int numpages);
+s64 mmio_read_to_get_shrm(void);
+int mmio_write_to_remove_shrm(u64 ipa);
+void set_memory_shared_ripas(phys_addr_t start, int numpages);
 u64* get_shrm_va(bool read_only, u64 ipa);
 
 int init_shrm_list(u64 ipa_start, u64 ipa_size) {
@@ -26,6 +27,31 @@ int init_shrm_list(u64 ipa_start, u64 ipa_size) {
 bool is_valid_ipa(u64 ipa_start, u64 ipa_size) {
 	u64 ipa_end = ipa_start + ipa_size;
 	return (rw_shrms->ipa_start <= ipa_start && ipa_end <= rw_shrms->ipa_end);
+}
+
+int remove_shrm_chunk(u64 ipa) {
+	struct shared_realm_memory *tmp, *target = NULL;
+
+	pr_info("%s start", __func__);
+
+	list_for_each_entry(tmp, &rw_shrms->head, head) {
+		if (ipa == tmp->ipa) {
+			target = tmp;
+			list_del(&tmp->head);
+			break;
+		}
+	}
+
+	if (target) {
+		pr_info("%s: remove target shrm. ipa: 0x%llx", __func__, ipa);
+		kfree(target);
+		mmio_write_to_remove_shrm(ipa);
+		pr_info("%s end", __func__);
+		return 0;
+	}
+
+	pr_err("%s there is no entry matched with the ipa 0x%llx", __func__, ipa);
+	return -EINVAL;
 }
 
 static void req_shrm_chunk(void) {
@@ -52,7 +78,7 @@ int add_shrm_chunk(void) {
 
 		pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
 
-		shrm_ipa = mmio_read_shrm_ipa();
+		shrm_ipa = mmio_read_to_get_shrm();
 		if (shrm_ipa <= 0) {
 			pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, shrm_ipa);
 			return -EAGAIN;
@@ -64,8 +90,8 @@ int add_shrm_chunk(void) {
 			return -EINVAL;
 		}
 
-		set_memory_shared(shrm_ipa, 1);
-		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, shrm_ipa);
+		set_memory_shared_ripas(shrm_ipa, 1);
+		pr_info("[GCH] %s call set_memory_shared_ripas with shrm_ipa 0x%llx", __func__, shrm_ipa);
 
 		new_shrm = kzalloc(sizeof(*new_shrm), GFP_KERNEL);
 		if (!new_shrm) {

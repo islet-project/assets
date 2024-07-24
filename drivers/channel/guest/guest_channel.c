@@ -41,6 +41,7 @@ static struct class *ch_class;
 #define BAR_MMIO_PEER_VMID 4 
 #define BAR_MMIO_SHM_RW_IPA_BASE 8
 #define BAR_MMIO_SHM_RO_IPA_BASE 12
+#define BAR_MMIO_UNMAP_SHRM_IPA  16
 
 #define BAR_MMIO_MIN_OFFSET BAR_MMIO_CURRENT_VMID
 #define BAR_MMIO_MAX_OFFSET BAR_MMIO_SHM_RO_IPA_BASE
@@ -48,7 +49,7 @@ static struct class *ch_class;
 #define INVALID_PEER_ID -1
 
 struct channel_priv *drv_priv;
-void set_memory_shared(phys_addr_t start, int numpages);
+void set_memory_empty_ripas(phys_addr_t start, int numpages);
 
 /* This sample driver supports device with VID = 0x010F, and PID = 0x0F0E*/
 static struct pci_device_id channel_id_table[] = {
@@ -87,8 +88,8 @@ struct channel_priv {
 	int vmid;
 	struct peer peer;
 	ROLE role;
-	struct work_struct send;
-	struct work_struct receive;
+	struct work_struct send, receive;
+	struct work_struct rt_sender, rt_receiver; // for the dyn_shrm_remove_test
 	u64* mapped_bar_addr;
 	u64 *rw_shrm_va_start;
 	u64 *ro_shrm_va_start;
@@ -158,6 +159,51 @@ static void set_peer_id(void) {
 	}
 }
 
+static s64 mmio_read(u64 offset) {
+	s64 ret;
+
+	switch(offset) {
+		case BAR_MMIO_CURRENT_VMID:
+		case BAR_MMIO_PEER_VMID:
+		case BAR_MMIO_SHM_RW_IPA_BASE:
+		case BAR_MMIO_SHM_RO_IPA_BASE:
+			ret = readl(drv_priv->mapped_bar_addr + offset);
+			return ret;
+		default:
+			pr_err("%s wrong mmio offset 0x%llx", __func__, offset);
+			return -EINVAL;
+	}
+}
+
+static int mmio_write(u64 offset, u64 val) {
+	int ret = 0;
+
+	switch(offset) {
+		case BAR_MMIO_CURRENT_VMID:
+		case BAR_MMIO_PEER_VMID:
+		case BAR_MMIO_SHM_RW_IPA_BASE:
+		case BAR_MMIO_SHM_RO_IPA_BASE:
+		case BAR_MMIO_UNMAP_SHRM_IPA:
+			writel(val, drv_priv->mapped_bar_addr + offset);
+			return ret;
+		default:
+			pr_err("%s wrong mmio offset 0x%llx with val 0x%llx", __func__, offset, val);
+			return -EINVAL;
+	}
+}
+
+s64 mmio_read_to_get_shrm(void) {
+	return mmio_read(BAR_MMIO_SHM_RW_IPA_BASE);
+}
+
+int mmio_write_to_remove_shrm(u64 ipa) {
+	return mmio_write(BAR_MMIO_SHM_RW_IPA_BASE, ipa);
+}
+
+int mmio_write_to_unmap_shrm(u64 ipa) {
+	return mmio_write(BAR_MMIO_UNMAP_SHRM_IPA, ipa);
+}
+
 static void ch_send(struct work_struct *work) {
 	int ret;
 	u64 msg = 0xBEEF;
@@ -219,11 +265,11 @@ static void ch_receive(struct work_struct *work) {
 		pr_info("[GCH] %s memremap result: 0x%llx for [0x%llx:0x%llx)", __func__,
 				drv_priv->ro_shrm_va_start, shrm_ro_ipa_start, shrm_ro_ipa_start + MAX_SHRM_IPA_SIZE);
 
-		writel(shrm_ipa, drv_priv->mapped_bar_addr + BAR_MMIO_SHM_RO_IPA_BASE);
+		mmio_write(BAR_MMIO_SHM_RO_IPA_BASE, shrm_ipa);
 
 		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx va: %p",
 				__func__, shrm_ipa, drv_priv->ro_shrm_va_start);
-		set_memory_shared(shrm_ipa, 1);
+		//set_memory_shared(shrm_ipa, 1); // don't need it. cos the mapping is already done using mmap write trap
 	}
 
 	if (drv_priv->ro_shrm_va_start)  {
@@ -245,6 +291,24 @@ static void ch_receive(struct work_struct *work) {
 	} else {
 		pr_err("[GCH] drv_priv->ro_shrm_va_start is zero.\n");
 	}
+}
+
+
+static void dyn_rt_sender(struct work_struct *work) {
+	u64 client_shrm_ipa = get_ipa_start(CLIENT) + 0x1000;
+
+	pr_info("%s client_shrm_ipa: 0x%llx", __func__, client_shrm_ipa);
+
+	remove_shrm_chunk(client_shrm_ipa);
+	pr_info("%s done", __func__);
+}
+
+static void dyn_rt_receiver(struct work_struct *work) {
+	u64 client_shrm_ipa = get_ipa_start(CLIENT) + 0x1000;
+
+	pr_info("%s mmio_write_to_unmap_shrm start", __func__);
+	mmio_write_to_unmap_shrm(client_shrm_ipa);
+	pr_info("%s mmio_write_to_unmap_shrm end", __func__);
 }
 
 static int channel_open(struct inode *inode, struct file *file)
@@ -282,17 +346,34 @@ static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *
 static ssize_t channel_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	u64 buffer[10] = {};
+	u64 client_shrm_ipa = get_ipa_start(CLIENT) + 0x1000;
 
+	pr_info("%s client_shrm_ipa: 0x%llx", __func__, client_shrm_ipa);
     pr_info("%s Before calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
     if (copy_from_user(&buffer, buf, count) != 0) {
         return -EFAULT;
     }
     pr_info("%s After calling the copy_from_user() function : 0x%llx\n", __func__, buffer[0]);
 
-	pr_info("%s write 0x%llx to the bar_addr + BAR_MMIO_SHM_RO_IPA_BASE 0x%llx",
-			__func__, buffer[0]);
+	switch(drv_priv->role) {
+		case CLIENT:
+			pr_info("[GCH] %s start schedule_work for rt_sender", __func__);
+			schedule_work(&drv_priv->rt_sender);
+			break;
+		case SERVER:
+			pr_info("[GCH] %s start schedule_work for rt_receiver", __func__);
+			schedule_work(&drv_priv->rt_receiver);
+			/*
+			pr_info("set_memory_empty_ripas start");
+			set_memory_empty_ripas(client_shrm_ipa, 1);
+			pr_info("set_memory_empty_ripas done");
+			*/
+			break;
+		default:
+			pr_err("%s role %d is invalid", __func__, drv_priv->role);
+	}
 
-	writel(buffer[0], drv_priv->mapped_bar_addr + BAR_MMIO_SHM_RO_IPA_BASE);
+	pr_info("%s done with 0x%llx", __func__, buffer[0]);
 
     return count;
 }
@@ -430,6 +511,8 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	pr_info("[GCH] %s init_work for send, receive start\n", __func__);
 	INIT_WORK(&drv_priv->send, ch_send);
 	INIT_WORK(&drv_priv->receive, ch_receive);
+	INIT_WORK(&drv_priv->rt_sender, dyn_rt_sender);
+	INIT_WORK(&drv_priv->rt_receiver, dyn_rt_receiver);
 
 	/* Request memory region for the BAR */
 	ret = pci_request_region(pdev, bar, DRIVER_NAME);
@@ -550,25 +633,6 @@ static void channel_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 }
 
-static s64 mmio_read(u64 offset) {
-	s64 ret;
-
-	switch(offset) {
-		case BAR_MMIO_CURRENT_VMID:
-		case BAR_MMIO_PEER_VMID:
-		case BAR_MMIO_SHM_RW_IPA_BASE:
-		case BAR_MMIO_SHM_RO_IPA_BASE:
-			ret = readl(drv_priv->mapped_bar_addr + offset);
-			return ret;
-		default:
-			pr_err("%s wrong mmio offset 0x%llx", __func__, offset);
-			return -EINVAL;
-	}
-}
-
-s64 mmio_read_shrm_ipa(void) {
-	return mmio_read(BAR_MMIO_SHM_RW_IPA_BASE);
-}
 
 
 

@@ -230,11 +230,18 @@ int set_memory_decrypted(unsigned long addr, int numpages)
 	return __set_memory_encrypted(addr, numpages, false);
 }
 
-void set_memory_shared(phys_addr_t start, int numpages)
+void set_memory_shared_ripas(phys_addr_t start, int numpages)
 {
 	phys_addr_t end = start + numpages * PAGE_SIZE;
 
-	set_memory_shared_ripas(start, end);
+	_set_memory_shared_ripas(start, end);
+}
+
+void set_memory_empty_ripas(phys_addr_t start, int numpages)
+{
+	phys_addr_t end = start + numpages * PAGE_SIZE;
+
+	set_memory_range_shared(start, end);
 }
 
 #ifdef CONFIG_DEBUG_PAGEALLOC
