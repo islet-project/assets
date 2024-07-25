@@ -1120,6 +1120,49 @@ static int kvm_activate_realm(struct kvm *kvm)
 	return 0;
 }
 
+static int kvm_populate_realm_metadata(struct kvm *kvm, const u8 *metadata)
+{
+	struct realm *realm;
+	void *metadata_granule;
+	phys_addr_t metadata_phys, metadata_granule_phys, rd_phys;
+	int ret = 0;
+
+	if (kvm_realm_state(kvm) != REALM_STATE_NEW)
+		return -EINVAL;
+
+	metadata_granule = (void *)__get_free_page(GFP_KERNEL);
+	if (!metadata_granule) {
+		ret = -ENOMEM;
+		goto err_alloc_metadata_granule;
+	}
+
+	metadata_granule_phys = virt_to_phys(metadata_granule);
+	if (rmi_granule_delegate(metadata_granule_phys)) {
+		ret = -ENXIO;
+		goto err_delegate_metadata_granule;
+	}
+
+	realm = &kvm->arch.realm;
+	rd_phys = virt_to_phys(realm->rd);
+	metadata_phys = virt_to_phys(metadata);
+	if (rmi_islet_realm_set_metadata(rd_phys, metadata_phys, metadata_granule_phys)) {
+		ret = -ENXIO;
+		goto err_islet_realm_set_metadata;
+	}
+
+	realm->metadata = metadata_granule;
+	return 0;
+
+err_islet_realm_set_metadata:
+	rmi_granule_undelegate(metadata_granule_phys);
+
+err_delegate_metadata_granule:
+	free_page((unsigned long)metadata_granule);
+
+err_alloc_metadata_granule:
+	return ret;
+}
+
 /* Protects access to rme_vmid_bitmap */
 static DEFINE_SPINLOCK(rme_vmid_lock);
 static unsigned long *rme_vmid_bitmap;
@@ -1331,6 +1374,25 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 	case KVM_CAP_ARM_RME_ACTIVATE_REALM:
 		r = kvm_activate_realm(kvm);
 		break;
+
+	case KVM_CAP_ARM_RME_POPULATE_METADATA:
+		void __user *argp = u64_to_user_ptr(cap->args[1]);
+		u8 *metadata = (u8*)__get_free_page(GFP_KERNEL);
+		if (!metadata) {
+			r = -ENOMEM;
+			break;
+		}
+
+		if (copy_from_user(metadata, argp, PAGE_SIZE)) {
+			r = -EFAULT;
+			free_page((unsigned long)metadata);
+			break;
+		}
+
+		r = kvm_populate_realm_metadata(kvm, metadata);
+		free_page((unsigned long)metadata);
+		break;
+
 	default:
 		r = -EINVAL;
 		break;
@@ -1382,6 +1444,13 @@ void kvm_destroy_realm(struct kvm *kvm)
 
 		if (WARN_ON(rmi_granule_undelegate(pgd_phys)))
 			return;
+	}
+
+	if (realm->metadata) {
+		/* Leak the page if the undelegate fails */
+		if (!WARN_ON(rmi_granule_undelegate(virt_to_phys(realm->metadata))))
+			free_page((unsigned long)realm->metadata);
+		realm->metadata = NULL;
 	}
 
 	WRITE_ONCE(realm->state, REALM_STATE_DEAD);
@@ -1564,6 +1633,7 @@ int kvm_init_realm_vm(struct kvm *kvm)
 	/* Default parameters, not exposed to user space */
 	params->s2sz = VTCR_EL2_IPA(kvm->arch.mmu.vtcr);
 	kvm->arch.realm.params = params;
+	kvm->arch.realm.metadata = NULL;
 	return 0;
 }
 

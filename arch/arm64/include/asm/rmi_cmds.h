@@ -506,4 +506,23 @@ static inline phys_addr_t rmi_rtt_get_phys(struct rtt_entry *rtt)
 	return rtt->desc & GENMASK(47, 12);
 }
 
+/**
+ * rmi_islet_realm_set_metadata() - Set the Realm Metadata
+ * @rd: PA of the RD
+ * @metadata: PA of the Realm Metadata buffer
+ * @metadata_granule: PA of the Realm Metadata granule that has been previously delegated
+ *
+ * Sets the Realm Metadata for a particular Realm.
+ *
+ * Return: RMI return code
+ */
+static inline int rmi_islet_realm_set_metadata(unsigned long rd, unsigned long metadata, unsigned long metadata_granule)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_1_1_invoke(SMC_RMI_ISLET_REALM_SET_METADATA, rd, metadata, metadata_granule, &res);
+
+	return res.a0;
+}
+
 #endif

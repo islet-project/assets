@@ -51,6 +51,7 @@ enum realm_state {
  * @state: The lifetime state machine for the realm
  * @rd: Kernel mapping of the Realm Descriptor (RD)
  * @params: Parameters for the RMI_REALM_CREATE command
+ * @metadata: Realm Metadata for the sealing purposes
  * @spare_page: A physical page that has been delegated to the Realm world but
  *              is otherwise free. Used to avoid temporary allocation during
  *              RTT operations.
@@ -64,6 +65,7 @@ struct realm {
 
 	void *rd;
 	struct realm_params *params;
+	void *metadata;
 
 	phys_addr_t spare_page;
 
