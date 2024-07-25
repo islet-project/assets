@@ -111,6 +111,7 @@ struct kvm_arch {
 	u64	measurement_algo;
 	u64	sve_vq;
 	bool	realm_is_active;
+	u8	*metadata;
 };
 
 #endif /* ARM_COMMON__KVM_ARCH_H */

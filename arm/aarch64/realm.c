@@ -171,6 +171,24 @@ static void realm_populate(struct kvm *kvm, u64 start, u64 size)
 		start, start + size, size);
 }
 
+void kvm_arm_realm_populate_metadata(struct kvm *kvm)
+{
+	if (kvm->arch.metadata == NULL)
+		return;
+
+	struct kvm_enable_cap rme_populate_metadata = {
+		.cap = KVM_CAP_ARM_RME,
+		.args[0] = KVM_CAP_ARM_RME_POPULATE_METADATA,
+		.args[1] = (u64)kvm->arch.metadata
+	};
+
+	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_populate_metadata) < 0)
+		die("unable to populate the realm metadata %p",
+		    kvm->arch.metadata);
+
+	pr_debug("Realm metadata has been populated\n");
+}
+
 void kvm_arm_realm_populate_kernel(struct kvm *kvm,
 				   unsigned long file_size,
 				   unsigned long mem_size)

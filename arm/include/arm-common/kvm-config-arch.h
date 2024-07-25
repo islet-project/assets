@@ -20,6 +20,7 @@ struct kvm_config_arch {
 	bool		disable_sve;
 	u64		sve_vl;
 	u32		pmu_cntrs;
+	const char	*metadata_filename;
 };
 
 int irqchip_parser(const struct option *opt, const char *arg, int unset);
@@ -42,6 +43,8 @@ int irqchip_parser(const struct option *opt, const char *arg, int unset);
 		     "Type of interrupt controller to emulate in the guest",	\
 		     irqchip_parser, NULL),					\
 	OPT_U64('\0', "firmware-address", &(cfg)->fw_addr,			\
-		"Address where firmware should be loaded"),
+		"Address where firmware should be loaded"), \
+	OPT_STRING('\0', "metadata", &(cfg)->metadata_filename,			\
+		   "metadata file", "Filename of the metadata file"),
 
 #endif /* ARM_COMMON__KVM_CONFIG_ARCH_H */

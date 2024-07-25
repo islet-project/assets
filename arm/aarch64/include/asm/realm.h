@@ -17,4 +17,6 @@ void kvm_arm_realm_populate_kernel(struct kvm *kvm,
 				   unsigned long file_size,
 				   unsigned long mem_size);
 
+void kvm_arm_realm_populate_metadata(struct kvm *kvm);
+
 #endif
