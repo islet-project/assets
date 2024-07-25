@@ -66,6 +66,8 @@ static void validate_realm_cfg(struct kvm *kvm)
 			die("--sve-vl valid only with --realm");
 		if (kvm->cfg.arch.pmu_cntrs)
 			die("--pmu-counters valid only with --realm");
+		if (kvm->cfg.arch.metadata_filename)
+			die("--metadata valid only with the --realm");
 		return;
 	}
 
@@ -104,6 +106,21 @@ static void validate_realm_cfg(struct kvm *kvm)
 	if (kvm->cfg.arch.realm_pv) {
 		if (strlen(kvm->cfg.arch.realm_pv) > KVM_CAP_ARM_RME_RPV_SIZE)
 			die("Invalid size for Realm Personalization Value\n");
+	}
+
+	if (kvm->cfg.arch.metadata_filename) {
+		kvm->arch.metadata = (u8 *)malloc(PAGE_SIZE);
+		if (kvm->arch.metadata == NULL)
+			die("Cannot allocate memory for the realm metadata\n");
+		int fd = open(kvm->cfg.arch.metadata_filename, O_RDONLY);
+		if (fd == -1)
+			die("Cannot open the metadata file\n");
+		ssize_t len = read(fd, kvm->arch.metadata, PAGE_SIZE);
+		if (len != PAGE_SIZE)
+			die("Invalid size of the realm metadata file\n");
+		close(fd);
+	} else {
+		kvm->arch.metadata = NULL;
 	}
 }
 
