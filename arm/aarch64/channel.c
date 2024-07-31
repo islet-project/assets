@@ -68,6 +68,7 @@ static int setup_shared_memory_before_realm_activate(struct kvm *kvm, int target
 	}
 
     kvm_arm_realm_populate_shared_mem(kvm, shrm_ipa, INTER_REALM_SHM_SIZE);
+    set_ipa_bit(shrm_ipa);
 	ch_syslog("[KVMTOOL] %s shrm_ipa 0x%llx", __func__, shrm_ipa);
 
     return ret;
@@ -105,10 +106,10 @@ int allocate_shm_after_realm_activate(Client *client, int target_vmid, bool shar
 		return ret;
 	}
 
-	// TODO: call DATA_CREATE_UNKNOWN RMI CALL
     map_memory_to_realm(client->kvm, (u64)mem, ipa, INTER_REALM_SHM_SIZE, share_other_realm_mem);
+    set_ipa_bit(ipa);
 
-	ch_syslog("[KVMTOOL] %s updated ipa 0x%llx", __func__, ipa);
+    ch_syslog("[KVMTOOL] %s updated ipa 0x%llx", __func__, ipa);
 
 	ch_syslog("[KVMTOOL] %s done: [%p:%p]", __func__, mem, mem + INTER_REALM_SHM_SIZE);
 	return ret;
@@ -157,8 +158,10 @@ static int free_shrm(Client *client, int owner_vmid, u64 ipa, bool unmap_only) {
         }
     }
 
-    if (target)
+    if (target) {
         ret = _free_shrm(client, target, unmap_only);
+        clear_ipa_bit(ipa);
+    }
 
     return ret;
 }
@@ -354,6 +357,8 @@ static int vchannel_init(struct kvm *kvm) {
     ret = irq__add_irqfd(kvm, vchannel_dev->gsi, client->eventfd, 0);
 
     create_polling_thread(client);
+
+    //TODO: if peer exist, try to get shrm of peers . how about that ??
 
     ch_syslog("vchannel_init done successfully");
 

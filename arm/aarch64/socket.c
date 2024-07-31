@@ -490,7 +490,6 @@ u64 get_unmapped_ipa(void) {
 
     for (; ipa < max_ipa; ipa += PAGE_SIZE) {
         if (!is_mapped(ipa)) {
-            set_ipa_bit(ipa);
             return ipa;
         }
     }
