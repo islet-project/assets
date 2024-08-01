@@ -42,7 +42,7 @@ static inline int rmi_map_shared_mem_as_ro(unsigned long phys,
 	return res.a0;
 }
 
-static inline int rmi_unmap_shared_realm_mem(unsigned long phys,
+static inline int rmi_shared_data_unmap(unsigned long phys,
 					  unsigned long rd,
 					  unsigned long ipa,
 					  unsigned long size)
@@ -65,7 +65,6 @@ static inline int rmi_unmap_shared_realm_mem(unsigned long phys,
 	return res.a0;
 }
 
-
 static inline int rmi_data_create_unknown(unsigned long data,
 					  unsigned long rd,
 					  unsigned long map_addr)
@@ -78,11 +77,32 @@ static inline int rmi_data_create_unknown(unsigned long data,
 	return res.a0;
 }
 
+static inline int rmi_shared_data_create(unsigned long data,
+					  unsigned long rd,
+					  unsigned long map_addr)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_1_1_invoke(SMC_RMI_SHARED_DATA_CREATE, data, rd, map_addr,
+			     &res);
+
+	return res.a0;
+}
+
 static inline int rmi_data_destroy(unsigned long rd, unsigned long map_addr)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_1_1_invoke(SMC_RMI_DATA_DESTROY, rd, map_addr, &res);
+
+	return res.a0;
+}
+
+static inline int rmi_shared_data_destroy(unsigned long rd, unsigned long map_addr)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_1_1_invoke(SMC_RMI_SHARED_DATA_DESTROY, rd, map_addr, &res);
 
 	return res.a0;
 }
@@ -224,11 +244,16 @@ static inline int rmi_rtt_fold(unsigned long rtt, unsigned long rd,
 }
 
 static inline int rmi_rtt_init_ripas(unsigned long rd, unsigned long map_addr,
-				     unsigned long level)
+				     unsigned long level, bool shared)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_1_1_invoke(SMC_RMI_RTT_INIT_RIPAS, rd, map_addr, level, &res);
+	if (shared) {
+		pr_info("%s shared true. rmi cmd 0x%llx", __func__, (u64)SMC_RMI_RTT_INIT_SHARED_RIPAS);
+		arm_smccc_1_1_invoke(SMC_RMI_RTT_INIT_SHARED_RIPAS, rd, map_addr, level, &res);
+	} else {
+		arm_smccc_1_1_invoke(SMC_RMI_RTT_INIT_RIPAS, rd, map_addr, level, &res);
+	}
 
 	return res.a0;
 }

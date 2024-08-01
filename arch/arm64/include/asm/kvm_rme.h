@@ -58,7 +58,8 @@ int realm_map_protected(struct realm *realm,
 			unsigned long base_ipa,
 			struct page *dst_page,
 			unsigned long map_size,
-			struct kvm_mmu_memory_cache *memcache);
+			struct kvm_mmu_memory_cache *memcache,
+			int (*shared_data_create)(unsigned long, unsigned long, unsigned long));
 int realm_map_non_secure(struct realm *realm,
 			 unsigned long ipa,
 			 struct page *page,

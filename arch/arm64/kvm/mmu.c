@@ -1219,7 +1219,7 @@ static int realm_map_ipa(struct kvm *kvm, phys_addr_t ipa, unsigned long hva,
 		return realm_map_non_secure(realm, ipa, page, map_size,
 					    memcache);
 
-	return realm_map_protected(realm, hva, ipa, page, map_size, memcache);
+	return realm_map_protected(realm, hva, ipa, page, map_size, memcache, NULL);
 }
 
 static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,

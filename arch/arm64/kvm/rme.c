@@ -177,7 +177,29 @@ static void realm_destroy_undelegate_range(struct realm *realm,
 	}
 }
 
-static void realm_unmap_shared_realm_memory_range(struct realm *realm,
+static void realm_shared_data_destroy_undelegate_range(struct realm *realm,
+					   unsigned long ipa,
+					   unsigned long addr,
+					   ssize_t size)
+{
+	unsigned long rd = virt_to_phys(realm->rd);
+	int ret;
+
+	while (size > 0) {
+		ret = rmi_shared_data_destroy(rd, ipa);
+		WARN_ON(ret);
+		ret = rmi_granule_undelegate(addr);
+
+		if (ret)
+			get_page(phys_to_page(addr));
+
+		addr += PAGE_SIZE;
+		ipa += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+}
+
+static void realm_shared_data_unmap_range(struct realm *realm,
 					   unsigned long ipa,
 					   unsigned long phys,
 					   ssize_t size)
@@ -186,7 +208,7 @@ static void realm_unmap_shared_realm_memory_range(struct realm *realm,
 	int ret;
 
 	while (size > 0) {
-		ret = rmi_unmap_shared_realm_mem(phys, rd, ipa, size);
+		ret = rmi_shared_data_unmap(phys, rd, ipa, size);
 		WARN_ON(ret);
 
 		phys += PAGE_SIZE;
@@ -387,6 +409,7 @@ static int realm_tear_down_rtt_range(struct realm *realm, int level,
 				failed = true;
 			break;
 		case RMI_ASSIGNED:
+		case RMI_ASSIGNED_SHARED:
 			WARN_ON(!rtt_addr);
 			/*
 			 * If there is a block mapping, break it now, using the
@@ -404,8 +427,13 @@ static int realm_tear_down_rtt_range(struct realm *realm, int level,
 				failed = true;
 				break;
 			}
-			realm_destroy_undelegate_range(realm, addr,
-						       rtt_addr, map_size);
+			if (rtt.state == RMI_ASSIGNED) {
+				realm_destroy_undelegate_range(realm, addr,
+						rtt_addr, map_size);
+			} else if (rtt.state == RMI_ASSIGNED_SHARED) {
+				realm_shared_data_destroy_undelegate_range(realm, addr,
+						rtt_addr, map_size);
+			}
 			/*
 			 * Collapse the last level table and make the spare page
 			 * reusable again.
@@ -624,7 +652,8 @@ int realm_map_protected(struct realm *realm,
 			unsigned long base_ipa,
 			struct page *dst_page,
 			unsigned long map_size,
-			struct kvm_mmu_memory_cache *memcache)
+			struct kvm_mmu_memory_cache *memcache,
+			int (*shared_data_create)(unsigned long, unsigned long, unsigned long))
 {
 	phys_addr_t dst_phys = page_to_phys(dst_page);
 	phys_addr_t rd = virt_to_phys(realm->rd);
@@ -682,7 +711,11 @@ int realm_map_protected(struct realm *realm,
 			return 0;
 		}
 
-		ret = rmi_data_create_unknown(phys, rd, ipa);
+		if (shared_data_create) {
+			ret = shared_data_create(phys, rd, ipa);
+		} else {
+			ret = rmi_data_create_unknown(phys, rd, ipa);
+		}
 
 		if (RMI_RETURN_STATUS(ret) == RMI_ERROR_RTT) {
 			/* Create missing RTTs and retry */
@@ -695,7 +728,11 @@ int realm_map_protected(struct realm *realm,
 			if (ret)
 				goto err_undelegate;
 
-			ret = rmi_data_create_unknown(phys, rd, ipa);
+			if (shared_data_create) {
+				ret = shared_data_create(phys, rd, ipa);
+			} else {
+				ret = rmi_data_create_unknown(phys, rd, ipa);
+			}
 		}
 		WARN_ON(ret);
 
@@ -724,7 +761,11 @@ err:
 		size -= PAGE_SIZE;
 		ipa -= PAGE_SIZE;
 
-		rmi_data_destroy(rd, ipa);
+		if (shared_data_create) {
+			rmi_shared_data_destroy(rd, ipa);
+		} else {
+			rmi_data_destroy(rd, ipa);
+		}
 
 		if (WARN_ON(rmi_granule_undelegate(phys))) {
 			/* Page can't be returned to NS world so is lost */
@@ -873,14 +914,14 @@ static int populate_par_region(struct kvm *kvm,
 			break;
 		}
 
-		ret = rmi_rtt_init_ripas(rd, ipa, level);
+		ret = rmi_rtt_init_ripas(rd, ipa, level, false);
 		if (RMI_RETURN_STATUS(ret) == RMI_ERROR_RTT) {
 			ret = realm_create_rtt_levels(realm, ipa,
 						      RMI_RETURN_INDEX(ret),
 						      level, NULL);
 			if (ret)
 				break;
-			ret = rmi_rtt_init_ripas(rd, ipa, level);
+			ret = rmi_rtt_init_ripas(rd, ipa, level, false);
 			if (ret) {
 				ret = -ENXIO;
 				break;
@@ -1010,14 +1051,14 @@ static int set_ipa_state(struct kvm_vcpu *vcpu,
 static int realm_init_ipa_state(struct realm *realm,
 				unsigned long ipa,
 				unsigned long end,
-				int level)
+				int level, bool shared)
 {
 	unsigned long map_size = rme_rtt_level_mapsize(level);
 	phys_addr_t rd_phys = virt_to_phys(realm->rd);
 	int ret;
 
 	while (ipa < end) {
-		ret = rmi_rtt_init_ripas(rd_phys, ipa, level);
+		ret = rmi_rtt_init_ripas(rd_phys, ipa, level, shared);
 
 		if (RMI_RETURN_STATUS(ret) == RMI_ERROR_RTT) {
 			int cur_level = RMI_RETURN_INDEX(ret);
@@ -1037,7 +1078,7 @@ static int realm_init_ipa_state(struct realm *realm,
 				return -EINVAL;
 
 			realm_init_ipa_state(realm, ipa, ipa + map_size,
-					     level + 1);
+					     level + 1, shared);
 		} else if (WARN_ON(ret)) {
 			return -ENXIO;
 		}
@@ -1086,7 +1127,7 @@ int realm_set_ipa_state(struct kvm_vcpu *vcpu,
 }
 
 static int kvm_init_ipa_range_realm(struct kvm *kvm,
-				    struct kvm_cap_arm_rme_init_ipa_args *args)
+				    struct kvm_cap_arm_rme_init_ipa_args *args, bool shared)
 {
 	int ret = 0;
 	gpa_t addr, end;
@@ -1105,7 +1146,7 @@ static int kvm_init_ipa_range_realm(struct kvm *kvm,
 		int level = find_map_level(kvm, addr, end);
 		unsigned long map_size = rme_rtt_level_mapsize(level);
 
-		ret = realm_init_ipa_state(realm, addr, addr + map_size, level);
+		ret = realm_init_ipa_state(realm, addr, addr + map_size, level, shared);
 		if (ret)
 			break;
 
@@ -1281,8 +1322,8 @@ static int kvm_rme_config_realm(struct kvm *kvm, struct kvm_enable_cap *cap)
 }
 
 
-static int kvm_map_memory_to_realm(struct kvm *kvm,
-				    struct kvm_cap_arm_rme_map_memory_to_realm_args *args)
+static int kvm_shared_data_create(struct kvm *kvm,
+				    struct kvm_cap_arm_rme_shared_data_create_args *args)
 {
 	int ret;
 	u64 hva = args->hva;
@@ -1293,7 +1334,7 @@ static int kvm_map_memory_to_realm(struct kvm *kvm,
 	page = pfn_to_page(pfn);
 
 	pr_info("%s hva %llx, ipa_base %llx size %llx phys: %llx", __func__, hva, args->ipa_base, args->size, __pfn_to_phys(pfn));
-	ret = realm_map_protected(&kvm->arch.realm, hva, args->ipa_base, page, args->size, NULL);
+	ret = realm_map_protected(&kvm->arch.realm, hva, args->ipa_base, page, args->size, NULL, rmi_shared_data_create);
 	if (ret) {
 		pr_err("realm_map_protected failed with %d", ret);
 		return ret;
@@ -1302,8 +1343,8 @@ static int kvm_map_memory_to_realm(struct kvm *kvm,
 	return ret;
 }
 
-static int kvm_map_memory_to_realm_as_ro(struct kvm *kvm,
-				    struct kvm_cap_arm_rme_map_memory_to_realm_args *args)
+static int kvm_shared_data_map_as_ro(struct kvm *kvm,
+				    struct kvm_cap_arm_rme_shared_data_create_args *args)
 {
 	int ret;
 	u64 hva = args->hva;
@@ -1349,7 +1390,19 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 			break;
 		}
 
-		r = kvm_init_ipa_range_realm(kvm, &args);
+		r = kvm_init_ipa_range_realm(kvm, &args, false);
+		break;
+	}
+	case KVM_CAP_ARM_RME_INIT_SHARED_IPA_REALM: {
+		struct kvm_cap_arm_rme_init_ipa_args args;
+		void __user *argp = u64_to_user_ptr(cap->args[1]);
+
+		if (copy_from_user(&args, argp, sizeof(args))) {
+			r = -EFAULT;
+			break;
+		}
+
+		r = kvm_init_ipa_range_realm(kvm, &args, true);
 		break;
 	}
 	case KVM_CAP_ARM_RME_POPULATE_REALM: {
@@ -1367,8 +1420,8 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 	case KVM_CAP_ARM_RME_ACTIVATE_REALM:
 		r = kvm_activate_realm(kvm);
 		break;
-	case KVM_CAP_ARM_RME_MAP_MEMORY_TO_REALM: {
-		struct kvm_cap_arm_rme_map_memory_to_realm_args args;
+	case KVM_CAP_ARM_RME_SHARED_DATA_CREATE: {
+		struct kvm_cap_arm_rme_shared_data_create_args args;
 		void __user *argp = u64_to_user_ptr(cap->args[1]);
 
 		if (copy_from_user(&args, argp, sizeof(args))) {
@@ -1377,14 +1430,14 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 		}
 
 		if (args.read_only) {
-			r = kvm_map_memory_to_realm_as_ro(kvm, &args);
+			r = kvm_shared_data_map_as_ro(kvm, &args);
 		} else {
-			r = kvm_map_memory_to_realm(kvm, &args);
+			r = kvm_shared_data_create(kvm, &args);
 		}
 		break;
 	}
-	case KVM_CAP_ARM_RME_UNMAP_MEMORY_FROM_REALM: {
-		struct kvm_cap_arm_rme_unmap_memory_from_realm_args args;
+	case KVM_CAP_ARM_RME_SHARED_DATA_DESTROY: {
+		struct kvm_cap_arm_rme_shared_data_destroy_args args;
 		void __user *argp = u64_to_user_ptr(cap->args[1]);
 		kvm_pfn_t pfn;
 
@@ -1398,12 +1451,13 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 		pr_info("%s: hva 0x%llx, ipa 0x%llx, size 0x%llx, phys 0x%llx",
 				__func__,  args.hva, args.ipa_base, args.size, pfn << PAGE_SHIFT);
 		if (args.unmap_only) {
-			realm_unmap_shared_realm_memory_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, 0);
+			realm_shared_data_unmap_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, 0);
 		} else {
-			realm_destroy_undelegate_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, args.size);
+			realm_shared_data_destroy_undelegate_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, args.size);
 		}
 		break;
 	}
+
 	default:
 		r = -EINVAL;
 		break;
