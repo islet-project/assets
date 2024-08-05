@@ -49,6 +49,7 @@ static struct class *ch_class;
 #define INVALID_PEER_ID -1
 
 struct channel_priv *drv_priv;
+u64 test_shrm_offset = 0x0;
 
 /* This sample driver supports device with VID = 0x010F, and PID = 0x0F0E*/
 static struct pci_device_id channel_id_table[] = {
@@ -206,7 +207,7 @@ int mmio_write_to_unmap_shrm(u64 ipa) {
 static void ch_send(struct work_struct *work) {
 	int ret;
 	u64 msg = 0xBEEF;
-	u64 *rw_shrm_va = get_shrm_va(false, 0x1000);
+	u64 *rw_shrm_va = get_shrm_va(false, test_shrm_offset);
 	//u64 *rw_shrm_va = drv_priv->rw_shrm_va_start;
 
 	set_peer_id();
@@ -226,11 +227,13 @@ static void ch_send(struct work_struct *work) {
 	pr_info("[GCH] %s drv_priv->rw_shrm_va_start 0x%llx, rw_shrm_va: 0x%llx",
 			__func__, drv_priv->rw_shrm_va_start, rw_shrm_va);
 
+	/*
 	ret = req_shrm_chunk();
 	if (ret) { //for the test
 		pr_err("[GCH] %s req_shrm_chunk() is failed with %d\n", __func__, ret);
 		return;
 	}
+	*/
 
 	pr_err("[GCH] %s before writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
 	*rw_shrm_va = msg;
@@ -240,7 +243,7 @@ static void ch_send(struct work_struct *work) {
 }
 
 static void ch_receive(struct work_struct *work) {
-	u64 shrm_ipa, ipa_offset = 0x1000, msg = 0;
+	u64 shrm_ipa, ipa_offset = test_shrm_offset, msg = 0;
 
 	set_peer_id();
 
@@ -294,7 +297,7 @@ static void ch_receive(struct work_struct *work) {
 
 
 static void dyn_rt_sender(struct work_struct *work) {
-	u64 client_shrm_ipa = get_ipa_start(CLIENT) + 0x1000;
+	u64 client_shrm_ipa = get_ipa_start(CLIENT) + test_shrm_offset;
 
 	pr_info("%s client_shrm_ipa: 0x%llx", __func__, client_shrm_ipa);
 
@@ -303,7 +306,7 @@ static void dyn_rt_sender(struct work_struct *work) {
 }
 
 static void dyn_rt_receiver(struct work_struct *work) {
-	u64 client_shrm_ipa = get_ipa_start(CLIENT) + 0x1000;
+	u64 client_shrm_ipa = get_ipa_start(CLIENT) + test_shrm_offset;
 
 	pr_info("%s mmio_write_to_unmap_shrm start", __func__);
 	mmio_write_to_unmap_shrm(client_shrm_ipa);
@@ -345,7 +348,7 @@ static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *
 static ssize_t channel_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	u64 buffer[10] = {};
-	u64 client_shrm_ipa = get_ipa_start(CLIENT) + 0x1000;
+	u64 client_shrm_ipa = get_ipa_start(CLIENT) + test_shrm_offset;
 
 	pr_info("%s client_shrm_ipa: 0x%llx", __func__, client_shrm_ipa);
     if (copy_from_user(&buffer, buf, count) != 0) {
