@@ -226,9 +226,9 @@ static void ch_send(struct work_struct *work) {
 	pr_info("[GCH] %s drv_priv->rw_shrm_va_start 0x%llx, rw_shrm_va: 0x%llx",
 			__func__, drv_priv->rw_shrm_va_start, rw_shrm_va);
 
-	ret = add_shrm_chunk();
+	ret = req_shrm_chunk();
 	if (ret) { //for the test
-		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
+		pr_err("[GCH] %s req_shrm_chunk() is failed with %d\n", __func__, ret);
 		return;
 	}
 
@@ -476,6 +476,7 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
     uint32_t dev_ioeventfd_addr, dev_ioeventfd_size;
     uint32_t bar_addr, bar_size;
 	u64 shrm_rw_ipa_start;
+	s64 shrm_ipa;
 
     pr_info("[GCH] %s start\n", __func__);
 
@@ -578,7 +579,12 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	pr_info("[GCH] DYN_ALLOC_REQ_TEST: send signal to peer_id %d", 0);
 
-	ret = add_shrm_chunk();
+	shrm_ipa = mmio_read_to_get_shrm();
+	if (shrm_ipa <= 0) {
+		pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, shrm_ipa);
+	}
+
+	ret = add_shrm_chunk(shrm_ipa);
 	if (ret) { //for the test
 		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
 	}

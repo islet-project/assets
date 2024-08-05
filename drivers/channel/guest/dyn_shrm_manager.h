@@ -34,7 +34,8 @@ int init_shrm_list(u64, u64);
 int remove_shrm_chunk(u64 ipa);
 int write_to_shrm(struct packet_pos* pp, const void* data, u64 size);
 int copy_from_shrm(void* to, struct packet_pos* from);
-int add_shrm_chunk(void);
+int add_shrm_chunk(s64 shrm_ipa);
+int req_shrm_chunk(void);
 
 #endif /* _DYN_SHRM_MANAGER_H */
 

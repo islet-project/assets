@@ -7,8 +7,8 @@ static struct shrm_list* rw_shrms;
 void send_signal(int peer_id);
 s64 mmio_read_to_get_shrm(void);
 int mmio_write_to_remove_shrm(u64 ipa);
-void set_memory_shared_ripas(phys_addr_t start, int numpages);
 u64* get_shrm_va(bool read_only, u64 ipa);
+void set_memory_shared(phys_addr_t start, int numpages);
 
 int init_shrm_list(u64 ipa_start, u64 ipa_size) {
     rw_shrms = kzalloc(sizeof(struct shrm_list), GFP_KERNEL);
@@ -54,7 +54,7 @@ int remove_shrm_chunk(u64 ipa) {
 	return -EINVAL;
 }
 
-static void req_shrm_chunk(void) {
+static void set_req_pending(void) {
 	if (!rw_shrms) {
 		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
 		return;
@@ -65,33 +65,8 @@ static void req_shrm_chunk(void) {
 	send_signal(KVMTOOL_ID);
 }
 
-//TODO: need to be static. for now, it's opened just for the test
-int add_shrm_chunk(void) {
-	if (!rw_shrms) {
-		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
-		return -EINVAL;
-	}
-
-	if (rw_shrms->add_req_pending) {
-		s64 shrm_ipa;
+int add_shrm_chunk(s64 shrm_ipa) {
 		struct shared_realm_memory *new_shrm;
-
-		pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
-
-		shrm_ipa = mmio_read_to_get_shrm();
-		if (shrm_ipa <= 0) {
-			pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, shrm_ipa);
-			return -EAGAIN;
-		}
-		pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
-
-		if (!is_valid_ipa(shrm_ipa, SHRM_CHUNK_SIZE)) {
-			pr_err("[GCH] %s shrm_ipa 0x%llx is not valid", __func__, shrm_ipa);
-			return -EINVAL;
-		}
-
-		set_memory_shared_ripas(shrm_ipa, 1);
-		pr_info("[GCH] %s call set_memory_shared_ripas with shrm_ipa 0x%llx", __func__, shrm_ipa);
 
 		new_shrm = kzalloc(sizeof(*new_shrm), GFP_KERNEL);
 		if (!new_shrm) {
@@ -107,11 +82,46 @@ int add_shrm_chunk(void) {
 		} else {
 			list_add(&new_shrm->head, &rw_shrms->pp.rear.shrm->head);
 		}
+		return 0;
+}
+
+//TODO: need to be static. for now, it's opened just for the test
+int req_shrm_chunk(void) {
+	int ret = 0;
+
+	if (!rw_shrms) {
+		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
+		return -EINVAL;
+	}
+
+	if (rw_shrms->add_req_pending) {
+		s64 shrm_ipa;
+
+		pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
+
+		shrm_ipa = mmio_read_to_get_shrm();
+		if (shrm_ipa <= 0) {
+			pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, shrm_ipa);
+			return -EAGAIN;
+		}
+		pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
+
+		if (!is_valid_ipa(shrm_ipa, SHRM_CHUNK_SIZE)) {
+			pr_err("[GCH] %s shrm_ipa 0x%llx is not valid", __func__, shrm_ipa);
+			return -EINVAL;
+		}
+
+		set_memory_shared(shrm_ipa, 1);
+		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, shrm_ipa);
+
+		ret = add_shrm_chunk(shrm_ipa);
+		if (ret) 
+			return ret;
 
 		rw_shrms->add_req_pending = false;
 	} else {
-		pr_info("[GCH] %s req_shrm_chunk", __func__);
-		req_shrm_chunk();
+		pr_info("[GCH] %s set_req_pending", __func__);
+		set_req_pending();
 		return -EAGAIN;
 	}
 	return 0;
@@ -161,12 +171,12 @@ int write_to_shrm(struct packet_pos* pp, const void* data, u64 size) {
 	}
 
 	if (rw_shrms->free_size < MIN_FREE_SHRM_SIZE) {
-		add_shrm_chunk();
+		req_shrm_chunk();
 	}
 
 	if (rw_shrms->free_size < size || 
 			rw_shrms->free_size - size < SHRM_CHUNK_SIZE) {
-		return add_shrm_chunk();
+		return req_shrm_chunk();
 	}
 
 	pp->size = data_size;
