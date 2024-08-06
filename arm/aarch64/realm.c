@@ -105,7 +105,7 @@ static void realm_init_ipa_range(struct kvm *kvm, u64 start, u64 size)
 
 }
 
-static void realm_init_shared_ipa_range(struct kvm *kvm, u64 start, u64 size)
+void realm_init_shared_ipa_range(struct kvm *kvm, u64 start, u64 size)
 {
 	struct kvm_cap_arm_rme_init_ipa_args init_ipa_args = {
 		.init_ipa_base = start,
@@ -145,52 +145,47 @@ static void realm_populate(struct kvm *kvm, u64 start, u64 size)
 	__realm_populate(kvm, start, size);
 }
 
-void map_memory_to_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size, bool read_only)
+void shared_data_create(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size, bool read_only)
 {
 	int ret;
-	struct kvm_cap_arm_rme_map_memory_to_realm_args map_mem_to_realm_args = {
+	struct kvm_cap_arm_rme_shared_data_create_args shared_data_create_args = {
 		.hva = hva,
 		.ipa_base = ipa_base,
 		.size = size,
 		.read_only = read_only,
 	};
-	struct kvm_enable_cap rme_map_mem_to_realm = {
+	struct kvm_enable_cap rme_shared_data_create = {
 		.cap = KVM_CAP_ARM_RME,
 		.args[0] = KVM_CAP_ARM_RME_MAP_MEMORY_TO_REALM,
-		.args[1] = (u64)&map_mem_to_realm_args
+		.args[1] = (u64)&shared_data_create_args
 	};
 
 	pr_info("%s start. hva 0x%llx, ipa 0x%llx, size 0x%llx, read_only %d", __func__, hva, ipa_base, size, read_only);
 
-	ret = ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_map_mem_to_realm);
+	ret = ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_shared_data_create);
 	if (ret < 0) {
 		die("unable to map memory to realm. ret:%d, hva: %llx, ipa: %llx - %llx (size %llu)",
 		    ret, hva, ipa_base, ipa_base + size, size);
 	}
 }
 
-/* unmap_only:
- * - false: call RMI::DATA_DESTROY & UNDELEGATE
- * - true: call RMI::UNMAP_SHARED_REALM_MEM only
- */
-void unmap_memory_from_realm(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size, bool unmap_only)
+void shared_data_destroy(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size)
 {
 	int ret;
-	struct kvm_cap_arm_rme_unmap_memory_to_realm_args unmap_mem_from_realm_args = {
+	struct kvm_cap_arm_rme_shared_data_destroy_args shared_data_destroy_args = {
 		.hva = hva,
 		.ipa_base = ipa_base,
 		.size = size,
-		.unmap_only = unmap_only,
 	};
-	struct kvm_enable_cap rme_unmap_mem_from_realm = {
+	struct kvm_enable_cap rme_shared_data_destroy = {
 		.cap = KVM_CAP_ARM_RME,
 		.args[0] = KVM_CAP_ARM_RME_UNMAP_MEMORY_FROM_REALM,
-		.args[1] = (u64)&unmap_mem_from_realm_args
+		.args[1] = (u64)&shared_data_destroy_args
 	};
 
-	pr_info("%s start. hva 0x%llx, ipa 0x%llx, size 0x%llx, unmap_only %d", __func__, hva, ipa_base, size, unmap_only);
+	pr_info("%s start. hva 0x%llx, ipa 0x%llx, size 0x%llx", __func__, hva, ipa_base, size);
 
-	ret = ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_unmap_mem_from_realm);
+	ret = ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_shared_data_destroy);
 	if (ret < 0) {
 		die("unable to unmap memory from realm. ret:%d, hva: %llx, ipa: %llx - %llx (size %llu)",
 		    ret, hva, ipa_base, ipa_base + size, size);
@@ -264,10 +259,6 @@ void kvm_arm_realm_populate_dtb(struct kvm *kvm)
 	end = ALIGN(kvm->arch.dtb_guest_start + FDT_MAX_SIZE, SZ_4K);
 	if (end > start)
 		realm_populate(kvm, start, end - start);
-}
-
-void kvm_arm_realm_populate_shared_mem(struct kvm *kvm, u64 ipa_start, u64 size) {
-	realm_populate(kvm, ipa_start, size);
 }
 
 static void kvm_arm_realm_activate_realm(struct kvm *kvm)

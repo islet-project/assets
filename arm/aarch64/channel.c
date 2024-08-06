@@ -40,49 +40,11 @@ static void* request_memory_to_host_channel(int vmid, bool share_other_realm_mem
 	return mem;
 }
 
-static int setup_shared_memory_before_realm_activate(struct kvm *kvm, int target_vmid) {
-    int ret = 0;
-    void *mem;
-    u64 *test_ptr;
-    u64 test_val = 0xABCD;
-    u64 shrm_ipa = get_unmapped_ipa();
-
-    mem = request_memory_to_host_channel(target_vmid, false, shrm_ipa);
-    if (!mem) {
-        return -1;
-    }
-
-    ch_syslog("[KVMTOOL] write test before registering this memory to realm. mem user va: 0x%llx", mem);
-    test_ptr = (u64 *)mem;
-
-    ch_syslog("[KVMTOOL] [TEST] Let's write 0x%llx to the mem: 0x%llx", test_val, test_ptr);
-    ch_syslog("[KVMTOOL] [TEST] before writing a value to the mem: 0x%llx", *test_ptr);
-    *test_ptr = test_val;
-    ch_syslog("[KVMTOOL] [TEST] after writing a value to the mem: 0x%llx", *test_ptr);
-
-    ret = kvm__register_ram(kvm, shrm_ipa, INTER_REALM_SHM_SIZE, mem);
-    if (ret) {
-		munmap(mem, INTER_REALM_SHM_SIZE);
-		ch_syslog("[KVMTOOL] %s failed with %d", __func__, ret);
-		return ret;
-	}
-
-    kvm_arm_realm_populate_shared_mem(kvm, shrm_ipa, INTER_REALM_SHM_SIZE);
-    set_ipa_bit(shrm_ipa);
-	ch_syslog("[KVMTOOL] %s shrm_ipa 0x%llx", __func__, shrm_ipa);
-
-    return ret;
-}
-
-static int setup_first_shared_memory(struct kvm *kvm, int cur_vmid) {
-    return setup_shared_memory_before_realm_activate(kvm, cur_vmid);
-}
-
-int allocate_shm_after_realm_activate(Client *client, int target_vmid, bool share_other_realm_mem, u64 other_shrm_ipa) {
+int alloc_shared_realm_memory(Client *client, int target_vmid, bool share_other_realm_mem, u64 shrm_ipa) {
 	int ret = 0;
 	void* mem;
     struct shared_realm_memory *shrm;
-    u64 ipa = (share_other_realm_mem) ? other_shrm_ipa : get_unmapped_ipa();
+    u64 ipa = (shrm_ipa) ? shrm_ipa : get_unmapped_ipa();
 
 	ch_syslog("[KVMTOOL] %s start vmid %d, ipa 0x%llx, share_other_realm_mem %d", __func__, target_vmid, ipa, share_other_realm_mem);
     mem = request_memory_to_host_channel(target_vmid, share_other_realm_mem, ipa);
@@ -106,7 +68,7 @@ int allocate_shm_after_realm_activate(Client *client, int target_vmid, bool shar
 		return ret;
 	}
 
-    map_memory_to_realm(client->kvm, (u64)mem, ipa, INTER_REALM_SHM_SIZE, share_other_realm_mem);
+    shared_data_create(client->kvm, (u64)mem, ipa, INTER_REALM_SHM_SIZE, share_other_realm_mem);
     set_ipa_bit(ipa);
 
     ch_syslog("[KVMTOOL] %s updated ipa 0x%llx", __func__, ipa);
@@ -118,7 +80,7 @@ int allocate_shm_after_realm_activate(Client *client, int target_vmid, bool shar
 static int _free_shrm(Client *client, struct shared_realm_memory* shrm, bool unmap_only) {
     int ret = 0;
 
-    unmap_memory_from_realm(client->kvm, shrm->va, shrm->ipa, INTER_REALM_SHM_SIZE, unmap_only);
+    shared_data_destroy(client->kvm, shrm->va, shrm->ipa, INTER_REALM_SHM_SIZE);
 
     ret = kvm__destroy_mem(client->kvm, shrm->ipa, INTER_REALM_SHM_SIZE, (u64*)shrm->va);
     if (ret) {
@@ -224,7 +186,7 @@ static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
             if (is_write) {
                 shrm_ro_ipa = ioport__read32((u32 *)data);
                 ch_syslog("%s write on BAR_MMIO_SHM_RO_IPA_BASE with ipa 0x%llx", __func__, shrm_ro_ipa);
-                allocate_shm_after_realm_activate(client, client->peers[0].id, true, shrm_ro_ipa);
+                alloc_shared_realm_memory(client, client->peers[0].id, true, shrm_ro_ipa);
             } else {
                 pr_err("%s read on BAR_MMIO_SHM_RO_IPA_BASE is not supported", __func__);
             }
@@ -289,6 +251,7 @@ static int vchannel_init(struct kvm *kvm) {
     int ret = 0;
 	u32 mmio_addr = pci_get_mmio_block(PCI_IO_SIZE);
     Client* client = get_client(kvm->cfg.arch.socket_path, IOEVENTFD_BASE_ADDR, kvm);
+    u64 ipa = get_unmapped_ipa();
 
     ch_syslog("%s start", __func__);
 
@@ -343,9 +306,11 @@ static int vchannel_init(struct kvm *kvm) {
 	ch_syslog("irq_type %d", vchannel_dev->pci_hdr.irq_type);
     
     // Set first shared memory
-    ret = setup_first_shared_memory(kvm, client->vmid);
+    //ret = setup_first_shared_memory(kvm, client->vmid); // TODO: this api should be removed
+    realm_init_shared_ipa_range(kvm, ipa, INTER_REALM_SHM_SIZE);
+    ret = alloc_shared_realm_memory(client, client->vmid, false, ipa);
     if (ret) {
-        die("vchannel_init: setup_first_shared_memory is failed");
+        die("vchannel_init: alloc_shared_realm_memory is failed");
     }
 
 	ret = set_ioeventfd(client, client->shm_alloc_efd, SHM_ALLOC_EFD_ID);

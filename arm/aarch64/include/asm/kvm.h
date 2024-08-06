@@ -467,14 +467,14 @@ struct kvm_cap_arm_rme_init_ipa_args {
 	__u64 init_ipa_size;
 };
 
-struct kvm_cap_arm_rme_map_memory_to_realm_args {
+struct kvm_cap_arm_rme_shared_data_create_args {
 	__u64 hva; // host virtual address
 	__u64 ipa_base;
 	__u64 size;
 	int read_only;
 };
 
-struct kvm_cap_arm_rme_unmap_memory_to_realm_args {
+struct kvm_cap_arm_rme_shared_data_destroy_args {
 	__u64 hva; // host virtual address
 	__u64 ipa_base;
 	__u64 size;

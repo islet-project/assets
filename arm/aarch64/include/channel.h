@@ -65,6 +65,6 @@ static void ch_syslog(const char *format, ...) {
 	closelog();
 }
 
-int allocate_shm_after_realm_activate(Client *client, int vmid, bool need_allocated_mem, u64 other_shrm_ipa);
+int alloc_shared_realm_memory(Client *client, int vmid, bool need_allocated_mem, u64 other_shrm_ipa);
 
 #endif // ARM_AARCH64__CHANNEL_H
