@@ -478,7 +478,6 @@ struct kvm_cap_arm_rme_shared_data_destroy_args {
 	__u64 hva; // host virtual address
 	__u64 ipa_base;
 	__u64 size;
-	bool unmap_only;
 };
 
 /* Device Control API on vcpu fd */

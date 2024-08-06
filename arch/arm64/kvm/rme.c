@@ -183,35 +183,20 @@ static void realm_shared_data_destroy_undelegate_range(struct realm *realm,
 					   ssize_t size)
 {
 	unsigned long rd = virt_to_phys(realm->rd);
-	int ret;
+	int ref_cnt = 0, ret = 0;
 
 	while (size > 0) {
-		ret = rmi_shared_data_destroy(rd, ipa);
-		WARN_ON(ret);
-		ret = rmi_granule_undelegate(addr);
+		rmi_shared_data_destroy(rd, ipa, &ref_cnt);
+		pr_info("%s ref_cnt %d after rmi_shared_data_destroy()", __func__, ref_cnt);
+		if (!ref_cnt) {
+			pr_info("%s call rmi_granule_undelegate", __func__);
+			ret = rmi_granule_undelegate(addr);
+		}
 
 		if (ret)
 			get_page(phys_to_page(addr));
 
 		addr += PAGE_SIZE;
-		ipa += PAGE_SIZE;
-		size -= PAGE_SIZE;
-	}
-}
-
-static void realm_shared_data_unmap_range(struct realm *realm,
-					   unsigned long ipa,
-					   unsigned long phys,
-					   ssize_t size)
-{
-	unsigned long rd = virt_to_phys(realm->rd);
-	int ret;
-
-	while (size > 0) {
-		ret = rmi_shared_data_unmap(phys, rd, ipa, size);
-		WARN_ON(ret);
-
-		phys += PAGE_SIZE;
 		ipa += PAGE_SIZE;
 		size -= PAGE_SIZE;
 	}
@@ -762,7 +747,7 @@ err:
 		ipa -= PAGE_SIZE;
 
 		if (shared_data_create) {
-			rmi_shared_data_destroy(rd, ipa);
+			rmi_shared_data_destroy(rd, ipa, NULL);
 		} else {
 			rmi_data_destroy(rd, ipa);
 		}
@@ -1450,11 +1435,7 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 		pfn = hva_to_pfn(args.hva, false, false, NULL, false, NULL);
 		pr_info("%s: hva 0x%llx, ipa 0x%llx, size 0x%llx, phys 0x%llx",
 				__func__,  args.hva, args.ipa_base, args.size, pfn << PAGE_SHIFT);
-		if (args.unmap_only) {
-			realm_shared_data_unmap_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, 0);
-		} else {
-			realm_shared_data_destroy_undelegate_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, args.size);
-		}
+		realm_shared_data_destroy_undelegate_range(&kvm->arch.realm, args.ipa_base, pfn << PAGE_SHIFT, args.size);
 		break;
 	}
 

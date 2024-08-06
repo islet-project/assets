@@ -42,29 +42,6 @@ static inline int rmi_map_shared_mem_as_ro(unsigned long phys,
 	return res.a0;
 }
 
-static inline int rmi_shared_data_unmap(unsigned long phys,
-					  unsigned long rd,
-					  unsigned long ipa,
-					  unsigned long size)
-{
-	struct arm_smccc_res res;
-	u64 rmi_cmd = SMC_RMI_MAP_SHARED_MEM_AS_RO;
-	//u64 rmi_cmd = SMC_RMI_UNMAP_SHARED_MEM;
-	//pr_err("%s SMC_RMI_UNMAP_SHARED_RMEM 0x%llx", __func__, SMC_RMI_UNMAP_SHARED_RMEM);
-	//pr_err("%s just for the test SMC_RMI_MAP_SHARED_MEM_AS_RO 0x%llx", __func__, SMC_RMI_MAP_SHARED_MEM_AS_RO);
-	//pr_err("%s rmi_cmd 0x%llx", __func__, rmi_cmd);
-
-	//just for the test
-	arm_smccc_1_1_invoke(rmi_cmd, phys, rd, ipa, size,
-			     &res);
-	/*
-	arm_smccc_1_1_invoke(SMC_RMI_UNMAP_SHARED_RMEM, phys, rd, ipa,
-			     &res);
-	 */
-
-	return res.a0;
-}
-
 static inline int rmi_data_create_unknown(unsigned long data,
 					  unsigned long rd,
 					  unsigned long map_addr)
@@ -98,11 +75,16 @@ static inline int rmi_data_destroy(unsigned long rd, unsigned long map_addr)
 	return res.a0;
 }
 
-static inline int rmi_shared_data_destroy(unsigned long rd, unsigned long map_addr)
+static inline int rmi_shared_data_destroy(unsigned long rd, unsigned long map_addr, int *ref_cnt)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_1_1_invoke(SMC_RMI_SHARED_DATA_DESTROY, rd, map_addr, &res);
+
+	if (ref_cnt) {
+		pr_info("%s regs.a1 %x", __func__, res.a1);
+		*ref_cnt = res.a1;
+	}
 
 	return res.a0;
 }
