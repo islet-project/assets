@@ -87,11 +87,12 @@ void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CREATE_RD)");
 }
 
-static void realm_init_ipa_range(struct kvm *kvm, u64 start, u64 size)
+static void realm_init_ipa_range(struct kvm *kvm, u64 start, u64 size, bool shared)
 {
 	struct kvm_cap_arm_rme_init_ipa_args init_ipa_args = {
 		.init_ipa_base = start,
-		.init_ipa_size = size
+		.init_ipa_size = size,
+		.shared = shared
 	};
 	struct kvm_enable_cap rme_init_ipa_realm = {
 		.cap = KVM_CAP_ARM_RME,
@@ -105,21 +106,8 @@ static void realm_init_ipa_range(struct kvm *kvm, u64 start, u64 size)
 
 }
 
-void realm_init_shared_ipa_range(struct kvm *kvm, u64 start, u64 size)
-{
-	struct kvm_cap_arm_rme_init_ipa_args init_ipa_args = {
-		.init_ipa_base = start,
-		.init_ipa_size = size
-	};
-	struct kvm_enable_cap rme_init_shared_ipa_realm = {
-		.cap = KVM_CAP_ARM_RME,
-		.args[0] = KVM_CAP_ARM_RME_INIT_SHARED_IPA_REALM,
-		.args[1] = (u64)&init_ipa_args
-	};
-
-	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_init_shared_ipa_realm) < 0)
-		die("unable to intialise IPA range for Realm %llx - %llx (size %llu)",
-		    start, start + size, size);
+void realm_init_ripas(struct kvm *kvm, u64 start, u64 size, bool shared) {
+	realm_init_ipa_range(kvm, start, size, shared);
 }
 
 static void __realm_populate(struct kvm *kvm, u64 start, u64 size)
@@ -141,7 +129,7 @@ static void __realm_populate(struct kvm *kvm, u64 start, u64 size)
 
 static void realm_populate(struct kvm *kvm, u64 start, u64 size)
 {
-	realm_init_ipa_range(kvm, start, size);
+	realm_init_ipa_range(kvm, start, size, false);
 	__realm_populate(kvm, start, size);
 }
 
@@ -221,7 +209,7 @@ void kvm_arm_realm_populate_kernel(struct kvm *kvm)
 	else
 		mem_size = end - start;
 
-	realm_init_ipa_range(kvm, start, mem_size);
+	realm_init_ipa_range(kvm, start, mem_size, false);
 	__realm_populate(kvm, start, end - start);
 }
 

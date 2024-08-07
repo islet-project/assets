@@ -409,7 +409,6 @@ enum {
 #define KVM_CAP_ARM_RME_ACTIVATE_REALM		4
 #define KVM_CAP_ARM_RME_MAP_MEMORY_TO_REALM 5
 #define KVM_CAP_ARM_RME_UNMAP_MEMORY_FROM_REALM 6
-#define KVM_CAP_ARM_RME_INIT_SHARED_IPA_REALM 7
 
 #define KVM_CAP_ARM_RME_MEASUREMENT_ALGO_ZERO	(0x01ULL << 7)
 #define KVM_CAP_ARM_RME_MEASUREMENT_ALGO_SHA256 0
@@ -465,6 +464,7 @@ struct kvm_cap_arm_rme_populate_realm_args {
 struct kvm_cap_arm_rme_init_ipa_args {
 	__u64 init_ipa_base;
 	__u64 init_ipa_size;
+	int shared;
 };
 
 struct kvm_cap_arm_rme_shared_data_create_args {

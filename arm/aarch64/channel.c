@@ -307,7 +307,7 @@ static int vchannel_init(struct kvm *kvm) {
     
     // Set first shared memory
     //ret = setup_first_shared_memory(kvm, client->vmid); // TODO: this api should be removed
-    realm_init_shared_ipa_range(kvm, ipa, INTER_REALM_SHM_SIZE);
+    realm_init_ripas(kvm, ipa, INTER_REALM_SHM_SIZE, true);
     ret = alloc_shared_realm_memory(client, client->vmid, false, ipa);
     if (ret) {
         die("vchannel_init: alloc_shared_realm_memory is failed");

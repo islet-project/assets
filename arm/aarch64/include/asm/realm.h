@@ -12,6 +12,6 @@ void kvm_arm_realm_populate_dtb(struct kvm *kvm);
 void kvm_arm_realm_populate_shared_mem(struct kvm *kvm, u64 ipa_start, u64 size);
 void shared_data_create(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size, bool read_only);
 void shared_data_destroy(struct kvm *kvm, u64 hva, u64 ipa_base, u64 size);
-void realm_init_shared_ipa_range(struct kvm *kvm, u64 start, u64 size);
+void realm_init_ripas(struct kvm *kvm, u64 start, u64 size, bool shared);
 
 #endif /* ! __ASM_REALM_H */
