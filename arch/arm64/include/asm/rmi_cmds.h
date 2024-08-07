@@ -230,12 +230,7 @@ static inline int rmi_rtt_init_ripas(unsigned long rd, unsigned long map_addr,
 {
 	struct arm_smccc_res res;
 
-	if (shared) {
-		pr_info("%s shared true. rmi cmd 0x%llx", __func__, (u64)SMC_RMI_RTT_INIT_SHARED_RIPAS);
-		arm_smccc_1_1_invoke(SMC_RMI_RTT_INIT_SHARED_RIPAS, rd, map_addr, level, &res);
-	} else {
-		arm_smccc_1_1_invoke(SMC_RMI_RTT_INIT_RIPAS, rd, map_addr, level, &res);
-	}
+	arm_smccc_1_1_invoke(SMC_RMI_RTT_INIT_RIPAS, rd, map_addr, level, shared, &res);
 
 	return res.a0;
 }

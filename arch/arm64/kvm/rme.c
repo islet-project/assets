@@ -1112,11 +1112,12 @@ int realm_set_ipa_state(struct kvm_vcpu *vcpu,
 }
 
 static int kvm_init_ipa_range_realm(struct kvm *kvm,
-				    struct kvm_cap_arm_rme_init_ipa_args *args, bool shared)
+				    struct kvm_cap_arm_rme_init_ipa_args *args)
 {
 	int ret = 0;
 	gpa_t addr, end;
 	struct realm *realm = &kvm->arch.realm;
+	bool shared = args->shared;
 
 	addr = args->init_ipa_base;
 	end = addr + args->init_ipa_size;
@@ -1375,19 +1376,7 @@ int kvm_realm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 			break;
 		}
 
-		r = kvm_init_ipa_range_realm(kvm, &args, false);
-		break;
-	}
-	case KVM_CAP_ARM_RME_INIT_SHARED_IPA_REALM: {
-		struct kvm_cap_arm_rme_init_ipa_args args;
-		void __user *argp = u64_to_user_ptr(cap->args[1]);
-
-		if (copy_from_user(&args, argp, sizeof(args))) {
-			r = -EFAULT;
-			break;
-		}
-
-		r = kvm_init_ipa_range_realm(kvm, &args, true);
+		r = kvm_init_ipa_range_realm(kvm, &args);
 		break;
 	}
 	case KVM_CAP_ARM_RME_POPULATE_REALM: {

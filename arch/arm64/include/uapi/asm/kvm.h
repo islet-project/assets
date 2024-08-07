@@ -465,6 +465,7 @@ struct kvm_cap_arm_rme_populate_realm_args {
 struct kvm_cap_arm_rme_init_ipa_args {
 	__u64 init_ipa_base;
 	__u64 init_ipa_size;
+	bool shared;
 };
 
 struct kvm_cap_arm_rme_shared_data_create_args {
