@@ -1,1 +1,1 @@
-obj-$(CONFIG_GUEST_CHANNEL) += guest_channel.o dyn_shrm_manager.o
+obj-$(CONFIG_GUEST_CHANNEL) += virt_pci_driver.o dyn_shrm_manager.o
