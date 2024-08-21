@@ -2,6 +2,9 @@
 #include <linux/slab.h>
 
 #define KVMTOOL_ID 0
+
+//TODO: Client should manage the shrm_list. don't use it as global.
+//      Create function to allocate it and every function should get shrm_list as argument
 static struct shrm_list* rw_shrms;
 
 void send_signal(int peer_id);
@@ -127,7 +130,7 @@ int req_shrm_chunk(void) {
 	return 0;
 }
 
-static bool invalid_packet_pos(struct packet_pos* pp) {
+bool invalid_packet_pos(struct packet_pos* pp) {
 	if (!pp)
 		return true;
 
@@ -136,7 +139,8 @@ static bool invalid_packet_pos(struct packet_pos* pp) {
 				__func__, pp->front.shrm, pp->rear.shrm);
 		return true;
 	}
-	if (pp->front.offset >= pp->rear.offset) {
+
+	if (pp->front.shrm == pp->rear.shrm && pp->front.offset >= pp->rear.offset) {
 		pr_err("%s front offset 0x%llx shouldn't bigger than rear offset 0x%llx",
 				__func__, pp->front.offset, pp->rear.offset);
 		return true;

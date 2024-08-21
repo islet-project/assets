@@ -32,9 +32,6 @@ static struct class *ch_class;
 #define IOEVENTFD_BASE_ADDR 0x7fffff00
 #define IOEVENTFD_BASE_SIZE 0x100
 
-#define SHRM_BASE_IPA     0xC0000000
-#define MAX_SHRM_IPA_SIZE 0x10000000
-
 #define BAR_MMIO_CURRENT_VMID 0
 #define BAR_MMIO_PEER_VMID 4 
 #define BAR_MMIO_SHM_RW_IPA_BASE 8
@@ -91,6 +88,8 @@ struct channel_priv {
 	u64* mapped_bar_addr;
 	u64 *rw_shrm_va_start;
 	u64 *ro_shrm_va_start;
+	struct rings_to_send* rings_to_send;
+	struct rings_to_receive* rings_to_recv;
 };
 
 static u64 get_ipa_start(int vmid) {
@@ -101,17 +100,22 @@ static u64 get_ipa_start(int vmid) {
 	return SHRM_BASE_IPA + (vmid-1) * MAX_SHRM_IPA_SIZE;
 }
 
-u64* get_shrm_va(bool read_only, u64 ipa) {
+u64* get_shrm_va(bool read_only, u64 ipa_offset) {
 	u64 shrm_va = (read_only) ? (u64)drv_priv->ro_shrm_va_start : (u64)drv_priv->rw_shrm_va_start;
 
 	if (!shrm_va) {
-		pr_err("%s shrm_va shouldn't be non-zero. read_only %d. ipa 0x%llx",
-				__func__, read_only, ipa);
+		pr_err("%s shrm_va shouldn't be non-zero. read_only %d. ipa_offset 0x%llx",
+				__func__, read_only, ipa_offset);
 		return NULL;
 	}
 
-	shrm_va += ipa % MAX_SHRM_IPA_SIZE;
+	shrm_va += ipa_offset % MAX_SHRM_IPA_SIZE;
 	return (u64*)shrm_va;
+}
+
+
+void notify_peer(void) {
+	send_signal(drv_priv->peer.id);
 }
 
 void send_signal(int peer_id) {
@@ -215,7 +219,6 @@ static void ch_send(struct work_struct *work) {
 		pr_err("[GCH] My role is not CLIENT but %d", drv_priv->role);
 		return;
 	}
-	write_to_shrm(NULL, NULL, 0); // for the build test
 
 	if (!rw_shrm_va) {
 		pr_err("[GCH] %s rw_shrm_va shouldn't be NULL", __func__);
@@ -236,7 +239,7 @@ static void ch_send(struct work_struct *work) {
 	pr_err("[GCH] %s before writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
 	*rw_shrm_va = msg;
 	pr_err("[GCH] %s after writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
-	send_signal(drv_priv->peer.id);
+	notify_peer();
 	pr_info("[GCH] %s done");
 }
 
@@ -631,8 +634,6 @@ static void channel_remove(struct pci_dev *pdev)
 	pci_release_region(pdev, 0);
 	pci_disable_device(pdev);
 }
-
-
 
 
 MODULE_LICENSE("GPL");

@@ -2,25 +2,10 @@
 #define _DYN_SHRM_MANAGER_H
 
 #include <linux/list.h>
+#include "shared_realm_memory.h"
 
-#define SHRM_CHUNK_SIZE PAGE_SIZE // TODO: need to defined by config 
 #define MIN_FREE_SHRM_SIZE 1024 * 1024 * 2 // 2MB
 #define MAX_FREE_SHRM_SIZE 1024 * 1024 * 4 // 4MB
-
-struct shared_realm_memory {
-	struct list_head head;
-	u64 ipa;
-};
-
-struct pos {
-	struct shared_realm_memory *shrm;
-	u64 offset;
-};
-
-struct packet_pos {
-	struct pos front, rear;
-	u64 size;
-};
 
 struct shrm_list {
 	struct list_head head;
@@ -36,6 +21,7 @@ int write_to_shrm(struct packet_pos* pp, const void* data, u64 size);
 int copy_from_shrm(void* to, struct packet_pos* from);
 int add_shrm_chunk(s64 shrm_ipa);
 int req_shrm_chunk(void);
+bool invalid_packet_pos(struct packet_pos* pp);
 
 #endif /* _DYN_SHRM_MANAGER_H */
 
