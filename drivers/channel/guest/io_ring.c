@@ -1,53 +1,61 @@
 #include <linux/types.h>
 #include <linux/limits.h>
 #include <linux/align.h>
+#include <linux/printk.h>
 #include <asm/string.h>
-#include <asm-generic/barrier.h>
 #include "dyn_shrm_manager.h"
 #include "io_ring.h"
 
-//TODO: setup rings_to_send & rings_to_receive
+struct desc_ring* create_desc_ring(u64* ipa_base) {
+	struct desc_ring* desc_ring = (struct desc_ring*)ALIGN((u64)ipa_base, 8);
 
-struct io_ring* avail_create(int noti_limit, u64* base_ipa) {
-	struct io_ring* io_ring;
-
-	if (base_ipa < SHRM_RW_IPA_START && SHRM_RW_IPA_END <= base_ipa) {
-		pr_err("%s invalid base_ipa %p", __func__, base_ipa);
+	if ((u64)ipa_base < SHRM_RW_IPA_REGION_START
+			&& SHRM_RW_IPA_REGION_END <= (u64)ipa_base) {
+		pr_err("%s invalid ipa_base %p", __func__, ipa_base);
 		return NULL;
 	}
 
-	init_io_ring(io_ring, noti_limit, base_ipa);
+	pr_info("%s desc_ring addr %p", __func__, desc_ring);
+
+	return desc_ring;
+}
+
+static struct io_ring* init_io_ring(int noti_limit, u64 *ipa_base) {
+	struct io_ring* io_ring = (struct io_ring *)ipa_base;
+
+	memset(io_ring, 0, sizeof(*io_ring));
+	io_ring->shrm_ipa_base = (u64)ipa_base;
+	io_ring->noti_limit = noti_limit;
+
+	return io_ring;
+}
+
+struct io_ring* avail_create(int noti_limit, u64* ipa_base) {
+	struct io_ring* io_ring = NULL;
+
+	if ((u64)ipa_base < SHRM_RW_IPA_REGION_START && SHRM_RW_IPA_REGION_END <= (u64)ipa_base) {
+		pr_err("%s invalid ipa_base %p", __func__, ipa_base);
+		return NULL;
+	}
+
+	io_ring = init_io_ring(noti_limit, ipa_base);
 	pr_info("%s io_ring addr %p", __func__, io_ring);
 
 	return io_ring;
 }
 
-struct io_ring* used_create(int noti_limit, u64* base_ipa) {
-	struct io_ring* io_ring;
+struct io_ring* used_create(int noti_limit, u64* ipa_base) {
+	struct io_ring* io_ring = NULL;
 
-	if (base_ipa < SHRM_RO_IPA_START && SHRM_RO_IPA_END <= base_ipa) {
-		pr_err("%s invalid base_ipa %p", __func__, base_ipa);
+	if ((u64)ipa_base < SHRM_RO_IPA_REGION_START && SHRM_RO_IPA_REGION_END <= (u64)ipa_base) {
+		pr_err("%s invalid ipa_base %p", __func__, ipa_base);
 		return NULL;
 	}
 
-	init_io_ring(io_ring, noti_limit, base_ipa);
+	io_ring = init_io_ring(noti_limit, ipa_base);
 	pr_info("%s io_ring addr %p", __func__, io_ring);
 
 	return io_ring;
-}
-
-int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx) {
-	if (!rings_to_send) 
-		return -EINVAL;
-
-	return io_ring_push_back(rings_to_send->avail, desc_idx);
-}
-
-int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx) {
-	if (!rings_to_recv) 
-		return -EINVAL;
-
-	return io_ring_push_back(rings_to_recv->used, desc_idx);
 }
 
 static int io_ring_push_back(struct io_ring* io_ring, u16 desc_idx) {
@@ -65,25 +73,39 @@ static int io_ring_push_back(struct io_ring* io_ring, u16 desc_idx) {
 	return 0;
 }
 
+int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx) {
+	if (!rings_to_send) 
+		return -EINVAL;
+
+	return io_ring_push_back(rings_to_send->avail, desc_idx);
+}
+
+int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx) {
+	if (!rings_to_recv) 
+		return -EINVAL;
+
+	return io_ring_push_back(rings_to_recv->used, desc_idx);
+}
+
+//TODO: setup rings_to_send & rings_to_receive
+void init_rings_to_send(struct rings_to_send* rts, u64 shrm_ipa) {
+	rts->avail = avail_create(1, (u64*)shrm_ipa);
+	shrm_ipa += sizeof(*rts->avail);
+
+	rts->desc_ring = create_desc_ring((u64*)shrm_ipa);
+}
+
 //TODO: implement it!
 /*
 int io_ring_pop_front(struct io_ring* io_ring, u16 desc_idx) {
 }
 */
 
-static void init_io_ring(struct io_ring* io_ring, int noti_limit, u64 *base_ipa) {
-	io_ring = base_ipa;
-
-	memset(io_ring, 0, sizeof(io_ring));
-	io_ring->base_ipa = (u64)base_ipa;
-	io_ring->noti_cnt = noti_cnt;
-}
-
 int desc_push_back(struct rings_to_send* rings_to_send, u64 ipa, u32 len, u16 flags) {
 	int idx;
 	struct desc_ring* desc_ring = rings_to_send->desc_ring;
 
-	if (!rings_to_send || !desc || !desc_ring)
+	if (!rings_to_send || !desc_ring)
 		return -EINVAL;
 
 	idx = desc_ring->rear;
@@ -117,10 +139,4 @@ int desc_pop_front(struct rings_to_send* rings_to_send, int idx) {
 }
 */
 
-struct desc_ring* create_desc_ring(u64* base_ipa, u64 offset) {
-	struct desc_ring* desc_ring = align(base_ipa + offset, 8);
 
-	pr_info("%s desc_ring addr %p", __func__, desc_ring);
-
-	return desc_ring;
-}

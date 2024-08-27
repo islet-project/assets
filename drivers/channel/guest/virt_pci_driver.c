@@ -13,6 +13,8 @@
 #include <linux/mm.h>
 
 #include "dyn_shrm_manager.h"
+//#include "io_ring.h"
+#include "channel.h"
 
 /* for the character device */
 #define DEVICE_NAME "gch_char"
@@ -54,6 +56,7 @@ static struct pci_device_id channel_id_table[] = {
 
 MODULE_DEVICE_TABLE(pci, channel_id_table);
 
+
 static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent);
 static void channel_remove(struct pci_dev *pdev);
 
@@ -71,6 +74,11 @@ typedef enum {
 	CLIENT = 2,
 } ROLE;
 
+typedef enum {
+	SHRM_RO = 0,
+	SHRM_RW = 1,
+} SHRM_TYPE;
+
 struct peer {
     int id;      /* This is for identifying peers. It's NOT vmid */
     int eventfd;
@@ -79,25 +87,25 @@ struct peer {
 /* This is a "private" data structure */
 /* You can store there any data that should be passed between driver's functions */
 struct channel_priv {
-	uint32_t* ioeventfd_addr;
 	int vmid;
-	struct peer peer;
 	ROLE role;
+	uint32_t* ioeventfd_addr;
+	struct peer peer;
 	struct work_struct send, receive;
 	struct work_struct rt_sender, rt_receiver; // for the dyn_shrm_remove_test
+	struct work_struct setup_rw_rings, setup_ro_rings;
 	u64* mapped_bar_addr;
 	u64 *rw_shrm_va_start;
 	u64 *ro_shrm_va_start;
-	struct rings_to_send* rings_to_send;
-	struct rings_to_receive* rings_to_recv;
+	struct shrm_list* rw_shrms;
+	struct rings_to_send* rts;
+	struct rings_to_receive* rtr;
 };
 
-static u64 get_ipa_start(int vmid) {
-	if (vmid <= 0) {
-		pr_err("%s vmid should be greater than 0 but %d", __func__, vmid);
-		return 0;
-	}
-	return SHRM_BASE_IPA + (vmid-1) * MAX_SHRM_IPA_SIZE;
+
+
+static u64 get_shrm_ipa_start(SHRM_TYPE shrm_type) {
+	return (shrm_type == SHRM_RW) ? SHRM_RW_IPA_REGION_START : SHRM_RO_IPA_REGION_START;
 }
 
 u64* get_shrm_va(bool read_only, u64 ipa_offset) {
@@ -109,18 +117,17 @@ u64* get_shrm_va(bool read_only, u64 ipa_offset) {
 		return NULL;
 	}
 
-	shrm_va += ipa_offset % MAX_SHRM_IPA_SIZE;
+	shrm_va += ipa_offset % SHRM_IPA_RANGE_SIZE;
 	return (u64*)shrm_va;
-}
-
-
-void notify_peer(void) {
-	send_signal(drv_priv->peer.id);
 }
 
 void send_signal(int peer_id) {
 	pr_info("[GCH] write %d to ioeventfd_addr 0x%x", peer_id, (uint32_t)drv_priv->ioeventfd_addr);
 	iowrite32(peer_id, drv_priv->ioeventfd_addr);
+}
+
+void notify_peer(void) {
+	send_signal(drv_priv->peer.id);
 }
 
 static void get_cur_vmid(void) {
@@ -206,8 +213,53 @@ int mmio_write_to_unmap_shrm(u64 ipa) {
 	return mmio_write(BAR_MMIO_UNMAP_SHRM_IPA, ipa);
 }
 
-static void ch_send(struct work_struct *work) {
+static void drv_setup_rw_rings(struct work_struct *work) {
 	int ret;
+	s64 first_shrm_ipa;
+	u64 shrm_rw_ipa_range_start;
+
+	shrm_rw_ipa_range_start = get_shrm_ipa_start(SHRM_RW);
+	if (!shrm_rw_ipa_range_start) {
+		pr_err("%s get_shrm_ipa_start() failed", __func__);
+		return;
+	}
+
+	first_shrm_ipa = mmio_read_to_get_shrm();
+	if (first_shrm_ipa <= 0) {
+		pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, first_shrm_ipa);
+		return;
+	}
+
+	if (first_shrm_ipa != shrm_rw_ipa_range_start) {
+		pr_err("[GCH] %s first_shrm_ipa is not matched with SHRM_RW . %llx != %llx",
+				__func__, first_shrm_ipa, shrm_rw_ipa_range_start);
+		return;
+	}
+
+	drv_priv->rw_shrm_va_start = memremap(shrm_rw_ipa_range_start, SHRM_IPA_RANGE_SIZE, MEMREMAP_WB);
+	if (!drv_priv->rw_shrm_va_start) {
+		pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_rw_ipa_range_start);
+		return;
+	}
+
+	pr_info("[GCH] %s drv_priv->rw_shrm_va_start 0x%llx",
+			__func__, drv_priv->rw_shrm_va_start);
+
+	drv_priv->rw_shrms = init_shrm_list(first_shrm_ipa, SHRM_CHUNK_SIZE);
+	if (!drv_priv->rw_shrms) {
+		pr_err("[GCH] %s: init_shrm_list() failed", __func__);
+		return;
+	}
+
+	ret = add_shrm_chunk(drv_priv->rw_shrms, first_shrm_ipa);
+	if (ret) { //for the test
+		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
+	}
+
+	init_rings_to_send(drv_priv->rts, first_shrm_ipa); // TODO: need to implement it
+}
+
+static void ch_send(struct work_struct *work) {
 	u64 msg = 0xBEEF;
 	u64 *rw_shrm_va = get_shrm_va(false, test_shrm_offset);
 	//u64 *rw_shrm_va = drv_priv->rw_shrm_va_start;
@@ -236,10 +288,15 @@ static void ch_send(struct work_struct *work) {
 	}
 	*/
 
+	/*
 	pr_err("[GCH] %s before writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
 	*rw_shrm_va = msg;
 	pr_err("[GCH] %s after writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
 	notify_peer();
+	*/
+
+	write_packet(drv_priv->rts, drv_priv->rw_shrms, &msg, sizeof(u64));
+
 	pr_info("[GCH] %s done");
 }
 
@@ -254,19 +311,19 @@ static void ch_receive(struct work_struct *work) {
 		return;
 	}
 	copy_from_shrm(NULL, NULL); // for the build test
-	shrm_ipa = get_ipa_start(drv_priv->peer.id);
+	shrm_ipa = get_shrm_ipa_start(SHRM_RO);
 
 	if (!drv_priv->ro_shrm_va_start) {
 		u64 shrm_ro_ipa_start = shrm_ipa;
 		shrm_ipa += ipa_offset;
 
-		drv_priv->ro_shrm_va_start = memremap(shrm_ro_ipa_start, MAX_SHRM_IPA_SIZE, MEMREMAP_WB);
+		drv_priv->ro_shrm_va_start = memremap(shrm_ro_ipa_start, SHRM_IPA_RANGE_SIZE, MEMREMAP_WB);
 		if (!drv_priv->ro_shrm_va_start) {
 			pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_ro_ipa_start);
 			return;
 		}
 		pr_info("[GCH] %s memremap result: 0x%llx for [0x%llx:0x%llx)", __func__,
-				drv_priv->ro_shrm_va_start, shrm_ro_ipa_start, shrm_ro_ipa_start + MAX_SHRM_IPA_SIZE);
+				drv_priv->ro_shrm_va_start, shrm_ro_ipa_start, shrm_ro_ipa_start + SHRM_IPA_RANGE_SIZE);
 
 		mmio_write(BAR_MMIO_SHM_RO_IPA_BASE, shrm_ipa);
 
@@ -298,19 +355,19 @@ static void ch_receive(struct work_struct *work) {
 
 
 static void dyn_rt_sender(struct work_struct *work) {
-	u64 client_shrm_ipa = get_ipa_start(CLIENT) + test_shrm_offset;
+	u64 rw_shrm_ipa = get_shrm_ipa_start(SHRM_RW) + test_shrm_offset;
 
-	pr_info("%s client_shrm_ipa: 0x%llx", __func__, client_shrm_ipa);
+	pr_info("%s rw_shrm_ipa: 0x%llx", __func__, rw_shrm_ipa);
 
-	remove_shrm_chunk(client_shrm_ipa);
+	remove_shrm_chunk(drv_priv->rw_shrms, rw_shrm_ipa);
 	pr_info("%s done", __func__);
 }
 
 static void dyn_rt_receiver(struct work_struct *work) {
-	u64 client_shrm_ipa = get_ipa_start(CLIENT) + test_shrm_offset;
+	u64 ro_shrm_ipa = get_shrm_ipa_start(SHRM_RO) + test_shrm_offset;
 
 	pr_info("%s mmio_write_to_unmap_shrm start", __func__);
-	mmio_write_to_unmap_shrm(client_shrm_ipa);
+	mmio_write_to_unmap_shrm(ro_shrm_ipa);
 	pr_info("%s mmio_write_to_unmap_shrm end", __func__);
 }
 
@@ -349,9 +406,6 @@ static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *
 static ssize_t channel_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	u64 buffer[10] = {};
-	u64 client_shrm_ipa = get_ipa_start(CLIENT) + test_shrm_offset;
-
-	pr_info("%s client_shrm_ipa: 0x%llx", __func__, client_shrm_ipa);
     if (copy_from_user(&buffer, buf, count) != 0) {
         return -EFAULT;
     }
@@ -479,8 +533,6 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
     u16 vendor, device;
     uint32_t dev_ioeventfd_addr, dev_ioeventfd_size;
     uint32_t bar_addr, bar_size;
-	u64 shrm_rw_ipa_start;
-	s64 shrm_ipa;
 
     pr_info("[GCH] %s start\n", __func__);
 
@@ -510,6 +562,8 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	INIT_WORK(&drv_priv->receive, ch_receive);
 	INIT_WORK(&drv_priv->rt_sender, dyn_rt_sender);
 	INIT_WORK(&drv_priv->rt_receiver, dyn_rt_receiver);
+	INIT_WORK(&drv_priv->setup_rw_rings, drv_setup_rw_rings);
+	//INIT_WORK(&drv_priv->setup_ro_rings, drv_setup_ro_rings);
 
 	/* Request memory region for the BAR */
 	ret = pci_request_region(pdev, bar, DRIVER_NAME);
@@ -530,31 +584,6 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	pr_info("[GCH] %s call get_cur_vmid", __func__);
 	get_cur_vmid();
-
-	pr_info("[GCH] %s call get_ipa_start", __func__);
-	shrm_rw_ipa_start = get_ipa_start(drv_priv->vmid);
-	if (!shrm_rw_ipa_start) {
-		ret = -EINVAL;
-		goto pci_disable;
-	}
-	//shrm_rw_ipa_start += 0x1000;
-
-	ret = init_shrm_list(shrm_rw_ipa_start, MAX_SHRM_IPA_SIZE);
-	if (ret) {
-		goto pci_disable;
-	}
-
-	pr_info("[GCH] %s call memremap to map 0x%llx", __func__, shrm_rw_ipa_start);
-	//drv_priv->rw_shrm_va_start = memremap(shrm_rw_ipa_start, 0x1000, MEMREMAP_WB);
-	drv_priv->rw_shrm_va_start = memremap(shrm_rw_ipa_start, MAX_SHRM_IPA_SIZE, MEMREMAP_WB);
-	if (!drv_priv->rw_shrm_va_start) {
-		pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_rw_ipa_start);
-		ret = -ENOMEM;
-		goto pci_disable;
-	}
-
-	pr_info("[GCH] %s memremap result: 0x%llx for [0x%llx:0x%llx)", __func__,
-			drv_priv->rw_shrm_va_start, shrm_rw_ipa_start, shrm_rw_ipa_start + MAX_SHRM_IPA_SIZE);
 
 	set_peer_id();
 
@@ -583,15 +612,14 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	pr_info("[GCH] DYN_ALLOC_REQ_TEST: send signal to peer_id %d", 0);
 
-	shrm_ipa = mmio_read_to_get_shrm();
-	if (shrm_ipa <= 0) {
-		pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, shrm_ipa);
-	}
+	schedule_work(&drv_priv->setup_rw_rings);
 
-	ret = add_shrm_chunk(shrm_ipa);
-	if (ret) { //for the test
-		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
-	}
+	/*
+	 * schedule_work(setup_rw_rings);
+	 * schedule_work(setup_ro_rings); // if my role is Client, it starts after getting noti by peer
+	 * schedule_work(setup_ro_rings); // if my role is Server, start it now 
+	 */
+
 
 	/*
 	pr_info("[GCH] TEST: send signal to destination peer_id %d", drv_priv->peer.id);

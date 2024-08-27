@@ -1,6 +1,7 @@
 #ifndef _IO_RING_H
 #define _IO_RING_H
 #include <linux/types.h>
+#include <linux/limits.h>
 
 #define MAX_DESC_RING U16_MAX
 
@@ -14,15 +15,15 @@
 #define IO_RING_DESC_F_NEXT 1 
 
 struct rings_to_send {
-	struct io_ring *avail; // RW io_ring
-	struct io_ring *peer_used; // RO io_ring
-	struct desc_ring *desc_ring;
+	struct io_ring *avail; // RW ring
+	struct io_ring *peer_used; // RO ring. get noti by the first irq
+	struct desc_ring *desc_ring; // RW ring
 };
 
 struct rings_to_receive {
-	struct io_ring *peer_avail; // RO io_ring
-	struct io_ring *used; // RW io_ring
-	struct desc_ring *peer_desc_ring;
+	struct io_ring *peer_avail; // RO ring
+	struct io_ring *used; // RW ring
+	struct desc_ring *peer_desc_ring; // RO ring
 };
 
 /*
@@ -35,7 +36,7 @@ struct rings_to_receive {
 struct io_ring {
 	u16 front, rear;
 	u16 noti_limit;
-	u64 base_shrm_ipa; // ipa of the shared realm memory
+	u64 shrm_ipa_base; // ipa of the shared realm memory
 	u16 ring[MAX_DESC_RING];
 };
 
@@ -47,7 +48,7 @@ struct desc {
 
 struct desc_ring {
 	u16 front, rear;
-	u16 ring[MAX_DESC_RING];
+	struct desc ring[MAX_DESC_RING];
 };
 
 
@@ -55,6 +56,7 @@ struct io_ring* avail_create(int noti_limit, u64* base_ipa);
 struct io_ring* used_create(int noti_limit, u64* base_ipa);
 int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx);
 int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx);
-int desc_push_back(struct rings_to_send* rings_to_send, u64 ipa, u32 len, u16 flags, u16 next);
+int desc_push_back(struct rings_to_send* rings_to_send, u64 ipa, u32 len, u16 flags);
+void init_rings_to_send(struct rings_to_send* rts, u64 shrm_ipa);
 
 #endif /* _IO_RING_H */

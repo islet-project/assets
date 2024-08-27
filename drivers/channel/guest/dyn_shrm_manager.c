@@ -3,36 +3,32 @@
 
 #define KVMTOOL_ID 0
 
-//TODO: Client should manage the shrm_list. don't use it as global.
-//      Create function to allocate it and every function should get shrm_list as argument
-static struct shrm_list* rw_shrms;
-
 void send_signal(int peer_id);
 s64 mmio_read_to_get_shrm(void);
 int mmio_write_to_remove_shrm(u64 ipa);
 u64* get_shrm_va(bool read_only, u64 ipa);
 void set_memory_shared(phys_addr_t start, int numpages);
 
-int init_shrm_list(u64 ipa_start, u64 ipa_size) {
-    rw_shrms = kzalloc(sizeof(struct shrm_list), GFP_KERNEL);
+struct shrm_list* init_shrm_list(u64 ipa_start, u64 ipa_size) {
+    struct shrm_list* rw_shrms = kzalloc(sizeof(struct shrm_list), GFP_KERNEL);
 	if (!rw_shrms) {
 		pr_err("[GCH] %s failed to kzalloc for struct shrm_list\n", __func__);
-		return -ENOMEM;
+		return NULL;
 	}
 
 	INIT_LIST_HEAD(&rw_shrms->head);
 	rw_shrms->ipa_start = ipa_start;
 	rw_shrms->ipa_end = ipa_start + ipa_size;
 
-	return 0;
+	return rw_shrms;
 }
 
-bool is_valid_ipa(u64 ipa_start, u64 ipa_size) {
+static bool is_valid_ipa(struct shrm_list* rw_shrms, u64 ipa_start, u64 ipa_size) {
 	u64 ipa_end = ipa_start + ipa_size;
 	return (rw_shrms->ipa_start <= ipa_start && ipa_end <= rw_shrms->ipa_end);
 }
 
-int remove_shrm_chunk(u64 ipa) {
+int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa) {
 	struct shared_realm_memory *tmp, *target = NULL;
 
 	pr_info("%s start", __func__);
@@ -57,7 +53,7 @@ int remove_shrm_chunk(u64 ipa) {
 	return -EINVAL;
 }
 
-static void set_req_pending(void) {
+static void set_req_pending(struct shrm_list* rw_shrms) {
 	if (!rw_shrms) {
 		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
 		return;
@@ -68,7 +64,7 @@ static void set_req_pending(void) {
 	send_signal(KVMTOOL_ID);
 }
 
-int add_shrm_chunk(s64 shrm_ipa) {
+int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa) {
 		struct shared_realm_memory *new_shrm;
 
 		new_shrm = kzalloc(sizeof(*new_shrm), GFP_KERNEL);
@@ -89,7 +85,7 @@ int add_shrm_chunk(s64 shrm_ipa) {
 }
 
 //TODO: need to be static. for now, it's opened just for the test
-int req_shrm_chunk(void) {
+int req_shrm_chunk(struct shrm_list* rw_shrms) {
 	int ret = 0;
 
 	if (!rw_shrms) {
@@ -109,7 +105,7 @@ int req_shrm_chunk(void) {
 		}
 		pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
 
-		if (!is_valid_ipa(shrm_ipa, SHRM_CHUNK_SIZE)) {
+		if (!is_valid_ipa(rw_shrms, shrm_ipa, SHRM_CHUNK_SIZE)) {
 			pr_err("[GCH] %s shrm_ipa 0x%llx is not valid", __func__, shrm_ipa);
 			return -EINVAL;
 		}
@@ -117,14 +113,14 @@ int req_shrm_chunk(void) {
 		set_memory_shared(shrm_ipa, 1);
 		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, shrm_ipa);
 
-		ret = add_shrm_chunk(shrm_ipa);
+		ret = add_shrm_chunk(rw_shrms, shrm_ipa);
 		if (ret) 
 			return ret;
 
 		rw_shrms->add_req_pending = false;
 	} else {
 		pr_info("[GCH] %s set_req_pending", __func__);
-		set_req_pending();
+		set_req_pending(rw_shrms);
 		return -EAGAIN;
 	}
 	return 0;
@@ -150,7 +146,7 @@ bool invalid_packet_pos(struct packet_pos* pp) {
 }
 
 // Returns number of bytes that could not be written. On success, this will be zero.
-int write_to_shrm(struct packet_pos* pp, const void* data, u64 size) {
+int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size) {
 	struct packet_pos *cur_pp;
 	struct shared_realm_memory *next_rear_shrm;
 	int move_cnt = 0;
@@ -175,12 +171,12 @@ int write_to_shrm(struct packet_pos* pp, const void* data, u64 size) {
 	}
 
 	if (rw_shrms->free_size < MIN_FREE_SHRM_SIZE) {
-		req_shrm_chunk();
+		req_shrm_chunk(rw_shrms);
 	}
 
 	if (rw_shrms->free_size < size || 
 			rw_shrms->free_size - size < SHRM_CHUNK_SIZE) {
-		return req_shrm_chunk();
+		return req_shrm_chunk(rw_shrms);
 	}
 
 	pp->size = data_size;

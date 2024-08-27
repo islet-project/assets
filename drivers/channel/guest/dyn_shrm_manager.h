@@ -2,7 +2,7 @@
 #define _DYN_SHRM_MANAGER_H
 
 #include <linux/list.h>
-#include "shared_realm_memory.h"
+#include "shrm.h"
 
 #define MIN_FREE_SHRM_SIZE 1024 * 1024 * 2 // 2MB
 #define MAX_FREE_SHRM_SIZE 1024 * 1024 * 4 // 4MB
@@ -15,12 +15,12 @@ struct shrm_list {
 	bool add_req_pending;
 };
 
-int init_shrm_list(u64, u64);
-int remove_shrm_chunk(u64 ipa);
-int write_to_shrm(struct packet_pos* pp, const void* data, u64 size);
+struct shrm_list* init_shrm_list(u64, u64);
+int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa);
+int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size);
 int copy_from_shrm(void* to, struct packet_pos* from);
-int add_shrm_chunk(s64 shrm_ipa);
-int req_shrm_chunk(void);
+int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa);
+int req_shrm_chunk(struct shrm_list* rw_shrms);
 bool invalid_packet_pos(struct packet_pos* pp);
 
 #endif /* _DYN_SHRM_MANAGER_H */
