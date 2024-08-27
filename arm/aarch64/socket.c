@@ -254,7 +254,7 @@ Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm*
         goto err_close;
     }
 
-    client->shrm_ipa_start = INTER_REALM_SHM_IPA_BASE + ((client->vmid - 1) * MAX_SHRM_IPA_SIZE_PER_REALM);
+    client->shrm_ipa_start = INTER_REALM_SHM_IPA_BASE;
 
     ch_syslog("[ID:%d] client addr %p, shrm_ipa_start", client->vmid, client, client->shrm_ipa_start);
 
