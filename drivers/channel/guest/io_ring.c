@@ -6,54 +6,61 @@
 #include "dyn_shrm_manager.h"
 #include "io_ring.h"
 
-struct desc_ring* create_desc_ring(u64* ipa_base) {
-	struct desc_ring* desc_ring = (struct desc_ring*)ALIGN((u64)ipa_base, 8);
+struct desc_ring* create_desc_ring(u64 ipa_base, u64* va) {
+	struct desc_ring* desc_ring = (struct desc_ring*)ALIGN((u64)va, 8);
 
-	if ((u64)ipa_base < SHRM_RW_IPA_REGION_START
-			&& SHRM_RW_IPA_REGION_END <= (u64)ipa_base) {
-		pr_err("%s invalid ipa_base %p", __func__, ipa_base);
+	pr_info("%s start. desc_ring: %llx, va %llx, sizeof(*desc_ring) %llx",
+			__func__, desc_ring, va, sizeof(*desc_ring));
+
+	if (ipa_base < SHRM_RW_IPA_REGION_START && SHRM_RW_IPA_REGION_END <= ipa_base) {
+		pr_err("%s invalid ipa_base %llx", __func__, ipa_base);
 		return NULL;
 	}
 
-	pr_info("%s desc_ring addr %p", __func__, desc_ring);
+	pr_info("%s desc_ring addr %llx", __func__, desc_ring);
 
 	return desc_ring;
 }
 
-static struct io_ring* init_io_ring(int noti_limit, u64 *ipa_base) {
-	struct io_ring* io_ring = (struct io_ring *)ipa_base;
+static struct io_ring* init_io_ring(int noti_limit, u64 ipa_base, u64* va) {
+	struct io_ring* io_ring = (struct io_ring *)va;
+	pr_info("%s start. io_ring: %llx, va %llx, sizeof(*io_ring) %llx",
+			__func__, io_ring, va, sizeof(*io_ring));
 
 	memset(io_ring, 0, sizeof(*io_ring));
 	io_ring->shrm_ipa_base = (u64)ipa_base;
 	io_ring->noti_limit = noti_limit;
 
-	return io_ring;
-}
-
-struct io_ring* avail_create(int noti_limit, u64* ipa_base) {
-	struct io_ring* io_ring = NULL;
-
-	if ((u64)ipa_base < SHRM_RW_IPA_REGION_START && SHRM_RW_IPA_REGION_END <= (u64)ipa_base) {
-		pr_err("%s invalid ipa_base %p", __func__, ipa_base);
-		return NULL;
-	}
-
-	io_ring = init_io_ring(noti_limit, ipa_base);
-	pr_info("%s io_ring addr %p", __func__, io_ring);
+	pr_info("%s done", __func__);
 
 	return io_ring;
 }
 
-struct io_ring* used_create(int noti_limit, u64* ipa_base) {
+struct io_ring* avail_create(int noti_limit, u64 ipa_base, u64* va) {
 	struct io_ring* io_ring = NULL;
+	pr_info("%s start", __func__);
 
-	if ((u64)ipa_base < SHRM_RO_IPA_REGION_START && SHRM_RO_IPA_REGION_END <= (u64)ipa_base) {
-		pr_err("%s invalid ipa_base %p", __func__, ipa_base);
+	if (ipa_base < SHRM_RW_IPA_REGION_START && SHRM_RW_IPA_REGION_END <= ipa_base) {
+		pr_err("%s invalid ipa_base %llx", __func__, ipa_base);
 		return NULL;
 	}
 
-	io_ring = init_io_ring(noti_limit, ipa_base);
-	pr_info("%s io_ring addr %p", __func__, io_ring);
+	io_ring = init_io_ring(noti_limit, ipa_base, va);
+	pr_info("%s io_ring addr %llx", __func__, io_ring);
+
+	return io_ring;
+}
+
+struct io_ring* used_create(int noti_limit, u64 ipa_base, u64* va) {
+	struct io_ring* io_ring = NULL;
+
+	if (ipa_base < SHRM_RO_IPA_REGION_START && SHRM_RO_IPA_REGION_END <= ipa_base) {
+		pr_err("%s invalid ipa_base %llx", __func__, ipa_base);
+		return NULL;
+	}
+
+	io_ring = init_io_ring(noti_limit, ipa_base, va);
+	pr_info("%s io_ring addr %llx", __func__, io_ring);
 
 	return io_ring;
 }
@@ -88,11 +95,24 @@ int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx) {
 }
 
 //TODO: setup rings_to_send & rings_to_receive
-void init_rings_to_send(struct rings_to_send* rts, u64 shrm_ipa) {
-	rts->avail = avail_create(1, (u64*)shrm_ipa);
-	shrm_ipa += sizeof(*rts->avail);
+void init_rings_to_send(struct rings_to_send* rts, u64 shrm_ipa, u64* shrm_va) {
+	pr_info("%s start", __func__);
 
-	rts->desc_ring = create_desc_ring((u64*)shrm_ipa);
+	if (!rts || !shrm_va) {
+		pr_err("%s input pointers shouldn't be NULL but rts: %llx, shrm_va: %llx",
+				__func__, rts, shrm_va);
+		return;
+	}
+	rts->avail = avail_create(1, shrm_ipa, shrm_va);
+	if (!rts->avail) {
+		pr_err("%s avail_create is failed", __func__);
+		return;
+	}
+
+	shrm_ipa += sizeof(*rts->avail);
+	shrm_va += sizeof(*rts->avail);
+
+	rts->desc_ring = create_desc_ring(shrm_ipa, shrm_va);
 }
 
 //TODO: implement it!

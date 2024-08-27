@@ -3,7 +3,7 @@
 #include <linux/types.h>
 #include <linux/limits.h>
 
-#define MAX_DESC_RING U16_MAX
+#define MAX_DESC_RING 128
 
 /*
  * chained descriptor should set this flag.
@@ -52,11 +52,9 @@ struct desc_ring {
 };
 
 
-struct io_ring* avail_create(int noti_limit, u64* base_ipa);
-struct io_ring* used_create(int noti_limit, u64* base_ipa);
 int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx);
 int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx);
 int desc_push_back(struct rings_to_send* rings_to_send, u64 ipa, u32 len, u16 flags);
-void init_rings_to_send(struct rings_to_send* rts, u64 shrm_ipa);
+void init_rings_to_send(struct rings_to_send* rts, u64 shrm_ipa, u64* shrm_va);
 
 #endif /* _IO_RING_H */

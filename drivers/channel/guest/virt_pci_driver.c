@@ -252,11 +252,16 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 	}
 
 	ret = add_shrm_chunk(drv_priv->rw_shrms, first_shrm_ipa);
-	if (ret) { //for the test
+	if (ret) {
 		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
 	}
 
-	init_rings_to_send(drv_priv->rts, first_shrm_ipa); // TODO: need to implement it
+	drv_priv->rts = kzalloc(sizeof(*drv_priv->rts), GFP_KERNEL);
+	if (!drv_priv->rts) {
+		pr_err("[GCH] failed to kzalloc for drv_priv->rts");
+	}
+
+	init_rings_to_send(drv_priv->rts, first_shrm_ipa, drv_priv->rw_shrm_va_start);
 }
 
 static void ch_send(struct work_struct *work) {
