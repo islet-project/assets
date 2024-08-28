@@ -12,6 +12,7 @@
 struct shared_realm_memory {
 	struct list_head head;
 	u64 ipa;
+	bool in_use;
 };
 
 struct pos {

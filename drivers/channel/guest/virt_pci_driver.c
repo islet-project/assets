@@ -74,10 +74,6 @@ typedef enum {
 	CLIENT = 2,
 } ROLE;
 
-typedef enum {
-	SHRM_RO = 0,
-	SHRM_RW = 1,
-} SHRM_TYPE;
 
 struct peer {
     int id;      /* This is for identifying peers. It's NOT vmid */
@@ -108,12 +104,12 @@ static u64 get_shrm_ipa_start(SHRM_TYPE shrm_type) {
 	return (shrm_type == SHRM_RW) ? SHRM_RW_IPA_REGION_START : SHRM_RO_IPA_REGION_START;
 }
 
-u64* get_shrm_va(bool read_only, u64 ipa_offset) {
-	u64 shrm_va = (read_only) ? (u64)drv_priv->ro_shrm_va_start : (u64)drv_priv->rw_shrm_va_start;
+u64* get_shrm_va(SHRM_TYPE shrm_type, u64 ipa_offset) {
+	u64 shrm_va = (shrm_type == SHRM_RW) ? (u64)drv_priv->rw_shrm_va_start : (u64)drv_priv->ro_shrm_va_start ;
 
 	if (!shrm_va) {
-		pr_err("%s shrm_va shouldn't be non-zero. read_only %d. ipa_offset 0x%llx",
-				__func__, read_only, ipa_offset);
+		pr_err("%s shrm_va shouldn't be non-zero. shrm_type %d. ipa_offset 0x%llx",
+				__func__, shrm_type, ipa_offset);
 		return NULL;
 	}
 
@@ -245,7 +241,7 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 	pr_info("[GCH] %s drv_priv->rw_shrm_va_start 0x%llx",
 			__func__, drv_priv->rw_shrm_va_start);
 
-	drv_priv->rw_shrms = init_shrm_list(first_shrm_ipa, SHRM_CHUNK_SIZE);
+	drv_priv->rw_shrms = init_shrm_list(SHRM_RW_IPA_REGION_START, SHRM_IPA_RANGE_SIZE);
 	if (!drv_priv->rw_shrms) {
 		pr_err("[GCH] %s: init_shrm_list() failed", __func__);
 		return;
@@ -266,7 +262,7 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 
 static void ch_send(struct work_struct *work) {
 	u64 msg = 0xBEEF;
-	u64 *rw_shrm_va = get_shrm_va(false, test_shrm_offset);
+	u64 *rw_shrm_va = get_shrm_va(SHRM_RW, test_shrm_offset);
 	//u64 *rw_shrm_va = drv_priv->rw_shrm_va_start;
 
 	set_peer_id();
@@ -302,7 +298,7 @@ static void ch_send(struct work_struct *work) {
 
 	write_packet(drv_priv->rts, drv_priv->rw_shrms, &msg, sizeof(u64));
 
-	pr_info("[GCH] %s done");
+	pr_info("[GCH] %s done", __func__);
 }
 
 static void ch_receive(struct work_struct *work) {
@@ -338,7 +334,7 @@ static void ch_receive(struct work_struct *work) {
 	}
 
 	if (drv_priv->ro_shrm_va_start)  {
-		u64 *ro_shrm_va = get_shrm_va(true, ipa_offset);
+		u64 *ro_shrm_va = get_shrm_va(SHRM_RO, ipa_offset);
 		pr_err("[GCH] %s let's read & write the ro_shrm_va 0x%llx to msg", __func__, ro_shrm_va);
 
 		msg = *ro_shrm_va;

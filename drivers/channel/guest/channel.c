@@ -17,13 +17,13 @@ int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const vo
 		ret = write_to_shrm(rw_shrms, &pp, data, size);
 	} while(ret == -EAGAIN);
 
-	if (ret < 0) {
-		pr_err("%s: write_to_shrm() is failed", __func__);
+	if (ret != 0) {
+		pr_err("%s: write_to_shrm() is failed %d", __func__, ret);
 		return ret;
 	}
 	pr_info("%s: write_to_shrm done", __func__);
 
-	if (!invalid_packet_pos(&pp)) {
+	if (invalid_packet_pos(&pp)) {
 		pr_err("%s: invalid packet_pos", __func__);
 		return -EINVAL;
 	}

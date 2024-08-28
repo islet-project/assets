@@ -4,8 +4,10 @@
 #include <linux/list.h>
 #include "shrm.h"
 
-#define MIN_FREE_SHRM_SIZE 1024 * 1024 * 2 // 2MB
-#define MAX_FREE_SHRM_SIZE 1024 * 1024 * 4 // 4MB
+#define MIN_FREE_SHRM_SIZE 1024 * 8 // 8kb
+//#define MIN_FREE_SHRM_SIZE 1024 * 1024 * 2 // 2MB
+#define MAX_FREE_SHRM_SIZE 1024 * 16 // 16kb
+//#define MAX_FREE_SHRM_SIZE 1024 * 1024 * 4 // 4MB
 
 struct shrm_list {
 	struct list_head head;
@@ -13,7 +15,13 @@ struct shrm_list {
 	u64 free_size, total_size;
 	u64 ipa_start, ipa_end; // RW shrm IPA range only for the current realm
 	bool add_req_pending;
+	//TODO: need lock to enlarge and shrink it
 };
+
+typedef enum {
+	SHRM_RO = 0,
+	SHRM_RW = 1,
+} SHRM_TYPE;
 
 struct shrm_list* init_shrm_list(u64, u64);
 int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa);

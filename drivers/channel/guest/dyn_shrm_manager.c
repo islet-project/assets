@@ -36,7 +36,12 @@ int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa) {
 	list_for_each_entry(tmp, &rw_shrms->head, head) {
 		if (ipa == tmp->ipa) {
 			target = tmp;
-			list_del(&tmp->head);
+
+			if (target->in_use) {
+				pr_err("%s: target shrm %llx is in use", __func__, target->ipa);
+				return -EINVAL;
+			}
+			list_del(&target->head);
 			break;
 		}
 	}
@@ -48,6 +53,9 @@ int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa) {
 		pr_info("%s end", __func__);
 		return 0;
 	}
+
+	rw_shrms->free_size -= SHRM_CHUNK_SIZE;
+	rw_shrms->total_size -= SHRM_CHUNK_SIZE;
 
 	pr_err("%s there is no entry matched with the ipa 0x%llx", __func__, ipa);
 	return -EINVAL;
@@ -81,6 +89,9 @@ int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa) {
 		} else {
 			list_add(&new_shrm->head, &rw_shrms->pp.rear.shrm->head);
 		}
+
+		rw_shrms->free_size += SHRM_CHUNK_SIZE;
+		rw_shrms->total_size += SHRM_CHUNK_SIZE;
 		return 0;
 }
 
@@ -127,8 +138,10 @@ int req_shrm_chunk(struct shrm_list* rw_shrms) {
 }
 
 bool invalid_packet_pos(struct packet_pos* pp) {
-	if (!pp)
+	if (!pp) {
+		pr_err("%s: packet_pos shouldn't be NULL", __func__);
 		return true;
+	}
 
 	if (!pp->front.shrm || !pp->rear.shrm) {
 		pr_err("%s shrm shouldn't be NULL 0x%llx 0x%llx",
@@ -152,6 +165,8 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 	int move_cnt = 0;
 	u64 written_size = 0, *dest_va, data_size = size;
 
+	pr_info("[GCH] %s start", __func__);
+
 	if (!rw_shrms) {
 		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
 		return -EINVAL;
@@ -161,12 +176,12 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 	next_rear_shrm = cur_pp->rear.shrm;
 
 	if (!data) {
-		pr_err("%s data shouldn't be NULL", __func__, (u64)data);
+		pr_err("%s: data shouldn't be NULL", __func__, (u64)data);
 		return -EINVAL;
 	}
 
-	if (invalid_packet_pos(pp)) {
-		pr_err("%s packet_pos is invalid", __func__);
+	if (!pp) {
+		pr_err("%s: packet_pos shouldn't be NULL", __func__);
 		return -EINVAL;
 	}
 
@@ -176,7 +191,8 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 
 	if (rw_shrms->free_size < size || 
 			rw_shrms->free_size - size < SHRM_CHUNK_SIZE) {
-		return req_shrm_chunk(rw_shrms);
+		req_shrm_chunk(rw_shrms);
+		return -EAGAIN;
 	}
 
 	pp->size = data_size;
@@ -190,7 +206,7 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 	}
 
 	// data writing starts
-	dest_va = get_shrm_va(false, next_rear_shrm->ipa + cur_pp->rear.offset);
+	dest_va = get_shrm_va(SHRM_RW, next_rear_shrm->ipa + cur_pp->rear.offset);
 	if (!dest_va) {
 		pr_err("%s dest_va shouldn't be NULL", __func__);
 		return -EINVAL;
@@ -206,16 +222,17 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 
 		return 0;
 	}
-
 	memcpy(dest_va, data, SHRM_CHUNK_SIZE - cur_pp->rear.offset);
 	written_size += SHRM_CHUNK_SIZE - cur_pp->rear.offset;
+	next_rear_shrm->in_use = true;
 	next_rear_shrm = list_next_entry(next_rear_shrm, head);
 
-	for(int i = 0; i < move_cnt && data_size > written_size;
+	for(int i = 1; i < move_cnt && data_size > written_size;
 			i++, next_rear_shrm = list_next_entry(next_rear_shrm, head)) {
-		dest_va = get_shrm_va(false, next_rear_shrm->ipa);
+		dest_va = get_shrm_va(SHRM_RW, next_rear_shrm->ipa);
 		memcpy(dest_va, data + written_size, SHRM_CHUNK_SIZE);
 		written_size += SHRM_CHUNK_SIZE;
+		next_rear_shrm->in_use = true;
 	}
 
 	if (data_size < written_size) {
@@ -224,9 +241,10 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 		return -EINVAL;
 	}
 
-	dest_va = get_shrm_va(false, next_rear_shrm->ipa);
+	dest_va = get_shrm_va(SHRM_RW, next_rear_shrm->ipa);
 	memcpy(dest_va, data + written_size, data_size - written_size);
 	written_size += data_size - written_size;
+	next_rear_shrm->in_use = true;
 
 	pp->front = cur_pp->rear;
 	cur_pp->rear.shrm = next_rear_shrm;
@@ -234,6 +252,8 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 	cur_pp->size += data_size;
 
 	pp->rear = cur_pp->rear;
+
+	rw_shrms->free_size -= data_size;
 
 	return data_size - written_size; // in normal case, should be zero
 }
@@ -255,7 +275,7 @@ int copy_from_shrm(void* to, struct packet_pos* from) {
 
 	cur_shrm = from->front.shrm;
 
-	src_va = get_shrm_va(true, cur_shrm->ipa + from->front.offset);
+	src_va = get_shrm_va(SHRM_RO, cur_shrm->ipa + from->front.offset);
 	if (!src_va) {
 		pr_err("%s src_va shouldn't be NULL", __func__);
 		return -EINVAL;
@@ -278,7 +298,7 @@ int copy_from_shrm(void* to, struct packet_pos* from) {
 			pr_err("%s cur_shrm shouldn't be NULL", __func__);
 			return -EINVAL;
 		}
-		src_va = get_shrm_va(true, cur_shrm->ipa);
+		src_va = get_shrm_va(SHRM_RO, cur_shrm->ipa);
 		memcpy((void*)to + written_size, src_va, SHRM_CHUNK_SIZE);
 		written_size += SHRM_CHUNK_SIZE;
 	}
@@ -289,7 +309,7 @@ int copy_from_shrm(void* to, struct packet_pos* from) {
 		return -EINVAL;
 	}
 
-	src_va = get_shrm_va(true, cur_shrm->ipa);
+	src_va = get_shrm_va(SHRM_RO, cur_shrm->ipa);
 	memcpy((void*)to + written_size, src_va, from->size - written_size);
 	written_size += from->size - written_size;
 
