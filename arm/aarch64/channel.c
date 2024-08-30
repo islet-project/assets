@@ -9,14 +9,21 @@
 
 static struct vchannel_device *vchannel_dev; // for channel module in current realm
 
-static void* request_memory_to_host_channel(int vmid, bool share_other_realm_mem, u64 shrm_ipa) {
+static void* request_memory_to_host_channel(int vmid, SHRM_TYPE shrm_type, u64* shrm_id) {
     void *mem = 0;
     int hc_fd;
-    u64 offset = shrm_ipa & PAGE_MASK;
+    u64 offset = 0;
+    int buf = -1;
+
+    if (!shrm_id) {
+        pr_err("%s: shrm_id shouldn't be null", __func__);
+        return NULL;
+    }
 
     // Request already allocated peer vmid's memory
-    if (share_other_realm_mem) {
+    if (shrm_type == SHRM_RO) {
         offset |= MMAP_SHARE_OTHER_REALM_MEM_MASK;
+        offset |= *shrm_id << MMAP_SHRM_ID_SHIFT;
     }
     offset |= vmid & MMAP_OWNER_VMID_MASK;
 
@@ -31,35 +38,59 @@ static void* request_memory_to_host_channel(int vmid, bool share_other_realm_mem
 
     mem = mmap(NULL, INTER_REALM_SHM_SIZE, PROT_RW,
 			MAP_SHARED | MAP_NORESERVE | MAP_LOCKED, hc_fd, offset);
-	close(hc_fd);
 
 	if (mem == MAP_FAILED) {
-		ch_syslog("failed to mmap %s: %s\n", HOST_CHANNEL_PATH, strerror(errno));
-		return 0;
-	}
+		pr_err("failed to mmap %s: %s\n", HOST_CHANNEL_PATH, strerror(errno));
+        goto err;
+    }
+
+    if (shrm_type == SHRM_RW) {
+        buf = vmid;
+        if (write(hc_fd, &buf, sizeof(buf)) < 0) { //TODO: Test it !
+            perror("write error");
+            goto err;
+        }
+
+        if (buf < 0) {
+            pr_err("%s: failed to find SHRM_RW", __func__);
+            goto err;
+        }
+
+        *shrm_id = buf;
+        ch_syslog("%s: returned shrm_id %llx", __func__, *shrm_id);
+    }
+
+    close(hc_fd);
 	return mem;
+
+err:
+    close(hc_fd);
+	return NULL;
 }
 
-int alloc_shared_realm_memory(Client *client, int target_vmid, bool share_other_realm_mem, u64 shrm_ipa) {
+int alloc_shared_realm_memory(Client *client, int target_vmid, SHRM_TYPE shrm_type, u64 shrm_id) {
 	int ret = 0;
 	void* mem;
     struct shared_realm_memory *shrm;
-    u64 ipa = (shrm_ipa) ? shrm_ipa : get_unmapped_ipa();
+    u64 ipa = get_unmapped_ipa(shrm_type);
 
-	ch_syslog("[KVMTOOL] %s start vmid %d, ipa 0x%llx, share_other_realm_mem %d", __func__, target_vmid, ipa, share_other_realm_mem);
-    mem = request_memory_to_host_channel(target_vmid, share_other_realm_mem, ipa);
+    ch_syslog("[KVMTOOL] %s start vmid %d, ipa 0x%llx, shrm_type %d, shrm_id %d",
+              __func__, target_vmid, ipa, shrm_type, shrm_id);
+    mem = request_memory_to_host_channel(target_vmid, shrm_type, &shrm_id);
     if (!mem) {
         return -1;
     }
 
     shrm = malloc(sizeof(struct shared_realm_memory));
     shrm->owner_vmid = target_vmid;
+    shrm->shrm_id = shrm_id;
     shrm->ipa = ipa;
     shrm->va = (u64)mem;
-    shrm->mapped_to_realm = (share_other_realm_mem) ? true : false;
+    shrm->mapped_to_realm = false;
+    shrm->mapped_to_peer = false;
     list_add_tail(&shrm->list, &client->dyn_shrms_head);
-    ch_syslog("%s list_add_tail: shrm->list: %p, va: 0x%llx, ipa: 0x%llx ",
-              __func__, &shrm->list, shrm->va, shrm->ipa);
+    ch_syslog("%s list_add_tail: shrm->list: %p, va: 0x%llx, ipa: 0x%llx shrm_id %d",
+              __func__, &shrm->list, shrm->va, shrm->ipa, shrm->shrm_id);
 
     ret = kvm__register_ram(client->kvm, ipa, INTER_REALM_SHM_SIZE, mem);
     if (ret) {
@@ -68,7 +99,7 @@ int alloc_shared_realm_memory(Client *client, int target_vmid, bool share_other_
 		return ret;
 	}
 
-    shared_data_create(client->kvm, (u64)mem, ipa, INTER_REALM_SHM_SIZE, share_other_realm_mem);
+    shared_data_create(client->kvm, (u64)mem, ipa, INTER_REALM_SHM_SIZE, (bool)shrm_type);
     set_ipa_bit(ipa);
 
     ch_syslog("[KVMTOOL] %s updated ipa 0x%llx", __func__, ipa);
@@ -138,7 +169,8 @@ static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
     u64 mmio_addr;
     u64 offset;
     u64 shrm_rw_ipa = 0;
-    u64 shrm_ro_ipa;
+    u64 shrm_ro_ipa = 0;
+    u64 shrm_id = 0;
 
     ch_syslog("%s start. is_write %d", __func__, is_write);
     mmio_addr = pci__bar_address(&vchannel_dev->pci_hdr, 0);
@@ -173,22 +205,35 @@ static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
             list_for_each_entry(shrm, &client->dyn_shrms_head, list) {
                 if (!shrm->mapped_to_realm) {
                     shrm_rw_ipa = shrm->ipa;
+                    shrm_id = shrm->shrm_id;
                     shrm->mapped_to_realm = true;
                     break;
                 }
             }
 
-            ch_syslog("%s BAR_MMIO_SHM_RW_IPA_BASE ioport__write shrm_rw_ipa 0x%llx", __func__, shrm_rw_ipa);
-            ioport__write32((u32 *)data, shrm_rw_ipa);
+            ch_syslog("%s BAR_MMIO_SHM_RW_IPA_BASE ioport__write shrm_rw_ipa 0x%llx shrm_id %d",
+            __func__, shrm_rw_ipa, shrm_id);
+            ioport__write32((u32 *)data, shrm_rw_ipa | shrm_id);
             ch_syslog("%s BAR_MMIO_SHM_RW_IPA_BASE done", __func__);
             break;
         case BAR_MMIO_SHM_RO_IPA_BASE:
             if (is_write) {
-                shrm_ro_ipa = ioport__read32((u32 *)data);
-                ch_syslog("%s write on BAR_MMIO_SHM_RO_IPA_BASE with ipa 0x%llx", __func__, shrm_ro_ipa);
-                alloc_shared_realm_memory(client, client->peers[0].id, true, shrm_ro_ipa);
+                shrm_id = ioport__read32((u32 *)data);
+                ch_syslog("%s write on BAR_MMIO_SHM_RO_IPA_BASE with shrm_id 0x%llx", __func__, shrm_id);
+                alloc_shared_realm_memory(client, client->peers[0].id, SHRM_RO, shrm_id);
             } else {
-                pr_err("%s read on BAR_MMIO_SHM_RO_IPA_BASE is not supported", __func__);
+                ch_syslog("%s read on BAR_MMIO_SHM_RO_IPA_BASE", __func__);
+
+                list_for_each_entry(shrm, &client->dyn_shrms_head, list) {
+                    if (shrm->mapped_to_realm && !shrm->mapped_to_peer && client->peers[0].id == shrm->owner_vmid) {
+                        shrm_ro_ipa = shrm->ipa;
+                        shrm_id = shrm->shrm_id;
+                        shrm->mapped_to_peer = true;
+                        break;
+                    }
+                }
+                ch_syslog("%s: shrm_ro_ipa %llx, shrm_id %d", shrm_ro_ipa, shrm_id);
+                ioport__write32((u32 *)data, shrm_ro_ipa | shrm_id);
             }
             break;
         case BAR_MMIO_UNMAP_SHRM_IPA:
@@ -251,7 +296,7 @@ static int vchannel_init(struct kvm *kvm) {
     int ret = 0;
 	u32 mmio_addr = pci_get_mmio_block(PCI_IO_SIZE);
     Client* client = get_client(kvm->cfg.arch.socket_path, IOEVENTFD_BASE_ADDR, kvm);
-    u64 ipa = get_unmapped_ipa();
+    u64 ipa = get_unmapped_ipa(SHRM_RW);
 
     ch_syslog("%s start", __func__);
 
@@ -308,7 +353,7 @@ static int vchannel_init(struct kvm *kvm) {
     // Set first shared memory
     //ret = setup_first_shared_memory(kvm, client->vmid); // TODO: this api should be removed
     realm_init_ripas(kvm, ipa, INTER_REALM_SHM_SIZE, true);
-    ret = alloc_shared_realm_memory(client, client->vmid, false, ipa);
+    ret = alloc_shared_realm_memory(client, client->vmid, SHRM_RW, 0);
     if (ret) {
         die("vchannel_init: alloc_shared_realm_memory is failed");
     }

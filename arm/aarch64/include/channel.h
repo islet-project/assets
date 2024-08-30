@@ -34,9 +34,12 @@
 #define SYSLOG_PREFIX "KVMTOOL"
 
 #define PAGE_MASK (~(PAGE_SIZE - 1))
-#define MMAP_OWNER_VMID_MASK 0xFF
-#define MMAP_SHARE_OTHER_REALM_MEM_MASK 0x100
 
+#define MMAP_OWNER_VMID_MASK               0xFF
+#define MMAP_SHRM_ID_MASK                0xFF00
+#define MMAP_SHARE_OTHER_REALM_MEM_MASK 0x10000
+
+#define MMAP_SHRM_ID_SHIFT 8
 struct channel_ioctl_info {
 	__u64 owner_vmid;
 	__u64 shm_pa;
@@ -65,6 +68,6 @@ static void ch_syslog(const char *format, ...) {
 	closelog();
 }
 
-int alloc_shared_realm_memory(Client *client, int vmid, bool need_allocated_mem, u64 other_shrm_ipa);
+int alloc_shared_realm_memory(Client *client, int vmid, SHRM_TYPE shrm_type, u64 shrm_id);
 
 #endif // ARM_AARCH64__CHANNEL_H

@@ -14,17 +14,23 @@
 #define SHM_ALLOC_EFD_ID 0
 
 #define INTER_REALM_SHM_SIZE (1 << 12) // 4KB or 2MB only
-#define INTER_REALM_SHM_IPA_BASE 0xC0000000
-#define INTER_REALM_SHM_IPA_END 0xC0000000 + MAX_SHRM_IPA_SIZE_PER_REALM
+#define SHRM_IPA_RANGE_SIZE 0x10000000
 
-#define MAX_SHRM_IPA_SIZE_PER_REALM 0x10000000 // 256 MB
-#define MIN_IPA_REGION_SIZE (1 << 12)
+#define SHRM_RW_IPA_REGION_START 0xC0000000
+#define SHRM_RW_IPA_REGION_END SHRM_RW_IPA_REGION_START + SHRM_IPA_RANGE_SIZE
+#define SHRM_RO_IPA_REGION_START 0xD0000000
+#define SHRM_RO_IPA_REGION_END SHRM_RO_IPA_REGION_START + SHRM_IPA_RANGE_SIZE
+
+#define MAX_SHRM_IPA_SIZE_PER_REALM 0x20000000 // 512 MB
+#define MIN_IPA_REGION_SIZE INTER_REALM_SHM_SIZE
 
 struct shared_realm_memory {
 	struct list_head list;
     u64 ipa, va;
+	u32 shrm_id;
 	int owner_vmid;
 	bool mapped_to_realm;
+	bool mapped_to_peer;
 };
 
 typedef struct Peer {
@@ -49,6 +55,11 @@ typedef struct Client {
 	DECLARE_BITMAP(ipa_bits, MAX_SHRM_IPA_SIZE_PER_REALM / MIN_IPA_REGION_SIZE);
 } Client;
 
+typedef enum {
+	SHRM_RW = 0,
+	SHRM_RO = 1,
+} SHRM_TYPE;
+
 // create & connect socket fd
 Client* get_client(const char *socket_path, uint32_t mmio_addr, struct kvm *kvm);
 void *poll_events(void *c_ptr);
@@ -61,6 +72,6 @@ int create_polling_thread(Client *client);
 bool is_mapped(u64 ipa);
 void set_ipa_bit(u64 ipa);
 void clear_ipa_bit(u64 ipa);
-u64 get_unmapped_ipa(void);
+u64 get_unmapped_ipa(SHRM_TYPE shrm_type);
 
 #endif // ARM_AARCH64__SOCKET_H

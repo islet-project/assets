@@ -254,7 +254,7 @@ Client* get_client(const char *socket_path, uint32_t ioeventfd_addr, struct kvm*
         goto err_close;
     }
 
-    client->shrm_ipa_start = INTER_REALM_SHM_IPA_BASE;
+    client->shrm_ipa_start = SHRM_RW_IPA_REGION_START;
 
     ch_syslog("[ID:%d] client addr %p, shrm_ipa_start", client->vmid, client, client->shrm_ipa_start);
 
@@ -351,7 +351,7 @@ static int handle_fds(Client* client, fd_set *fds, int maxfd) {
 		}
 		ch_syslog("%s shm_alloc_efd cnt: %d", __func__, efd_cnt);
 
-		ret = alloc_shared_realm_memory(client, client->vmid, false, 0);
+		ret = alloc_shared_realm_memory(client, client->vmid, SHRM_RW, 0);
 	}
 
     return ret;
@@ -484,9 +484,9 @@ void clear_ipa_bit(u64 ipa) {
     clear_bit(bit, client->ipa_bits);
 }
 
-u64 get_unmapped_ipa(void) {
-    u64 ipa = client->shrm_ipa_start;
-    u64 max_ipa = client->shrm_ipa_start + MAX_SHRM_IPA_SIZE_PER_REALM;
+u64 get_unmapped_ipa(SHRM_TYPE shrm_type) {
+    u64 ipa = (shrm_type == SHRM_RW) ? SHRM_RW_IPA_REGION_START : SHRM_RO_IPA_REGION_START;
+    u64 max_ipa = ipa + MAX_SHRM_IPA_SIZE_PER_REALM;
 
     for (; ipa < max_ipa; ipa += PAGE_SIZE) {
         if (!is_mapped(ipa)) {
