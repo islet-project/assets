@@ -34,20 +34,23 @@
 #endif
 
 #define VMID_MAX 256
+#define SHRM_ID_MAX VMID_MAX + 256
 
-#define MMAP_OWNER_VMID_MASK 0xFF
-#define MMAP_SHARE_OTHER_REALM_MEM_MASK 0x100
+#define VMID_MASK                          0xFF
+#define MMAP_OWNER_VMID_MASK VMID_MASK
+#define MMAP_SHRM_ID_MASK                0xFF00
+#define MMAP_SHARE_OTHER_REALM_MEM_MASK 0x10000
+
+#define MMAP_SHRM_ID_SHIFT 8
 
 static int dev_major_num;
 
 struct shared_realm_memory {
 	struct list_head list;
-	int vmid;
-	int ref_cnt;
-	u64 vm_start;
-	u64 va;
-	u64 phys;
-	u64 ipa;
+	int vmid, ref_cnt;
+	u64 vm_start, va, phys;
+	u64 shrm_id;
+	bool in_use;
 };
 
 struct channel_priv { // This is a "private" data structure
@@ -61,30 +64,56 @@ struct channel_priv { // This is a "private" data structure
 static struct channel_priv drv_priv;
 static struct cdev ch_cdev;
 static struct class *ch_class;
+/*
+ * [0:VMID_MAX-1]: reserved. the first shrm's id will be same with the vmid of a realm
+ * [VMID_MAX:SHRM_ID_MAX]: allocated in serial order
+ */
+static bool shrm_id_map[SHRM_ID_MAX];
+
+int alloc_shrm_id(u32 vmid) {
+	if (list_empty(drv_priv->shrms.heads[vmid])) {
+		shrm_id_map[vmid] = true;
+		return vmid;
+	}
+
+	for(int i = VMID_MAX; i < SHRM_ID_MAX; i++) {
+		if (!shrm_id_map[i]) {
+			shrm_id_map[i] = true;
+			return i;
+		}
+	}
+	pr_err("%s: all of shrm_ids are in use");
+	return -1;
+}
+
+void free_shrm_id(int shrm_id) {
+	shrm_id_map[shrm_id] = false;
+}
 
 static void mmap_vma_close(struct vm_area_struct *vma)
 {
-	u64 offset = vma->vm_pgoff, ipa = offset & PAGE_MASK;
+	u64 offset = vma->vm_pgoff, shrm_id = offset & MMAP_SHRM_ID_MASK;
 	int vmid = offset & MMAP_OWNER_VMID_MASK;
 	struct shared_realm_memory *tmp = NULL;
 
-	pr_info("%s: start. ipa 0x%llx, vmid %d", __func__, ipa, vmid);
+	pr_info("%s: start. shrm_id 0x%llx, vmid %d", __func__, shrm_id, vmid);
 
 	spin_lock_irq(&drv_priv.shrms.lock);
 	list_for_each_entry(tmp, &drv_priv.shrms.heads[vmid], list) {
-		if (ipa == tmp->ipa) {
-			pr_info("%s: ipa 0x%llx, vmid %d ref_cnt %d", __func__, ipa, vmid, tmp->ref_cnt);
+		if (shrm_id == tmp->shrm_id) {
+			pr_info("%s: shrm_id 0x%llx, vmid %d ref_cnt %d", __func__, shrm_id, vmid, tmp->ref_cnt);
 			if (--tmp->ref_cnt == 0) {
 				list_del(&tmp->list);
 				free_pages(tmp->va, get_order(INTER_REALM_SHM_SIZE));
 				kfree(tmp);
-				pr_info("%s: shrm with ipa 0x%llx is freed", __func__, ipa);
+				free_shrm_id(shrm_id);
+				pr_info("%s: shrm with shrm_id 0x%llx is freed", __func__, shrm_id);
 			}
 			break;
 		}
 	}
 	spin_unlock_irq(&drv_priv.shrms.lock);
-	pr_info("%s: end. ipa 0x%llx, vmid %d", __func__, ipa, vmid);
+	pr_info("%s: end. shrm_id 0x%llx, vmid %d", __func__, shrm_id, vmid);
 }
 
 static struct vm_operations_struct channel_vm_ops = {
@@ -113,11 +142,52 @@ static int channel_release(struct inode * inode, struct file * file)
     return 0;
 }
 
+static ssize_t channel_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	u64 user_input = 0, vmid, send_to_user = 0;
+	struct shared_realm_memory *tmp;
+
+	pr_info("[HCH] %s start", __func__);
+
+    if (copy_from_user(&user_input, buf, count) != 0) {
+        return -EFAULT;
+    }
+
+	if (!user_input) {
+		pr_err("%s: data from user shouldn't be NULL", __func__);
+		return count;
+	}
+
+	vmid = user_input & VMID_MASK;
+	pr_info("%s: user_input %llx, count %d vmid %d", __func__, user_input, count, vmid);
+
+	spin_lock_irq(&drv_priv.shrms.lock);
+	list_for_each_entry(tmp, &drv_priv.shrms.heads[vmid], list) {
+		if (!tmp->in_use) {
+			send_to_user = tmp->shrm_id;
+			tmp->in_use = true;
+			pr_info("%s: shrm_id is founded: %d", __func__, tmp->shrm_id);
+			break;
+		}
+	}
+	spin_unlock_irq(&drv_priv.shrms.lock);
+
+	if (copy_to_user((void __user *)buf, &send_to_user, count) != 0) {
+        return -EFAULT;
+    }
+
+	pr_info("%s done with 0x%llx", __func__, send_to_user);
+
+    return count;
+}
+
 static int channel_mmap(struct file *filp, struct vm_area_struct *vma) 
 {
 	u64 req_size = vma->vm_end - vma->vm_start;
-	u64 offset = vma->vm_pgoff, phys = 0, ipa = offset & PAGE_MASK;
+	u64 offset = vma->vm_pgoff, phys = 0, shrm_id;
 	int vmid = offset & MMAP_OWNER_VMID_MASK;
+
+	shrm_id = (offset & MMAP_SHRM_ID_MASK) >> MMAP_SHRM_ID_SHIFT;
 
 	pr_info("[HCH] mmap vm_flags 0x%llx vm_page_prot 0x%llx offset 0x%llx\n",
 			vma->vm_flags, vma->vm_page_prot, offset);
@@ -132,13 +202,13 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 
 		spin_lock_irq(&drv_priv.shrms.lock);
 		list_for_each_entry(tmp, &drv_priv.shrms.heads[vmid], list) {
-			if (ipa == tmp->ipa) {
+			if (shrm_id == tmp->shrm_id) {
 				if (tmp->ref_cnt >= 2) {
 					pr_err("%s ref_cnt shouldn't be greater than 2 but %d", __func__, tmp->ref_cnt);
 					spin_unlock_irq(&drv_priv.shrms.lock);
 					return -EINVAL;
 				} else if (!tmp->phys) {
-					pr_err("%s there is no matched shrm with the ipa 0x%llx", __func__, ipa);
+					pr_err("%s there is no matched shrm with the shrm_id 0x%llx", __func__, shrm_id);
 					spin_unlock_irq(&drv_priv.shrms.lock);
 					return -EINVAL;
 				}
@@ -151,11 +221,11 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		spin_unlock_irq(&drv_priv.shrms.lock);
 
 		if (!target) {
-			pr_err("[HCH] %s there is no shrm with the ipa 0x%llx", __func__, ipa);
+			pr_err("[HCH] %s there is no shrm with the shrm_id 0x%llx", __func__, shrm_id);
 			return -EINVAL;
 		}
 
-		pr_info("[HCH] %s founded the target shrm with ipa 0x%llx", __func__, ipa);
+		pr_info("[HCH] %s founded the target shrm with shrm_id 0x%llx", __func__, shrm_id);
 	} else {
 		struct shared_realm_memory *shrm;
 		void *va = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO | __GFP_MOVABLE,
@@ -169,11 +239,17 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		if (!shrm) 
 			return -ENOMEM;
 
+		shrm_id = alloc_shrm_id(vmid);
+		if (shrm_id < 0) {
+			return -ENOMEM;
+		}
+
 		INIT_LIST_HEAD(&shrm->list);
-		shrm->ipa = ipa;
+		shrm->shrm_id = shrm_id;
 		shrm->vmid = vmid;
 		shrm->ref_cnt = 1;
 		shrm->va = va;
+		shrm->in_use = false;
 		shrm->phys = __pa(va);
 		phys = shrm->phys;
 
@@ -181,7 +257,7 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		list_add_tail(&shrm->list, &drv_priv.shrms.heads[shrm->vmid]);
 		spin_unlock_irq(&drv_priv.shrms.lock);
 
-		pr_info("[HCH] mmap va %p, pa %llx, size 0x%llx, shm_owner_vmid %d \n",
+		pr_info("[HCH] mmap va %llx, pa %llx, size 0x%llx, shm_owner_vmid %d \n",
 				va, shrm->phys, INTER_REALM_SHM_SIZE, shrm->vmid);
 	}
 
@@ -197,6 +273,7 @@ static const struct file_operations ch_fops = {
 	.open	= channel_open,
 	.release = channel_release,
 	.mmap = channel_mmap,
+	.write = channel_write,
 };
 
 static int __init channel_init(void)
