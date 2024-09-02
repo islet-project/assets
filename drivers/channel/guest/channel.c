@@ -42,7 +42,7 @@ int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const vo
 		if (first_desc_idx == -1) 
 			first_desc_idx = ret;
 
-		if (cur_shrm == pp.rear.shrm) {
+		if (flags == 0) {
 			break;
 		}
 	}

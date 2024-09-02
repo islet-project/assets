@@ -18,18 +18,12 @@ struct shrm_list {
 	//TODO: need lock to enlarge and shrink it
 };
 
-typedef enum {
-	SHRM_RO = 0,
-	SHRM_RW = 1,
-} SHRM_TYPE;
-
 struct shrm_list* init_shrm_list(u64, u64);
 int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa);
 int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size);
 int copy_from_shrm(void* to, struct packet_pos* from);
-int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa);
+int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id);
 int req_shrm_chunk(struct shrm_list* rw_shrms);
 bool invalid_packet_pos(struct packet_pos* pp);
 
 #endif /* _DYN_SHRM_MANAGER_H */
-

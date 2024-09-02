@@ -15,6 +15,7 @@
 #include "dyn_shrm_manager.h"
 //#include "io_ring.h"
 #include "channel.h"
+#include "shrm.h"
 
 /* for the character device */
 #define DEVICE_NAME "gch_char"
@@ -104,16 +105,16 @@ static u64 get_shrm_ipa_start(SHRM_TYPE shrm_type) {
 	return (shrm_type == SHRM_RW) ? SHRM_RW_IPA_REGION_START : SHRM_RO_IPA_REGION_START;
 }
 
-u64* get_shrm_va(SHRM_TYPE shrm_type, u64 ipa_offset) {
+u64* get_shrm_va(SHRM_TYPE shrm_type, u64 ipa) {
 	u64 shrm_va = (shrm_type == SHRM_RW) ? (u64)drv_priv->rw_shrm_va_start : (u64)drv_priv->ro_shrm_va_start ;
 
 	if (!shrm_va) {
-		pr_err("%s shrm_va shouldn't be non-zero. shrm_type %d. ipa_offset 0x%llx",
-				__func__, shrm_type, ipa_offset);
+		pr_err("%s shrm_va shouldn't be non-zero. shrm_type %d. ipa 0x%llx",
+				__func__, shrm_type, ipa);
 		return NULL;
 	}
 
-	shrm_va += ipa_offset % SHRM_IPA_RANGE_SIZE;
+	shrm_va += ipa % SHRM_IPA_RANGE_SIZE;
 	return (u64*)shrm_va;
 }
 
@@ -197,8 +198,10 @@ static int mmio_write(u64 offset, u64 val) {
 	}
 }
 
-s64 mmio_read_to_get_shrm(void) {
-	return mmio_read(BAR_MMIO_SHM_RW_IPA_BASE);
+s64 mmio_read_to_get_shrm(SHRM_TYPE shrm_type) {
+	u64 mmio_type = (shrm_type == SHRM_RW) ? BAR_MMIO_SHM_RW_IPA_BASE : BAR_MMIO_SHM_RO_IPA_BASE;
+
+	return mmio_read(mmio_type);
 }
 
 int mmio_write_to_remove_shrm(u64 ipa) {
@@ -211,8 +214,7 @@ int mmio_write_to_unmap_shrm(u64 ipa) {
 
 static void drv_setup_rw_rings(struct work_struct *work) {
 	int ret;
-	s64 first_shrm_ipa;
-	u64 shrm_rw_ipa_range_start;
+	u64 shrm_rw_ipa_range_start, mmio_ret, first_shrm_ipa, shrm_id;
 
 	shrm_rw_ipa_range_start = get_shrm_ipa_start(SHRM_RW);
 	if (!shrm_rw_ipa_range_start) {
@@ -220,11 +222,14 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 		return;
 	}
 
-	first_shrm_ipa = mmio_read_to_get_shrm();
-	if (first_shrm_ipa <= 0) {
-		pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, first_shrm_ipa);
+	mmio_ret = mmio_read_to_get_shrm(SHRM_RW);
+	if (!mmio_ret) {
+		pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, mmio_ret);
 		return;
 	}
+
+	first_shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
+	shrm_id = mmio_ret & SHRM_ID_MASK;
 
 	if (first_shrm_ipa != shrm_rw_ipa_range_start) {
 		pr_err("[GCH] %s first_shrm_ipa is not matched with SHRM_RW . %llx != %llx",
@@ -247,7 +252,7 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 		return;
 	}
 
-	ret = add_shrm_chunk(drv_priv->rw_shrms, first_shrm_ipa);
+	ret = add_shrm_chunk(drv_priv->rw_shrms, first_shrm_ipa, shrm_id);
 	if (ret) {
 		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
 	}
@@ -258,6 +263,57 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 	}
 
 	init_rings_to_send(drv_priv->rts, first_shrm_ipa, drv_priv->rw_shrm_va_start);
+}
+
+static void drv_setup_ro_rings(struct work_struct *work) {
+	u64 mmio_ret, shrm_ro_ipa, shrm_id;
+	u32 first_peer_shrm_id = drv_priv->peer.id;
+	u64 shrm_ro_ipa_region_start = get_shrm_ipa_start(SHRM_RO);
+	u64 *ro_shrm_va;
+
+	set_peer_id();
+
+	pr_err("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
+	if (drv_priv->role != SERVER) {
+		pr_err("[GCH] My role is not SERVER but %d", drv_priv->role);
+		return;
+	}
+	copy_from_shrm(NULL, NULL); // for the build test
+
+	drv_priv->ro_shrm_va_start = memremap(shrm_ro_ipa_region_start, SHRM_IPA_RANGE_SIZE, MEMREMAP_WB);
+	if (!drv_priv->ro_shrm_va_start) {
+		pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_ro_ipa_region_start);
+		return;
+	}
+	pr_info("[GCH] %s memremap result: 0x%llx for [0x%llx:0x%llx)", __func__,
+			drv_priv->ro_shrm_va_start, shrm_ro_ipa_region_start, shrm_ro_ipa_region_start + SHRM_IPA_RANGE_SIZE);
+
+	mmio_write(BAR_MMIO_SHM_RO_IPA_BASE, first_peer_shrm_id);
+
+	//TODO: use msi to use another irq for getting allocation of shrm
+	mmio_ret = mmio_read_to_get_shrm(SHRM_RO);
+	if (!mmio_ret) {
+		pr_err("[GCH] %s: failed to get shrm_ro_ipa", __func__);
+	}
+
+	shrm_ro_ipa = mmio_ret & ~SHRM_ID_MASK;
+	shrm_id = mmio_ret & SHRM_ID_MASK;
+	if (shrm_id != first_peer_shrm_id) {
+		pr_err("[GCH] %s: shrm_id %d is not matched with first_peer_shrm_id %d. shrm_ro_ipa %llx",
+				__func__, shrm_id, first_peer_shrm_id, shrm_ro_ipa);
+	}
+
+	//pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx va: %p", __func__, shrm_ipa, drv_priv->ro_shrm_va_start);
+	//set_memory_shared(shrm_ipa, 1); // don't need it. cos the mapping is already done using mmap write trap
+
+	ro_shrm_va = get_shrm_va(SHRM_RO, shrm_ro_ipa);
+	//pr_err("[GCH] %s let's read & write the ro_shrm_va 0x%llx to msg", __func__, ro_shrm_va);
+	pr_err("[GCH] %s: TODO: get peer_avail & peer_desc to setup rings_to_receive. ro_shrm_va 0x%llx",
+			__func__, ro_shrm_va);
+
+	//TODO: get peer_avail and peer_desc. and then setup rings_to_receive
+
+	//pr_err("[GCH] %s msg read result: 0x%llx\n", __func__, msg);
 }
 
 static void ch_send(struct work_struct *work) {
@@ -302,56 +358,7 @@ static void ch_send(struct work_struct *work) {
 }
 
 static void ch_receive(struct work_struct *work) {
-	u64 shrm_ipa, ipa_offset = test_shrm_offset, msg = 0;
-
-	set_peer_id();
-
-	pr_err("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
-	if (drv_priv->role != SERVER) {
-		pr_err("[GCH] My role is not SERVER but %d", drv_priv->role);
-		return;
-	}
-	copy_from_shrm(NULL, NULL); // for the build test
-	shrm_ipa = get_shrm_ipa_start(SHRM_RO);
-
-	if (!drv_priv->ro_shrm_va_start) {
-		u64 shrm_ro_ipa_start = shrm_ipa;
-		shrm_ipa += ipa_offset;
-
-		drv_priv->ro_shrm_va_start = memremap(shrm_ro_ipa_start, SHRM_IPA_RANGE_SIZE, MEMREMAP_WB);
-		if (!drv_priv->ro_shrm_va_start) {
-			pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_ro_ipa_start);
-			return;
-		}
-		pr_info("[GCH] %s memremap result: 0x%llx for [0x%llx:0x%llx)", __func__,
-				drv_priv->ro_shrm_va_start, shrm_ro_ipa_start, shrm_ro_ipa_start + SHRM_IPA_RANGE_SIZE);
-
-		mmio_write(BAR_MMIO_SHM_RO_IPA_BASE, shrm_ipa);
-
-		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx va: %p",
-				__func__, shrm_ipa, drv_priv->ro_shrm_va_start);
-		//set_memory_shared(shrm_ipa, 1); // don't need it. cos the mapping is already done using mmap write trap
-	}
-
-	if (drv_priv->ro_shrm_va_start)  {
-		u64 *ro_shrm_va = get_shrm_va(SHRM_RO, ipa_offset);
-		pr_err("[GCH] %s let's read & write the ro_shrm_va 0x%llx to msg", __func__, ro_shrm_va);
-
-		msg = *ro_shrm_va;
-
-		/*
-		for (int i; i < 4; i++) {
-			char* ptr = (char*)drv_priv->ro_shrm_va_start;
-			pr_err("ro_shrm_va_start[%d]: %c\n", i, ptr[i]);
-		}
-
-		pr_err("[GCH] strncpy start from ro_shrm_va_start: %llx to msg\n", drv_priv->ro_shrm_va_start);
-		strncpy(msg, (const char *)drv_priv->ro_shrm_va_start, sizeof(msg));
-		*/
-		pr_err("[GCH] %s msg read result: 0x%llx\n", __func__, msg);
-	} else {
-		pr_err("[GCH] drv_priv->ro_shrm_va_start is zero.\n");
-	}
+	//u64 msg = 0;
 }
 
 
@@ -518,6 +525,10 @@ static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 	static int cnt = 0;
 	pr_info("[GCH] IRQ #%d cnt %d\n", irq, cnt);
 
+	if (!drv_priv->rtr) {
+		schedule_work(setup_ro_rings);
+	}
+
 	if (drv_priv->role == SERVER) {
 		pr_info("[GCH] %s start schedule_work for receive", __func__);
 		schedule_work(&drv_priv->receive);
@@ -564,7 +575,7 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	INIT_WORK(&drv_priv->rt_sender, dyn_rt_sender);
 	INIT_WORK(&drv_priv->rt_receiver, dyn_rt_receiver);
 	INIT_WORK(&drv_priv->setup_rw_rings, drv_setup_rw_rings);
-	//INIT_WORK(&drv_priv->setup_ro_rings, drv_setup_ro_rings);
+	INIT_WORK(&drv_priv->setup_ro_rings, drv_setup_ro_rings);
 
 	/* Request memory region for the BAR */
 	ret = pci_request_region(pdev, bar, DRIVER_NAME);

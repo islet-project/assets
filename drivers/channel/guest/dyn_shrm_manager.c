@@ -4,7 +4,7 @@
 #define KVMTOOL_ID 0
 
 void send_signal(int peer_id);
-s64 mmio_read_to_get_shrm(void);
+s64 mmio_read_to_get_shrm(SHRM_TYPE shrm_type);
 int mmio_write_to_remove_shrm(u64 ipa);
 u64* get_shrm_va(bool read_only, u64 ipa);
 void set_memory_shared(phys_addr_t start, int numpages);
@@ -72,7 +72,7 @@ static void set_req_pending(struct shrm_list* rw_shrms) {
 	send_signal(KVMTOOL_ID);
 }
 
-int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa) {
+int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id) {
 		struct shared_realm_memory *new_shrm;
 
 		new_shrm = kzalloc(sizeof(*new_shrm), GFP_KERNEL);
@@ -82,6 +82,7 @@ int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa) {
 		}
 
 		new_shrm->ipa = shrm_ipa;
+		new_shrm->shrm_id = shrm_ipa;
 		if (!rw_shrms->pp.rear.shrm) {
 			list_add(&new_shrm->head, &rw_shrms->head);
 			rw_shrms->pp.front.shrm = new_shrm;
@@ -105,15 +106,19 @@ int req_shrm_chunk(struct shrm_list* rw_shrms) {
 	}
 
 	if (rw_shrms->add_req_pending) {
-		s64 shrm_ipa;
+		s64 shrm_ipa, mmio_ret;
+		u32 shrm_id;
 
 		pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
 
-		shrm_ipa = mmio_read_to_get_shrm();
-		if (shrm_ipa <= 0) {
-			pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, shrm_ipa);
+		mmio_ret = mmio_read_to_get_shrm(SHRM_RW);
+		shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
+		shrm_id = mmio_ret & SHRM_ID_MASK;
+		if (!shrm_ipa || !shrm_id) {
+			pr_err("[GCH] %s failed to get shrm_ipa. mmio_ret: %llx", __func__, mmio_ret);
 			return -EAGAIN;
 		}
+
 		pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
 
 		if (!is_valid_ipa(rw_shrms, shrm_ipa, SHRM_CHUNK_SIZE)) {
@@ -124,7 +129,7 @@ int req_shrm_chunk(struct shrm_list* rw_shrms) {
 		set_memory_shared(shrm_ipa, 1);
 		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, shrm_ipa);
 
-		ret = add_shrm_chunk(rw_shrms, shrm_ipa);
+		ret = add_shrm_chunk(rw_shrms, shrm_ipa, shrm_id);
 		if (ret) 
 			return ret;
 
