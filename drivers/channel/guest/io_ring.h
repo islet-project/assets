@@ -14,6 +14,14 @@
  */
 #define IO_RING_DESC_F_NEXT 1 
 
+/*
+ * I/O rings Memory layout: 
+ * [ Avail Ring | Desc Ring | Used Ring | TBD ]
+ */
+#define AVAIL_RING_OFFSET 0
+#define DESC_RING_OFFSET AVAIL_RING_OFFSET + sizeof(struct io_ring)
+#define USED_RING_OFFSET DESC_RING_OFFSET + sizeof(struct desc_ring)
+
 struct rings_to_send {
 	struct io_ring *avail; // RW ring
 	struct io_ring *peer_used; // RO ring. get noti by the first irq
@@ -41,8 +49,9 @@ struct io_ring {
 };
 
 struct desc {
-	u64 ipa;
+	u64 offset;
 	u32 len;
+	u16 shrm_id;
 	u16 flags;
 };
 

@@ -16,6 +16,7 @@ struct shared_realm_memory {
 	u64 ipa;
 	u32 shrm_id;
 	bool in_use;
+	SHRM_TYPE shrm_type;
 };
 
 struct pos {

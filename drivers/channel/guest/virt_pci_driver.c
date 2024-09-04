@@ -94,7 +94,7 @@ struct channel_priv {
 	u64* mapped_bar_addr;
 	u64 *rw_shrm_va_start;
 	u64 *ro_shrm_va_start;
-	struct shrm_list* rw_shrms;
+	struct shrm_list* rw_shrms, ro_shrms;
 	struct rings_to_send* rts;
 	struct rings_to_receive* rtr;
 };
@@ -255,14 +255,26 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 	ret = add_shrm_chunk(drv_priv->rw_shrms, first_shrm_ipa, shrm_id);
 	if (ret) {
 		pr_err("[GCH] %s add_shrm_chunk() is failed with %d\n", __func__, ret);
+		return;
 	}
 
 	drv_priv->rts = kzalloc(sizeof(*drv_priv->rts), GFP_KERNEL);
 	if (!drv_priv->rts) {
 		pr_err("[GCH] failed to kzalloc for drv_priv->rts");
+		return;
 	}
 
-	init_rings_to_send(drv_priv->rts, first_shrm_ipa, drv_priv->rw_shrm_va_start);
+	drv_priv->rtr = kzalloc(sizeof(*drv_priv->rtr), GFP_KERNEL);
+	if (!drv_priv->rtr) {
+		pr_err("[GCH] failed to kzalloc for drv_priv->rts");
+		return;
+	}
+
+	ret = init_rw_rings(drv_priv->rts, drv_priv->rtr, first_shrm_ipa);
+	if (ret) {
+		pr_err("%s: init_rw_rings failed. %d", __func__, ret);
+		return;
+	}
 }
 
 static void drv_setup_ro_rings(struct work_struct *work) {
@@ -273,7 +285,7 @@ static void drv_setup_ro_rings(struct work_struct *work) {
 
 	set_peer_id();
 
-	pr_err("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
+	pr_info("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
 	if (drv_priv->role != SERVER) {
 		pr_err("[GCH] My role is not SERVER but %d", drv_priv->role);
 		return;
@@ -289,11 +301,11 @@ static void drv_setup_ro_rings(struct work_struct *work) {
 			drv_priv->ro_shrm_va_start, shrm_ro_ipa_region_start, shrm_ro_ipa_region_start + SHRM_IPA_RANGE_SIZE);
 
 	mmio_write(BAR_MMIO_SHM_RO_IPA_BASE, first_peer_shrm_id);
-
 	//TODO: use msi to use another irq for getting allocation of shrm
 	mmio_ret = mmio_read_to_get_shrm(SHRM_RO);
 	if (!mmio_ret) {
 		pr_err("[GCH] %s: failed to get shrm_ro_ipa", __func__);
+		return;
 	}
 
 	shrm_ro_ipa = mmio_ret & ~SHRM_ID_MASK;
@@ -301,19 +313,22 @@ static void drv_setup_ro_rings(struct work_struct *work) {
 	if (shrm_id != first_peer_shrm_id) {
 		pr_err("[GCH] %s: shrm_id %d is not matched with first_peer_shrm_id %d. shrm_ro_ipa %llx",
 				__func__, shrm_id, first_peer_shrm_id, shrm_ro_ipa);
+		return;
+	}
+
+	if (shrm_ro_ipa < SHRM_RO_IPA_REGION_START && SHRM_RO_IPA_REGION_END <= shrm_ro_ipa) {
+		pr_err("[GCH] %s: %llx is not within SHRM_RO_IPA_REGION range", __func__, shrm_ro_ipa);
+		return;
 	}
 
 	//pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx va: %p", __func__, shrm_ipa, drv_priv->ro_shrm_va_start);
 	//set_memory_shared(shrm_ipa, 1); // don't need it. cos the mapping is already done using mmap write trap
 
-	ro_shrm_va = get_shrm_va(SHRM_RO, shrm_ro_ipa);
-	//pr_err("[GCH] %s let's read & write the ro_shrm_va 0x%llx to msg", __func__, ro_shrm_va);
-	pr_err("[GCH] %s: TODO: get peer_avail & peer_desc to setup rings_to_receive. ro_shrm_va 0x%llx",
-			__func__, ro_shrm_va);
-
-	//TODO: get peer_avail and peer_desc. and then setup rings_to_receive
-
-	//pr_err("[GCH] %s msg read result: 0x%llx\n", __func__, msg);
+	ret = init_ro_rings(drv_priv->rts, drv_priv->rtr, shrm_ro_ipa);
+	if (ret) {
+		pr_err("%s: init_rw_rings failed. %d", __func__, ret);
+		return;
+	}
 }
 
 static void ch_send(struct work_struct *work) {
@@ -337,28 +352,13 @@ static void ch_send(struct work_struct *work) {
 	pr_info("[GCH] %s drv_priv->rw_shrm_va_start 0x%llx, rw_shrm_va: 0x%llx",
 			__func__, drv_priv->rw_shrm_va_start, rw_shrm_va);
 
-	/*
-	ret = req_shrm_chunk();
-	if (ret) { //for the test
-		pr_err("[GCH] %s req_shrm_chunk() is failed with %d\n", __func__, ret);
-		return;
-	}
-	*/
-
-	/*
-	pr_err("[GCH] %s before writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
-	*rw_shrm_va = msg;
-	pr_err("[GCH] %s after writing msg to rw_shrm_va: 0x%llx\n", __func__, *rw_shrm_va);
-	notify_peer();
-	*/
-
 	write_packet(drv_priv->rts, drv_priv->rw_shrms, &msg, sizeof(u64));
 
 	pr_info("[GCH] %s done", __func__);
 }
 
 static void ch_receive(struct work_struct *work) {
-	//u64 msg = 0;
+	// TODO: read_packet();
 }
 
 
