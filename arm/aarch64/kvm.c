@@ -5,6 +5,7 @@
 #include <linux/cpumask.h>
 #include <linux/sizes.h>
 #include <linux/virtio_config.h>
+#include <sys/stat.h>
 
 #include <kvm/util.h>
 
@@ -109,15 +110,20 @@ static void validate_realm_cfg(struct kvm *kvm)
 	}
 
 	if (kvm->cfg.arch.metadata_filename) {
-		kvm->arch.metadata = (u8 *)malloc(PAGE_SIZE);
+		kvm->arch.metadata = (u8 *)calloc(1, PAGE_SIZE);
 		if (kvm->arch.metadata == NULL)
 			die("Cannot allocate memory for the realm metadata\n");
+		struct stat st;
+		stat(kvm->cfg.arch.metadata_filename, &st);
+		off_t size = st.st_size;
+		if (size > PAGE_SIZE)
+			die("Invalid size of the realm metadata file\n");
 		int fd = open(kvm->cfg.arch.metadata_filename, O_RDONLY);
 		if (fd == -1)
 			die("Cannot open the metadata file\n");
 		ssize_t len = read(fd, kvm->arch.metadata, PAGE_SIZE);
-		if (len != PAGE_SIZE)
-			die("Invalid size of the realm metadata file\n");
+		if (len != size)
+			die("Error while reading the metadata file\n");
 		close(fd);
 	} else {
 		kvm->arch.metadata = NULL;
