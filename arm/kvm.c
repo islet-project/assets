@@ -184,11 +184,12 @@ bool kvm__arch_load_kernel_image(struct kvm *kvm, int fd_kernel, int fd_initrd,
 		 kvm->arch.kern_guest_start + mem_size,
 		 file_size);
 
-	kernel_end = kvm->ram_start + end_offset;
+	kernel_end = kvm->ram_start + kern_offset + file_size;
 	if (kvm__is_realm(kvm)) {
-		if (!IS_ALIGNED((uintptr_t)kernel_end, PAGE_SIZE))
+		if (!IS_ALIGNED((uintptr_t)kernel_end, SZ_4K)) {
 			explicit_bzero(kernel_end,
-			               (size_t)(ALIGN((uintptr_t)kernel_end, PAGE_SIZE) - (uintptr_t)kernel_end));
+			               (size_t)(ALIGN((uintptr_t)kernel_end, SZ_4K) - (uintptr_t)kernel_end));
+		}
 		kvm_arm_realm_populate_kernel(kvm, file_size, mem_size);
 		/*
 		 * Make sure the initrd doesn't get loaded in the tail page of
