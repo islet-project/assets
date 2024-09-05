@@ -281,6 +281,7 @@ static int loglevel_parser(const struct option *opt, const char *arg, int unset)
 	OPT_END()							\
 	};
 
+#ifndef RIM_MEASURE
 static void *kvm_cpu_thread(void *arg)
 {
 	char name[16];
@@ -312,6 +313,7 @@ panic_kvm:
 
 	return (void *) (intptr_t) 1;
 }
+#endif
 
 static char kernel[PATH_MAX];
 
@@ -828,6 +830,8 @@ static struct kvm *kvm_cmd_run_init(int argc, const char **argv)
 	return kvm;
 }
 
+
+#ifndef RIM_MEASURE
 static int kvm_cmd_run_work(struct kvm *kvm)
 {
 	int i;
@@ -853,6 +857,7 @@ static void kvm_cmd_run_exit(struct kvm *kvm, int guest_ret)
 	if (guest_ret == 0)
 		pr_info("KVM session ended normally.");
 }
+#endif
 
 int kvm_cmd_run(int argc, const char **argv, const char *prefix)
 {
@@ -863,8 +868,12 @@ int kvm_cmd_run(int argc, const char **argv, const char *prefix)
 	if (IS_ERR(kvm))
 		return PTR_ERR(kvm);
 
+#ifndef RIM_MEASURE
 	ret = kvm_cmd_run_work(kvm);
 	kvm_cmd_run_exit(kvm, ret);
+#else
+	ret = 0;
+#endif
 
 	return ret;
 }

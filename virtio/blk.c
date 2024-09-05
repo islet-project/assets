@@ -60,6 +60,8 @@ struct blk_dev {
 static LIST_HEAD(bdevs);
 static int compat_id = -1;
 
+#ifndef RIM_MEASURE
+
 void virtio_blk_complete(void *param, long len)
 {
 	struct blk_dev_req *req = param;
@@ -308,6 +310,24 @@ static struct virtio_ops blk_dev_virtio_ops = {
 	.set_size_vq		= set_size_vq,
 };
 
+#else
+
+static struct virtio_ops blk_dev_virtio_ops = {
+	.get_config		= NULL,
+	.get_config_size	= NULL,
+	.get_host_features	= NULL,
+	.get_vq_count		= NULL,
+	.init_vq		= NULL,
+	.exit_vq		= NULL,
+	.notify_status		= NULL,
+	.notify_vq		= NULL,
+	.get_vq			= NULL,
+	.get_size_vq		= NULL,
+	.set_size_vq		= NULL,
+};
+
+#endif
+
 static int virtio_blk__init_one(struct kvm *kvm, struct disk_image *disk)
 {
 	struct blk_dev *bdev;
@@ -334,7 +354,9 @@ static int virtio_blk__init_one(struct kvm *kvm, struct disk_image *disk)
 	if (r < 0)
 		return r;
 
+#ifndef RIM_MEASURE
 	disk_image__set_callback(bdev->disk, virtio_blk_complete);
+#endif
 
 	if (compat_id == -1)
 		compat_id = virtio_compat_add_message("virtio-blk", "CONFIG_VIRTIO_BLK");

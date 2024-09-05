@@ -19,6 +19,8 @@ static u32 virtio_mmio_get_io_space_block(u32 size)
 	return block;
 }
 
+#ifndef RIM_MEASURE
+
 static void virtio_mmio_ioevent_callback(struct kvm *kvm, void *param)
 {
 	struct virtio_mmio_ioevent_param *ioeventfd = param;
@@ -66,19 +68,22 @@ int virtio_mmio_init_ioeventfd(struct kvm *kvm, struct virtio_device *vdev,
 
 	return 0;
 }
+#endif
 
 int virtio_mmio_signal_vq(struct kvm *kvm, struct virtio_device *vdev, u32 vq)
 {
+#ifndef RIM_MEASURE
 	struct virtio_mmio *vmmio = vdev->virtio;
 
 	vmmio->hdr.interrupt_state |= VIRTIO_MMIO_INT_VRING;
 	kvm__irq_trigger(vmmio->kvm, vmmio->irq);
-
+#endif
 	return 0;
 }
 
 int virtio_mmio_init_vq(struct kvm *kvm, struct virtio_device *vdev, int vq)
 {
+#ifndef RIM_MEASURE
 	int ret;
 	struct virtio_mmio *vmmio = vdev->virtio;
 
@@ -88,23 +93,29 @@ int virtio_mmio_init_vq(struct kvm *kvm, struct virtio_device *vdev, int vq)
 		return ret;
 	}
 	return vdev->ops->init_vq(vmmio->kvm, vmmio->dev, vq);
+#else
+	return 0;
+#endif
 }
 
 void virtio_mmio_exit_vq(struct kvm *kvm, struct virtio_device *vdev, int vq)
 {
+#ifndef RIM_MEASURE
 	struct virtio_mmio *vmmio = vdev->virtio;
 
 	ioeventfd__del_event(vmmio->addr + VIRTIO_MMIO_QUEUE_NOTIFY, vq);
 	virtio_exit_vq(kvm, vdev, vmmio->dev, vq);
+#endif
 }
 
 int virtio_mmio_signal_config(struct kvm *kvm, struct virtio_device *vdev)
 {
+#ifndef RIM_MEASURE
 	struct virtio_mmio *vmmio = vdev->virtio;
 
 	vmmio->hdr.interrupt_state |= VIRTIO_MMIO_INT_CONFIG;
 	kvm__irq_trigger(vmmio->kvm, vmmio->irq);
-
+#endif
 	return 0;
 }
 
@@ -202,12 +213,13 @@ int virtio_mmio_init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 
 int virtio_mmio_reset(struct kvm *kvm, struct virtio_device *vdev)
 {
+#ifndef RIM_MEASURE
 	unsigned int vq;
 	struct virtio_mmio *vmmio = vdev->virtio;
 
 	for (vq = 0; vq < vdev->ops->get_vq_count(kvm, vmmio->dev); vq++)
 		virtio_mmio_exit_vq(kvm, vdev, vq);
-
+#endif
 	return 0;
 }
 
@@ -215,7 +227,9 @@ int virtio_mmio_exit(struct kvm *kvm, struct virtio_device *vdev)
 {
 	struct virtio_mmio *vmmio = vdev->virtio;
 
+#ifndef RIM_MEASURE
 	virtio_mmio_reset(kvm, vdev);
+#endif
 	kvm__deregister_mmio(kvm, vmmio->addr);
 
 	return 0;

@@ -3,6 +3,8 @@
 #include "kvm/virtio.h"
 #include "asm/realm.h"
 
+#include "measurement/rim-measure.h"
+
 #include <asm/ptrace.h>
 
 #define COMPAT_PSR_F_BIT	0x00000040
@@ -12,6 +14,10 @@
 
 #define SCTLR_EL1_E0E_MASK	(1 << 24)
 #define SCTLR_EL1_EE_MASK	(1 << 25)
+
+#ifdef RIM_MEASURE
+#define REC_PARAMS_FLAG_RUNNABLE      1ULL
+#endif
 
 static __u64 __core_reg_id(__u64 offset)
 {
@@ -31,6 +37,7 @@ static __u64 __core_reg_id(__u64 offset)
 
 unsigned long kvm_cpu__get_vcpu_mpidr(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	u64 mpidr;
 
@@ -40,6 +47,9 @@ unsigned long kvm_cpu__get_vcpu_mpidr(struct kvm_cpu *vcpu)
 		die("KVM_GET_ONE_REG failed (get_mpidr vcpu%ld", vcpu->cpu_id);
 
 	return mpidr;
+#else
+	return vcpu->mpidr;
+#endif
 }
 
 static void reset_vcpu_aarch32(struct kvm_cpu *vcpu)
@@ -88,6 +98,7 @@ static void reset_vcpu_aarch32(struct kvm_cpu *vcpu)
 static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 {
 	struct kvm *kvm = vcpu->kvm;
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	u64 data;
 
@@ -114,9 +125,10 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 	reg.id	= ARM64_CORE_REG(regs.regs[3]);
 	if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
 		die_perror("KVM_SET_ONE_REG failed (x3)");
-
+#endif
 	/* Secondary cores are stopped awaiting PSCI wakeup */
 	if (vcpu->cpu_id == 0) {
+#ifndef RIM_MEASURE
 		/* x0 = physical address of the device tree blob */
 		data	= kvm->arch.dtb_guest_start;
 		reg.id	= ARM64_CORE_REG(regs.regs[0]);
@@ -128,14 +140,22 @@ static void reset_vcpu_aarch64(struct kvm_cpu *vcpu)
 		reg.id	= ARM64_CORE_REG(regs.pc);
 		if (ioctl(vcpu->vcpu_fd, KVM_SET_ONE_REG, &reg) < 0)
 			die_perror("KVM_SET_ONE_REG failed (pc)");
+#else
+		measurer_reset_vcpu_aarch64(kvm->arch.kern_guest_start, REC_PARAMS_FLAG_RUNNABLE, kvm->arch.dtb_guest_start);
+#endif
+	}
+	else {
+		measurer_reset_vcpu_aarch64(0, 0, 0);
 	}
 
+#ifndef RIM_MEASURE
 	if (kvm__is_realm(kvm)) {
 		int feature = KVM_ARM_VCPU_REC;
 
 		if (ioctl(vcpu->vcpu_fd, KVM_ARM_VCPU_FINALIZE, &feature) < 0)
 			die_perror("KVM_ARM_VCPU_FINALIZE(KVM_ARM_VCPU_REC)");
 	}
+#endif
 }
 
 void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
@@ -147,8 +167,10 @@ void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
 	}
 
 	if (kvm->cfg.arch.has_pmuv3) {
+#ifndef RIM_MEASURE
 		if (!kvm__supports_extension(kvm, KVM_CAP_ARM_PMU_V3))
 			die("PMUv3 is not supported");
+#endif
 		init->features[0] |= 1UL << KVM_ARM_VCPU_PMU_V3;
 	}
 
@@ -167,6 +189,7 @@ void kvm_cpu__select_features(struct kvm *kvm, struct kvm_vcpu_init *init)
 
 int kvm_cpu__configure_features(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm *kvm = vcpu->kvm;
 
 	if (!kvm->cfg.arch.disable_sve &&
@@ -178,7 +201,7 @@ int kvm_cpu__configure_features(struct kvm_cpu *vcpu)
 			return -1;
 		}
 	}
-
+#endif
 	return 0;
 }
 
@@ -208,6 +231,7 @@ void kvm_cpu__reset_vcpu(struct kvm_cpu *vcpu)
 
 int kvm_cpu__get_endianness(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	u64 psr;
 	u64 sctlr;
@@ -242,10 +266,14 @@ int kvm_cpu__get_endianness(struct kvm_cpu *vcpu)
 	else
 		sctlr &= SCTLR_EL1_EE_MASK;
 	return sctlr ? VIRTIO_ENDIAN_BE : VIRTIO_ENDIAN_LE;
+#else
+	return 	VIRTIO_ENDIAN_LE;
+#endif
 }
 
 void kvm_cpu__show_code(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	unsigned long data;
 	int debug_fd = kvm_cpu__get_debug_fd();
@@ -268,10 +296,12 @@ void kvm_cpu__show_code(struct kvm_cpu *vcpu)
 		die("KVM_GET_ONE_REG failed (show_code @ LR)");
 
 	kvm__dump_mem(vcpu->kvm, data, 32, debug_fd);
+#endif
 }
 
 void kvm_cpu__show_registers(struct kvm_cpu *vcpu)
 {
+#ifndef RIM_MEASURE
 	struct kvm_one_reg reg;
 	unsigned long data;
 	int debug_fd = kvm_cpu__get_debug_fd();
@@ -303,4 +333,5 @@ void kvm_cpu__show_registers(struct kvm_cpu *vcpu)
 	if (ioctl(vcpu->vcpu_fd, KVM_GET_ONE_REG, &reg) < 0)
 		die("KVM_GET_ONE_REG failed (lr)");
 	dprintf(debug_fd, " LR:    0x%lx\n", data);
+#endif
 }

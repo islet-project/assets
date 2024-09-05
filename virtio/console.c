@@ -46,6 +46,7 @@ static struct con_dev cdev = {
 
 static int compat_id = -1;
 
+#ifndef RIM_MEASURE
 /*
  * Interrupts are injected for hvc0 only.
  */
@@ -220,6 +221,24 @@ static struct virtio_ops con_dev_virtio_ops = {
 	.get_size_vq		= get_size_vq,
 	.set_size_vq		= set_size_vq,
 };
+
+#else
+
+static struct virtio_ops con_dev_virtio_ops = {
+	.get_config		= NULL,
+	.get_config_size	= NULL,
+	.get_host_features	= NULL,
+	.get_vq_count		= NULL,
+	.init_vq		= NULL,
+	.exit_vq		= NULL,
+	.notify_status		= NULL,
+	.notify_vq		= NULL,
+	.get_vq			= NULL,
+	.get_size_vq		= NULL,
+	.set_size_vq		= NULL,
+};
+
+#endif
 
 int virtio_console__init(struct kvm *kvm)
 {

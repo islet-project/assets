@@ -5,6 +5,11 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#ifdef RIM_MEASURE
+#define KVM_ARM_MAX_CPUS 16
+#define KVM_ARM_RECOMMENDED_CPUS 2
+#endif
+
 struct kvm;
 
 struct kvm_cpu {
@@ -22,6 +27,10 @@ struct kvm_cpu {
 	u8		is_running;
 	u8		paused;
 	u8		needs_nmi;
+
+#ifdef RIM_MEASURE
+	u64		mpidr;
+#endif
 
 	struct kvm_coalesced_mmio_ring	*ring;
 

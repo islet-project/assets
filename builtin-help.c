@@ -9,13 +9,19 @@
 #include <kvm/builtin-help.h>
 #include <kvm/kvm.h>
 
-
+#ifndef RIM_MEASURE
 const char kvm_usage_string[] =
 	"lkvm COMMAND [ARGS]";
 
 const char kvm_more_info_string[] =
 	"See 'lkvm help COMMAND' for more information on a specific command.";
+#else
+const char kvm_usage_string[] =
+	"lkvm-rim-measurer COMMAND [ARGS]";
 
+const char kvm_more_info_string[] =
+	"See 'lkvm-rim-measurer help COMMAND' for more information on a specific command.";
+#endif
 
 static void list_common_cmds_help(void)
 {

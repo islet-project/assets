@@ -125,6 +125,7 @@ bool kvm__supports_vm_extension(struct kvm *kvm, unsigned int extension)
 
 bool kvm__supports_extension(struct kvm *kvm, unsigned int extension)
 {
+#ifndef RIM_MEASURE
 	int ret;
 
 	ret = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION, extension);
@@ -132,8 +133,15 @@ bool kvm__supports_extension(struct kvm *kvm, unsigned int extension)
 		return false;
 
 	return ret;
+#else
+	if (extension == KVM_CAP_ARM_PSCI_0_2)
+		return true;
+	else
+		return false;
+#endif
 }
 
+#ifndef RIM_MEASURE
 static int kvm__check_extensions(struct kvm *kvm)
 {
 	int i;
@@ -150,6 +158,7 @@ static int kvm__check_extensions(struct kvm *kvm)
 
 	return 0;
 }
+#endif
 
 struct kvm *kvm__new(void)
 {
@@ -237,7 +246,9 @@ out:
 int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 		      void *userspace_addr, enum kvm_mem_type type)
 {
+#ifndef RIM_MEASURE
 	struct kvm_userspace_memory_region mem;
+#endif
 	struct kvm_mem_bank *merged = NULL;
 	struct kvm_mem_bank *bank;
 	struct list_head *prev_entry;
@@ -317,6 +328,7 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 	if (type & KVM_MEM_TYPE_READONLY)
 		flags |= KVM_MEM_READONLY;
 
+#ifndef RIM_MEASURE
 	if (type != KVM_MEM_TYPE_RESERVED) {
 		mem = (struct kvm_userspace_memory_region) {
 			.slot			= slot,
@@ -332,6 +344,7 @@ int kvm__register_mem(struct kvm *kvm, u64 guest_phys, u64 size,
 			goto out;
 		}
 	}
+#endif
 
 	list_add(&bank->list, prev_entry);
 	kvm->mem_slots++;
@@ -404,6 +417,7 @@ int kvm__for_each_mem_bank(struct kvm *kvm, enum kvm_mem_type type,
 
 int kvm__recommended_cpus(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	int ret;
 
 	ret = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION, KVM_CAP_NR_VCPUS);
@@ -415,10 +429,14 @@ int kvm__recommended_cpus(struct kvm *kvm)
 		return 4;
 
 	return ret;
+#else
+	return 2;
+#endif
 }
 
 int kvm__max_cpus(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	int ret;
 
 	ret = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION, KVM_CAP_MAX_VCPUS);
@@ -426,6 +444,9 @@ int kvm__max_cpus(struct kvm *kvm)
 		ret = kvm__recommended_cpus(kvm);
 
 	return ret;
+#else
+	return 16;
+#endif
 }
 
 int __attribute__((weak)) kvm__get_vm_type(struct kvm *kvm)
@@ -437,6 +458,7 @@ int kvm__init(struct kvm *kvm)
 {
 	int ret;
 
+#ifndef RIM_MEASURE
 	if (!kvm__arch_cpu_supports_vm()) {
 		pr_err("Your CPU does not support hardware virtualization");
 		ret = -ENOSYS;
@@ -478,6 +500,7 @@ int kvm__init(struct kvm *kvm)
 		ret = -ENOSYS;
 		goto err_vm_fd;
 	}
+#endif
 
 	kvm__arch_init(kvm);
 
@@ -501,6 +524,7 @@ int kvm__init(struct kvm *kvm)
 
 	return 0;
 
+#ifndef RIM_MEASURE
 err_vm_fd:
 	close(kvm->vm_fd);
 err_sys_fd:
@@ -509,6 +533,7 @@ err_free:
 	free(kvm);
 err:
 	return ret;
+#endif
 }
 core_init(kvm__init);
 

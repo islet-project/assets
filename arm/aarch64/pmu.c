@@ -13,6 +13,7 @@
 
 #include "asm/pmu.h"
 
+#ifndef RIM_MEASURE
 static bool pmu_has_attr(struct kvm_cpu *vcpu, u64 attr)
 {
 	struct kvm_device_attr pmu_attr = {
@@ -190,14 +191,17 @@ static int find_pmu(struct kvm *kvm)
 
 	return find_pmu_cpumask(kvm, cpumask);
 }
+#endif
 
 void pmu__generate_fdt_nodes(void *fdt, struct kvm *kvm)
 {
 	const char compatible[] = "arm,armv8-pmuv3";
 	int irq = KVM_ARM_PMUv3_PPI;
+#ifndef RIM_MEASURE
 	struct kvm_cpu *vcpu;
 	int pmu_id = -ENXIO;
 	int i;
+#endif
 
 	u32 cpu_mask = gic__get_fdt_irq_cpumask(kvm);
 	u32 irq_prop[] = {
@@ -209,6 +213,7 @@ void pmu__generate_fdt_nodes(void *fdt, struct kvm *kvm)
 	if (!kvm->cfg.arch.has_pmuv3)
 		return;
 
+#ifndef RIM_MEASURE
 	if (pmu_has_attr(kvm->cpus[0], KVM_ARM_VCPU_PMU_V3_SET_PMU)) {
 		pmu_id = find_pmu(kvm);
 		if (pmu_id < 0) {
@@ -228,6 +233,7 @@ void pmu__generate_fdt_nodes(void *fdt, struct kvm *kvm)
 			set_pmu_attr(vcpu, &pmu_id, KVM_ARM_VCPU_PMU_V3_SET_PMU);
 		set_pmu_attr(vcpu, NULL, KVM_ARM_VCPU_PMU_V3_INIT);
 	}
+#endif
 
 	_FDT(fdt_begin_node(fdt, "pmu"));
 	_FDT(fdt_property(fdt, "compatible", compatible, sizeof(compatible)));

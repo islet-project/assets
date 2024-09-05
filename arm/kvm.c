@@ -27,6 +27,7 @@ bool kvm__arch_cpu_supports_vm(void)
 	return true;
 }
 
+#ifndef RIM_MEASURE
 static void try_increase_mlock_limit(struct kvm *kvm)
 {
 	u64 size = kvm->arch.ram_alloc_size;
@@ -45,6 +46,7 @@ static void try_increase_mlock_limit(struct kvm *kvm)
 	/* Requires CAP_SYS_RESOURCE capability. */
 	setrlimit(RLIMIT_MEMLOCK, &new_limit);
 }
+#endif
 
 void kvm__init_ram(struct kvm *kvm)
 {
@@ -83,6 +85,7 @@ void kvm__init_ram(struct kvm *kvm)
 	 * Use mlock2(,,MLOCK_ONFAULT) to allow faulting in pages and thus
 	 * allowing to lazily populate the PAR.
 	 */
+#ifndef RIM_MEASURE
 	if (kvm__is_realm(kvm)) {
 		int ret;
 
@@ -97,6 +100,7 @@ void kvm__init_ram(struct kvm *kvm)
 
 	madvise(kvm->arch.ram_alloc_start, kvm->arch.ram_alloc_size,
 		MADV_HUGEPAGE);
+#endif
 
 	phys_start	= kvm->cfg.ram_addr;
 	phys_size	= kvm->ram_size;
@@ -120,8 +124,10 @@ void kvm__arch_delete_ram(struct kvm *kvm)
 
 void kvm__arch_read_term(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	serial8250__update_consoles(kvm);
 	virtio_console__inject_interrupt(kvm);
+#endif
 }
 
 void kvm__arch_set_cmdline(char *cmdline, bool video)
@@ -138,8 +144,9 @@ void kvm__arch_init(struct kvm *kvm)
 	/* Create the virtual GIC. */
 	if (gic__create(kvm, kvm->cfg.arch.irqchip))
 		die("Failed to create virtual GIC");
-
+#ifndef RIM_MEASURE
 	kvm__arch_enable_mte(kvm);
+#endif
 }
 
 #define FDT_ALIGN	SZ_2M

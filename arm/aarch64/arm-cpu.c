@@ -23,7 +23,11 @@ static void generate_fdt_nodes(void *fdt, struct kvm *kvm)
 static int arm_cpu__vcpu_init(struct kvm_cpu *vcpu)
 {
 	vcpu->generate_fdt_nodes = generate_fdt_nodes;
+#ifndef RIM_MEASURE
 	return kvm_cpu__setup_pvtime(vcpu);
+#else
+	return 0;
+#endif
 }
 
 static struct kvm_arm_target target_generic_v8 = {

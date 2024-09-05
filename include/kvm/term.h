@@ -18,6 +18,12 @@ int term_putc(char *addr, int cnt, int term);
 int term_getc(struct kvm *kvm, int term);
 
 bool term_readable(int term);
+#ifndef RIM_MEASURE
 int tty_parser(const struct option *opt, const char *arg, int unset);
-
+#else
+static inline int tty_parser(const struct option *opt, const char *arg, int unset)
+{
+	return 0;
+}
+#endif
 #endif /* KVM__TERM_H */

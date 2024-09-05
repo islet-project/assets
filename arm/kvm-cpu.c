@@ -36,13 +36,51 @@ int kvm_cpu__register_kvm_arm_target(struct kvm_arm_target *target)
 	return -ENOSPC;
 }
 
+#ifdef RIM_MEASURE
+static void kvm_cpu__arch_parse_mpidrs(struct kvm *kvm)
+{
+	char *token;
+	char *mpidr_str;
+	char *saveptr;
+	int mpidr_idx;
+
+	if (kvm->arch.mpidr == NULL) {
+		kvm->arch.mpidr = (u64 *) calloc(kvm->nrcpus, sizeof(u64));
+		if (kvm->arch.mpidr == NULL)
+			die("Couldn't allocate memory for MPIDRs");
+
+		mpidr_str = strdup(kvm->cfg.arch.mpidr);
+		if (mpidr_str == NULL)
+			die("Couldn't allocate memory for MPIDRs string");
+
+		saveptr = mpidr_str;
+		mpidr_idx = 0;
+
+		while ((token = strtok_r(saveptr, ",", &saveptr))) {
+			sscanf(token, "%llx", &kvm->arch.mpidr[mpidr_idx]);
+			mpidr_idx++;
+			if (mpidr_idx > kvm->nrcpus)
+				die("Too many MPIDRs");
+		}
+
+		if (mpidr_idx < kvm->nrcpus)
+			die("The number of MPIDRs doesn't match the number of CPUs");
+
+		free(mpidr_str);
+	}
+}
+#endif
+
 struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 {
 	struct kvm_arm_target *target = NULL;
 	struct kvm_cpu *vcpu;
-	int coalesced_offset, mmap_size, err = -1;
+#ifndef RIM_MEASURE
+	int coalesced_offset, mmap_size;
 	unsigned int i;
 	struct kvm_vcpu_init preferred_init;
+#endif
+	int err = -1;
 	struct kvm_vcpu_init vcpu_init = {
 		.features = {},
 	};
@@ -51,6 +89,7 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 	if (!vcpu)
 		return NULL;
 
+#ifndef RIM_MEASURE
 	vcpu->vcpu_fd = ioctl(kvm->vm_fd, KVM_CREATE_VCPU, cpu_id);
 	if (vcpu->vcpu_fd < 0)
 		die_perror("KVM_CREATE_VCPU ioctl");
@@ -63,6 +102,7 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 			     vcpu->vcpu_fd, 0);
 	if (vcpu->kvm_run == MAP_FAILED)
 		die("unable to mmap vcpu fd");
+#endif
 
 	/* VCPU 0 is the boot CPU, the others start in a poweroff state. */
 	if (cpu_id > 0)
@@ -75,6 +115,7 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 
 	kvm_cpu__select_features(kvm, &vcpu_init);
 
+#ifndef RIM_MEASURE
 	/*
 	 * If the preferred target ioctl is successful then
 	 * use preferred target else try each and every target type
@@ -111,6 +152,11 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 		if (err)
 			die("Unable to find matching target");
 	}
+#else
+	target = kvm_arm_generic_target;
+	vcpu_init.target = kvm_arm_generic_target->id;
+	err = 0;
+#endif
 
 	/* Populate the vcpu structure. */
 	vcpu->kvm		= kvm;
@@ -118,15 +164,26 @@ struct kvm_cpu *kvm_cpu__arch_init(struct kvm *kvm, unsigned long cpu_id)
 	vcpu->cpu_type		= vcpu_init.target;
 	vcpu->cpu_compatible	= target->compatible;
 	vcpu->is_running	= true;
+#ifdef RIM_MEASURE
+	if (kvm->cfg.arch.mpidr) {
+		kvm_cpu__arch_parse_mpidrs(kvm);
+		vcpu->mpidr = kvm->arch.mpidr[cpu_id];
+	}
+	else {
+		vcpu->mpidr = cpu_id;
+	}
+#endif
 
 	if (err || target->init(vcpu))
 		die("Unable to initialise vcpu");
 
+#ifndef RIM_MEASURE
 	coalesced_offset = ioctl(kvm->sys_fd, KVM_CHECK_EXTENSION,
 				 KVM_CAP_COALESCED_MMIO);
 	if (coalesced_offset)
 		vcpu->ring = (void *)vcpu->kvm_run +
 			     (coalesced_offset * PAGE_SIZE);
+#endif
 
 	if (kvm_cpu__configure_features(vcpu))
 		die("Unable to configure requested vcpu features");
