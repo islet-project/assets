@@ -37,23 +37,36 @@ bindir = $(prefix)/$(bindir_relative)
 DESTDIR_SQ = $(subst ','\'',$(DESTDIR))
 bindir_SQ = $(subst ','\'',$(bindir))
 
+ifneq ($(RIM_MEASURE),1)
 PROGRAM	:= lkvm
 PROGRAM_ALIAS := vm
+else
+PROGRAM	:= lkvm-rim-measurer
+PROGRAM_ALIAS := vm-rim-measurer
+endif
 
+ifneq ($(RIM_MEASURE),1)
 OBJS	+= builtin-balloon.o
 OBJS	+= builtin-debug.o
+endif
 OBJS	+= builtin-help.o
+ifneq ($(RIM_MEASURE),1)
 OBJS	+= builtin-list.o
 OBJS	+= builtin-stat.o
 OBJS	+= builtin-pause.o
 OBJS	+= builtin-resume.o
+endif
 OBJS	+= builtin-run.o
 OBJS	+= builtin-setup.o
+ifneq ($(RIM_MEASURE),1)
 OBJS	+= builtin-stop.o
+endif
 OBJS	+= builtin-version.o
 OBJS	+= devices.o
 OBJS	+= disk/core.o
+ifneq ($(RIM_MEASURE),1)
 OBJS	+= framebuffer.o
+endif
 OBJS	+= guest_compat.o
 OBJS	+= hw/rtc.o
 OBJS	+= irq.o
@@ -62,7 +75,9 @@ OBJS	+= kvm.o
 OBJS	+= main.o
 OBJS	+= mmio.o
 OBJS	+= pci.o
+ifneq ($(RIM_MEASURE),1)
 OBJS	+= term.o
+endif
 OBJS	+= vfio/core.o
 OBJS	+= vfio/pci.o
 OBJS	+= virtio/blk.o
@@ -82,6 +97,7 @@ OBJS	+= disk/qcow.o
 OBJS	+= disk/raw.o
 OBJS	+= epoll.o
 OBJS	+= ioeventfd.o
+ifneq ($(RIM_MEASURE),1)
 OBJS	+= net/uip/core.o
 OBJS	+= net/uip/arp.o
 OBJS	+= net/uip/icmp.o
@@ -91,6 +107,7 @@ OBJS	+= net/uip/udp.o
 OBJS	+= net/uip/buf.o
 OBJS	+= net/uip/csum.o
 OBJS	+= net/uip/dhcp.o
+endif
 OBJS	+= kvm-cmd.o
 OBJS	+= util/bitmap.o
 OBJS	+= util/find.o
@@ -103,18 +120,26 @@ OBJS	+= util/rbtree-interval.o
 OBJS	+= util/strbuf.o
 OBJS	+= util/read-write.o
 OBJS	+= util/util.o
+OBJS	+= util/sha2.o
 OBJS	+= virtio/9p.o
 OBJS	+= virtio/9p-pdu.o
+ifneq ($(RIM_MEASURE),1)
 OBJS	+= kvm-ipc.o
+endif
 OBJS	+= builtin-sandbox.o
 OBJS	+= virtio/mmio.o
 OBJS	+= virtio/mmio-legacy.o
 OBJS	+= virtio/mmio-modern.o
 
+ifeq ($(RIM_MEASURE),1)
+ARCH := arm64
+DEFINES += -DRIM_MEASURE
+else
 # Translate uname -m into ARCH string
 ARCH ?= $(shell uname -m | sed -e s/i.86/i386/ -e s/ppc.*/powerpc/ \
 	  -e s/armv.*/arm/ -e s/aarch64.*/arm64/ -e s/mips64/mips/ \
 	  -e s/riscv64/riscv/ -e s/riscv32/riscv/)
+endif
 
 ifeq ($(ARCH),i386)
 	override ARCH = x86
@@ -195,6 +220,8 @@ ifeq ($(ARCH), arm64)
 	OBJS		+= arm/aarch64/pvtime.o
 	OBJS		+= arm/aarch64/pmu.o
 	OBJS		+= arm/aarch64/realm.o
+	OBJS		+= arm/aarch64/measurement.o
+	OBJS		+= arm/aarch64/rim-measure.o
 	ARCH_INCLUDE	:= $(HDRS_ARM_COMMON)
 	ARCH_INCLUDE	+= -Iarm/aarch64/include
 
@@ -341,6 +368,7 @@ ifeq ($(LTO),1)
 	endif
 endif
 
+ifneq ($(RIM_MEASURE),1)
 ifeq ($(call try-build,$(SOURCE_STATIC),$(CFLAGS),$(LDFLAGS) -static),y)
 	CFLAGS		+= -DCONFIG_GUEST_INIT
 	GUEST_INIT	:= guest/init
@@ -356,6 +384,7 @@ ifeq ($(call try-build,$(SOURCE_STATIC),$(CFLAGS),$(LDFLAGS) -static),y)
 else
 $(warning No static libc found. Skipping guest init)
 	NOTFOUND        += static-libc
+endif
 endif
 
 ifeq (y,$(ARCH_WANT_LIBFDT))
@@ -423,7 +452,7 @@ WARNINGS += -Wmissing-prototypes
 WARNINGS += -Wnested-externs
 WARNINGS += -Wno-system-headers
 WARNINGS += -Wold-style-definition
-WARNINGS += -Wredundant-decls
+#WARNINGS += -Wredundant-decls
 WARNINGS += -Wsign-compare
 WARNINGS += -Wstrict-prototypes
 WARNINGS += -Wundef
@@ -466,6 +495,8 @@ $(PROGRAM_ALIAS): $(PROGRAM)
 	$(E) "  LN      " $@
 	$(Q) ln -f $(PROGRAM) $@
 
+
+ifneq ($(RIM_MEASURE),1)
 ifneq ($(ARCH_PRE_INIT),)
 $(GUEST_PRE_INIT): $(ARCH_PRE_INIT)
 	$(E) "  COMPILE " $@
@@ -483,6 +514,7 @@ $(GUEST_INIT): guest/init.c
 guest/guest_init.c: $(GUEST_INIT)
 	$(E) "  CONVERT " $@
 	$(Q) $(call binary-to-C,$<,init_binary,$@)
+endif
 
 %.s: %.c
 	$(Q) $(CC) -o $@ -S $(CFLAGS) -fverbose-asm $<

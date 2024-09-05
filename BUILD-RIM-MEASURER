@@ -1,0 +1,77 @@
+RATIONALE
+=========
+
+Calculated RIM values highly depend on the implementation of host and RMM components used to launch Realms. The kvmtool plays the main role here as it controls the KVM/RMM and populates Realm's memory. We've taken the approach where the kvmtool source code is re-used in some hacky way. Here are the reasons why:
+
+- RIMs not only depend on the content of loaded static images (kernel, initrd) but also on the content of dynamically generated Device Tree Blob (DTB)
+- the content of DTBs depend on: provided options (enable KVM drivers, memory layout, etc.) and the linking order of object files of drivers (kvmtool uses __attribute__((constructor)) to register drivers and this order also affects the order of elements in the DTB file)
+- we would like to keep the same set of options as in the original kvmtool with all quirks related to them
+- maintainability - in case of new releases of kvmtool it will be easier to keep the tool up to date
+- the same source code base can be used to compile the original kvmtool
+
+The tool provides an additional layer that performs measurements on populated memory regions. It basically re-uses the TF-RMM source code. Luckily the KVM layer populates Realm's memory in an ascending sequential order, this simplifies the implementation of the measurement code. The unused kvmtool code has been conditionally disabled to left only the parts that may affect the DTB content.
+
+NOTICE
+======
+
+This version of the tool is compatible with Arm CCA environments that use the the following set of components:
+
+- kvmtool supporting Arm CCA https://gitlab.arm.com/linux-arm/kvmtool-cca branch: cca/rfc-v1
+- Linux kernel supporting Arm CCA https://gitlab.arm.com/linux-arm/linux-cca branch: cca-host/rfc-v1
+- Trusted Firmware RMM - TF-RMM https://git.trustedfirmware.org/TF-RMM/tf-rmm.git (v0.3.0 aligned with the RMM v1.0-Beta0 specification)
+
+WARNING: Because the tool re-uses the original TF-RMM source code of measurement descriptor structures, the tool currently targets only 64 bit little-endian environments (this should cover majority of modern Linux PC workstations).
+
+BUILDING
+========
+
+To build the lkvm-rim-measurer tool you need to firstly download and build libfdt library from git://git.kernel.org/pub/scm/utils/dtc/dtc.git
+
+Then, get into the RIM measurer tool project folder and run the following command:
+
+	make RIM_MEASURE=1 LIBFDT_DIR=<path to the libfdt folder>
+
+The resulting executable is named lkvm-rim-measurer and it can be found in the main project folder.
+
+The same source base can be used to build the lkvm tool used to launch Realms on an Arm CCA environment (build the tool without providing additional RIM_MEASURE=1 parameter).
+
+RUNNING
+=======
+
+The tool takes the same set of options as lkvm run command and produces the Realm Initial Measurement (RIM).
+
+	./lkvm-rim-measurer run                                                 \
+		--debug                                                          \
+		--realm                                                          \
+		--measurement-algo="sha512"                                      \
+		--disable-sve                                                    \
+		--console virtio                                                 \
+		--irqchip=gicv3                                                  \
+		-m 256M                                                          \
+		-c 2                                                             \
+		-k Image.realm                                                   \
+		-i initramfs-realm.cpio.gz                                       \
+		-p "earlycon=ttyS0 printk.devkmsg=on"                            \
+		-n virtio                                                        \
+		--kaslr-seed 12345                                               \
+		--rng                                                            \
+		--pmu                                                            \
+		--9p /shared,FMR                                                 \
+		"$@"
+
+	# lkvm run -k Image.realm -m 256 -c 2 --name guest-2066805
+	  Info: (arm/kvm.c) kvm__init_ram:116: RAM created at 0x80000000 - 0x8fffffff
+	  Info: (arm/kvm.c) kvm__arch_load_kernel_image:178: Loaded kernel to 0x80000000 (15272448 bytes)
+	  Info: (arm/kvm.c) kvm__arch_load_kernel_image:201: Placing fdt at 0x8fe00000 - 0x8fffffff
+	  Info: (arm/kvm.c) kvm__arch_load_kernel_image:229: Loaded initrd to 0x8fc70404 (1637371 bytes)
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000000:36
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000200:37
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000400:38
+	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000600:39
+	RIM: F58AF6D6A022F113627B1E0B1E0D9B9A1BFB460207AC29721E84BCEF4B4F5CE08351684444BC11CF329D1D4C807BB621807916C2DF4F56B7326E8D16692546A8
+
+
+TESTS
+=====
+
+The tests are located in tests/rim-measurer-tests folder. Read tests/rim-measurer-tests/README to get more details.

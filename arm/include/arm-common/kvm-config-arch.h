@@ -21,6 +21,7 @@ struct kvm_config_arch {
 	u64		sve_vl;
 	u32		pmu_cntrs;
 	const char	*metadata_filename;
+	const char *mpidr;
 };
 
 int irqchip_parser(const struct option *opt, const char *arg, int unset);

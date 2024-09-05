@@ -1,11 +1,13 @@
 #include "kvm/kvm.h"
 #include "kvm/kvm-cpu.h"
-
 #include "asm/realm.h"
+
+#include "measurement/rim-measure.h"
 
 
 static void realm_configure_hash_algo(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	struct kvm_cap_arm_rme_config_item hash_algo_cfg = {
 		.cfg	= KVM_CAP_ARM_RME_CFG_HASH_ALGO,
 		.hash_algo = kvm->arch.measurement_algo,
@@ -19,10 +21,14 @@ static void realm_configure_hash_algo(struct kvm *kvm)
 
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) hash_algo");
+#else
+	measurer_realm_configure_hash_algo(kvm->arch.measurement_algo);
+#endif
 }
 
 static void realm_configure_rpv(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	struct kvm_cap_arm_rme_config_item rpv_cfg  = {
 		.cfg	= KVM_CAP_ARM_RME_CFG_RPV,
 	};
@@ -41,10 +47,12 @@ static void realm_configure_rpv(struct kvm *kvm)
 
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) RPV");
+#endif
 }
 
 static void realm_configure_sve(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	struct kvm_cap_arm_rme_config_item sve_cfg = {
 		.cfg	= KVM_CAP_ARM_RME_CFG_SVE,
 		.sve_vq = kvm->arch.sve_vq,
@@ -61,10 +69,17 @@ static void realm_configure_sve(struct kvm *kvm)
 
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) SVE");
+#else
+	if (kvm->cfg.arch.disable_sve)
+		return;
+
+	measurer_realm_configure_sve(kvm->arch.sve_vq);
+#endif
 }
 
 static void realm_configure_pmu(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	struct kvm_cap_arm_rme_config_item pmu_cfg = {
 		.cfg	= KVM_CAP_ARM_RME_CFG_PMU,
 		.num_pmu_cntrs = kvm->cfg.arch.pmu_cntrs
@@ -81,10 +96,17 @@ static void realm_configure_pmu(struct kvm *kvm)
 
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) PMU");
+#else
+	if (!kvm->cfg.arch.pmu_cntrs)
+		return;
+
+	measurer_realm_configure_pmu(kvm->cfg.arch.pmu_cntrs);
+#endif
 }
 
 static void realm_configure_debug(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	int n;
 
 	struct kvm_cap_arm_rme_config_item dbg_cfg = {
@@ -109,6 +131,7 @@ static void realm_configure_debug(struct kvm *kvm)
 
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_config) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CONFIG_REALM) DEBUG");
+#endif
 }
 
 static void realm_configure_parameters(struct kvm *kvm)
@@ -122,18 +145,25 @@ static void realm_configure_parameters(struct kvm *kvm)
 
 void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	struct kvm_enable_cap rme_create_rd = {
 		.cap = KVM_CAP_ARM_RME,
 		.args[0] = KVM_CAP_ARM_RME_CREATE_RD,
 	};
-
+#endif
 	realm_configure_parameters(kvm);
+
+#ifndef RIM_MEASURE
 	if (ioctl(kvm->vm_fd, KVM_ENABLE_CAP, &rme_create_rd) < 0)
 		die_perror("KVM_CAP_RME(KVM_CAP_ARM_RME_CREATE_RD)");
+#else
+	measurer_kvm_arm_realm_create_realm_descriptor();
+#endif
 }
 
 static void realm_init_ipa_range(struct kvm *kvm, u64 start, u64 size)
 {
+#ifndef RIM_MEASURE
 	struct kvm_cap_arm_rme_init_ipa_args init_ipa_args = {
 		.init_ipa_base = start,
 		.init_ipa_size = size
@@ -149,10 +179,15 @@ static void realm_init_ipa_range(struct kvm *kvm, u64 start, u64 size)
 		    start, start + size, size);
 	pr_debug("Initialized IPA range (%llx - %llx) as RAM\n",
 		start, start + size);
+#else
+	measurer_realm_init_ipa_range(start, start + size);
+#endif
 }
 
 static void realm_populate(struct kvm *kvm, u64 start, u64 size)
 {
+#ifndef RIM_MEASURE
+
 	struct kvm_cap_arm_rme_populate_realm_args populate_args = {
 		.populate_ipa_base = start,
 		.populate_ipa_size = size,
@@ -169,6 +204,9 @@ static void realm_populate(struct kvm *kvm, u64 start, u64 size)
 		    start, start + size, size);
 	pr_debug("Populated Realm memory area : %llx - %llx (size %llu bytes)",
 		start, start + size, size);
+#else
+	measurer_realm_populate(kvm, start, start + size);
+#endif
 }
 
 void kvm_arm_realm_populate_metadata(struct kvm *kvm)
@@ -228,6 +266,7 @@ void kvm_arm_realm_populate_dtb(struct kvm *kvm)
 
 static void kvm_arm_realm_activate_realm(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	struct kvm_enable_cap activate_realm = {
 		.cap = KVM_CAP_ARM_RME,
 		.args[0] = KVM_CAP_ARM_RME_ACTIVATE_REALM,
@@ -237,6 +276,10 @@ static void kvm_arm_realm_activate_realm(struct kvm *kvm)
 		die_perror("KVM_CAP_ARM_RME(KVM_CAP_ARM_RME_ACTIVATE_REALM)");
 
 	kvm->arch.realm_is_active = true;
+#else
+	measurer_print_rim();
+	exit(0);
+#endif
 }
 
 static int kvm_arm_realm_finalize(struct kvm *kvm)

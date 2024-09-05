@@ -368,6 +368,9 @@ int virtio_init(struct kvm *kvm, void *dev, struct virtio_device *vdev,
 	void *virtio;
 	int r;
 
+	printf("virtio_init device_id = %d subsys_id = %d class = %d trans = %d\n",
+			device_id, subsys_id, class, trans);
+
 	switch (trans) {
 	case VIRTIO_PCI_LEGACY:
 		vdev->legacy			= true;

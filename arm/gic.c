@@ -96,6 +96,7 @@ static int irq__routing_init(struct kvm *kvm)
 	return 0;
 }
 
+#ifndef RIM_MEASURE
 static int gic__create_its_frame(struct kvm *kvm, u64 its_frame_addr)
 {
 	struct kvm_create_device its_device = {
@@ -249,6 +250,7 @@ static int gic__create_irqchip(struct kvm *kvm)
 	err = ioctl(kvm->vm_fd, KVM_ARM_SET_DEVICE_ADDR, &gic_addr[1]);
 	return err;
 }
+#endif
 
 int gic__create(struct kvm *kvm, enum irqchip_type type)
 {
@@ -286,12 +288,16 @@ int gic__create(struct kvm *kvm, enum irqchip_type type)
 		return -ENODEV;
 	}
 
+#ifndef RIM_MEASURE
 	/* Try the new way first, and fallback on legacy method otherwise */
 	err = gic__create_device(kvm, type);
 	if (err && type == IRQCHIP_GICV2)
 		err = gic__create_irqchip(kvm);
 
 	return err;
+#else
+	return 0;
+#endif
 }
 
 /*

@@ -41,6 +41,8 @@ struct rng_dev {
 static LIST_HEAD(rdevs);
 static int compat_id = -1;
 
+#ifndef RIM_MEASURE
+
 static u8 *get_config(struct kvm *kvm, void *dev)
 {
 	/* Unused */
@@ -174,6 +176,23 @@ static struct virtio_ops rng_dev_virtio_ops = {
 	.get_vq_count		= get_vq_count,
 };
 
+#else
+
+static struct virtio_ops rng_dev_virtio_ops = {
+	.get_config		= NULL,
+	.get_config_size	= NULL,
+	.get_host_features	= NULL,
+	.init_vq		= NULL,
+	.exit_vq		= NULL,
+	.notify_vq		= NULL,
+	.get_vq			= NULL,
+	.get_size_vq		= NULL,
+	.set_size_vq		= NULL,
+	.get_vq_count		= NULL,
+};
+
+#endif
+
 int virtio_rng__init(struct kvm *kvm)
 {
 	struct rng_dev *rdev;
@@ -186,12 +205,13 @@ int virtio_rng__init(struct kvm *kvm)
 	if (rdev == NULL)
 		return -ENOMEM;
 
+#ifndef RIM_MEASURE
 	rdev->fd = open("/dev/urandom", O_RDONLY);
 	if (rdev->fd < 0) {
 		r = rdev->fd;
 		goto cleanup;
 	}
-
+#endif
 	r = virtio_init(kvm, rdev, &rdev->vdev, &rng_dev_virtio_ops,
 			kvm->cfg.virtio_transport, PCI_DEVICE_ID_VIRTIO_RNG,
 			VIRTIO_ID_RNG, PCI_CLASS_RNG);
@@ -204,7 +224,9 @@ int virtio_rng__init(struct kvm *kvm)
 		compat_id = virtio_compat_add_message("virtio-rng", "CONFIG_HW_RANDOM_VIRTIO");
 	return 0;
 cleanup:
+#ifndef RIM_MEASURE
 	close(rdev->fd);
+#endif
 	free(rdev);
 
 	return r;
