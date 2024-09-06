@@ -516,11 +516,11 @@ static inline phys_addr_t rmi_rtt_get_phys(struct rtt_entry *rtt)
  *
  * Return: RMI return code
  */
-static inline int rmi_islet_realm_set_metadata(unsigned long rd, unsigned long metadata, unsigned long metadata_granule)
+static inline int rmi_islet_realm_set_metadata(unsigned long rd, unsigned long metadata_granule, unsigned long metadata)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_1_1_invoke(SMC_RMI_ISLET_REALM_SET_METADATA, rd, metadata, metadata_granule, &res);
+	arm_smccc_1_1_invoke(SMC_RMI_ISLET_REALM_SET_METADATA, rd, metadata_granule, metadata, &res);
 
 	return res.a0;
 }

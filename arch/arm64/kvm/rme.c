@@ -1145,7 +1145,7 @@ static int kvm_populate_realm_metadata(struct kvm *kvm, const u8 *metadata)
 	realm = &kvm->arch.realm;
 	rd_phys = virt_to_phys(realm->rd);
 	metadata_phys = virt_to_phys(metadata);
-	if (rmi_islet_realm_set_metadata(rd_phys, metadata_phys, metadata_granule_phys)) {
+	if (rmi_islet_realm_set_metadata(rd_phys, metadata_granule_phys, metadata_phys)) {
 		ret = -ENXIO;
 		goto err_islet_realm_set_metadata;
 	}
