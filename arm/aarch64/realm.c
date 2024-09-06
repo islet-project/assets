@@ -211,6 +211,7 @@ static void realm_populate(struct kvm *kvm, u64 start, u64 size)
 
 void kvm_arm_realm_populate_metadata(struct kvm *kvm)
 {
+#ifndef RIM_MEASURE
 	if (kvm->arch.metadata == NULL)
 		return;
 
@@ -225,6 +226,7 @@ void kvm_arm_realm_populate_metadata(struct kvm *kvm)
 		    kvm->arch.metadata);
 
 	pr_debug("Realm metadata has been populated\n");
+#endif
 }
 
 void kvm_arm_realm_populate_kernel(struct kvm *kvm,
