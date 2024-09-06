@@ -2,6 +2,7 @@
 #define _DYN_SHRM_MANAGER_H
 
 #include <linux/list.h>
+#include "io_ring.h"
 #include "shrm.h"
 
 #define MIN_FREE_SHRM_SIZE 1024 * 8 // 8kb
@@ -20,10 +21,12 @@ struct shrm_list {
 
 struct shrm_list* init_shrm_list(u64, u64);
 int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa);
-int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size);
+int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size);
 int copy_from_shrm(void* to, struct packet_pos* from);
-int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id);
-int req_shrm_chunk(struct shrm_list* rw_shrms);
+int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id);
+int add_ro_shrm_chunk(struct list_head* ro_shrms_head, u32 shrm_id);
+int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms);
 bool invalid_packet_pos(struct packet_pos* pp);
+u64 req_ro_shrm_ipa(u32 shrm_id);
 
 #endif /* _DYN_SHRM_MANAGER_H */

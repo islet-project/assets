@@ -12,7 +12,10 @@
  * if the next (0x1) flag of a descriptor is set, the data continue in the next entry,
  * making a chain of descriptors. 
  */
-#define IO_RING_DESC_F_NEXT 1 
+#define IO_RING_DESC_F_NEXT      0b001
+#define IO_RING_DESC_F_DYN_ALLOC 0b010
+#define IO_RING_DESC_F_DYN_FREE  0b100
+#define IO_RING_DESC_F_DYN_MASK  0b110
 
 /*
  * I/O rings Memory layout: 
@@ -63,7 +66,9 @@ struct desc_ring {
 
 int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx);
 int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx);
-int desc_push_back(struct rings_to_send* rings_to_send, u64 ipa, u32 len, u16 flags);
-void init_rings_to_send(struct rings_to_send* rts, u64 shrm_ipa, u64* shrm_va);
+int desc_push_back(struct rings_to_send* rings_to_send, u64 offset, u32 len, u16 flags, u16 shrm_id);
+int read_desc(struct desc* desc, struct list_head* ro_shrms_head);
+int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ro_ipa);
+int init_rw_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ipa);
 
 #endif /* _IO_RING_H */

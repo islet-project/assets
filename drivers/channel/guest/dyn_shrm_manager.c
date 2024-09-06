@@ -1,12 +1,10 @@
 #include "dyn_shrm_manager.h"
+#include "virt_pci_driver.h"
 #include <linux/slab.h>
-
-#define KVMTOOL_ID 0
 
 void send_signal(int peer_id);
 s64 mmio_read_to_get_shrm(SHRM_TYPE shrm_type);
 int mmio_write_to_remove_shrm(u64 ipa);
-u64* get_shrm_va(bool read_only, u64 ipa);
 void set_memory_shared(phys_addr_t start, int numpages);
 
 struct shrm_list* init_shrm_list(u64 ipa_start, u64 ipa_size) {
@@ -69,35 +67,73 @@ static void set_req_pending(struct shrm_list* rw_shrms) {
 	if (rw_shrms->add_req_pending)
 		return;
 	rw_shrms->add_req_pending = true;
-	send_signal(KVMTOOL_ID);
+	send_signal(SHRM_ALLOCATOR);
 }
 
-int add_shrm_chunk(struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id) {
-		struct shared_realm_memory *new_shrm;
+static struct shared_realm_memory* get_new_shrm(s64 shrm_ipa, u32 shrm_id, SHRM_TYPE type) {
+	struct shared_realm_memory *new_shrm;
 
 		new_shrm = kzalloc(sizeof(*new_shrm), GFP_KERNEL);
 		if (!new_shrm) {
 			pr_err("[GCH] %s failed to kzalloc for new_shrm", __func__);
-			return -ENOMEM;
+			return NULL;
 		}
 
 		new_shrm->ipa = shrm_ipa;
-		new_shrm->shrm_id = shrm_ipa;
-		if (!rw_shrms->pp.rear.shrm) {
-			list_add(&new_shrm->head, &rw_shrms->head);
-			rw_shrms->pp.front.shrm = new_shrm;
-			rw_shrms->pp.rear.shrm = new_shrm;
-		} else {
-			list_add(&new_shrm->head, &rw_shrms->pp.rear.shrm->head);
-		}
+		new_shrm->shrm_id = shrm_id;
+		new_shrm->type= type;
 
-		rw_shrms->free_size += SHRM_CHUNK_SIZE;
-		rw_shrms->total_size += SHRM_CHUNK_SIZE;
-		return 0;
+		return new_shrm;
 }
 
+int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id) {
+	struct shared_realm_memory *new_shrm;
+	int desc_idx = -1, ret;
+
+	if (!rw_shrms) {
+		pr_err("[GCH] %s: rw_shrms shouldn't be NULL\n", __func__);
+		return -1;
+	}
+
+	if (shrm_ipa < rw_shrms->ipa_start && rw_shrms->ipa_end <= shrm_ipa) {
+		pr_err("[GCH] %s: invalid ipa %llx", __func__, shrm_ipa);
+		return -1;
+	}
+
+	new_shrm = get_new_shrm(shrm_ipa, shrm_id, SHRM_RW);
+	if (!new_shrm) {
+		pr_err("[GCH] %s failed to kzalloc for new_shrm", __func__);
+		return -2;
+	}
+
+	if (!rw_shrms->pp.rear.shrm) {
+		list_add(&new_shrm->head, &rw_shrms->head);
+		rw_shrms->pp.front.shrm = new_shrm;
+		rw_shrms->pp.rear.shrm = new_shrm;
+	} else {
+		list_add(&new_shrm->head, &rw_shrms->pp.rear.shrm->head);
+	}
+
+	rw_shrms->free_size += SHRM_CHUNK_SIZE;
+	rw_shrms->total_size += SHRM_CHUNK_SIZE;
+
+	desc_idx = desc_push_back(rts, 0, 0, IO_RING_DESC_F_DYN_ALLOC, shrm_id);
+	if (desc_idx < 0) {
+		pr_err("%s: desc_push_back failed %d", __func__, desc_idx);
+	}
+
+	ret = avail_push_back(rts, desc_idx);
+	if (ret) {
+		pr_err("avail_push_back() is failed %d", ret);
+		return ret;
+	}
+	return 0;
+}
+
+
+
 //TODO: need to be static. for now, it's opened just for the test
-int req_shrm_chunk(struct shrm_list* rw_shrms) {
+int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 	int ret = 0;
 
 	if (!rw_shrms) {
@@ -129,7 +165,7 @@ int req_shrm_chunk(struct shrm_list* rw_shrms) {
 		set_memory_shared(shrm_ipa, 1);
 		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, shrm_ipa);
 
-		ret = add_shrm_chunk(rw_shrms, shrm_ipa, shrm_id);
+		ret = add_rw_shrm_chunk(rts, rw_shrms, shrm_ipa, shrm_id);
 		if (ret) 
 			return ret;
 
@@ -164,7 +200,7 @@ bool invalid_packet_pos(struct packet_pos* pp) {
 }
 
 // Returns number of bytes that could not be written. On success, this will be zero.
-int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size) {
+int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size) {
 	struct packet_pos *cur_pp;
 	struct shared_realm_memory *next_rear_shrm;
 	int move_cnt = 0;
@@ -191,12 +227,12 @@ int write_to_shrm(struct shrm_list* rw_shrms, struct packet_pos* pp, const void*
 	}
 
 	if (rw_shrms->free_size < MIN_FREE_SHRM_SIZE) {
-		req_shrm_chunk(rw_shrms);
+		req_shrm_chunk(rts, rw_shrms);
 	}
 
 	if (rw_shrms->free_size < size || 
 			rw_shrms->free_size - size < SHRM_CHUNK_SIZE) {
-		req_shrm_chunk(rw_shrms);
+		req_shrm_chunk(rts, rw_shrms);
 		return -EAGAIN;
 	}
 
@@ -319,4 +355,58 @@ int copy_from_shrm(void* to, struct packet_pos* from) {
 	written_size += from->size - written_size;
 
 	return (int)from->size - written_size;
+}
+
+/***************************************************************************
+ *
+ * APIs for Read-Only shared realm memory chunks
+ *
+ * ************************************************************************/
+
+int add_ro_shrm_chunk(struct list_head* ro_shrms_head, u32 shrm_id) {
+	struct shared_realm_memory *new_shrm;
+	u64 shrm_ipa = 0;
+
+	shrm_ipa = req_ro_shrm_ipa(shrm_id);
+	if (!shrm_ipa) {
+		pr_err("%s: req_ro_shrm_ipa failed", __func__);
+		return -1;
+	}
+
+	if (shrm_ipa < SHRM_RO_IPA_REGION_START && SHRM_RO_IPA_REGION_END <= shrm_ipa) {
+		pr_err("[GCH] %s: %llx is not within SHRM_RO_IPA_REGION range", __func__, shrm_ipa);
+		return -2;
+	}
+
+	new_shrm = get_new_shrm(shrm_ipa, shrm_id, SHRM_RO);
+	if (!new_shrm) {
+		pr_err("[GCH] %s failed to kzalloc for new_shrm", __func__);
+		return -3;
+	}
+
+	list_add(&new_shrm->head, ro_shrms_head);
+
+	return 0;
+}
+
+u64 req_ro_shrm_ipa(u32 shrm_id) {
+	u64 shrm_ro_ipa, returned_shrm_id, mmio_ret;
+
+	mmio_write_to_get_ro_shrm(shrm_id);
+	//TODO: use msi to use another irq for getting allocation of shrm
+	mmio_ret = mmio_read_to_get_shrm(SHRM_RO);
+	if (!mmio_ret) {
+		pr_err("[GCH] %s: failed to get shrm_ro_ipa", __func__);
+		return 0;
+	}
+
+	shrm_ro_ipa = mmio_ret & ~SHRM_ID_MASK;
+	returned_shrm_id = mmio_ret & SHRM_ID_MASK;
+
+	if (returned_shrm_id != shrm_id) {
+		pr_err("%s: invalid shrm_id is returned. %d != %d",returned_shrm_id, shrm_id);
+		return 0;
+	}
+
+	return shrm_ro_ipa;
 }

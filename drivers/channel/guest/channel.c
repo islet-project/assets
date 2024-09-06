@@ -6,23 +6,67 @@
 void notify_peer(void);
 
 // TODO: implement it
-int read_packet(struct rings_to_receive* rtr) {
-	struct io_ring* peer_used = rtr->peer_used;
-	struct io_ring* peer_desc_ring = rtr->peer_desc_ring;
-	u16 i = peer_used->front;
+int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 	int ret;
+	struct io_ring* peer_avail;
+	struct desc_ring* peer_desc_ring;
+	u16 i;
 
-	while(i != peer_used->rear) {
-		u16 desc_idx = peer_used->ring[i];
-		struct desc* desc = peer_desc_ring->ring[desc_idx];
+	pr_info("%s start", __func__);
 
-		ret = read_desc(desc);
-		if (!ret) {
-			pr_err("%s: read_desc failed %d", __func__, ret);
-			return ret;
-		}
+	pr_info("%s: peer_avail %llx, peer_desc_ring %llx",
+			__func__, rtr->peer_avail, rtr->peer_desc_ring);
+
+	if (!rtr || !ro_shrms_head) {
+		pr_err("%s: input pointers shouldn't be NULL. rtr: %llx, ro_shrms_head: %llx",
+				__func__, rtr, ro_shrms_head);
+		return -1;
+	}
+
+	peer_avail = rtr->peer_avail;
+	peer_desc_ring = rtr->peer_desc_ring;
+	if (!peer_avail || !peer_desc_ring) {
+		pr_err("%s: input pointers shouldn't be NULL. peer_avail: %llx, peer_desc_ring: %llx",
+				__func__, peer_avail, peer_desc_ring);
+	}
+
+	i = peer_avail->front;
+	pr_info("%s: peer_avail->front %d", __func__, i);
+	if (MAX_DESC_RING <= i) {
+		pr_err("%s: peer_avail->front %d shouldn't bigger than %d",
+				__func__, i, MAX_DESC_RING);
+	}
+
+	while(i != peer_avail->rear) {
+		u16 desc_idx = peer_avail->ring[i];
+		struct desc* desc;
+		pr_info("%s: desc_idx %d", __func__, desc_idx);
+
+		do {
+			desc = &peer_desc_ring->ring[desc_idx++];
+
+			if (desc->flags & IO_RING_DESC_F_DYN_ALLOC) {
+				pr_info("%s: IO_RING_DESC_F_DYN_ALLOC shrm_id %d", __func__, desc->shrm_id);
+				ret = add_ro_shrm_chunk(ro_shrms_head, desc->shrm_id);
+				if (ret) {
+					pr_err("%s: add_ro_shrm_chunk failed %d", __func__, ret);
+				}
+			} else if (desc->flags & IO_RING_DESC_F_DYN_FREE) {
+				// TODO: remove_ro_shrm_chunk();
+			} else {
+				ret = read_desc(desc, ro_shrms_head);
+				if (ret) {
+					pr_err("%s: read_desc failed %d", __func__, ret);
+					return ret;
+				}
+			}
+			
+		} while(desc->flags & IO_RING_DESC_F_NEXT);
+
 		i = (i + 1) % MAX_DESC_RING;
 	}
+
+	pr_info("%s done", __func__);
 	return 0;
 }
 
@@ -34,7 +78,7 @@ int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const vo
 	pr_info("%s start", __func__);
 
 	do {
-		ret = write_to_shrm(rw_shrms, &pp, data, size);
+		ret = write_to_shrm(rts, rw_shrms, &pp, data, size);
 	} while(ret == -EAGAIN);
 
 	if (ret != 0) {
@@ -66,7 +110,7 @@ int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const vo
 			size = SHRM_CHUNK_SIZE;
 		}
 
-		ret = desc_push_back(rts, offset, size, cur_shrm->shrm_id, flags);
+		ret = desc_push_back(rts, offset, size, flags, cur_shrm->shrm_id);
 		if (first_desc_idx == -1) 
 			first_desc_idx = ret;
 
