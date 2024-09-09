@@ -29,7 +29,7 @@ struct shared_realm_memory {
     u64 ipa, va;
 	u32 shrm_id;
 	int owner_vmid;
-	bool mapped_to_realm;
+	bool mapped_to_owner_realm;
 	bool mapped_to_peer;
 };
 

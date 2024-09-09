@@ -86,7 +86,13 @@ int alloc_shared_realm_memory(Client *client, int target_vmid, SHRM_TYPE shrm_ty
     shrm->shrm_id = shrm_id;
     shrm->ipa = ipa;
     shrm->va = (u64)mem;
-    shrm->mapped_to_realm = false;
+
+    /*
+     * If the type is SHRM_RO, then it means the shrm was already mapped to the owner realm
+     * and the owner shared it to the peer realm using I/O ring.
+     * That's why the current realm knows the shrm_id in function argument
+     */
+    shrm->mapped_to_owner_realm = (shrm_type == SHRM_RO) ? true : false;
     shrm->mapped_to_peer = false;
     list_add_tail(&shrm->list, &client->dyn_shrms_head);
     ch_syslog("%s list_add_tail: shrm->list: %p, va: 0x%llx, ipa: 0x%llx shrm_id %d",
@@ -143,7 +149,7 @@ static int free_shrm(Client *client, int owner_vmid, u64 ipa, bool unmap_only) {
         ch_syslog("%s &shrm->list %p, &client->dyn_shrms_head %p", __func__, &shrm->list, &client->dyn_shrms_head);
         ch_syslog("%s shrm->ipa 0x%llx", __func__, shrm->ipa);
         if (shrm->ipa == ipa && shrm->owner_vmid == owner_vmid) {
-            if (!shrm->mapped_to_realm) {
+            if (!shrm->mapped_to_owner_realm) {
                 pr_err("%s can't free ipa 0x%llx. It is not mapped to realm", __func__, ipa);
                 return -1;
             }
@@ -203,10 +209,10 @@ static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
             }
 
             list_for_each_entry(shrm, &client->dyn_shrms_head, list) {
-                if (!shrm->mapped_to_realm) {
+                if (!shrm->mapped_to_owner_realm) {
                     shrm_rw_ipa = shrm->ipa;
                     shrm_id = shrm->shrm_id;
-                    shrm->mapped_to_realm = true;
+                    shrm->mapped_to_owner_realm = true;
                     break;
                 }
             }
@@ -223,16 +229,22 @@ static void vchannel_mmio_callback(struct kvm_cpu *vcpu, u64 addr,
                 alloc_shared_realm_memory(client, client->peers[0].id, SHRM_RO, shrm_id);
             } else {
                 ch_syslog("%s read on BAR_MMIO_SHM_RO_IPA_BASE", __func__);
+                shrm_ro_ipa = 0;
+                shrm_id = 0;
 
                 list_for_each_entry(shrm, &client->dyn_shrms_head, list) {
-                    if (shrm->mapped_to_realm && !shrm->mapped_to_peer && client->peers[0].id == shrm->owner_vmid) {
+                    if (shrm->mapped_to_owner_realm && !shrm->mapped_to_peer && client->peers[0].id == shrm->owner_vmid) {
                         shrm_ro_ipa = shrm->ipa;
                         shrm_id = shrm->shrm_id;
                         shrm->mapped_to_peer = true;
                         break;
                     }
                 }
-                ch_syslog("%s: shrm_ro_ipa %llx, shrm_id %d", shrm_ro_ipa, shrm_id);
+
+                if (!shrm_ro_ipa || !shrm_id) {
+                    pr_err("%s: failed to get shrm_ro", __func__);
+                }
+                ch_syslog("%s: shrm_ro_ipa %llx, shrm_id %d", __func__, shrm_ro_ipa, shrm_id);
                 ioport__write32((u32 *)data, shrm_ro_ipa | shrm_id);
             }
             break;
