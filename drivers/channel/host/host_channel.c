@@ -33,8 +33,8 @@
 #define INTER_REALM_SHM_SIZE (1 << 12) * 16
 #endif
 
-#define VMID_MAX 256
-#define SHRM_ID_MAX VMID_MAX + 256
+#define VMID_MAX 128
+#define SHRM_ID_MAX VMID_MAX + 128
 
 #define VMID_MASK                          0xFF
 #define MMAP_OWNER_VMID_MASK VMID_MASK
@@ -66,12 +66,12 @@ static struct cdev ch_cdev;
 static struct class *ch_class;
 /*
  * [0:VMID_MAX-1]: reserved. the first shrm's id will be same with the vmid of a realm
- * [VMID_MAX:SHRM_ID_MAX]: allocated in serial order
+ * [VMID_MAX:SHRM_ID_MAX): allocated in serial order
  */
 static bool shrm_id_map[SHRM_ID_MAX];
 
 int alloc_shrm_id(u32 vmid) {
-	if (list_empty(drv_priv->shrms.heads[vmid])) {
+	if (list_empty(&drv_priv.shrms.heads[vmid])) {
 		shrm_id_map[vmid] = true;
 		return vmid;
 	}
@@ -248,7 +248,7 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		shrm->shrm_id = shrm_id;
 		shrm->vmid = vmid;
 		shrm->ref_cnt = 1;
-		shrm->va = va;
+		shrm->va = (u64)va;
 		shrm->in_use = false;
 		shrm->phys = __pa(va);
 		phys = shrm->phys;
@@ -257,8 +257,8 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		list_add_tail(&shrm->list, &drv_priv.shrms.heads[shrm->vmid]);
 		spin_unlock_irq(&drv_priv.shrms.lock);
 
-		pr_info("[HCH] mmap va %llx, pa %llx, size 0x%llx, shm_owner_vmid %d \n",
-				va, shrm->phys, INTER_REALM_SHM_SIZE, shrm->vmid);
+		pr_info("[HCH] mmap va %llx, pa %llx, size 0x%llx, shm_owner_vmid %d, shrm_id %d ",
+				va, shrm->phys, INTER_REALM_SHM_SIZE, shrm->vmid, shrm_id);
 	}
 
 	vma->vm_ops = &channel_vm_ops;
