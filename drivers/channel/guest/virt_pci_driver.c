@@ -110,6 +110,9 @@ u64* get_shrm_va(SHRM_TYPE shrm_type, u64 ipa) {
 	}
 
 	shrm_va += ipa % SHRM_IPA_RANGE_SIZE;
+
+	pr_info("%s: ipa %#llx shrm_va %#llx", __func__, ipa, shrm_va);
+
 	return (u64*)shrm_va;
 }
 

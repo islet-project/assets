@@ -66,6 +66,7 @@ int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 		i = (i + 1) % MAX_DESC_RING;
 	}
 
+	//notify_peer();
 	pr_info("%s done", __func__);
 	return 0;
 }
@@ -92,9 +93,14 @@ int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const vo
 		return -EINVAL;
 	}
 
-	list_for_each_entry(cur_shrm, &pp.front.shrm->head, head) {
+	pr_info("%s: print front & rear", __func__);
+	print_front_rear(&pp);
+
+	for (cur_shrm = pp.front.shrm;; cur_shrm = list_next_entry(cur_shrm, head)) {
 		u64 offset = 0;
 		u16 flags = IO_RING_DESC_F_NEXT;
+
+		pr_info("%s: cur_shrm ipa %#llx, shrm_id %d", __func__, cur_shrm->ipa, cur_shrm->shrm_id);
 
 		if (pp.front.shrm == pp.rear.shrm) {
 			offset = pp.front.offset;

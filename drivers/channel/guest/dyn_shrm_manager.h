@@ -28,5 +28,6 @@ int add_ro_shrm_chunk(struct list_head* ro_shrms_head, u32 shrm_id);
 int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms);
 bool invalid_packet_pos(struct packet_pos* pp);
 u64 req_ro_shrm_ipa(u32 shrm_id);
+void print_front_rear(struct packet_pos* pp);
 
 #endif /* _DYN_SHRM_MANAGER_H */

@@ -263,10 +263,12 @@ int read_desc(struct desc* desc, struct list_head* ro_shrms_head) {
 	pr_info("%s: memcpy from ro_shrm", __func__);
 	memcpy(data, ro_shrm_va, desc->len);
 
-	pr_info("%s: start to print the data", __func__);
-	for (u64 i = 0; i < desc->len; i++) {
+	pr_info("%s: start to print the data: ", __func__);
+	for (u64 i = 0; i < desc->len; i+= sizeof(*data)) {
 		pr_cont("%llx", data[i]);
 	}
+
+	kfree(data);
 
 	pr_info("%s done", __func__);
 	return 0;

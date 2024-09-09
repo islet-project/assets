@@ -7,6 +7,18 @@ s64 mmio_read_to_get_shrm(SHRM_TYPE shrm_type);
 int mmio_write_to_remove_shrm(u64 ipa);
 void set_memory_shared(phys_addr_t start, int numpages);
 
+void print_front_rear(struct packet_pos* pp) {
+	if (!pp) return;
+
+	if (pp->front.shrm)
+		pr_info("%s: pp->front.shrm->ipa %#llx, pp->front.shrm->shrm_id %d",
+				__func__, pp->front.shrm->ipa, pp->front.shrm->shrm_id);
+
+	if (pp->rear.shrm)
+		pr_info("%s: pp->rear.shrm->ipa %#llx, pp->rear.shrm->shrm_id %d",
+				__func__, pp->rear.shrm->ipa, pp->rear.shrm->shrm_id);
+}
+
 struct shrm_list* init_shrm_list(u64 ipa_start, u64 ipa_size) {
     struct shrm_list* rw_shrms = kzalloc(sizeof(struct shrm_list), GFP_KERNEL);
 	if (!rw_shrms) {
@@ -36,7 +48,7 @@ int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa) {
 			target = tmp;
 
 			if (target->in_use) {
-				pr_err("%s: target shrm %llx is in use", __func__, target->ipa);
+				pr_err("%s: target shrm %#llx is in use", __func__, target->ipa);
 				return -EINVAL;
 			}
 			list_del(&target->head);
@@ -96,7 +108,7 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 	}
 
 	if (shrm_ipa < rw_shrms->ipa_start && rw_shrms->ipa_end <= shrm_ipa) {
-		pr_err("[GCH] %s: invalid ipa %llx", __func__, shrm_ipa);
+		pr_err("[GCH] %s: invalid ipa %#llx", __func__, shrm_ipa);
 		return -1;
 	}
 
@@ -106,13 +118,9 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 		return -2;
 	}
 
-	if (!rw_shrms->pp.rear.shrm) {
-		list_add(&new_shrm->head, &rw_shrms->head);
-		rw_shrms->pp.front.shrm = new_shrm;
-		rw_shrms->pp.rear.shrm = new_shrm;
-	} else {
-		list_add(&new_shrm->head, &rw_shrms->pp.rear.shrm->head);
-	}
+	list_add(&new_shrm->head, rw_shrms->head.prev);
+	pr_info("%s: print front & rear", __func__);
+	print_front_rear(&rw_shrms->pp);
 
 	rw_shrms->free_size += SHRM_CHUNK_SIZE;
 	rw_shrms->total_size += SHRM_CHUNK_SIZE;
@@ -129,8 +137,6 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 	}
 	return 0;
 }
-
-
 
 //TODO: need to be static. for now, it's opened just for the test
 int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
@@ -151,7 +157,7 @@ int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 		shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
 		shrm_id = mmio_ret & SHRM_ID_MASK;
 		if (!shrm_ipa || !shrm_id) {
-			pr_err("[GCH] %s failed to get shrm_ipa. mmio_ret: %llx", __func__, mmio_ret);
+			pr_err("[GCH] %s failed to get shrm_ipa. mmio_ret: %#llx", __func__, mmio_ret);
 			return -EAGAIN;
 		}
 
@@ -208,12 +214,19 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 
 	pr_info("[GCH] %s start", __func__);
 
-	if (!rw_shrms) {
-		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
+	if (!rw_shrms || list_empty(&rw_shrms->head)) {
+		pr_info("[GCH] %s rw_shrms or first list shouldn't be NULL. rw_shrms: %#llx",
+				__func__, rw_shrms);
 		return -EINVAL;
 	}
 
 	cur_pp = &rw_shrms->pp;
+	if (!cur_pp->rear.shrm) {
+		cur_pp->front.shrm = list_first_entry(&rw_shrms->head, struct shared_realm_memory, head);
+		cur_pp->rear.shrm = cur_pp->front.shrm;
+		pr_info("%s: set cur_pp->front, rear: shrm ipa %#llx shrm_id %d",
+				__func__, cur_pp->front.shrm->ipa, cur_pp->front.shrm->shrm_id);
+	}
 	next_rear_shrm = cur_pp->rear.shrm;
 
 	if (!data) {
@@ -255,15 +268,27 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 
 	if (size <= SHRM_CHUNK_SIZE - cur_pp->rear.offset) {
 		memcpy(dest_va, data, data_size);
+		pr_info("%s: data 1: ", __func__);
+		for (u64 i = 0; i < data_size; i+= sizeof(u64)) {
+			pr_cont("%llx", dest_va[i]);
+		}
 
 		pp->front = cur_pp->rear;
 		cur_pp->rear.offset += data_size;
 		cur_pp->size += data_size;
 		pp->rear = cur_pp->rear;
 
+		pr_info("%s: print front & rear", __func__);
+		print_front_rear(&rw_shrms->pp);
+
 		return 0;
 	}
 	memcpy(dest_va, data, SHRM_CHUNK_SIZE - cur_pp->rear.offset);
+	pr_info("%s: data 2: ", __func__);
+	for (u64 i = 0; i < SHRM_CHUNK_SIZE - cur_pp->rear.offset; i+= sizeof(u64)) {
+		pr_cont("%llx", dest_va[i]);
+	}
+
 	written_size += SHRM_CHUNK_SIZE - cur_pp->rear.offset;
 	next_rear_shrm->in_use = true;
 	next_rear_shrm = list_next_entry(next_rear_shrm, head);
@@ -272,6 +297,11 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 			i++, next_rear_shrm = list_next_entry(next_rear_shrm, head)) {
 		dest_va = get_shrm_va(SHRM_RW, next_rear_shrm->ipa);
 		memcpy(dest_va, data + written_size, SHRM_CHUNK_SIZE);
+		pr_info("%s: data 3: ", __func__);
+		for (u64 i = 0; i < SHRM_CHUNK_SIZE; i+= sizeof(u64)) {
+			pr_cont("%llx", dest_va[i]);
+		}
+
 		written_size += SHRM_CHUNK_SIZE;
 		next_rear_shrm->in_use = true;
 	}
@@ -284,6 +314,10 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 
 	dest_va = get_shrm_va(SHRM_RW, next_rear_shrm->ipa);
 	memcpy(dest_va, data + written_size, data_size - written_size);
+	pr_info("%s: data 4: ", __func__);
+	for (u64 i = 0; i < data_size - written_size; i+= sizeof(u64)) {
+		pr_cont("%llx", dest_va[i]);
+	}
 	written_size += data_size - written_size;
 	next_rear_shrm->in_use = true;
 
@@ -374,7 +408,7 @@ int add_ro_shrm_chunk(struct list_head* ro_shrms_head, u32 shrm_id) {
 	}
 
 	if (shrm_ipa < SHRM_RO_IPA_REGION_START && SHRM_RO_IPA_REGION_END <= shrm_ipa) {
-		pr_err("[GCH] %s: %llx is not within SHRM_RO_IPA_REGION range", __func__, shrm_ipa);
+		pr_err("[GCH] %s: %#llx is not within SHRM_RO_IPA_REGION range", __func__, shrm_ipa);
 		return -2;
 	}
 
