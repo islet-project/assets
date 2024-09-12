@@ -120,7 +120,8 @@ u-boot-cscope:
 LINUX_DEFCONFIG_COMMON_ARCH := arm
 LINUX_DEFCONFIG_COMMON_FILES := \
 		$(LINUX_PATH)/arch/arm/configs/vexpress_defconfig \
-		$(CURDIR)/kconfigs/qemu.conf
+		$(CURDIR)/kconfigs/qemu.conf \
+		$(CURDIR)/kconfigs/vsock.conf
 
 linux-defconfig: $(LINUX_PATH)/.config
 
