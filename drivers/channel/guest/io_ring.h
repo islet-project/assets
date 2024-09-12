@@ -70,5 +70,8 @@ int desc_push_back(struct rings_to_send* rings_to_send, u64 offset, u32 len, u16
 int read_desc(struct desc* desc, struct list_head* ro_shrms_head);
 int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ro_ipa);
 int init_rw_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ipa);
+bool is_empty(struct io_ring* io_ring);
+int avail_pop_front(struct rings_to_send* rts);
+int desc_pop_front(struct rings_to_send* rts);
 
 #endif /* _IO_RING_H */

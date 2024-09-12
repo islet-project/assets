@@ -381,11 +381,18 @@ static void ch_receive(struct work_struct *work) {
 		}
 	}
 
+	ret = delete_packet(drv_priv->rts, drv_priv->rw_shrms);
+	if (ret) {
+		pr_err("%s: delete_packet() failed %d", ret);
+		return;
+	}
+
 	ret = read_packet(drv_priv->rtr, &drv_priv->ro_shrms);
 	if (ret) {
 		pr_err("%s: read_packet failed %d", __func__, ret);
 		return;
 	}
+
 	pr_info("%s done", __func__);
 }
 

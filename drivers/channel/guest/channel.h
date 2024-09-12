@@ -5,5 +5,6 @@
 
 int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const void* data, u64 size);
 int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head);
+int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms);
 
 #endif /* _CHANNEL_H */

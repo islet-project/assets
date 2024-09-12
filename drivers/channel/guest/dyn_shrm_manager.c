@@ -344,7 +344,7 @@ int copy_from_shrm(void* to, struct packet_pos* from) {
 	}
 
 	if (invalid_packet_pos(from)) {
-		pr_err("%s packet_pos is invalid", __func__);
+		pr_err("%s: packet_pos is invalid", __func__);
 		return -EINVAL;
 	}
 
@@ -390,6 +390,80 @@ int copy_from_shrm(void* to, struct packet_pos* from) {
 
 	return (int)from->size - written_size;
 }
+
+struct shared_realm_memory* get_shrm_with(struct shrm_list* rw_shrms, u32 shrm_id) {
+	struct shared_realm_memory* tmp;
+
+	if (!rw_shrms) {
+		pr_err("%s: input pointer shouldn't be NULL rw_shrms: %#llx", __func__, rw_shrms);
+		return NULL;
+	}
+
+	list_for_each_entry(tmp, &rw_shrms->head, head) {
+		if (shrm_id == tmp->shrm_id) {
+			return tmp;
+		}
+	}
+
+	return NULL;
+}
+
+//TODO: how about memset only one desc ? and just use it repeatedly
+int delete_packet_from_shrm(struct packet_pos* pp, struct shrm_list* rw_shrms) {
+	struct shared_realm_memory* cur;
+	u64 *dest_va;
+
+	pr_info("%s start", __func__);
+
+	if (!pp || !rw_shrms) {
+		pr_err("%s: input pointers shouldn't be NULL. pp: %#llx, rw_shrms: %#llx",
+				__func__, pp, rw_shrms);
+		return -1;
+	}
+
+	if (invalid_packet_pos(pp)) {
+		pr_err("%s: packet_pos is invalid", __func__);
+		return -2;
+	}
+
+	if (rw_shrms->pp.front.shrm != pp->front.shrm) {
+		pr_err("%s: pp->front.shrm is not matched. rw_shrms->pp.front.shrm %#llx, pp->front.shrm: %#llx",
+				__func__, rw_shrms->pp.front.shrm, pp->front.shrm);
+		return -3;
+	}
+
+	if (rw_shrms->pp.front.offset != pp->front.offset) {
+		pr_err("%s: pp->front.offset is not matched. rw_shrms->pp.front.offset %#llx, pp->front.offset: %#llx",
+				__func__, rw_shrms->pp.front.offset, pp->front.offset);
+		return -4;
+	}
+
+	if (pp->front.shrm == pp->rear.shrm) {
+		dest_va = get_shrm_va(SHRM_RW, pp->front.shrm->ipa + pp->front.offset);
+		pr_info("%s: memset va: %#llx, size: %#llx", __func__, dest_va, pp->rear.offset);
+		memset(dest_va, 0, pp->rear.offset);
+
+		rw_shrms->pp.front.offset = pp->rear.offset;
+		pr_info("%s done 1", __func__);
+		return 0;
+	}
+
+	cur = pp->front.shrm;
+	for(;cur != pp->rear.shrm; cur = list_next_entry(cur, head)) {
+		dest_va = get_shrm_va(SHRM_RW, cur->ipa);
+		memset(dest_va, 0, SHRM_CHUNK_SIZE);
+		pr_info("%s: memset va: %#llx, size: %#llx", __func__, dest_va, SHRM_CHUNK_SIZE);
+	}
+
+	dest_va = get_shrm_va(SHRM_RW, pp->rear.shrm->ipa);
+	memset(dest_va, 0, pp->rear.offset);
+	pr_info("%s: memset va: %#llx, size: %#llx", __func__, dest_va, pp->rear.offset);
+
+	rw_shrms->pp.front.offset = pp->rear.offset;
+	pr_info("%s done 2", __func__);
+	return 0;
+}
+
 
 /***************************************************************************
  *

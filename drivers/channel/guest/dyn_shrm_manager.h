@@ -29,5 +29,7 @@ int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms);
 bool invalid_packet_pos(struct packet_pos* pp);
 u64 req_ro_shrm_ipa(u32 shrm_id);
 void print_front_rear(struct packet_pos* pp);
+struct shared_realm_memory* get_shrm_with(struct shrm_list* rw_shrms, u32 shrm_id);
+int delete_packet_from_shrm(struct packet_pos* pp, struct shrm_list* rw_shrms);
 
 #endif /* _DYN_SHRM_MANAGER_H */

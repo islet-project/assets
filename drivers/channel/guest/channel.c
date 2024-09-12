@@ -139,3 +139,102 @@ int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const vo
 	pr_info("%s end", __func__);
 	return 0;
 }
+
+int get_rw_packet_pos(struct packet_pos* pp, struct rings_to_send* rts, struct shrm_list* rw_shrms, u32 desc_idx) {
+	u32 idx;
+	if (!pp || !rts || !rts->desc_ring || !rw_shrms) {
+		pr_err("%s: input pointers shouldn't be NULL. pp: %#llx, rts: %#llx, rw_shrms: %#llx",
+				__func__, pp, rts, rw_shrms);
+		return -1;
+	}
+
+	if (MAX_DESC_RING <= desc_idx) {
+		pr_err("%s: desc_idx is out of idx %d", desc_idx);
+		return -2;
+	}
+	idx = desc_idx;
+
+
+	pp->front.shrm = get_shrm_with(rw_shrms, rts->desc_ring->ring[idx].shrm_id);
+	pp->front.offset = rts->desc_ring->ring[idx].offset;
+
+	for(; rts->desc_ring->ring[idx].flags & IO_RING_DESC_F_NEXT; idx++) {}
+
+	pp->rear.shrm = get_shrm_with(rw_shrms, rts->desc_ring->ring[idx].shrm_id);
+	pp->rear.offset = rts->desc_ring->ring[idx].len;
+
+	if (invalid_packet_pos(pp)) {
+		pr_err("%s packet_pos is invalid", __func__);
+		return -3;
+	}
+
+	return 0;
+}
+
+int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
+	int ret;
+
+	pr_info("%s start", __func__);
+
+	if (!rts || !rts->avail || !rts->peer_used) {
+		pr_err("%s: input pointers shouldn't be NULL. rts: %llx", __func__, rts);
+		return -1;
+	}
+
+	if (!is_empty(rts->peer_used)) {
+		int p_used_front = rts->peer_used->front;
+		int avail_front = rts->avail->front;
+		struct packet_pos* pp = NULL;
+
+		if (p_used_front != avail_front) {
+			pr_err("%s: mismatched fronts peer_used->front: %d != avail->front %d",
+					__func__, p_used_front, avail_front);
+			return -2;
+		}
+
+		while(rts->peer_used->rear != avail_front) {
+			int desc_front = rts->avail->ring[avail_front];
+
+			if (rts->peer_used->ring[p_used_front] != desc_front) {
+				pr_err("%s: peer_used ring's desc_front should be matched with desc_front but %d != %d",
+						__func__, rts->peer_used->ring[p_used_front], desc_front);
+				return -3;
+			}
+
+			pp = get_rw_packet_pos(pp, rts, rw_shrms, desc_front);
+			if (!pp) {
+				pr_err("%s: get_rw_packet_pos() failed", __func__);
+				return -4;
+			}
+
+			ret = avail_pop_front(rts);
+			if (ret != avail_front) {
+				pr_err("%s: avail_pop_front() failed %d, avail_front %d", __func__, ret, avail_front);
+				return ret;
+			}
+
+			ret = desc_pop_front(rts);
+			if (ret != desc_front) {
+				pr_err("%s: desc_pop_front() failed %d, desc_front %d", __func__, ret, desc_front);
+				return ret;
+			}
+
+			ret = delete_packet_from_shrm(pp, rw_shrms);
+			if (ret) {
+				pr_err("%s: delete_packet_from_shrm() failed", __func__, ret);
+				return ret;
+			}
+
+			avail_front = rts->avail->front;
+		}
+	}
+
+	/*
+	if (!is_empty(rtr->used)) {
+		//TODO: remove_used()
+	}
+	*/
+	pr_info("%s done", __func__);
+
+	return 0;
+}

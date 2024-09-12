@@ -33,7 +33,7 @@ struct pos {
 };
 
 struct packet_pos {
-	struct pos front, rear;
+	struct pos front, rear; //TODO: use 'head' & 'tail'
 	u64 size;
 };
 

@@ -8,6 +8,11 @@
 #include "io_ring.h"
 #include "virt_pci_driver.h"
 
+// caller should guarantee that the io_ring is not NULL
+bool is_empty(struct io_ring* io_ring) {
+	return io_ring->front == io_ring->rear;
+}
+
 struct desc_ring* create_desc_ring(u64 ipa_base) {
 	u64* va = get_shrm_va(SHRM_RW, ipa_base);
 	struct desc_ring* desc_ring = (struct desc_ring*)ALIGN((u64)va, 8);
@@ -86,7 +91,7 @@ static int io_ring_push_back(struct io_ring* io_ring, u16 desc_idx) {
 	if (!io_ring) 
 		return -EINVAL;
 
-	if (io_ring->rear + 1 == io_ring->front) 
+	if ((io_ring->rear + 1) % MAX_DESC_RING == io_ring->front) 
 		return -ENOSPC;
 
 	io_ring->ring[io_ring->rear] = desc_idx;
@@ -105,6 +110,25 @@ int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx) {
 		return -EINVAL;
 
 	return io_ring_push_back(rings_to_send->avail, desc_idx);
+}
+
+int avail_pop_front(struct rings_to_send* rts) {
+	int idx, ret;
+	u16 empty_ring = 0;
+
+	if (!rts || !rts->avail) {
+		pr_err("%s: input pointers shouldn't be NULL. rts: %llx", __func__, rts);
+		return -1;
+	}
+	idx = rts->avail->front;
+	ret = idx;
+
+	pr_info("%s: front: %d, ring[front]: %d", __func__, idx, rts->avail->ring[idx]);
+
+	rts->avail->ring[idx] = empty_ring;
+	rts->avail->front = (idx + 1) % MAX_DESC_RING;
+
+	return ret;
 }
 
 int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx) {
@@ -168,18 +192,15 @@ int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 s
 	return 0;
 }
 
-//TODO: implement it!
-/*
-int io_ring_pop_front(struct io_ring* io_ring, u16 desc_idx) {
-}
-*/
-
 int desc_push_back(struct rings_to_send* rings_to_send, u64 offset, u32 len, u16 flags, u16 shrm_id) {
 	int idx;
 	struct desc_ring* desc_ring = rings_to_send->desc_ring;
 
 	if (!rings_to_send || !desc_ring)
 		return -EINVAL;
+
+	if ((desc_ring->rear + 1) % MAX_DESC_RING == desc_ring->front) 
+		return -ENOSPC;
 
 	idx = desc_ring->rear;
 
@@ -196,25 +217,27 @@ int desc_push_back(struct rings_to_send* rings_to_send, u64 offset, u32 len, u16
 	return idx;
 }
 
-/* temporarily comment it before using it
-int desc_pop_front(struct rings_to_send* rings_to_send, int idx) {
-	struct desc_ring* desc_ring = rings_to_send->desc_ring;
+int desc_pop_front(struct rings_to_send* rts) {
+	struct desc_ring* desc_ring;
+	struct desc empty_desc = {};
+	int idx;
 
-	if (!rings_to_send || !desc_ring)
-		return -EINVAL;
+	if (!rts || !desc_ring)
+		return -1;
 
-	if (idx != desc_ring->front) {
-		pr_err("%s not matched idx: %d with front %d",
-				__func__, target_idx, desc_ring->front);
-		return -EINVAL;
+	desc_ring = rts->desc_ring;
+	idx = desc_ring->front;
+
+	for(; desc_ring->ring[idx].flags & IO_RING_DESC_F_NEXT; idx = (idx + 1) % MAX_DESC_RING) {
+		pr_info("%s: desc info: idx: %d, offset: %#llx, len: %#llx, shrm_id: %d, flags %d",
+				__func__, idx, desc_ring->ring[idx].offset, desc_ring->ring[idx].len, desc_ring->ring[idx].shrm_id, desc_ring->ring[idx].flags);
+
+		desc_ring->ring[idx] = empty_desc;
 	}
-
-	desc_ring[idx] = {};
-	desc_ring->front = desc_ring->front + 1;
+	desc_ring->front = idx;
 
 	return 0;
 }
-*/
 
 int read_desc(struct desc* desc, struct list_head* ro_shrms_head) {
 	struct shared_realm_memory *cur, *target = NULL;
@@ -273,3 +296,45 @@ int read_desc(struct desc* desc, struct list_head* ro_shrms_head) {
 	pr_info("%s done", __func__);
 	return 0;
 }
+
+/* maybe useless..
+int delete_avail(struct rings_to_send* rts) {
+	struct io_ring *peer_used, *avail;
+	int ret = 0;
+
+	if (!rts || !rts->avail || !rts->peer_used) {
+		pr_err("%s: input pointers shouldn't be NULL. rts: %llx", __func__, rts);
+		return -1;
+	}
+
+	peer_used = rts->peer_used;
+	avail = rts->avail;
+
+	if (peer_used.front != avail->front) {
+		pr_err("%s: peer_used.front %d != avail->front %d", __func__, peer_used->front, avail->front);
+		return -2;
+	}
+
+	for(int peer_idx = peer_used->front; peer_idx == avail->front && !is_empty(avail); peer_idx++) {
+		if (peer_used->ring[peer_idx] == avail->ring[avail->front]) {
+			ret = desc_pop_front(rts, avail->ring[avail->front]);
+			if (ret) {
+				pr_err("%s: desc_pop_front() failed %d", __func__, ret);
+				return ret;
+			}
+
+			ret = avail_pop_front(rts);
+			if (ret) {
+				pr_err("%s: io_ring_pop_front() failed %d", __func__, ret);
+				return ret;
+			}
+		} else {
+			pr_err("%s: peer_used->ring[i] %d != avail->ring[i] %d",
+					__func__, peer_used->ring[i], avail->ring[i]);
+			return -3;
+		}
+	}
+
+	return 0;
+}
+*/
