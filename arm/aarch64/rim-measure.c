@@ -14,9 +14,14 @@
 static enum hash_algo measurer_hash_algo;
 static unsigned char rim[MAX_MEASUREMENT_SIZE];
 
-/** Initial values taken from the features register of TF-RMM (main) running on FVP */
+/**
+ * These are the initial values passed by KVM for TF-RMM (main) running on FVP.
+ * These values depend on the content of RMM's feature0 register (RMI_FEATURES).
+ * Note that TF-RMM and Islet return different values for feature0,
+ * thus the resulting RIMs even for the same payload are different.
+ */
 static struct rmi_realm_params realm_params = {
-	.s2sz = 0x21,
+	.s2sz = 0x21, /* Maximum IPA size: 8GB set by host kernel (rme.c: params->s2sz = VTCR_EL2_IPA(kvm->arch.mmu.vtcr))*/
 	.num_bps = 2u,
 	.num_wps = 2u,
 };
@@ -170,6 +175,12 @@ void measurer_realm_configure_pmu(uint32_t num_pmu_cntrs)
 	realm_params.flags |= RMI_REALM_PARAM_FLAG_PMU;
 }
 
+void measurer_realm_use_islet(void)
+{
+	realm_params.num_bps = 0;
+	realm_params.num_wps = 0;
+}
+
 static void realm_params_measure(void)
 {
 	/*
@@ -191,7 +202,6 @@ static void realm_params_measure(void)
 	 * - hash_algo
 	 */
 	rim_params->flags = realm_params.flags;
-    rim_params->flags = 0;
 	rim_params->s2sz = realm_params.s2sz;
 	rim_params->sve_vl = realm_params.sve_vl;
 	rim_params->num_bps = realm_params.num_bps;

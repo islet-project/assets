@@ -141,6 +141,13 @@ static void realm_configure_parameters(struct kvm *kvm)
 	realm_configure_sve(kvm);
 	realm_configure_pmu(kvm);
 	realm_configure_debug(kvm);
+
+#ifdef RIM_MEASURE
+	if (kvm->cfg.arch.islet) {
+		printf("Measurer is configured for Islet\n");
+		measurer_realm_use_islet();
+	}
+#endif
 }
 
 void kvm_arm_realm_create_realm_descriptor(struct kvm *kvm)
