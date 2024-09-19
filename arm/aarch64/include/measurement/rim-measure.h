@@ -8,6 +8,7 @@ void measurer_realm_populate(struct kvm *kvm, u64 start, u64 end);
 void measurer_realm_configure_hash_algo(uint64_t hash_algo);
 void measurer_realm_configure_sve(uint32_t sve_vq);
 void measurer_realm_configure_pmu(uint32_t num_pmu_cntrs);
+void measurer_realm_use_islet(void);
 void measurer_kvm_arm_realm_create_realm_descriptor(void);
 void measurer_reset_vcpu_aarch64(u64 pc, u64 flags, u64 dtb);
 
