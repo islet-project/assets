@@ -72,6 +72,9 @@ int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 s
 int init_rw_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ipa);
 bool is_empty(struct io_ring* io_ring);
 int avail_pop_front(struct rings_to_send* rts);
+int used_pop_front(struct rings_to_receive* rtr);
 int desc_pop_front(struct rings_to_send* rts);
+void print_avail(struct io_ring* io_ring);
+void print_used(struct io_ring* io_ring);
 
 #endif /* _IO_RING_H */

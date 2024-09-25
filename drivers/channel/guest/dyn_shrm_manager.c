@@ -197,7 +197,7 @@ bool invalid_packet_pos(struct packet_pos* pp) {
 	}
 
 	if (pp->front.shrm == pp->rear.shrm && pp->front.offset >= pp->rear.offset) {
-		pr_err("%s front offset 0x%llx shouldn't bigger than rear offset 0x%llx",
+		pr_err("%s front offset 0x%llx shouldn't bigger than rear offset 0x%llx in the same shrm",
 				__func__, pp->front.offset, pp->rear.offset);
 		return true;
 	}

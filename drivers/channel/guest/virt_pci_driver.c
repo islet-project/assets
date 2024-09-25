@@ -146,11 +146,11 @@ static void get_cur_vmid(void) {
 }
 
 static int set_peer_id(void) {
-	int peer_id;
+	int peer_id = 0;
 
 	if (drv_priv->peer.id) {
 		pr_info("[GCH] %s peer id is already set %d",__func__, drv_priv->peer.id);
-		return peer_id;
+		return drv_priv->peer.id;
 	}
 	
 	peer_id = readl(drv_priv->mapped_bar_addr + BAR_MMIO_PEER_VMID);
@@ -305,10 +305,7 @@ static int drv_setup_ro_rings(void) {
 	int ret;
 
 	pr_info("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
-	if (drv_priv->role != SERVER) {
-		pr_err("[GCH] My role is not SERVER but %d", drv_priv->role);
-		return -1;
-	}
+	
 	copy_from_shrm(NULL, NULL); // for the build test
 
 	INIT_LIST_HEAD(&drv_priv->ro_shrms);
@@ -339,6 +336,7 @@ static int drv_setup_ro_rings(void) {
 }
 
 static void ch_send(struct work_struct *work) {
+	static int cnt = 0;
 	u64 msg = 0xBEEF;
 	u64 *rw_shrm_va = get_shrm_va(SHRM_RW, test_shrm_offset);
 	//u64 *rw_shrm_va = drv_priv->rw_shrm_va_start;
@@ -361,7 +359,10 @@ static void ch_send(struct work_struct *work) {
 	pr_info("[GCH] %s drv_priv->rw_shrm_va_start 0x%llx, rw_shrm_va: 0x%llx",
 			__func__, drv_priv->rw_shrm_va_start, rw_shrm_va);
 
-	write_packet(drv_priv->rts, drv_priv->rw_shrms, &msg, sizeof(u64));
+	if (cnt == 0) {
+		write_packet(drv_priv->rts, drv_priv->rw_shrms, &msg, sizeof(u64));
+		cnt++;
+	}
 	pr_info("%s: front: %d, rear: %d",
 			__func__, drv_priv->rts->avail->front, drv_priv->rts->avail->rear);
 
@@ -372,6 +373,7 @@ static void ch_receive(struct work_struct *work) {
 	int ret;
 
 	pr_info("%s start", __func__);
+	set_peer_id();
 
 	if (!drv_priv->ro_shrm_va_start) {
 		ret = drv_setup_ro_rings();
@@ -383,7 +385,13 @@ static void ch_receive(struct work_struct *work) {
 
 	ret = delete_packet(drv_priv->rts, drv_priv->rw_shrms);
 	if (ret) {
-		pr_err("%s: delete_packet() failed %d", ret);
+		pr_err("%s: delete_packet() failed %d", __func__, ret);
+		return;
+	}
+
+	ret = delete_used(drv_priv->rtr);
+	if (ret) {
+		pr_err("%s: delete_used() failed %d", __func__, ret);
 		return;
 	}
 
@@ -432,17 +440,7 @@ static int channel_release(struct inode * inode, struct file * file)
 
 static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *f_pos) {
 	pr_info("[GCH] %s start", __func__);
-
-	if (drv_priv->role == CLIENT) {
-		pr_info("[GCH] %s start schedule_work for send", __func__);
-		schedule_work(&drv_priv->send);
-	} else if (drv_priv->role == SERVER) {
-		pr_info("[GCH] %s start schedule_work for receive", __func__);
-		schedule_work(&drv_priv->receive);
-	} else {
-		pr_info("[GCH] %s set_peer_id start", __func__);
-		set_peer_id();
-	}
+	schedule_work(&drv_priv->send);
     return 0;
 }
 
@@ -560,12 +558,8 @@ static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 	static int cnt = 0;
 	pr_info("[GCH] IRQ #%d cnt %d\n", irq, cnt);
 
-	
-
-	if (drv_priv->role == SERVER) {
-		pr_info("[GCH] %s start schedule_work for receive", __func__);
-		schedule_work(&drv_priv->receive);
-	}
+	pr_info("[GCH] %s start schedule_work for receive", __func__);
+	schedule_work(&drv_priv->receive);
 
 	return (cnt++) ? IRQ_NONE : IRQ_HANDLED;
 	//return IRQ_HANDLED;

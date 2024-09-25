@@ -5,12 +5,16 @@
 
 void notify_peer(void);
 
-// TODO: implement it
+/* 
+ * It reads packets from peer_avail_ring and then writes the same descriptor index into used_ring
+ * to notify that the descriptor entries are read 
+ */
 int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 	int ret;
 	struct io_ring* peer_avail;
 	struct desc_ring* peer_desc_ring;
 	u16 i;
+	bool need_to_notify = false;
 
 	pr_info("%s start", __func__);
 
@@ -28,6 +32,7 @@ int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 	if (!peer_avail || !peer_desc_ring) {
 		pr_err("%s: input pointers shouldn't be NULL. peer_avail: %llx, peer_desc_ring: %llx",
 				__func__, peer_avail, peer_desc_ring);
+		return -2;
 	}
 
 	i = peer_avail->front;
@@ -35,6 +40,7 @@ int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 	if (MAX_DESC_RING <= i) {
 		pr_err("%s: peer_avail->front %d shouldn't bigger than %d",
 				__func__, i, MAX_DESC_RING);
+		return -3;
 	}
 
 	while(i != peer_avail->rear) {
@@ -50,6 +56,7 @@ int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 				ret = add_ro_shrm_chunk(ro_shrms_head, desc->shrm_id);
 				if (ret) {
 					pr_err("%s: add_ro_shrm_chunk failed %d", __func__, ret);
+					return ret;
 				}
 			} else if (desc->flags & IO_RING_DESC_F_DYN_FREE) {
 				// TODO: remove_ro_shrm_chunk();
@@ -60,13 +67,20 @@ int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 					return ret;
 				}
 			}
-			
 		} while(desc->flags & IO_RING_DESC_F_NEXT);
 
+		ret = used_push_back(rtr, peer_avail->ring[i]);
+		if (ret) {
+			pr_err("used_push_back() is failed %d", ret);
+			return ret;
+		}
+
 		i = (i + 1) % MAX_DESC_RING;
+		need_to_notify = true;
 	}
 
-	//notify_peer();
+	if (need_to_notify)
+		notify_peer();
 	pr_info("%s done", __func__);
 	return 0;
 }
@@ -158,7 +172,7 @@ int get_rw_packet_pos(struct packet_pos* pp, struct rings_to_send* rts, struct s
 	pp->front.shrm = get_shrm_with(rw_shrms, rts->desc_ring->ring[idx].shrm_id);
 	pp->front.offset = rts->desc_ring->ring[idx].offset;
 
-	for(; rts->desc_ring->ring[idx].flags & IO_RING_DESC_F_NEXT; idx++) {}
+	for(; rts->desc_ring->ring[idx].flags & IO_RING_DESC_F_NEXT; idx = (idx + 1) % MAX_DESC_RING) {}
 
 	pp->rear.shrm = get_shrm_with(rw_shrms, rts->desc_ring->ring[idx].shrm_id);
 	pp->rear.offset = rts->desc_ring->ring[idx].len;
@@ -184,7 +198,7 @@ int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 	if (!is_empty(rts->peer_used)) {
 		int p_used_front = rts->peer_used->front;
 		int avail_front = rts->avail->front;
-		struct packet_pos* pp = NULL;
+		struct packet_pos pp = {};
 
 		if (p_used_front != avail_front) {
 			pr_err("%s: mismatched fronts peer_used->front: %d != avail->front %d",
@@ -194,17 +208,22 @@ int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 
 		while(rts->peer_used->rear != avail_front) {
 			int desc_front = rts->avail->ring[avail_front];
+			// Dynmaic shrm allocation & free operations don't use packet.
+			// They just use descriptor entry flags (IO_RING_DESC_F_DYN_ALLOC, IO_RING_DESC_F_DYN_FREE)
+			bool used_for_dyn_ops = rts->desc_ring->ring[desc_front].flags & IO_RING_DESC_F_DYN_MASK;
 
-			if (rts->peer_used->ring[p_used_front] != desc_front) {
-				pr_err("%s: peer_used ring's desc_front should be matched with desc_front but %d != %d",
-						__func__, rts->peer_used->ring[p_used_front], desc_front);
+			if (rts->peer_used->ring[avail_front] != rts->avail->ring[avail_front]) {
+				pr_err("%s: peer_used ring's idx should be matched with avail's one but %d != %d",
+						__func__, rts->peer_used->ring[avail_front], rts->avail->ring[avail_front]);
 				return -3;
 			}
 
-			pp = get_rw_packet_pos(pp, rts, rw_shrms, desc_front);
-			if (!pp) {
-				pr_err("%s: get_rw_packet_pos() failed", __func__);
-				return -4;
+			if (!used_for_dyn_ops) {
+				ret = get_rw_packet_pos(&pp, rts, rw_shrms, desc_front);
+				if (ret) {
+					pr_err("%s: get_rw_packet_pos() failed", __func__);
+					return -4;
+				}
 			}
 
 			ret = avail_pop_front(rts);
@@ -219,22 +238,49 @@ int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 				return ret;
 			}
 
-			ret = delete_packet_from_shrm(pp, rw_shrms);
-			if (ret) {
-				pr_err("%s: delete_packet_from_shrm() failed", __func__, ret);
-				return ret;
+			if (!used_for_dyn_ops) {
+				ret = delete_packet_from_shrm(&pp, rw_shrms);
+				if (ret) {
+					pr_err("%s: delete_packet_from_shrm() failed", __func__, ret);
+					return ret;
+				}
 			}
 
 			avail_front = rts->avail->front;
 		}
 	}
 
-	/*
-	if (!is_empty(rtr->used)) {
-		//TODO: remove_used()
-	}
-	*/
 	pr_info("%s done", __func__);
+	return 0;
+}
+
+int delete_used(struct rings_to_receive* rtr) {
+	if (!rtr || !rtr->peer_avail || !rtr->used) {
+		pr_err("%s: input pointers shouldn't be NULL. rtr: %llx", __func__, rtr);
+		return -1;
+	}
+
+	if (is_empty(rtr->used)) {
+		pr_info("%s: used ring is empty. so do nothing", __func__);
+		return 0;
+	}
+
+	if (rtr->peer_avail->front == rtr->used->rear) {
+		for(int i = rtr->used->front; i != rtr->used->rear; i = (i + 1) % MAX_DESC_RING) {
+			used_pop_front(rtr);
+		}
+	} else if (rtr->peer_avail->front == rtr->used->front) {
+		pr_info("%s: used ring's notification is not handled yet from the peer. so do nothing", __func__);
+	} else {
+		pr_err("%s: abnormal situation", __func__);
+
+		pr_err("%s: print peer_avail:", __func__);
+		print_avail(rtr->peer_avail);
+		pr_err("%s: print used:", __func__);
+		print_used(rtr->used);
+
+		return -2;
+	}
 
 	return 0;
 }

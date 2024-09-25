@@ -8,6 +8,29 @@
 #include "io_ring.h"
 #include "virt_pci_driver.h"
 
+static void print_io_ring(struct io_ring* io_ring) {
+	if (!io_ring) {
+		pr_err("%s: io_ring is null", __func__);
+		return;
+	}
+
+	pr_info("%s: front %d, rear %d", __func__, io_ring->front, io_ring->rear);
+
+	for(int i = io_ring->front; i < io_ring->rear; i++) {
+		pr_info("%s: io_ring->ring[%d] %d", __func__, i, io_ring->ring[i]);
+	}
+}
+
+void print_avail(struct io_ring* io_ring) {
+	pr_info("%s: start print_io_ring()", __func__);
+	print_io_ring(io_ring);
+}
+
+void print_used(struct io_ring* io_ring) {
+	pr_info("%s: start print_io_ring()", __func__);
+	print_io_ring(io_ring);
+}
+
 // caller should guarantee that the io_ring is not NULL
 bool is_empty(struct io_ring* io_ring) {
 	return io_ring->front == io_ring->rear;
@@ -109,24 +132,38 @@ int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx) {
 	if (!rings_to_send) 
 		return -EINVAL;
 
+	pr_info("%s: start io_ring_push_back()", __func__);
 	return io_ring_push_back(rings_to_send->avail, desc_idx);
 }
 
-int avail_pop_front(struct rings_to_send* rts) {
+static int io_ring_pop_front(struct io_ring* io_ring) {
 	int idx, ret;
 	u16 empty_ring = 0;
+
+	if (!io_ring) {
+		pr_err("%s: io_ring pointers shouldn't be NULL", __func__);
+		return -1;
+	}
+	idx = io_ring->front;
+	ret = idx;
+
+	io_ring->ring[idx] = empty_ring;
+	io_ring->front = (idx + 1) % MAX_DESC_RING;
+
+	return ret;
+}
+
+int avail_pop_front(struct rings_to_send* rts) {
+	int ret;
 
 	if (!rts || !rts->avail) {
 		pr_err("%s: input pointers shouldn't be NULL. rts: %llx", __func__, rts);
 		return -1;
 	}
-	idx = rts->avail->front;
-	ret = idx;
 
-	pr_info("%s: front: %d, ring[front]: %d", __func__, idx, rts->avail->ring[idx]);
-
-	rts->avail->ring[idx] = empty_ring;
-	rts->avail->front = (idx + 1) % MAX_DESC_RING;
+	pr_info("%s: front: %d, ring[front]: %d",
+			__func__, rts->avail->front, rts->avail->ring[rts->avail->front]);
+	ret = io_ring_pop_front(rts->avail);
 
 	return ret;
 }
@@ -135,7 +172,23 @@ int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx) {
 	if (!rings_to_recv) 
 		return -EINVAL;
 
+	pr_info("%s: start io_ring_push_back()", __func__);
 	return io_ring_push_back(rings_to_recv->used, desc_idx);
+}
+
+int used_pop_front(struct rings_to_receive* rtr) {
+	int ret;
+
+	if (!rtr || !rtr->used) {
+		pr_err("%s: input pointers shouldn't be NULL. rtr: %llx", __func__, rtr);
+		return -1;
+	}
+
+	pr_info("%s: front: %d, ring[front]: %d",
+			__func__, rtr->used->front, rtr->used->ring[rtr->used->front]);
+	ret = io_ring_pop_front(rtr->used);
+
+	return ret;
 }
 
 //TODO: setup rings_to_send & rings_to_receive
@@ -220,23 +273,29 @@ int desc_push_back(struct rings_to_send* rings_to_send, u64 offset, u32 len, u16
 int desc_pop_front(struct rings_to_send* rts) {
 	struct desc_ring* desc_ring;
 	struct desc empty_desc = {};
-	int idx;
+	int ret, idx;
 
-	if (!rts || !desc_ring)
+	if (!rts || !rts->desc_ring) {
+		pr_err("%s: input pointers shouldn't be NULL. rts: %#llx, rts->desc_ring: %#llx",
+				__func__, rts, rts->desc_ring);
 		return -1;
+	}
 
 	desc_ring = rts->desc_ring;
+	ret = desc_ring->front;
 	idx = desc_ring->front;
 
-	for(; desc_ring->ring[idx].flags & IO_RING_DESC_F_NEXT; idx = (idx + 1) % MAX_DESC_RING) {
+	do {
 		pr_info("%s: desc info: idx: %d, offset: %#llx, len: %#llx, shrm_id: %d, flags %d",
-				__func__, idx, desc_ring->ring[idx].offset, desc_ring->ring[idx].len, desc_ring->ring[idx].shrm_id, desc_ring->ring[idx].flags);
+				__func__, idx, desc_ring->ring[idx].offset, desc_ring->ring[idx].len,
+				desc_ring->ring[idx].shrm_id, desc_ring->ring[idx].flags);
 
 		desc_ring->ring[idx] = empty_desc;
-	}
+		idx = (idx + 1) % MAX_DESC_RING;
+	} while(desc_ring->ring[idx].flags & IO_RING_DESC_F_NEXT);
 	desc_ring->front = idx;
 
-	return 0;
+	return ret;
 }
 
 int read_desc(struct desc* desc, struct list_head* ro_shrms_head) {
