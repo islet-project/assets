@@ -60,6 +60,7 @@ MODULE_DEVICE_TABLE(pci, channel_id_table);
 
 static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent);
 static void channel_remove(struct pci_dev *pdev);
+void set_memory_shared(phys_addr_t start, int numpages);
 
 /* Driver registration structure */
 static struct pci_driver channel_driver = {
@@ -90,6 +91,7 @@ struct channel_priv {
 	u64 *ro_shrm_va_start;
 	struct shrm_list* rw_shrms;
 	struct list_head ro_shrms;
+	u8 shrm_token[2];
 	struct rings_to_send* rts;
 	struct rings_to_receive* rtr;
 };
@@ -217,16 +219,23 @@ int mmio_write_to_get_ro_shrm(u32 shrm_id) {
 }
 
 static u64 get_reserved_rw_shrm_ipa(void) {
-	u64 mmio_ret, reserved_shrm_ipa = 0, shrm_id;
+	u64 ret, reserved_shrm_ipa = 0;
+	u8 cnt = 0;
 
-	mmio_ret = mmio_read_to_get_shrm(SHRM_RW);
-	if (!mmio_ret) {
-		pr_err("[GCH] %s failed to get shrm_ipa with %d", __func__, mmio_ret);
-		return 0;
+	send_signal(SHRM_ALLOCATOR);
+	do {
+		ret = get_shrm_chunk();
+	} while(ret == -EAGAIN && cnt++ < 10);
+
+	if (ret < 0) {
+		pr_err("%s: get_shrm_chunk() is failed %d", __func__, ret);
+		return ret;
 	}
 
-	reserved_shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
-	shrm_id = mmio_ret & SHRM_ID_MASK;
+	reserved_shrm_ipa = ret & ~SHRM_ID_MASK;
+
+	pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, reserved_shrm_ipa);
+	set_memory_shared(reserved_shrm_ipa, 1);
 
 	// reserved_shrm_ipa should be the first requested shrm chunk
 	if (reserved_shrm_ipa != RESERVED_SHRM_RW_IPA_REGION_START) {
@@ -240,6 +249,23 @@ static u64 get_reserved_rw_shrm_ipa(void) {
 static void drv_setup_rw_rings(struct work_struct *work) {
 	int ret = 0;
 	u64 shrm_rw_ipa_range_start, reserved_shrm_ipa;
+
+	pr_info("%s: start", __func__);
+
+	switch(drv_priv->role) {
+		case CLIENT:
+			drv_priv->shrm_token[SHRM_RW] = SHRM_TEMP_TOKEN1;
+			break;
+		case SERVER:
+			drv_priv->shrm_token[SHRM_RW] = SHRM_TEMP_TOKEN2;
+			break;
+		default:
+			pr_err("%s: invalid role %d", __func__, drv_priv->role);
+			return;
+	}
+
+	pr_info("%s: call rsi_set_shrm_token(%d, %#x)", __func__, SHRM_RW, drv_priv->shrm_token[SHRM_RW]);
+	rsi_set_shrm_token(SHRM_RW, drv_priv->shrm_token[SHRM_RW]);
 
 	shrm_rw_ipa_range_start = get_shrm_ipa_start(SHRM_RW);
 	if (!shrm_rw_ipa_range_start) {
@@ -305,8 +331,21 @@ static int drv_setup_ro_rings(void) {
 	int ret;
 
 	pr_info("[GCH] %s start. And my role: %d", __func__, drv_priv->role);
-	
-	copy_from_shrm(NULL, NULL); // for the build test
+
+	switch(drv_priv->role) {
+		case CLIENT:
+			drv_priv->shrm_token[SHRM_RO] = SHRM_TEMP_TOKEN2;
+			break;
+		case SERVER:
+			drv_priv->shrm_token[SHRM_RO] = SHRM_TEMP_TOKEN1;
+			break;
+		default:
+			pr_err("%s: invalid role %d", __func__, drv_priv->role);
+			return -1;
+	}
+
+	pr_info("%s: call rsi_set_shrm_token(%d, %#x)", __func__, SHRM_RO, drv_priv->shrm_token[SHRM_RO]);
+	rsi_set_shrm_token(SHRM_RO, drv_priv->shrm_token[SHRM_RO]);
 
 	INIT_LIST_HEAD(&drv_priv->ro_shrms);
 

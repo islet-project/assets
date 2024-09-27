@@ -14,9 +14,13 @@
 #define SHRM_RO_IPA_REGION_START 0xD0000000
 #define SHRM_RO_IPA_REGION_END SHRM_RO_IPA_REGION_START + SHRM_IPA_RANGE_SIZE
 
+#define SHRM_TEMP_TOKEN1 0xAA
+#define SHRM_TEMP_TOKEN2 0xBB
+#define INVALID_SHRM_TOKEN 0xEE
+
 typedef enum {
-	SHRM_RO = 0,
-	SHRM_RW = 1,
+	SHRM_RW = 0,
+	SHRM_RO = 1,
 } SHRM_TYPE;
 
 struct shared_realm_memory {

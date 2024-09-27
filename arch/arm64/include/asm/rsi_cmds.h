@@ -79,4 +79,13 @@ static inline unsigned long rsi_get_addr_page_ripas(phys_addr_t ipa_base, phys_a
 	return res.a0;
 }
 
+static inline unsigned long rsi_set_shrm_token(u8 idx, u8 shrm_token)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SMC_RSI_SET_SHRM_TOKEN, idx, shrm_token, 0, 0, 0, 0, 0, &res);
+
+	return res.a0;
+}
+
 #endif

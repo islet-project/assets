@@ -138,9 +138,28 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 	return 0;
 }
 
+s64 get_shrm_chunk(void) {
+	s64 shrm_ipa, mmio_ret;
+	u32 shrm_id;
+
+	pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
+
+	mmio_ret = mmio_read_to_get_shrm(SHRM_RW);
+	shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
+	shrm_id = mmio_ret & SHRM_ID_MASK;
+	if (!shrm_ipa || !shrm_id) {
+		pr_err("[GCH] %s failed to get shrm_ipa. mmio_ret: %#llx", __func__, mmio_ret);
+		return -EAGAIN;
+	}
+
+	pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
+
+	return mmio_ret;
+}
+
 //TODO: need to be static. for now, it's opened just for the test
-int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
-	int ret = 0;
+s64 req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
+	s64 ret = 0;
 
 	if (!rw_shrms) {
 		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
@@ -148,40 +167,36 @@ int req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 	}
 
 	if (rw_shrms->add_req_pending) {
-		s64 shrm_ipa, mmio_ret;
+		s64 shrm_ipa;
 		u32 shrm_id;
 
-		pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
+		ret = get_shrm_chunk();
+		if (ret < 0) 
+			return ret;
 
-		mmio_ret = mmio_read_to_get_shrm(SHRM_RW);
-		shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
-		shrm_id = mmio_ret & SHRM_ID_MASK;
-		if (!shrm_ipa || !shrm_id) {
-			pr_err("[GCH] %s failed to get shrm_ipa. mmio_ret: %#llx", __func__, mmio_ret);
-			return -EAGAIN;
-		}
-
-		pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
+		shrm_ipa = ret & ~SHRM_ID_MASK;
+		shrm_id = ret & SHRM_ID_MASK;
 
 		if (!is_valid_ipa(rw_shrms, shrm_ipa, SHRM_CHUNK_SIZE)) {
 			pr_err("[GCH] %s shrm_ipa 0x%llx is not valid", __func__, shrm_ipa);
 			return -EINVAL;
 		}
 
-		set_memory_shared(shrm_ipa, 1);
 		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, shrm_ipa);
+		set_memory_shared(shrm_ipa, 1);
 
 		ret = add_rw_shrm_chunk(rts, rw_shrms, shrm_ipa, shrm_id);
 		if (ret) 
 			return ret;
 
 		rw_shrms->add_req_pending = false;
+
+		return ret;
 	} else {
 		pr_info("[GCH] %s set_req_pending", __func__);
 		set_req_pending(rw_shrms);
 		return -EAGAIN;
 	}
-	return 0;
 }
 
 bool invalid_packet_pos(struct packet_pos* pp) {
