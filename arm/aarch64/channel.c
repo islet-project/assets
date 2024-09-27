@@ -308,7 +308,6 @@ static int vchannel_init(struct kvm *kvm) {
     int ret = 0;
 	u32 mmio_addr = pci_get_mmio_block(PCI_IO_SIZE);
     Client* client = get_client(kvm->cfg.arch.socket_path, IOEVENTFD_BASE_ADDR, kvm);
-    u64 ipa = get_unmapped_ipa(SHRM_RW);
 
     ch_syslog("%s start", __func__);
 
@@ -361,14 +360,6 @@ static int vchannel_init(struct kvm *kvm) {
     vchannel_dev->gsi = vchannel_dev->pci_hdr.irq_line - KVM_IRQ_OFFSET;
 
 	ch_syslog("irq_type %d", vchannel_dev->pci_hdr.irq_type);
-    
-    // Set first shared memory
-    //ret = setup_first_shared_memory(kvm, client->vmid); // TODO: this api should be removed
-    realm_init_ripas(kvm, ipa, INTER_REALM_SHM_SIZE, true);
-    ret = alloc_shared_realm_memory(client, client->vmid, SHRM_RW, 0);
-    if (ret) {
-        die("vchannel_init: alloc_shared_realm_memory is failed");
-    }
 
 	ret = set_ioeventfd(client, client->shm_alloc_efd, SHM_ALLOC_EFD_ID);
 
