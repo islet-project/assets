@@ -16,9 +16,9 @@ NOTICE
 
 This version of the tool is compatible with Arm CCA environments that use the the following set of components:
 
-- kvmtool supporting Arm CCA https://gitlab.arm.com/linux-arm/kvmtool-cca branch: cca/rfc-v1
-- Linux kernel supporting Arm CCA https://gitlab.arm.com/linux-arm/linux-cca branch: cca-host/rfc-v1
-- Trusted Firmware RMM - TF-RMM https://git.trustedfirmware.org/TF-RMM/tf-rmm.git (v0.3.0 aligned with the RMM v1.0-Beta0 specification)
+- kvmtool supporting Arm CCA https://gitlab.arm.com/linux-arm/kvmtool-cca branch: cca/rmm-v1.0-eac5
+- Linux kernel supporting Arm CCA https://gitlab.arm.com/linux-arm/linux-cca branch: cca-host/rmm-v1.0-eac5
+- Trusted Firmware RMM - TF-RMM https://git.trustedfirmware.org/TF-RMM/tf-rmm.git (aligned with the RMM v1.0-EAC5 specification)
 
 WARNING: Because the tool re-uses the original TF-RMM source code of measurement descriptor structures, the tool currently targets only 64 bit little-endian environments (this should cover majority of modern Linux PC workstations).
 
@@ -70,6 +70,9 @@ The tool takes the same set of options as lkvm run command and produces the Real
 	  Info: (virtio/mmio.c) virtio_mmio_init:208: virtio-mmio.devices=0x200@0x3000600:39
 	RIM: F58AF6D6A022F113627B1E0B1E0D9B9A1BFB460207AC29721E84BCEF4B4F5CE08351684444BC11CF329D1D4C807BB621807916C2DF4F56B7326E8D16692546A8
 
+WARNING: By default the tool generates the RIM for the TF-RMM (1.0-EAC5) launched on FVP platform. To generate the RIM for the Islet RMM
+one should pass additional `--islet` option. The difference between TF-RMM and Islet is with the value from the RMM's
+features0 register which affects the initial measurements.
 
 TESTS
 =====
