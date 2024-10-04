@@ -291,17 +291,12 @@ br-make-flags := -j1
 endif
 
 
-.patch_buildroot:
-	cd $(BUILDROOT_PATH); \
-	git am $(BUILD_PATH)/br-ext/patches/cca/*.patch
-	touch $@
-
 .qemu_target:
 	cd $(QEMU_TARGET_PATH); ./configure --target-list=aarch64-softmmu; make clean
 	touch $@
 
 .PHONY: buildroot
-buildroot: optee-os .qemu_target .patch_buildroot
+buildroot: optee-os .qemu_target
 	@mkdir -p ../out-br
 	@rm -f ../out-br/build/optee_*/.stamp_*
 	@rm -f ../out-br/extra.conf
@@ -310,8 +305,10 @@ buildroot: optee-os .qemu_target .patch_buildroot
 	@echo 'QEMU_OVERRIDE_SRCDIR=$(QEMU_TARGET_PATH)' >> ../out-br/local.mk
 	@(cd .. && $(PYTHON3) build/br-ext/scripts/make_def_config.py \
 		--br buildroot --out out-br --br-ext build/br-ext \
+		--br-ext buildroot-external-cca \
 		--top-dir "$(ROOT)" \
 		--br-defconfig buildroot/configs/qemu_aarch64_virt_defconfig \
+		--br-defconfig buildroot-external-cca/configs/cca_defconfig \
 		--br-defconfig out-br/extra.conf \
 		--make-cmd $(MAKE))
 	@$(MAKE) $(br-make-flags) -C ../out-br all
