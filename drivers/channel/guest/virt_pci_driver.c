@@ -49,6 +49,9 @@ static struct class *ch_class;
 struct channel_priv *drv_priv;
 u64 test_shrm_offset = 0x0;
 
+u64 test_msg[3] = {0xBEEF, 0xF00D, 0xC0FFEE};
+
+
 /* This sample driver supports device with VID = 0x010F, and PID = 0x0F0E*/
 static struct pci_device_id channel_id_table[] = {
     { PCI_DEVICE(VENDOR_ID, DEVICE_ID) },
@@ -124,6 +127,7 @@ void send_signal(int peer_id) {
 }
 
 void notify_peer(void) {
+	pr_info("%s!", __func__);
 	send_signal(drv_priv->peer.id);
 }
 
@@ -376,9 +380,9 @@ static int drv_setup_ro_rings(void) {
 
 static void ch_send(struct work_struct *work) {
 	static int cnt = 0;
-	u64 msg = 0xBEEF;
+	//u64 msg = 0xBEEF;
 	u64 *rw_shrm_va = get_shrm_va(SHRM_RW, test_shrm_offset);
-	//u64 *rw_shrm_va = drv_priv->rw_shrm_va_start;
+	//u64 msg[10] = TEST_MSG;
 
 	pr_info("%s: front: %d, rear: %d",
 			__func__, drv_priv->rts->avail->front, drv_priv->rts->avail->rear);
@@ -399,7 +403,7 @@ static void ch_send(struct work_struct *work) {
 			__func__, drv_priv->rw_shrm_va_start, rw_shrm_va);
 
 	if (cnt == 0) {
-		write_packet(drv_priv->rts, drv_priv->rw_shrms, &msg, sizeof(u64));
+		write_packet(drv_priv->rts, drv_priv->rw_shrms, test_msg, sizeof(test_msg));
 		cnt++;
 	}
 	pr_info("%s: front: %d, rear: %d",
@@ -408,8 +412,45 @@ static void ch_send(struct work_struct *work) {
 	pr_info("[GCH] %s done", __func__);
 }
 
+static bool is_same_msg(u64* a, u64* b, u64 size) {
+	const u64 *u1 = a, *u2 = b;
+	int res = 0, cnt;
+
+	if (!a || !b) {
+		pr_err("%s: input pointer shouldn't be null. a: %#llx, b: %#llx", __func__, a, b);
+		return false;
+	}
+
+	for (cnt = 0; cnt*sizeof(size) < size; cnt++)
+		if ((res = u1[cnt] - u2[cnt]) != 0) {
+			pr_err("%s: u1[%d]: %#llx != u2[%d] %#llx",
+					__func__, cnt, u1[cnt], cnt, u2[cnt]);
+			break;
+		}
+	return res == 0;
+}
+
+u64 get_packet_size(struct shrm_list* rw_shrms, struct rings_to_receive* rtr) {
+	u64 packet_size = 0;
+	struct desc_ring* peer_desc_ring = rtr->peer_desc_ring;
+
+	pr_info("%s: peer_desc_ring's front %d, rear %d",
+			__func__, peer_desc_ring->front, peer_desc_ring->rear);
+
+	for (int i = peer_desc_ring->front; i != peer_desc_ring->rear; i = (i+1) % MAX_DESC_RING) {
+		struct desc* desc = &peer_desc_ring->ring[i];
+		pr_info("%s: desc info: offset: %#llx, len: %#llx, shrm_id: %d, flags %d",
+				__func__, desc->offset, desc->len, desc->shrm_id, desc->flags);
+
+		packet_size += desc->len;
+	}
+
+	return packet_size;
+}
+
 static void ch_receive(struct work_struct *work) {
 	int ret;
+	u64* received_data = NULL, used_size = 0;
 
 	pr_info("%s start", __func__);
 	set_peer_id();
@@ -434,12 +475,43 @@ static void ch_receive(struct work_struct *work) {
 		return;
 	}
 
-	ret = read_packet(drv_priv->rtr, &drv_priv->ro_shrms);
-	if (ret) {
-		pr_err("%s: read_packet failed %d", __func__, ret);
-		return;
+	used_size = get_packet_size(drv_priv->rw_shrms, drv_priv->rtr);
+	// TODO: something wrong.. need to fix (cos, used_size == 0x1000)
+	//used_size = drv_priv->rw_shrms->total_size - drv_priv->rw_shrms->free_size;
+	pr_info("%s: used_size: %#llx", __func__, used_size);
+
+	if (used_size) {
+		received_data = kzalloc(used_size, GFP_KERNEL);
+		if (!received_data) {
+			pr_err("%s: failed to kzalloc", __func__);
+			return;
+		}
 	}
 
+	pr_info("%s: received_data: %#llx", __func__, received_data);
+
+	ret = read_packet(drv_priv->rtr, &drv_priv->ro_shrms, received_data);
+	if (ret) {
+		pr_err("%s: read_packet failed %d", __func__, ret);
+		goto err;
+	}
+
+	if (drv_priv->role == CLIENT) {
+		if (is_same_msg(test_msg, received_data, sizeof(test_msg))) {
+			pr_info("%s: received data is matched with test_msg. TEST RESULT: PASS",
+					__func__, test_msg);
+		} else {
+			pr_err("%s: received data is not matched with test_msg. TEST RESULT: FAILED",
+					__func__, test_msg);
+		}
+	} else {
+		pr_info("%s: send the received_data to the CLIENT", __func__);
+		write_packet(drv_priv->rts, drv_priv->rw_shrms, received_data, used_size);
+	}
+
+err:
+	if (received_data)
+		kfree(received_data);
 	pr_info("%s done", __func__);
 }
 

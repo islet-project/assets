@@ -4,7 +4,7 @@
 #include "io_ring.h"
 
 int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const void* data, u64 size);
-int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head);
+int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head, u64* data);
 int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms);
 int delete_used(struct rings_to_receive* rtr);
 

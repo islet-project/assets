@@ -298,26 +298,29 @@ int desc_pop_front(struct rings_to_send* rts) {
 	return ret;
 }
 
-int read_desc(struct desc* desc, struct list_head* ro_shrms_head) {
+//TODO: return type int.. should we change it to s64 ?
+int read_desc(struct desc* desc, struct list_head* ro_shrms_head, u64* data) {
 	struct shared_realm_memory *cur, *target = NULL;
-	u64 *data, *ro_shrm_va;
+	u64 *ro_shrm_va;
 
 	pr_info("%s start", __func__);
 
-	if (!desc || !ro_shrms_head) {
-		pr_err("%s: input ptrs shouldn't be null. desc %llx, ro_shrms_head %llx",
-				__func__, desc, ro_shrms_head);
+	if (!desc || !ro_shrms_head || !data) {
+		pr_err("%s: input ptrs shouldn't be null. desc %llx, ro_shrms_head %llx, data %#llx",
+				__func__, desc, ro_shrms_head, data);
 		return -1;
 	}
 
 	pr_info("%s: desc info: offset: %#llx, len: %#llx, shrm_id: %d, flags %d",
 			__func__, desc->offset, desc->len, desc->shrm_id, desc->flags);
 
+	/*
 	data = kzalloc(desc->len, GFP_KERNEL);
 	if (!data) {
 		pr_err("[GCH] %s: failed to kzalloc", __func__);
 		return -ENOMEM;
 	}
+	*/
 
 	list_for_each_entry(cur, ro_shrms_head, head) {
 		if (desc->shrm_id == cur->shrm_id) {
@@ -345,15 +348,23 @@ int read_desc(struct desc* desc, struct list_head* ro_shrms_head) {
 	pr_info("%s: memcpy from ro_shrm", __func__);
 	memcpy(data, ro_shrm_va, desc->len);
 
-	pr_info("%s: start to print the data: ", __func__);
-	for (u64 i = 0; i < desc->len; i+= sizeof(*data)) {
-		pr_cont("%llx", data[i]);
+	pr_info("%s: start to print the received data: ", __func__);
+	for (int i = 0; i * sizeof(data) < desc->len; i++) {
+		pr_cont("%#llx ", data[i]);
 	}
 
-	kfree(data);
+	/*
+	if (!strcmp(TEST_MSG, data)) {
+		pr_info("%s: written data is matched with '%s'. TEST RESULT: PASS", __func__, TEST_MSG);
+	} else {
+		pr_err("%s: written data is not matched with '%s'. TEST RESULT: FAILED", __func__, TEST_MSG);
+	}
+	*/
+
+	//kfree(data);
 
 	pr_info("%s done", __func__);
-	return 0;
+	return desc->len;
 }
 
 /* maybe useless..

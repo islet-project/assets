@@ -220,14 +220,25 @@ bool invalid_packet_pos(struct packet_pos* pp) {
 	return false;
 }
 
+static int _write_to_shrm(struct shrm_list* rw_shrms, u64* va, u64* data, u64 size) {
+	if (rw_shrms->free_size < size) {
+		pr_err("%s: not enough shrm. free_size: %#llx < size: %#llx",
+				__func__, rw_shrms->free_size, size);
+		return -1;
+	}
+	memcpy(va, data, size);
+	rw_shrms->free_size -= size;
+	return 0;
+}
+
 // Returns number of bytes that could not be written. On success, this will be zero.
 int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size) {
 	struct packet_pos *cur_pp;
 	struct shared_realm_memory *next_rear_shrm;
-	int move_cnt = 0;
+	int move_cnt = 0, ret;
 	u64 written_size = 0, *dest_va, data_size = size;
 
-	pr_info("[GCH] %s start", __func__);
+	pr_info("[GCH] %s start. size %#llx", __func__, size);
 
 	if (!rw_shrms || list_empty(&rw_shrms->head)) {
 		pr_info("[GCH] %s rw_shrms or first list shouldn't be NULL. rw_shrms: %#llx",
@@ -282,10 +293,13 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 	}
 
 	if (size <= SHRM_CHUNK_SIZE - cur_pp->rear.offset) {
-		memcpy(dest_va, data, data_size);
+		ret = _write_to_shrm(rw_shrms, dest_va, data, data_size);
+		if (ret)
+			return ret;
+
 		pr_info("%s: data 1: ", __func__);
-		for (u64 i = 0; i < data_size; i+= sizeof(u64)) {
-			pr_cont("%llx", dest_va[i]);
+		for (int i = 0; i * sizeof(data) < data_size; i++) {
+			pr_info("%#llx i:%d ", dest_va[i], i);
 		}
 
 		pp->front = cur_pp->rear;
@@ -298,7 +312,10 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 
 		return 0;
 	}
-	memcpy(dest_va, data, SHRM_CHUNK_SIZE - cur_pp->rear.offset);
+	ret = _write_to_shrm(rw_shrms, dest_va, data, SHRM_CHUNK_SIZE - cur_pp->rear.offset);
+	if (ret)
+		return ret;
+
 	pr_info("%s: data 2: ", __func__);
 	for (u64 i = 0; i < SHRM_CHUNK_SIZE - cur_pp->rear.offset; i+= sizeof(u64)) {
 		pr_cont("%llx", dest_va[i]);
@@ -311,7 +328,11 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 	for(int i = 1; i < move_cnt && data_size > written_size;
 			i++, next_rear_shrm = list_next_entry(next_rear_shrm, head)) {
 		dest_va = get_shrm_va(SHRM_RW, next_rear_shrm->ipa);
-		memcpy(dest_va, data + written_size, SHRM_CHUNK_SIZE);
+
+		ret = _write_to_shrm(rw_shrms, dest_va, data + written_size, SHRM_CHUNK_SIZE);
+		if (ret)
+			return ret;
+
 		pr_info("%s: data 3: ", __func__);
 		for (u64 i = 0; i < SHRM_CHUNK_SIZE; i+= sizeof(u64)) {
 			pr_cont("%llx", dest_va[i]);
@@ -328,7 +349,10 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 	}
 
 	dest_va = get_shrm_va(SHRM_RW, next_rear_shrm->ipa);
-	memcpy(dest_va, data + written_size, data_size - written_size);
+	ret = _write_to_shrm(rw_shrms, dest_va, data + written_size, data_size - written_size);
+	if (ret)
+		return ret;
+
 	pr_info("%s: data 4: ", __func__);
 	for (u64 i = 0; i < data_size - written_size; i+= sizeof(u64)) {
 		pr_cont("%llx", dest_va[i]);
@@ -342,8 +366,6 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 	cur_pp->size += data_size;
 
 	pp->rear = cur_pp->rear;
-
-	rw_shrms->free_size -= data_size;
 
 	return data_size - written_size; // in normal case, should be zero
 }
@@ -423,8 +445,20 @@ struct shared_realm_memory* get_shrm_with(struct shrm_list* rw_shrms, u32 shrm_i
 	return NULL;
 }
 
+static int delete_from_shrm(struct shrm_list* rw_shrms, u64* va, u64 size) {
+	if (rw_shrms->free_size < size) {
+		pr_err("%s: not enough shrm. free_size: %#llx < size: %#llx",
+				__func__, rw_shrms->free_size, size);
+		return -1;
+	}
+	memset(va, 0, size);
+	rw_shrms->free_size += size;
+	return 0;
+}
+
 //TODO: how about memset only one desc ? and just use it repeatedly
 int delete_packet_from_shrm(struct packet_pos* pp, struct shrm_list* rw_shrms) {
+	int ret;
 	struct shared_realm_memory* cur;
 	u64 *dest_va;
 
@@ -456,7 +490,10 @@ int delete_packet_from_shrm(struct packet_pos* pp, struct shrm_list* rw_shrms) {
 	if (pp->front.shrm == pp->rear.shrm) {
 		dest_va = get_shrm_va(SHRM_RW, pp->front.shrm->ipa + pp->front.offset);
 		pr_info("%s: memset va: %#llx, size: %#llx", __func__, dest_va, pp->rear.offset);
-		memset(dest_va, 0, pp->rear.offset);
+
+		ret = delete_from_shrm(rw_shrms, dest_va, pp->rear.offset);
+		if (ret)
+			return ret;
 
 		rw_shrms->pp.front.offset = pp->rear.offset;
 		pr_info("%s done 1", __func__);
@@ -466,13 +503,18 @@ int delete_packet_from_shrm(struct packet_pos* pp, struct shrm_list* rw_shrms) {
 	cur = pp->front.shrm;
 	for(;cur != pp->rear.shrm; cur = list_next_entry(cur, head)) {
 		dest_va = get_shrm_va(SHRM_RW, cur->ipa);
-		memset(dest_va, 0, SHRM_CHUNK_SIZE);
+
 		pr_info("%s: memset va: %#llx, size: %#llx", __func__, dest_va, SHRM_CHUNK_SIZE);
+		ret = delete_from_shrm(rw_shrms, dest_va, SHRM_CHUNK_SIZE);
+		if (ret)
+			return ret;
 	}
 
 	dest_va = get_shrm_va(SHRM_RW, pp->rear.shrm->ipa);
-	memset(dest_va, 0, pp->rear.offset);
 	pr_info("%s: memset va: %#llx, size: %#llx", __func__, dest_va, pp->rear.offset);
+	ret = delete_from_shrm(rw_shrms, dest_va, pp->rear.offset);
+	if (ret)
+		return ret;
 
 	rw_shrms->pp.front.offset = pp->rear.offset;
 	pr_info("%s done 2", __func__);

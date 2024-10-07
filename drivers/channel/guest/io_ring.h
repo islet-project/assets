@@ -67,7 +67,7 @@ struct desc_ring {
 int avail_push_back(struct rings_to_send* rings_to_send, u16 desc_idx);
 int used_push_back(struct rings_to_receive* rings_to_recv, u16 desc_idx);
 int desc_push_back(struct rings_to_send* rings_to_send, u64 offset, u32 len, u16 flags, u16 shrm_id);
-int read_desc(struct desc* desc, struct list_head* ro_shrms_head);
+int read_desc(struct desc* desc, struct list_head* ro_shrms_head, u64* data);
 int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ro_ipa);
 int init_rw_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ipa);
 bool is_empty(struct io_ring* io_ring);

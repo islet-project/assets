@@ -9,21 +9,22 @@ void notify_peer(void);
  * It reads packets from peer_avail_ring and then writes the same descriptor index into used_ring
  * to notify that the descriptor entries are read 
  */
-int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
+int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head, u64* data) {
 	int ret;
 	struct io_ring* peer_avail;
 	struct desc_ring* peer_desc_ring;
 	u16 i;
 	bool need_to_notify = false;
+	u64 offset = 0;
 
 	pr_info("%s start", __func__);
 
 	pr_info("%s: peer_avail %llx, peer_desc_ring %llx",
 			__func__, rtr->peer_avail, rtr->peer_desc_ring);
 
-	if (!rtr || !ro_shrms_head) {
-		pr_err("%s: input pointers shouldn't be NULL. rtr: %llx, ro_shrms_head: %llx",
-				__func__, rtr, ro_shrms_head);
+	if (!rtr || !ro_shrms_head || !data) {
+		pr_err("%s: input pointers shouldn't be NULL. rtr: %llx, ro_shrms_head: %llx, data: %#llx",
+				__func__, rtr, ro_shrms_head, data);
 		return -1;
 	}
 
@@ -61,11 +62,17 @@ int read_packet(struct rings_to_receive* rtr, struct list_head* ro_shrms_head) {
 			} else if (desc->flags & IO_RING_DESC_F_DYN_FREE) {
 				// TODO: remove_ro_shrm_chunk();
 			} else {
-				ret = read_desc(desc, ro_shrms_head);
-				if (ret) {
+				u64 data_start = (u64)data;
+				data_start += offset;
+				pr_info("%s: data: %#llx, offset: %#llx, data_start: %#llx",
+						__func__, (u64)data, offset, data_start);
+
+				ret = read_desc(desc, ro_shrms_head, (u64*)data_start);
+				if (ret < 0) {
 					pr_err("%s: read_desc failed %d", __func__, ret);
 					return ret;
 				}
+				offset += ret;
 			}
 		} while(desc->flags & IO_RING_DESC_F_NEXT);
 
@@ -91,6 +98,12 @@ int write_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms, const vo
 	struct shared_realm_memory* cur_shrm = NULL;
 
 	pr_info("%s start", __func__);
+
+	if (!rts || !rw_shrms || !data) {
+		pr_err("%s: input pointers shouldn't be NULL. rts: %llx, rw_shrms: %llx, data: %#llx",
+				__func__, rts, rw_shrms, data);
+		return -1;
+	}
 
 	do {
 		ret = write_to_shrm(rts, rw_shrms, &pp, data, size);
@@ -203,6 +216,7 @@ int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 		if (p_used_front != avail_front) {
 			pr_err("%s: mismatched fronts peer_used->front: %d != avail->front %d",
 					__func__, p_used_front, avail_front);
+			// TODO: delete_used would be needed. so we need to return a flag for it. it's not an error
 			return -2;
 		}
 
