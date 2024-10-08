@@ -27,6 +27,9 @@
 #include <sys/wait.h>
 #include <sys/eventfd.h>
 
+#include <stdlib.h>
+#include <time.h>
+
 #define VIRTIO_NET_QUEUE_SIZE		256
 #define VIRTIO_NET_NUM_QUEUES		8
 
@@ -898,7 +901,13 @@ int netdev_parser(const struct option *opt, const char *arg, int unset)
 		.mode		= NET_MODE_TAP,
 	};
 
-	str_to_mac(DEFAULT_GUEST_MAC, p.guest_mac);
+	// TODO: need other solution to guarantee an unique mac address among VMs
+	srand((unsigned int)time(NULL));
+	for (int i = 0; i < 6; i++) {
+		p.guest_mac[i] = rand() % 256;
+		pr_info("%s: p.guest_mac[%d]: 0x%x", __func__, i, p.guest_mac[i]);
+	}
+
 	p.guest_mac[5] += kvm->cfg.num_net_devices;
 
 	while (cur) {
