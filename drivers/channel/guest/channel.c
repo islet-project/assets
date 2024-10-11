@@ -198,6 +198,12 @@ int get_rw_packet_pos(struct packet_pos* pp, struct rings_to_send* rts, struct s
 	return 0;
 }
 
+/*
+ * If a peer_used ring is not empty, it means that the descriptor entries in the peer_used ring
+ * were handled from peer side. So this function deletes the entries from avail ring, descriptor ring
+ * and finally from the shared realm memory only if the entries in avail ring are the same as the entries
+ * in used ring
+ */
 int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 	int ret;
 
@@ -214,9 +220,13 @@ int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 		struct packet_pos pp = {};
 
 		if (p_used_front != avail_front) {
-			pr_err("%s: mismatched fronts peer_used->front: %d != avail->front %d",
+			pr_info("%s: mismatched fronts peer_used->front: %d != avail->front %d",
 					__func__, p_used_front, avail_front);
-			// TODO: delete_used would be needed. so we need to return a flag for it. it's not an error
+
+			if (p_used_front < avail_front) {
+				pr_info("%s: There are entries to delete from peer's used ring", __func__);
+				return 0;
+			}
 			return -2;
 		}
 
@@ -262,6 +272,9 @@ int delete_packet(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 
 			avail_front = rts->avail->front;
 		}
+	} else {
+		pr_info("%s: There is no packet to delete", __func__);
+		return 0;
 	}
 
 	pr_info("%s done", __func__);

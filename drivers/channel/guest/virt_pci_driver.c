@@ -97,6 +97,8 @@ struct channel_priv {
 	u8 shrm_token[2];
 	struct rings_to_send* rts;
 	struct rings_to_receive* rtr;
+	bool init_rw_rings_done;
+	bool init_ro_rings_done;
 };
 
 
@@ -301,7 +303,7 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 		return;
 	}
 
-	ret = init_rw_rings(drv_priv->rts, drv_priv->rtr, reserved_shrm_ipa);
+	ret = init_rw_rings(drv_priv->rts, drv_priv->rtr, reserved_shrm_ipa, &drv_priv->init_rw_rings_done);
 	if (ret) {
 		pr_err("%s: init_rw_rings failed. %d", __func__, ret);
 		return;
@@ -368,9 +370,9 @@ static int drv_setup_ro_rings(void) {
 	//pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx va: %p", __func__, shrm_ipa, drv_priv->ro_shrm_va_start);
 	//set_memory_shared(shrm_ipa, 1); // don't need it. cos the mapping is already done using mmap write trap
 
-	ret = init_ro_rings(drv_priv->rts, drv_priv->rtr, reserved_shrm_ro_ipa);
+	ret = init_ro_rings(drv_priv->rts, drv_priv->rtr, reserved_shrm_ro_ipa, &drv_priv->init_ro_rings_done);
 	if (ret) {
-		pr_err("%s: init_rw_rings failed. %d", __func__, ret);
+		pr_err("%s: init_ro_rings failed. %d", __func__, ret);
 		return -4;
 	}
 
@@ -450,7 +452,7 @@ u64 get_packet_size(struct shrm_list* rw_shrms, struct rings_to_receive* rtr) {
 
 static void ch_receive(struct work_struct *work) {
 	int ret;
-	u64* received_data = NULL, used_size = 0;
+	u64* received_data = NULL, received_packet_size = 0;
 
 	pr_info("%s start", __func__);
 	set_peer_id();
@@ -475,17 +477,18 @@ static void ch_receive(struct work_struct *work) {
 		return;
 	}
 
-	used_size = get_packet_size(drv_priv->rw_shrms, drv_priv->rtr);
-	// TODO: something wrong.. need to fix (cos, used_size == 0x1000)
-	//used_size = drv_priv->rw_shrms->total_size - drv_priv->rw_shrms->free_size;
-	pr_info("%s: used_size: %#llx", __func__, used_size);
+	received_packet_size = get_packet_size(drv_priv->rw_shrms, drv_priv->rtr);
+	pr_info("%s: received_packet_size: %#llx", __func__, received_packet_size);
 
-	if (used_size) {
-		received_data = kzalloc(used_size, GFP_KERNEL);
+	if (received_packet_size) {
+		received_data = kzalloc(received_packet_size, GFP_KERNEL);
 		if (!received_data) {
 			pr_err("%s: failed to kzalloc", __func__);
 			return;
 		}
+	} else {
+		pr_info("%s: There is no packet to read", __func__);
+		return;
 	}
 
 	pr_info("%s: received_data: %#llx", __func__, received_data);
@@ -506,7 +509,7 @@ static void ch_receive(struct work_struct *work) {
 		}
 	} else {
 		pr_info("%s: send the received_data to the CLIENT", __func__);
-		write_packet(drv_priv->rts, drv_priv->rw_shrms, received_data, used_size);
+		write_packet(drv_priv->rts, drv_priv->rw_shrms, received_data, received_packet_size);
 	}
 
 err:
@@ -656,8 +659,6 @@ static void __exit channel_exit(void)
     pci_unregister_driver(&channel_driver);
 }
 
-
-
 /* 
  * There are two differnt logic based by caller layer (Host or Realm)
  * From Host: Shared memory is arrived 
@@ -669,11 +670,22 @@ static irqreturn_t channel_irq_handler(int irq, void* dev_instance)
 	static int cnt = 0;
 	pr_info("[GCH] IRQ #%d cnt %d\n", irq, cnt);
 
+
+	if (!drv_priv->init_rw_rings_done) {
+		return IRQ_NONE;
+	}
+
+	if (drv_priv->init_ro_rings_done) {
+		int received_packet_size = get_packet_size(drv_priv->rw_shrms, drv_priv->rtr);
+
+		if (is_empty(drv_priv->rts->peer_used) && !received_packet_size)
+			return IRQ_NONE;
+	}
+
 	pr_info("[GCH] %s start schedule_work for receive", __func__);
 	schedule_work(&drv_priv->receive);
 
-	return (cnt++) ? IRQ_NONE : IRQ_HANDLED;
-	//return IRQ_HANDLED;
+	return IRQ_HANDLED;
 }
 
 /* This function is called by the kernel */

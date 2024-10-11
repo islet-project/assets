@@ -192,14 +192,19 @@ int used_pop_front(struct rings_to_receive* rtr) {
 }
 
 //TODO: setup rings_to_send & rings_to_receive
-int init_rw_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ipa) {
+int init_rw_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ipa, bool* init_done) {
 	u64* shrm_rw_va = get_shrm_va(SHRM_RW, shrm_ipa);
 	pr_info("%s start", __func__);
 
-	if (!rts || !rtr || !shrm_rw_va) {
-		pr_err("%s: input pointers shouldn't be NULL. rts: %llx, rtr: %llx, shrm_rw_va: %llx",
-				__func__, rts, rtr, shrm_rw_va);
+	if (!rts || !rtr || !shrm_rw_va || !init_done) {
+		pr_err("%s: input pointers shouldn't be NULL. rts: %llx, rtr: %llx, shrm_rw_va: %llx, init_done: %llx",
+				__func__, rts, rtr, shrm_rw_va, init_done);
 		return -1;
+	}
+
+	if (*init_done) {
+		pr_err("%s is already done", __func__);
+		return -EACCES;
 	}
 
 	pr_info("%s: avail offset %llx, desc_ring offset %llx, used_ring offset %llx",
@@ -222,17 +227,24 @@ int init_rw_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 s
 		return -4;
 	}
 
+	*init_done = true;
+
 	return 0;
 }
 
-int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ro_ipa) {
+int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 shrm_ro_ipa, bool* init_done) {
 	u64* shrm_ro_va = get_shrm_va(SHRM_RO, shrm_ro_ipa);
 	pr_info("%s start", __func__);
 
-	if (!rts || !rtr || !shrm_ro_va) {
-		pr_err("%s: input pointers shouldn't be NULL. rts: %llx, rtr: %llx, shrm_ro_va: %llx",
-				__func__, rts, rtr, shrm_ro_va);
+	if (!rts || !rtr || !shrm_ro_va || !init_done) {
+		pr_err("%s: input pointers shouldn't be NULL. rts: %llx, rtr: %llx, shrm_ro_va: %llx, init_done: %llx",
+				__func__, rts, rtr, shrm_ro_va, init_done);
 		return -1;
+	}
+
+	if (*init_done) {
+		pr_err("%s is already done", __func__);
+		return -EACCES;
 	}
 
 	rtr->peer_avail = (struct io_ring*)get_shrm_va(SHRM_RO, shrm_ro_ipa + AVAIL_RING_OFFSET);
@@ -241,6 +253,8 @@ int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 s
 
 	pr_info("%s: peer_avail %llx, peer_desc_ring %llx, peer_used %llx",
 			__func__, rtr->peer_avail, rtr->peer_desc_ring, rts->peer_used);
+
+	*init_done = true;
 
 	return 0;
 }
