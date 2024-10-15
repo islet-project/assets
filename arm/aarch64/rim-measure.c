@@ -231,9 +231,12 @@ void measurer_reset_vcpu_aarch64(u64 pc, u64 flags, u64 dtb)
 
 void measurer_print_rim(void)
 {
-	size_t i;
+	size_t i, rim_size;
+
+	rim_size = measurement_get_size(measurer_hash_algo);
+
 	printf("RIM: ");
-	for (i = 0; i < MAX_MEASUREMENT_SIZE; i++) {
+	for (i = 0; i < rim_size; i++) {
 		printf("%02X", rim[i]);
 	}
 	printf("\n");
