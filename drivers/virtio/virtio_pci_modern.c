@@ -18,6 +18,35 @@
 #define VIRTIO_PCI_NO_LEGACY
 #define VIRTIO_RING_NO_LEGACY
 #include "virtio_pci_common.h"
+#include <linux/dma-map-ops.h>
+#include <linux/dma-direct.h>
+
+static void *eom_test_alloc(struct device *dev, size_t size,
+		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs) {
+	pr_info("%s: start!", __func__);
+	dump_stack();
+	return dma_direct_alloc(dev, size, dma_handle, gfp, attrs);
+}
+static struct dma_map_ops test_dma_ops = { 
+	.get_sgtable = dma_direct_get_sgtable,
+	.mmap = dma_direct_mmap,
+	.get_required_mask = dma_direct_get_required_mask,
+	.alloc = eom_test_alloc,
+	.free = dma_direct_free,
+	.alloc_pages = dma_direct_alloc_pages,
+	.free_pages = dma_direct_free_pages,
+
+	.map_page = dma_direct_map_page,
+	.unmap_page = dma_direct_unmap_page,
+	.map_sg = dma_direct_map_sg,
+	.unmap_sg = dma_direct_unmap_sg,
+	.map_resource = dma_direct_map_resource,
+	.sync_single_for_cpu = dma_direct_sync_single_for_cpu,
+	.sync_single_for_device = dma_direct_sync_single_for_device,
+	.sync_sg_for_cpu = dma_direct_sync_sg_for_cpu,
+	.sync_sg_for_device = dma_direct_sync_sg_for_device,
+	.max_mapping_size = dma_direct_max_mapping_size,
+};
 
 static u64 vp_get_features(struct virtio_device *vdev)
 {
@@ -529,6 +558,10 @@ int virtio_pci_modern_probe(struct virtio_pci_device *vp_dev)
 	int err;
 
 	mdev->pci_dev = pci_dev;
+
+	pr_info("%s: before register test_dma_ops!, dev.dma_ops: %llx", __func__, (u64)pci_dev->dev.dma_ops);
+	pci_dev->dev.dma_ops = &test_dma_ops;
+	pr_info("%s: register test_dma_ops!, dev.dma_ops: %llx", __func__, (u64)pci_dev->dev.dma_ops);
 
 	err = vp_modern_probe(mdev);
 	if (err)

@@ -13,7 +13,7 @@
 #include <linux/vmalloc.h>
 #include <linux/set_memory.h>
 #include <linux/slab.h>
-#include "direct.h"
+#include <linux/dma-direct.h>
 
 /*
  * Most architectures use ZONE_DMA for the first 16 Megabytes, but some use

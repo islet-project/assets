@@ -512,10 +512,14 @@ void *dma_alloc_attrs(struct device *dev, size_t size, dma_addr_t *dma_handle,
 	/* let the implementation decide on the zone to allocate from: */
 	flag &= ~(__GFP_DMA | __GFP_DMA32 | __GFP_HIGHMEM);
 
-	if (dma_alloc_direct(dev, ops))
+	if (dma_alloc_direct(dev, ops)) {
+		pr_info("%s: dev_name: %s, ops: %llx", __func__, dev_name(dev), ops);
 		cpu_addr = dma_direct_alloc(dev, size, dma_handle, flag, attrs);
-	else if (ops->alloc)
+	}
+	else if (ops->alloc) {
+		pr_info("eom: %s: start. dev_name: %s, ops->alloc: %llx", __func__, dev_name(dev), (u64)ops->alloc);
 		cpu_addr = ops->alloc(dev, size, dma_handle, flag, attrs);
+	}
 	else
 		return NULL;
 
