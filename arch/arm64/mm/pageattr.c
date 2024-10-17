@@ -15,7 +15,7 @@
 #include <asm/tlbflush.h>
 
 // no_shared_region but without restriction for testing purpose
-#define EMUL_NO_SHARED_REGION
+//#define EMUL_NO_SHARED_REGION
 
 unsigned long cloak_virtio_start = 0x88400000;
 
