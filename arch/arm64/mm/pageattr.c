@@ -17,7 +17,7 @@
 // no_shared_region but without restriction for testing purpose
 //#define EMUL_NO_SHARED_REGION
 
-unsigned long cloak_virtio_start = 0x88400000;
+unsigned long cloak_virtio_start = 0x99600000; // for 512mb realm
 
 struct page_change_data {
 	pgprot_t set_mask;
