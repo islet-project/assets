@@ -257,8 +257,8 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		list_add_tail(&shrm->list, &drv_priv.shrms.heads[shrm->vmid]);
 		spin_unlock_irq(&drv_priv.shrms.lock);
 
-		pr_info("[HCH] mmap va %llx, pa %llx, size 0x%llx, shm_owner_vmid %d, shrm_id %d ",
-				va, shrm->phys, INTER_REALM_SHM_SIZE, shrm->vmid, shrm_id);
+		pr_info("[HCH] mmap va %llx, pa %llx, size 0x%llx, shm_owner_vmid %d, shrm_id %d get_order: %d",
+				va, shrm->phys, INTER_REALM_SHM_SIZE, shrm->vmid, shrm_id, get_order(INTER_REALM_SHM_SIZE));
 	}
 
 	vma->vm_ops = &channel_vm_ops;
