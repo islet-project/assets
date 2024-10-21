@@ -74,9 +74,9 @@ struct net_rx {
 	struct iovec iovs[];
 };
 
-#define CLOAK_VQ_HOST_9P (0x88400000 + (14 * 1024 * 1024))
-#define CLOAK_VQ_HOST_NET_TX (0x88400000 + (18 * 1024 * 1024))
-#define CLOAK_VQ_HOST_NET_RX (0x88400000 + (22 * 1024 * 1024))
+#define CLOAK_VQ_HOST_9P (0x99600000 + (14 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_TX (0x99600000 + (18 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_RX (0x99600000 + (22 * 1024 * 1024))
 
 extern void *get_host_addr_from_offset(struct kvm *kvm, u64 offset);
 static unsigned long net_tx_control_addr = 0;

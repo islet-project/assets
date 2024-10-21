@@ -30,10 +30,10 @@ do { \
 #define SLEEP_SEC (1)
 // =========================================================
 
-#define CLOAK_VQ_HOST_BLK (0x88400000 + (26 * 1024 * 1024))
-#define CLOAK_VQ_HOST_BLK_IN (0x88400000 + (30 * 1024 * 1024))
-#define CLOAK_VQ_HOST_BLK_AES_TAG (0x88400000 + (34 * 1024 * 1024))
-#define VIRTIO_START (0x88400000)
+#define CLOAK_VQ_HOST_BLK (0x99600000 + (26 * 1024 * 1024))
+#define CLOAK_VQ_HOST_BLK_IN (0x99600000 + (30 * 1024 * 1024))
+#define CLOAK_VQ_HOST_BLK_AES_TAG (0x99600000 + (34 * 1024 * 1024))
+#define VIRTIO_START (0x99600000)
 
 static unsigned long blk_control_addr = 0;
 static unsigned long blk_in_control_addr = 0;

@@ -73,7 +73,7 @@ static unsigned char *vq_elem_mirror = NULL;
 char *vring_shared = NULL;  // shared_mem_virtqueue between CVM_App and CVM_Gateway
 char *vring_iov_host = NULL; // shared_mem_iov between CVM_Gateway and Host
 
-unsigned long base_ipa_addr = 0x88400000;
+unsigned long base_ipa_addr = 0x99600000;
 unsigned long base_ipa_elem_addr = 0x8c260000;
 
 int vm_virtio_p9_pdu_readf(struct p9_pdu *pdu, const char *fmt, ...);
@@ -1665,9 +1665,9 @@ u32 run_p9_operation_in_vm(struct p9_pdu *p9pdu, char *root_dir)
 	return 0;
 }
 
-#define CLOAK_VQ_HOST_9P (0x88400000 + (14 * 1024 * 1024))
-#define CLOAK_VQ_HOST_NET_TX (0x88400000 + (18 * 1024 * 1024))
-#define CLOAK_VQ_HOST_NET_RX (0x88400000 + (22 * 1024 * 1024))
+#define CLOAK_VQ_HOST_9P (0x99600000 + (14 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_TX (0x99600000 + (18 * 1024 * 1024))
+#define CLOAK_VQ_HOST_NET_RX (0x99600000 + (22 * 1024 * 1024))
 
 extern void *get_host_addr_from_offset(struct kvm *kvm, u64 offset);
 static unsigned long p9pdu_control_addr = 0;

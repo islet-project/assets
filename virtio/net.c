@@ -27,7 +27,7 @@
 #include <sys/wait.h>
 #include <sys/eventfd.h>
 
-static unsigned long realm_base_ipa_addr = 0x88400000;
+static unsigned long realm_base_ipa_addr = 0x99600000;
 
 #define VIRTIO_NET_QUEUE_SIZE		256
 #define VIRTIO_NET_NUM_QUEUES		8
