@@ -19,7 +19,9 @@ void print_front_rear(struct packet_pos* pp) {
 				__func__, pp->rear.shrm->ipa, pp->rear.shrm->shrm_id);
 }
 
-struct shrm_list* init_shrm_list(u64 ipa_start, u64 ipa_size) {
+struct shrm_list* init_shrm_list(struct rings_to_send* rts, u64 ipa_start, u64 ipa_size) {
+	int cnt = 0, ret;
+	struct packet_pos *cur_pp;
     struct shrm_list* rw_shrms = kzalloc(sizeof(struct shrm_list), GFP_KERNEL);
 	if (!rw_shrms) {
 		pr_err("[GCH] %s failed to kzalloc for struct shrm_list\n", __func__);
@@ -29,6 +31,23 @@ struct shrm_list* init_shrm_list(u64 ipa_start, u64 ipa_size) {
 	INIT_LIST_HEAD(&rw_shrms->head);
 	rw_shrms->ipa_start = ipa_start;
 	rw_shrms->ipa_end = ipa_start + ipa_size;
+
+	do {
+		if (cnt > 10) {
+			pr_err("%s: req_shrm_chunk cnt %d. something wrong", __func__, cnt);
+			return NULL;
+		}
+		ret = req_shrm_chunk(rts, rw_shrms);
+		cnt++;
+	} while(ret == -EAGAIN);
+
+	cur_pp = &rw_shrms->pp;
+	if (!cur_pp->rear.shrm) {
+		cur_pp->front.shrm = list_first_entry(&rw_shrms->head, struct shared_realm_memory, head);
+		cur_pp->rear.shrm = cur_pp->front.shrm;
+		pr_info("%s: set cur_pp->front, rear: shrm ipa %#llx shrm_id %d",
+				__func__, cur_pp->front.shrm->ipa, cur_pp->front.shrm->shrm_id);
+	}
 
 	return rw_shrms;
 }
@@ -220,7 +239,7 @@ bool invalid_packet_pos(struct packet_pos* pp) {
 	return false;
 }
 
-static int _write_to_shrm(struct shrm_list* rw_shrms, u64* va, u64* data, u64 size) {
+static int _write_to_shrm(struct shrm_list* rw_shrms, u64* va, const u64* data, u64 size) {
 	if (rw_shrms->free_size < size) {
 		pr_err("%s: not enough shrm. free_size: %#llx < size: %#llx",
 				__func__, rw_shrms->free_size, size);
@@ -247,12 +266,6 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 	}
 
 	cur_pp = &rw_shrms->pp;
-	if (!cur_pp->rear.shrm) {
-		cur_pp->front.shrm = list_first_entry(&rw_shrms->head, struct shared_realm_memory, head);
-		cur_pp->rear.shrm = cur_pp->front.shrm;
-		pr_info("%s: set cur_pp->front, rear: shrm ipa %#llx shrm_id %d",
-				__func__, cur_pp->front.shrm->ipa, cur_pp->front.shrm->shrm_id);
-	}
 	next_rear_shrm = cur_pp->rear.shrm;
 
 	if (!data) {

@@ -19,7 +19,7 @@ struct shrm_list {
 	//TODO: need lock to enlarge and shrink it
 };
 
-struct shrm_list* init_shrm_list(u64, u64);
+struct shrm_list* init_shrm_list(struct rings_to_send* rts, u64 ipa_start, u64 ipa_size);
 int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa);
 int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size);
 int copy_from_shrm(void* to, struct packet_pos* from);
