@@ -10,14 +10,16 @@ pub mod def;
 pub mod rsi;
 pub mod virtio;
 pub mod module;
-pub mod module_cvm_hardening;
+//pub mod module_cvm_hardening;
+pub mod module_fl;
 pub mod allocator;
-pub mod aes;
+//pub mod aes;
 
 use crate::rsi::*;
 use crate::virtio::*;
 use crate::module::*;
-use crate::module_cvm_hardening as cvm_hardening;
+use crate::module_fl as fl;
+//use crate::module_cvm_hardening as cvm_hardening;
 
 extern crate alloc;
 
@@ -127,9 +129,11 @@ fn test_aes() {
 
 #[no_mangle]
 pub unsafe fn main() {
+    fl::test_noise();
+
     // 1. IPA state set
-    rsi_set_memory_realm(0x80000000, 0x90000000);
-    rsi_set_memory_host_shared(0x88400000, 0x8c400000);
+    rsi_set_memory_realm(0x80000000, 0xa0000000);
+    rsi_set_memory_host_shared(0x99600000, 0x9d600000);
 
     // 2. Create a shared memory with CVM_App
     create_memory_cvm_shared();
@@ -138,9 +142,11 @@ pub unsafe fn main() {
     allocator::init();  // initialize heap memory
 
     // 4. register modules
+    /*
     let _ = add_module("cvm_hardening", 0,
                         cvm_hardening::blk_write, cvm_hardening::blk_read,
-                        cvm_hardening::net_tx, cvm_hardening::net_rx);
+                        cvm_hardening::net_tx, cvm_hardening::net_rx); */
+    let _ = add_module("fl", 0, fl::blk_write, fl::blk_read, fl::net_tx, fl::net_rx);
 
     // 5. Main loop
     gateway_main_loop();

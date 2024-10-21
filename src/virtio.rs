@@ -1,6 +1,6 @@
 use crate::rsi::*;
 use crate::module::*;
-use crate::aes::*;
+//use crate::aes::*;
 use alloc::vec;
 //use alloc::vec::Vec;
 
@@ -75,14 +75,14 @@ static mut VQ_CTRL_VSOCK_TX: usize = 0;
 static mut VQ_CTRL_VSOCK_RX: usize = 0;
 
 const IPA_OFFSET: usize = 0x100000000;
-const VQ_START: usize = 0x88400000;
-const VQ_DATA_HOST: usize = 0x188400000;
+const VQ_START: usize = 0x99600000;
+const VQ_DATA_HOST: usize = 0x199600000;
 const VQ_CTRL_9P_HOST: usize = VQ_DATA_HOST + (14 * 1024 * 1024);
 const VQ_CTRL_NET_TX_HOST: usize = VQ_DATA_HOST + (18 * 1024 * 1024);
 const VQ_CTRL_NET_RX_HOST: usize = VQ_DATA_HOST + (22 * 1024 * 1024);
 const VQ_CTRL_BLK_HOST: usize = VQ_DATA_HOST + (26 * 1024 * 1024);
 const VQ_CTRL_BLK_IN_HOST: usize = VQ_DATA_HOST + (30 * 1024 * 1024);
-const VQ_CTRL_BLK_AES_TAG_HOST: usize = VQ_DATA_HOST + (34 * 1024 * 1024);
+//const VQ_CTRL_BLK_AES_TAG_HOST: usize = VQ_DATA_HOST + (34 * 1024 * 1024);
 //const VQ_CTRL_VSOCK_TX_HOST: usize = VQ_DATA_HOST + (38 * 1024 * 1024);
 //const VQ_CTRL_VSOCK_RX_HOST: usize = VQ_DATA_HOST + (42 * 1024 * 1024);
 const VIRTQUEUE_NUM: usize = 128;
@@ -301,6 +301,7 @@ pub fn handle_p9_response() {
     copy_iovs(&p9pdu.out_iov, p9pdu.out_iov_cnt as usize, false);
 }
 
+#[allow(unused)]
 macro_rules! translate_cvm_data {
     ($addr:expr, $len:expr) => {{
         let new_addr = vq_data() + ($addr - VQ_START);
@@ -327,9 +328,11 @@ pub fn handle_net_tx_request() {
         rsi_print("no net_tx_request", 0, 0);
         return;
     }
+    rsi_print("net_tx!", 0, 0);
 
     // do monitor function
     if net_tx_cvm.out_cnt == 1 {
+        rsi_print("net_tx out 1", 0, 0);
         // zero-copy path (udp falls down in this case)
         let data = translate_cvm_data!(net_tx_cvm.iovs[0].iov_base, net_tx_cvm.iovs[0].iov_len);
         let _ = monitor_net_tx(data, 0);
@@ -356,6 +359,8 @@ pub fn handle_net_tx_request() {
                 offset += len;
             }
         }
+    } else {
+        rsi_print("net_tx_cvm.out_cnt > 2", net_tx_cvm.out_cnt as usize, 0);
     }
 
     // 2. copy iovs
@@ -535,9 +540,9 @@ pub fn handle_blk() {
 
             let mut acc = Accessor::new(new_addr);
             let ptr = acc.from_mut_raw::<u8>();
-            let data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            let _data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
 
-            monitor_blk_write(data, block_host.sector, VQ_CTRL_BLK_AES_TAG_HOST + core::mem::size_of::<TagStorage>() * block_host.sector);
+            //monitor_blk_write(data, block_host.sector, VQ_CTRL_BLK_AES_TAG_HOST + core::mem::size_of::<TagStorage>() * block_host.sector);
         }
     }
 
@@ -562,9 +567,9 @@ pub fn handle_blk_in_resp() {
 
         let mut acc = Accessor::new(new_addr);
         let ptr = acc.from_mut_raw::<u8>();
-        let data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+        let _data = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
 
-        monitor_blk_read(data, block_host.sector, VQ_CTRL_BLK_AES_TAG_HOST + core::mem::size_of::<TagStorage>() * block_host.sector);
+        //monitor_blk_read(data, block_host.sector, VQ_CTRL_BLK_AES_TAG_HOST + core::mem::size_of::<TagStorage>() * block_host.sector);
     }
 
     // copy data

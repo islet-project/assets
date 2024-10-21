@@ -9,7 +9,7 @@
   .global dummy_stack_end
     .balign 64
 stacks_start:
-    .fill    4096 * 8
+    .fill    4096 * 32
 stacks_end:
     .fill    4096
 dummy_stack_end:
