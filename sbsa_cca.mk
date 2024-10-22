@@ -1,0 +1,686 @@
+################################################################################
+# Following variables defines how the NS_USER (Non Secure User - Client
+# Application), NS_KERNEL (Non Secure Kernel), S_KERNEL (Secure Kernel) and
+# S_USER (Secure User - TA) are compiled
+################################################################################
+COMPILE_NS_USER ?= 64
+override COMPILE_NS_KERNEL := 64
+COMPILE_S_USER ?= 64
+COMPILE_S_KERNEL ?= 64
+
+################################################################################
+# If you change this, you MUST run `make arm-tf-clean` first before rebuilding
+################################################################################
+TF_A_TRUSTED_BOARD_BOOT ?= n
+
+OPTEE_OS_PLATFORM = vexpress-qemu_armv8a
+
+########################################################################################
+# If you change this, you MUST run `make arm-tf-clean optee-os-clean` before rebuilding
+########################################################################################
+XEN_BOOT ?= n
+ifeq ($(XEN_BOOT),y)
+GICV3 = y
+# For DomU, guest.cfg and other images can be picked up from mounted folder
+QEMU_VIRTFS_AUTOMOUNT = y
+endif
+
+# Option to enable Rust examples
+RUST_ENABLE ?= y
+
+include common.mk
+
+DEBUG ?= 1
+
+# Option to build with GICV3 enabled
+GICV3 ?= y
+
+# Option to configure FF-A and SPM:
+# n:	disabled
+# 3:	SPMC and SPMD at EL3 (in TF-A)
+# 2:	SPMC at S-EL2 (in Hafnium), SPMD at EL3 (in TF-A)
+# 1:	SPMC at S-EL1 (in OP-TEE), SPMD at EL3 (in TF-A)
+SPMC_AT_EL ?= n
+ifneq ($(filter-out n 1 2 3,$(SPMC_AT_EL)),)
+$(error Unsupported SPMC_AT_EL value $(SPMC_AT_EL))
+endif
+
+# Option to configure Pointer Authentication for TA's
+PAUTH ?= n
+
+# Option to configure Memory Tagging Extension
+MEMTAG ?= n
+
+################################################################################
+# Paths to git projects and various binaries
+################################################################################
+TF_A_PATH		?= $(ROOT)/trusted-firmware-a
+BINARIES_PATH		?= $(ROOT)/out/bin
+IMAGES_PATH		?= $(ROOT)/images
+QEMU_PATH		?= $(ROOT)/qemu
+QEMU_BUILD		?= $(QEMU_PATH)/build
+QEMU_TARGET_PATH	?= $(ROOT)/qemu.target
+MODULE_OUTPUT		?= $(ROOT)/out/kernel_modules
+UBOOT_PATH		?= $(ROOT)/u-boot
+UBOOT_BIN		?= $(UBOOT_PATH)/u-boot.bin
+EDK2_PATH		?= $(ROOT)/edk2
+EDK2_NON_OSI_PATH	?= $(ROOT)/edk2-non-osi
+EDK2_PLATFORMS_PATH	?= $(ROOT)/edk2-platforms
+EDK2_BUILD_DIR		?= $(ROOT)/edk2-build
+EDK2_TOOLCHAIN		?= GCC5
+EDK2_ARCH		?= AARCH64
+ifeq ($(DEBUG),1)
+EDK2_BUILD		?= DEBUG
+else
+EDK2_BUILD		?= RELEASE
+endif
+EDK2_BIN		?= $(EDK2_PATH)/Build/ArmVirtQemuKernel-$(EDK2_ARCH)/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/QEMU_EFI.fd
+RMM_PATH		?= $(ROOT)/rmm
+ifeq ($(DEBUG),1)
+RMM_BUILD		?= Debug
+RMM_LOG_LEVEL		?= 50
+else
+RMM_BUILD		?= Release
+RMM_LOG_LEVEL		?= 40
+endif
+RMM_BIN			?= $(RMM_PATH)/build/$(RMM_BUILD)/rmm.img
+KVMTOOL_TARGET_PATH	?= $(ROOT)/kvmtool
+MKIMAGE_PATH		?= $(UBOOT_PATH)/tools
+HAFNIUM_PATH		?= $(ROOT)/hafnium
+HAFNIUM_BIN		?= $(HAFNIUM_PATH)/out/reference/secure_qemu_aarch64_clang/hafnium.bin
+
+ROOTFS_GZ		?= $(BINARIES_PATH)/rootfs.cpio.gz
+ROOTFS_UGZ		?= $(BINARIES_PATH)/rootfs.cpio.uboot
+
+KERNEL_IMAGE		?= $(LINUX_PATH)/arch/arm64/boot/Image
+KERNEL_IMAGEGZ		?= $(LINUX_PATH)/arch/arm64/boot/Image.gz
+KERNEL_UIMAGE		?= $(BINARIES_PATH)/uImage
+
+BUILDROOT_PATH		?= $(ROOT)/buildroot
+
+SCMI_DTSO 		?= $(ROOT)/build/qemu_v8/qemu-v8-scmi-overlay.dtso
+SCMI_DTBO 		?= $(BINARIES_PATH)/qemu-v8-scmi-overlay.dtbo
+SCMI_DTB 		?= $(BINARIES_PATH)/qemu-v8-scmi.dtb
+
+# Load and entry addresses (u-boot only)
+# If you change this please also change in kconfigs/u-boot_qemu_v8.conf
+KERNEL_ENTRY		?= 0x42200000
+KERNEL_LOADADDR		?= 0x42200000
+ROOTFS_ENTRY		?= 0x45000000
+ROOTFS_LOADADDR		?= 0x45000000
+
+ifeq ($(SPMC_AT_EL),2)
+BL32_DEPS		?= hafnium optee-os
+else
+BL32_DEPS		?= optee-os
+endif
+
+BL33_BIN		?= $(EDK2_BIN)
+BL33_DEPS		?= edk2
+
+XEN_PATH		?= $(ROOT)/xen
+XEN_IMAGE		?= $(XEN_PATH)/xen/xen.efi
+XEN_EXT4		?= $(BINARIES_PATH)/xen.ext4
+XEN_CFG			?= $(ROOT)/build/qemu_v8/xen/xen.cfg
+
+ifeq ($(GICV3),y)
+	TFA_GIC_DRIVER	?= QEMU_GICV3
+	QEMU_GIC_VERSION = 3
+else
+	TFA_GIC_DRIVER	?= QEMU_GICV2
+	QEMU_GIC_VERSION = 2
+endif
+
+################################################################################
+# Targets
+################################################################################
+TARGET_DEPS := buildroot optee-os qemu
+TARGET_CLEAN := arm-tf-clean buildroot-clean linux-clean optee-os-clean \
+	qemu-clean check-clean edk2-clean disks-clean
+
+TARGET_DEPS		+= $(KERNEL_UIMAGE) $(ROOTFS_UGZ)
+TARGET_CLEAN		+= u-boot-clean
+
+ifeq ($(XEN_BOOT),y)
+TARGET_DEPS		+= xen-create-image
+endif
+
+ifeq ($(WITH_SCMI),y)
+TARGET_DEPS		+= $(SCMI_DTB)
+endif
+
+all: disks $(TARGET_DEPS)
+
+clean: $(TARGET_CLEAN)
+
+$(BINARIES_PATH):
+	mkdir -p $@
+
+include toolchain.mk
+
+################################################################################
+# ARM Trusted Firmware
+################################################################################
+TF_A_EXPORTS ?= \
+	CROSS_COMPILE="$(CCACHE)$(AARCH64_CROSS_COMPILE)"
+
+TF_A_DEBUG ?= $(DEBUG)
+ifeq ($(TF_A_DEBUG),0)
+TF_A_LOGLVL ?= 30
+TF_A_OUT = $(TF_A_PATH)/build/qemu_sbsa/release
+else
+TF_A_LOGLVL ?= 40
+TF_A_OUT = $(TF_A_PATH)/build/qemu_sbsa/debug
+endif
+
+TF_A_FLAGS ?= \
+	PLAT=qemu_sbsa \
+	DEBUG=$(TF_A_DEBUG) \
+	LOG_LEVEL=$(TF_A_LOGLVL) \
+	RME_GPT_BITLOCK_BLOCK=1 \
+	ENABLE_RME=1 \
+	RMM=$(RMM_BIN)
+
+TF_A_FLAGS_BL32_OPTEE  = BL32=$(OPTEE_OS_HEADER_V2_BIN)
+TF_A_FLAGS_BL32_OPTEE += BL32_EXTRA1=$(OPTEE_OS_PAGER_V2_BIN)
+TF_A_FLAGS_BL32_OPTEE += BL32_EXTRA2=$(OPTEE_OS_PAGEABLE_V2_BIN)
+
+TF_A_FLAGS_SPMC_AT_EL_n  = $(TF_A_FLAGS_BL32_OPTEE) SPD=opteed
+TF_A_FLAGS_SPMC_AT_EL_1  = $(TF_A_FLAGS_BL32_OPTEE) SPD=spmd
+TF_A_FLAGS_SPMC_AT_EL_1 += CTX_INCLUDE_EL2_REGS=0 SPMD_SPM_AT_SEL2=0
+TF_A_FLAGS_SPMC_AT_EL_1 += ENABLE_SME_FOR_NS=0 ENABLE_SME_FOR_SWD=0
+TF_A_FLAGS_SPMC_AT_EL_1 += QEMU_TOS_FW_CONFIG_DTS=../build/qemu_v8/spmc_el1_manifest.dts
+TF_A_FLAGS_SPMC_AT_EL_1 += SPMC_OPTEE=1
+TF_A_FLAGS_SPMC_AT_EL_1 += QEMU_TOS_FW_CONFIG_DTS=../build/qemu_v8/spmc_el1_manifest.dts
+TF_A_FLAGS_SPMC_AT_EL_2  = SPD=spmd 
+TF_A_FLAGS_SPMC_AT_EL_2 += ENABLE_SPE_FOR_LOWER_ELS=0
+TF_A_FLAGS_SPMC_AT_EL_2 += ENABLE_SME_FOR_NS=0 ENABLE_SME_FOR_SWD=0
+TF_A_FLAGS_SPMC_AT_EL_2 += ENABLE_FEAT_SEL2=1
+TF_A_FLAGS_SPMC_AT_EL_2 += SP_LAYOUT_FILE=../build/qemu_v8/sp_layout.json
+TF_A_FLAGS_SPMC_AT_EL_2 += NEED_FDT=yes
+TF_A_FLAGS_SPMC_AT_EL_2 += BL32=$(HAFNIUM_BIN)
+TF_A_FLAGS_SPMC_AT_EL_2 += QEMU_TOS_FW_CONFIG_DTS=../build/qemu_v8/spmc_el2_manifest.dts
+TF_A_FLAGS_SPMC_AT_EL_2 += QEMU_TB_FW_CONFIG_DTS=../build/qemu_v8/tb_fw_config.dts
+ifneq ($(PAUTH),y)
+TF_A_FLAGS_SPMC_AT_EL_2 += CTX_INCLUDE_PAUTH_REGS=1
+endif
+ifneq ($(MEMTAG),y)
+TF_A_FLAGS_SPMC_AT_EL_2 += CTX_INCLUDE_MTE_REGS=1
+endif
+TF_A_FLAGS_SPMC_AT_EL_3  = SPD=spmd SPMC_AT_EL3=1
+TF_A_FLAGS_SPMC_AT_EL_3 += CTX_INCLUDE_EL2_REGS=0 SPMD_SPM_AT_SEL2=0
+TF_A_FLAGS_SPMC_AT_EL_3 += ENABLE_SME_FOR_NS=0 ENABLE_SME_FOR_SWD=0
+TF_A_FLAGS_SPMC_AT_EL_3 += BL32=$(OPTEE_OS_PAGER_V2_BIN)
+TF_A_FLAGS_SPMC_AT_EL_3 += QEMU_TOS_FW_CONFIG_DTS=../build/qemu_v8/spmc_el3_manifest.dts
+
+#TF_A_FLAGS += $(TF_A_FLAGS_SPMC_AT_EL_$(SPMC_AT_EL))
+
+ifeq ($(TF_A_TRUSTED_BOARD_BOOT),y)
+TF_A_FLAGS += \
+	MBEDTLS_DIR=$(ROOT)/mbedtls \
+	TRUSTED_BOARD_BOOT=1 \
+	GENERATE_COT=1
+endif
+
+ifeq ($(PAUTH),y)
+TF_A_FLAGS += CTX_INCLUDE_PAUTH_REGS=1
+endif
+ifeq ($(MEMTAG),y)
+TF_A_FLAGS += CTX_INCLUDE_MTE_REGS=1
+endif
+
+arm-tf: rmm
+	$(TF_A_EXPORTS) $(MAKE) -C $(TF_A_PATH) $(TF_A_FLAGS) all fip
+	cp $(TF_A_OUT)/bl1.bin $(EDK2_NON_OSI_PATH)/Platform/Qemu/Sbsa/
+	cp $(TF_A_OUT)/fip.bin $(EDK2_NON_OSI_PATH)/Platform/Qemu/Sbsa/
+
+arm-tf-clean: rmm-clean
+	$(TF_A_EXPORTS) $(MAKE) -C $(TF_A_PATH) $(TF_A_FLAGS) clean
+
+################################################################################
+# QEMU
+################################################################################
+$(QEMU_BUILD)/config-host.mak:
+	cd $(QEMU_PATH); ./configure --target-list=aarch64-softmmu --enable-slirp\
+			$(QEMU_CONFIGURE_PARAMS_COMMON)
+
+qemu: $(QEMU_BUILD)/.stamp_qemu
+
+$(QEMU_BUILD)/.stamp_qemu: $(QEMU_BUILD)/config-host.mak
+	$(MAKE) -C $(QEMU_PATH)
+	touch $@
+
+qemu-clean:
+	rm -f $(QEMU_BUILD)/.stamp_qemu
+	$(MAKE) -C $(QEMU_PATH) distclean
+
+################################################################################
+# U-Boot
+################################################################################
+ifeq ($(XEN_BOOT),y)
+UBOOT_DEFCONFIG_FILES := $(UBOOT_PATH)/configs/qemu_arm64_defconfig		\
+			 $(ROOT)/build/kconfigs/u-boot_xen_qemu_v8.conf
+else
+UBOOT_DEFCONFIG_FILES := $(UBOOT_PATH)/configs/qemu_arm64_defconfig		\
+			 $(ROOT)/build/kconfigs/u-boot_qemu_v8.conf
+endif
+
+UBOOT_COMMON_FLAGS ?= CROSS_COMPILE=$(CROSS_COMPILE_NS_KERNEL)
+
+$(UBOOT_PATH)/.config: $(UBOOT_DEFCONFIG_FILES)
+	cd $(UBOOT_PATH) && \
+                scripts/kconfig/merge_config.sh $(UBOOT_DEFCONFIG_FILES)
+
+.PHONY: u-boot-defconfig
+u-boot-defconfig: $(UBOOT_PATH)/.config
+
+.PHONY: u-boot
+u-boot: u-boot-defconfig
+	$(MAKE) -C $(UBOOT_PATH) $(UBOOT_COMMON_FLAGS)
+
+.PHONY: u-boot-clean
+u-boot-clean:
+	$(MAKE) -C $(UBOOT_PATH) $(UBOOT_COMMON_FLAGS) distclean
+
+################################################################################
+# RMM
+################################################################################
+
+RMM_EXPORTS = CROSS_COMPILE=$(AARCH64_NONE_ELF_CROSS_COMPILE)
+
+.PHONY: rmm
+rmm:
+	pushd $(RMM_PATH)
+	$(RMM_EXPORTS) cmake -DRMM_CONFIG=qemu_sbsa_defcfg \
+                                -DCMAKE_BUILD_TYPE=$(RMM_BUILD) \
+                                -DLOG_LEVEL=$(RMM_LOG_LEVEL) \
+                                -S $(RMM_PATH) \
+                                -B $(RMM_PATH)/build; \
+        $(RMM_EXPORTS) cmake --build $(RMM_PATH)/build
+
+.PHONY: rmm-clean
+rmm-clean:
+	rm -rf $(RMM_PATH)/build
+
+################################################################################
+# EDK2 / Tianocore
+################################################################################
+define edk2-env
+        mkdir -p $(EDK2_BUILD_DIR)
+        export WORKSPACE=$(EDK2_BUILD_DIR)
+endef
+
+# Clear MAKEFLAGS to avoid passing '-j' to the edk2 Makefiles. They don't
+# support parallel build at the moment.
+define edk2-call
+        $(EDK2_TOOLCHAIN)_$(EDK2_ARCH)_PREFIX=$(AARCH64_CROSS_COMPILE) \
+        MAKEFLAGS= \
+        build -n `getconf _NPROCESSORS_ONLN` -a $(EDK2_ARCH) \
+                -t $(EDK2_TOOLCHAIN) \
+                -p $(EDK2_PLATFORMS_PATH)/Platform/Qemu/SbsaQemu/SbsaQemu-rme.dsc \
+		--pcd PcdUefiShellDefaultBootEnable=1 \
+		--pcd PcdShellDefaultDelay=0 \
+                -b $(EDK2_BUILD)
+endef
+
+edk2: arm-tf edk2-common
+	truncate -s 256M $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH0.fd
+	truncate -s 256M $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH1.fd
+	mkdir -p $(IMAGES_PATH)
+	cp $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH0.fd $(IMAGES_PATH)/
+	cp $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH1.fd $(IMAGES_PATH)/
+
+edk2-clean: edk2-clean-common
+
+################################################################################
+# cloud-hypervisor Rules
+################################################################################
+
+CLOUDHV ?= n
+CLOUDHV_PATH ?= $(ROOT)/cloud-hypervisor
+
+ifeq ($(CLOUDHV),y)
+all run: cloud-hypervisor
+endif
+
+.PHONY: cloud-hypervisor
+cloud-hypervisor: buildroot $(BINARIES_PATH)
+	rustup target add aarch64-unknown-linux-gnu
+	export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=$(ROOT)/out-br/host/bin/aarch64-buildroot-linux-gnu-gcc && \
+	cd $(CLOUDHV_PATH) && \
+	cargo build --target aarch64-unknown-linux-gnu --features arm_rme
+	cp $(CLOUDHV_PATH)/target/aarch64-unknown-linux-gnu/debug/cloud-hypervisor $(BINARIES_PATH)
+
+################################################################################
+# Linux kernel
+################################################################################
+LINUX_DEFCONFIG_COMMON_ARCH := arm64
+LINUX_DEFCONFIG_COMMON_FILES := \
+		$(LINUX_PATH)/arch/arm64/configs/defconfig \
+		$(CURDIR)/kconfigs/qemu.conf \
+		$(CURDIR)/kconfigs/cca.conf
+
+linux-defconfig: $(LINUX_PATH)/.config
+
+LINUX_COMMON_FLAGS += ARCH=arm64
+LINUX_COMMON_TARGETS += Image scripts_gdb
+
+linux: linux-common
+	mkdir -p $(BINARIES_PATH)
+	ln -rsf $(LINUX_PATH)/arch/arm64/boot/Image $(BINARIES_PATH)
+
+linux-modules: linux
+	$(MAKE) -C $(LINUX_PATH) $(LINUX_COMMON_FLAGS) modules
+	$(MAKE) -C $(LINUX_PATH) $(LINUX_COMMON_FLAGS) INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=$(MODULE_OUTPUT) modules_install
+
+linux-defconfig-clean: linux-defconfig-clean-common
+
+LINUX_CLEAN_COMMON_FLAGS += ARCH=arm64
+
+linux-clean: linux-clean-common
+
+LINUX_CLEANER_COMMON_FLAGS += ARCH=arm64
+
+linux-cleaner: linux-cleaner-common
+
+################################################################################
+# OP-TEE
+################################################################################
+OPTEE_OS_COMMON_FLAGS += DEBUG=$(DEBUG) CFG_ARM_GICV3=$(GICV3)
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_1 = CFG_CORE_SEL1_SPMC=y
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_2 = CFG_CORE_SEL2_SPMC=y
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_2 += CFG_ARM_GICV3=n CFG_CORE_HAFNIUM_INTC=y
+# [0e00.0000 0e2f.ffff] is reserved to early boot and SPMC
+# [0e30.0000 0e33.ffff] is reserved manifest etc (op-tee.pkg)
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_2 += CFG_TZDRAM_START=0x0e304000
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_2 += CFG_TZDRAM_SIZE=0x00cfc000
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_2 += CFG_CORE_WORKAROUND_NSITR_CACHE_PRIME=n
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_3 = CFG_CORE_EL3_SPMC=y
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_3 += CFG_DT_ADDR=0x40000000
+OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_3 += CFG_CORE_RESERVED_SHM=n
+
+ifeq ($(XEN_BOOT),y)
+OPTEE_OS_COMMON_FLAGS += CFG_NS_VIRTUALIZATION=y
+endif
+
+ifeq ($(PAUTH),y)
+OPTEE_OS_COMMON_FLAGS += CFG_TA_PAUTH=y
+OPTEE_OS_COMMON_FLAGS += CFG_CORE_PAUTH=y
+endif
+ifeq ($(MEMTAG),y)
+OPTEE_OS_COMMON_FLAGS += CFG_MEMTAG=y
+endif
+
+ifneq ($(QEMU_SMP),)
+CFG_TEE_CORE_NB_CORE ?= $(QEMU_SMP)
+OPTEE_OS_COMMON_FLAGS += CFG_TEE_CORE_NB_CORE=$(CFG_TEE_CORE_NB_CORE)
+endif
+
+ifeq ($(WITH_SCMI),y)
+OPTEE_OS_COMMON_FLAGS += CFG_SCMI_SCPFW=y
+OPTEE_OS_COMMON_FLAGS += CFG_SCP_FIRMWARE=$(ROOT)/SCP-firmware
+endif
+
+OPTEE_OS_COMMON_FLAGS += $(OPTEE_OS_COMMON_FLAGS_SPMC_AT_EL_$(SPMC_AT_EL))
+
+optee-os: optee-os-common
+
+optee-os-clean: optee-os-clean-common
+
+################################################################################
+# Hafnium
+################################################################################
+
+HAFNIUM_EXPORTS = PATH=$(HAFNIUM_PATH)/prebuilts/linux-x64/clang/bin:$(HAFNIUM_PATH)/prebuilts/linux-x64/dtc:$(PATH)
+
+.hafnium_checkout:
+	git -C $(HAFNIUM_PATH) submodule update --init
+	touch $@
+
+hafnium: $(HAFNIUM_BIN)
+
+$(HAFNIUM_BIN): .hafnium_checkout | $(OUT_PATH)
+	$(HAFNIUM_EXPORTS) $(MAKE) -C $(HAFNIUM_PATH) $(HAFNIUM_FLAGS) all
+
+
+################################################################################
+# mkimage - create images to be loaded by U-Boot
+################################################################################
+# Without the objcopy, the uImage will be 10x bigger.
+$(KERNEL_UIMAGE): u-boot linux | $(BINARIES_PATH)
+	${AARCH64_CROSS_COMPILE}objcopy -O binary \
+					-R .note \
+					-R .comment \
+					-S $(LINUX_PATH)/vmlinux \
+					$(BINARIES_PATH)/linux.bin
+	$(MKIMAGE_PATH)/mkimage -A arm64 \
+				-O linux \
+				-T kernel \
+				-C none \
+				-a $(KERNEL_LOADADDR) \
+				-e $(KERNEL_ENTRY) \
+				-n "Linux kernel" \
+				-d $(BINARIES_PATH)/linux.bin $(KERNEL_UIMAGE)
+
+.PHONY: uImage
+uImage: $(KERNEL_UIMAGE)
+
+$(ROOTFS_UGZ): u-boot buildroot | $(BINARIES_PATH)
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)
+	$(MKIMAGE_PATH)/mkimage -A arm64 \
+				-T ramdisk \
+				-C gzip \
+				-a $(ROOTFS_LOADADDR) \
+				-e $(ROOTFS_ENTRY) \
+				-n "Root file system" \
+				-d $(ROOTFS_GZ) $(ROOTFS_UGZ)
+
+.PHONY: uRootfs
+uRootfs: $(ROOTFS_UGZ)
+
+################################################################################
+# XEN
+################################################################################
+
+XEN_CONFIGS = .config $(ROOT)/build/kconfigs/xen.conf
+ifeq ($(XEN_DEBUG),y)
+XEN_CONFIGS += $(ROOT)/build/kconfigs/xen_debug.conf
+endif
+
+ifneq ($(filter 1 2 3,$(SPMC_AT_EL)),)
+XEN_FFA = y
+endif
+
+$(XEN_PATH)/xen/.config:
+	$(MAKE) -C $(XEN_PATH)/xen XEN_TARGET_ARCH=arm64 defconfig
+	cd $(XEN_PATH)/xen && \
+	env XEN_TARGET_ARCH=arm64 tools/kconfig/merge_config.sh $(XEN_CONFIGS)
+
+xen-menuconfig:
+	$(MAKE) -C $(XEN_PATH)/xen XEN_TARGET_ARCH=arm64 menuconfig
+
+xen: $(XEN_PATH)/xen/.config
+	$(MAKE) -C $(XEN_PATH) dist-xen \
+	XEN_TARGET_ARCH=arm64 \
+	CONFIG_XEN_INSTALL_SUFFIX=.gz	\
+	CROSS_COMPILE="$(CCACHE)$(AARCH64_CROSS_COMPILE)"
+
+xen-create-image: xen
+
+XEN_TMP = $(BINARIES_PATH)/xen_files
+
+$(XEN_TMP):
+	mkdir -p $@
+
+xen-create-image: linux buildroot | $(XEN_TMP)
+	cp $(KERNEL_IMAGE) $(XEN_TMP)
+	cp $(XEN_IMAGE) $(XEN_TMP)
+	cp $(XEN_CFG) $(XEN_TMP)
+	cp $(ROOT)/out-br/images/rootfs.cpio.gz $(XEN_TMP)
+	rm -f $(XEN_EXT4)
+	mke2fs -t ext4 -d $(XEN_TMP) $(XEN_EXT4) 100M
+
+################################################################################
+# SBSA Virtual disk
+################################################################################
+
+STARTUP_DOT_NSH = $(IMAGES_PATH)/disks/virtual/startup.nsh
+CONTENT = "mode 100 31" "pci" "fs0:\Image root=/dev/vda console=hvc0" "reset -c"
+
+.PHONY: disks
+disks: edk2 linux
+	mkdir -p $(IMAGES_PATH)/disks/virtual/
+	cp $(BINARIES_PATH)/Image $(IMAGES_PATH)/disks/virtual/
+	rm -f $(STARTUP_DOT_NSH)
+	for elem in $(CONTENT) ; do \
+		echo $$elem >> $(STARTUP_DOT_NSH) ; \
+	done
+
+.PHONY: disks-clean
+disks-clean:
+	rm -rf $(IMAGES_PATH)/disks
+
+
+################################################################################
+# Run targets
+################################################################################
+.PHONY: run
+# This target enforces updating root fs etc
+run: all
+	$(MAKE) run-only
+
+
+ifeq ($(XEN_BOOT),y)
+QEMU_CPU	?= cortex-a57
+QEMU_MEM 	?= 3072
+QEMU_SMP	?= 4
+QEMU_VIRT	= true
+QEMU_XEN	?= -drive if=none,file=$(XEN_EXT4),format=raw,id=hd1 \
+		   -device virtio-blk-device,drive=hd1
+else
+ifeq ($(SPMC_AT_EL),2)
+QEMU_VIRT	= true
+else
+QEMU_VIRT	= false
+endif
+ifeq ($(SPMC_AT_EL),n)
+QEMU_SME	= on
+else
+QEMU_SME	= off
+endif
+QEMU_CPU	?= max,sme=$(QEMU_SME),pauth-impdef=on
+QEMU_SMP 	?= 2
+QEMU_MEM 	?= 1057
+endif
+
+ifeq ($(MEMTAG),y)
+QEMU_MTE	= on
+else ifeq ($(SPMC_AT_EL),2)
+QEMU_MTE	= on
+else
+QEMU_MTE	= off
+endif
+
+QEMU_BASE_ARGS = -nographic
+QEMU_BASE_ARGS += -smp $(QEMU_SMP)
+QEMU_BASE_ARGS += -cpu $(QEMU_CPU)
+QEMU_BASE_ARGS += -d unimp -semihosting-config enable=on,target=native
+QEMU_BASE_ARGS += -m $(QEMU_MEM)
+QEMU_BASE_ARGS += -bios bl1.bin
+QEMU_BASE_ARGS += -initrd rootfs.cpio.gz
+QEMU_BASE_ARGS += -kernel Image
+QEMU_BASE_ARGS += -append 'console=ttyAMA0,38400 keep_bootcon root=/dev/vda2 $(QEMU_KERNEL_BOOTARGS)'
+QEMU_BASE_ARGS += $(QEMU_XEN)
+QEMU_BASE_ARGS += $(QEMU_EXTRA_ARGS)
+QEMU_BASE_ARGS += -machine virt,acpi=off,secure=on,mte=$(QEMU_MTE),gic-version=$(QEMU_GIC_VERSION),virtualization=$(QEMU_VIRT)
+
+ifeq ($(WITH_SCMI),y)
+QEMU_SCMI_ARGS 	= -dtb $(SCMI_DTB)
+
+$(SCMI_DTBO): $(SCMI_DTSO)
+	mkdir -p $(BINARIES_PATH)
+	dtc -I dts -O dtb -o $(SCMI_DTBO) $(SCMI_DTSO)
+
+$(SCMI_DTB): $(SCMI_DTBO) $(QEMU_BUILD)/.stamp_qemu linux arm-tf buildroot
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	cd $(BINARIES_PATH) && $(QEMU_BUILD)/aarch64-softmmu/qemu-system-aarch64 \
+		$(QEMU_BASE_ARGS) -machine dumpdtb=qemu_v8.dtb
+	cd $(BINARIES_PATH) && fdtoverlay -i qemu_v8.dtb -o $(SCMI_DTB) $(SCMI_DTBO)
+endif
+
+QEMU_RUN_ARGS = $(QEMU_BASE_ARGS) $(QEMU_SCMI_ARGS)
+QEMU_RUN_ARGS += $(QEMU_RUN_ARGS_COMMON)
+QEMU_RUN_ARGS += -s -S -serial tcp:127.0.0.1:$(QEMU_NW_PORT) -serial tcp:127.0.0.1:$(QEMU_SW_PORT) 
+
+.PHONY: run-only
+run-only:
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	$(call check-terminal)
+	$(call run-help)
+	$(call launch-terminal,54321,"Secure")
+	$(call launch-terminal,54320,"Firmware")
+	$(call wait-for-ports,54320,54321)
+	$(call launch-terminal,54322,"host")
+	$(call launch-terminal,54323,"Realm")
+	$(call wait-for-ports,54322,54323)
+	cd $(BINARIES_PATH) && $(QEMU_BUILD)/qemu-system-aarch64 \
+         -machine sbsa-ref -m 8G \
+         -cpu max,x-rme=on,sme=off \
+         -drive file=$(IMAGES_PATH)/SBSA_FLASH0.fd,format=raw,if=pflash \
+         -drive file=$(IMAGES_PATH)/SBSA_FLASH1.fd,format=raw,if=pflash \
+         -drive file=fat:rw:$(IMAGES_PATH)/disks/virtual,format=raw \
+         -drive format=raw,if=none,file=$(ROOT)/out-br/images/rootfs.ext4,id=hd0 \
+         -device virtio-blk-pci,drive=hd0 \
+         -serial tcp:localhost:54320 \
+         -serial tcp:localhost:54321 \
+         -chardev socket,mux=on,id=hvc0,port=54322,host=localhost \
+         -device virtio-serial-pci \
+         -device virtconsole,chardev=hvc0 \
+         -chardev socket,mux=on,id=hvc1,port=54323,host=localhost \
+         -device virtio-serial-pci \
+         -device virtconsole,chardev=hvc1 \
+         -device virtio-9p-pci,fsdev=shr0,mount_tag=shr0 \
+         -fsdev local,security_model=none,path=../../,id=shr0
+
+ifneq ($(filter check check-rust,$(MAKECMDGOALS)),)
+CHECK_DEPS := all
+endif
+
+ifneq ($(TIMEOUT),)
+check-args := --timeout $(TIMEOUT)
+endif
+ifneq ($(CHECK_TESTS),)
+check-args += --tests $(CHECK_TESTS)
+endif
+ifneq ($(XTEST_ARGS),)
+check-args += --xtest-args "$(XTEST_ARGS)"
+endif
+
+QEMU_CHECK_ARGS = $(QEMU_BASE_ARGS) $(QEMU_SCMI_ARGS)
+QEMU_CHECK_ARGS += -serial mon:stdio -serial file:serial1.log
+ifeq ($(XEN_BOOT),y)
+QEMU_CHECK_ARGS += -fsdev local,id=fsdev0,path=../..,security_model=none -device virtio-9p-device,fsdev=fsdev0,mount_tag=host
+endif
+
+check: $(CHECK_DEPS)
+	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	cd $(BINARIES_PATH) && \
+		export QEMU=$(QEMU_BUILD)/aarch64-softmmu/qemu-system-aarch64 && \
+		export QEMU_CHECK_ARGS="$(QEMU_CHECK_ARGS)" && \
+		export XEN_BOOT=$(XEN_BOOT) && \
+		export XEN_FFA=$(XEN_FFA) && \
+		export RUST_ENABLE=$(RUST_ENABLE) && \
+		expect $(ROOT)/build/qemu-check.exp -- $(check-args) || \
+		(if [ "$(DUMP_LOGS_ON_ERROR)" ]; then \
+			echo "== $$PWD/serial0.log:"; \
+			cat serial0.log; \
+			echo "== end of $$PWD/serial0.log:"; \
+			echo "== $$PWD/serial1.log:"; \
+			cat serial1.log; \
+			echo "== end of $$PWD/serial1.log:"; \
+		fi; false)
+
+check-only: check
+
+check-clean:
+	rm -f serial0.log serial1.log

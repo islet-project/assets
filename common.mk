@@ -358,7 +358,7 @@ linux-cleaner-common: linux-defconfig-clean
 .PHONY: edk2-common
 edk2-common:
 	$(call edk2-env) && \
-	export PACKAGES_PATH=$(EDK2_PATH):$(EDK2_PLATFORMS_PATH) && \
+	export PACKAGES_PATH=$(EDK2_PATH):$(EDK2_PLATFORMS_PATH):$(EDK2_NON_OSI_PATH) && \
 	source $(EDK2_PATH)/edksetup.sh && \
 	$(MAKE) -j1 -C $(EDK2_PATH)/BaseTools && \
 	$(call edk2-call) all
