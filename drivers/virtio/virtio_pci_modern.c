@@ -25,7 +25,7 @@ static void *eom_test_alloc(struct device *dev, size_t size,
 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs) {
 	pr_info("%s: start! size: %#llx, gfp: %#llx, attrs: %#llx, dev->dma_io_tlb_mem->for_alloc: %d",
 			__func__, size, gfp, attrs, dev->dma_io_tlb_mem->for_alloc);
-	dump_stack();
+	//dump_stack();
 	return dma_direct_alloc(dev, size, dma_handle, gfp, attrs);
 }
 static struct dma_map_ops test_dma_ops = { 
