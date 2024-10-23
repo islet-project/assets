@@ -88,7 +88,7 @@ struct channel_priv {
 	struct work_struct send, receive;
 	struct work_struct rt_sender, rt_receiver; // for the dyn_shrm_remove_test
 	//struct work_struct setup_rw_rings, setup_ro_rings;
-	struct work_struct setup_rw_rings;
+	struct work_struct setup_rw_rings, setup_virtio_mem;
 	u64* mapped_bar_addr;
 	u64 *rw_shrm_va_start;
 	u64 *ro_shrm_va_start;
@@ -252,6 +252,7 @@ static u64 get_reserved_rw_shrm_ipa(void) {
 	return reserved_shrm_ipa;
 }
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 static void drv_setup_rw_rings(struct work_struct *work) {
 	int ret = 0;
 	u64 shrm_rw_ipa_range_start, reserved_shrm_ipa;
@@ -315,6 +316,47 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 		return;
 	}
 }
+#else
+static void drv_setup_virtio_mem(struct work_struct *work) {
+	int ret = 0;
+	u64 shrm_rw_ipa_range_start, reserved_shrm_ipa;
+
+	pr_info("%s: start", __func__);
+
+	switch(drv_priv->role) {
+		case CLIENT:
+			drv_priv->shrm_token[SHRM_RW] = SHRM_TEMP_TOKEN1;
+			break;
+		case SERVER:
+			drv_priv->shrm_token[SHRM_RW] = SHRM_TEMP_TOKEN2;
+			break;
+		default:
+			pr_err("%s: invalid role %d", __func__, drv_priv->role);
+			return;
+	}
+
+	pr_info("%s: call rsi_set_shrm_token(%d, %#x)", __func__, SHRM_RW, drv_priv->shrm_token[SHRM_RW]);
+	rsi_set_shrm_token(SHRM_RW, drv_priv->shrm_token[SHRM_RW]);
+
+	shrm_rw_ipa_range_start = get_shrm_ipa_start(SHRM_RW);
+	if (!shrm_rw_ipa_range_start) {
+		pr_err("%s: get_shrm_ipa_start() failed", __func__);
+		return;
+	}
+
+	drv_priv->rw_shrm_va_start = memremap(shrm_rw_ipa_range_start, SHRM_IPA_RANGE_SIZE, MEMREMAP_WB);
+	if (!drv_priv->rw_shrm_va_start) {
+		pr_err("%s memremap for 0x%llx failed \n", __func__, shrm_rw_ipa_range_start);
+		return;
+	}
+
+	drv_priv->rw_shrms = init_shrm_list(drv_priv->rts, SHRM_RW_IPA_REGION_START, SHRM_IPA_RANGE_SIZE);
+	if (!drv_priv->rw_shrms) {
+		pr_err("[GCH] %s: init_shrm_list() failed", __func__);
+		return;
+	}
+}
+#endif
 
 //TODO: implement it!!
 static u64 get_reserved_ro_shrm_ipa(void) {
@@ -327,6 +369,7 @@ static u64 get_reserved_ro_shrm_ipa(void) {
 	return reserved_shrm_ro_ipa;
 }
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 static int drv_setup_ro_rings(void) {
 	u64 reserved_shrm_ro_ipa;
 	u64 shrm_ro_ipa_region_start = get_shrm_ipa_start(SHRM_RO);
@@ -375,7 +418,9 @@ static int drv_setup_ro_rings(void) {
 	pr_info("%s done", __func__);
 	return 0;
 }
+#endif
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 static void ch_send(struct work_struct *work) {
 	static int cnt = 0;
 	//u64 msg = 0xBEEF;
@@ -409,6 +454,7 @@ static void ch_send(struct work_struct *work) {
 
 	pr_info("[GCH] %s done", __func__);
 }
+#endif
 
 static bool is_same_msg(u64* a, u64* b, u64 size) {
 	const u64 *u1 = a, *u2 = b;
@@ -453,6 +499,7 @@ static void ch_receive(struct work_struct *work) {
 	pr_info("%s start", __func__);
 	set_peer_id();
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	if (!drv_priv->ro_shrm_va_start) {
 		ret = drv_setup_ro_rings();
 		if (ret) {
@@ -511,6 +558,7 @@ static void ch_receive(struct work_struct *work) {
 err:
 	if (received_data)
 		kfree(received_data);
+#endif
 	pr_info("%s done", __func__);
 }
 
@@ -550,7 +598,9 @@ static int channel_release(struct inode * inode, struct file * file)
 
 static ssize_t channel_read(struct file *filp, char *buf, size_t count, loff_t *f_pos) {
 	pr_info("[GCH] %s start", __func__);
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	schedule_work(&drv_priv->send);
+#endif
     return 0;
 }
 
@@ -716,12 +766,18 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	drv_priv->role = -1;
 
 	pr_info("[GCH] %s init_work for send, receive start\n", __func__);
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	INIT_WORK(&drv_priv->send, ch_send);
+#endif
 	INIT_WORK(&drv_priv->receive, ch_receive);
 	INIT_WORK(&drv_priv->rt_sender, dyn_rt_sender);
 	INIT_WORK(&drv_priv->rt_receiver, dyn_rt_receiver);
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	INIT_WORK(&drv_priv->setup_rw_rings, drv_setup_rw_rings);
-	//INIT_WORK(&drv_priv->setup_ro_rings, drv_setup_ro_rings);
+#else
+	pr_info("%s: CONFIG_GUEST_CHANNEL_IO_RING is not set", __func__);
+	INIT_WORK(&drv_priv->setup_virtio_mem, drv_setup_virtio_mem);
+#endif
 
 	/* Request memory region for the BAR */
 	ret = pci_request_region(pdev, bar, DRIVER_NAME);
@@ -770,7 +826,11 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	pr_info("[GCH] DYN_ALLOC_REQ_TEST: send signal to peer_id %d", 0);
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	schedule_work(&drv_priv->setup_rw_rings);
+#else
+	schedule_work(&drv_priv->setup_virtio_mem);
+#endif
 
 	/*
 	 * schedule_work(setup_rw_rings);

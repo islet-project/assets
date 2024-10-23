@@ -1,8 +1,8 @@
 #ifndef _SHARED_REALM_MEMORY_H
 #define _SHARED_REALM_MEMORY_H
 
-#define SHRM_CHUNK_SIZE 1024 * 8// TODO: need to defined by config 
-#define SHRM_IPA_RANGE_SIZE 0x10000000
+#define SHRM_CHUNK_SIZE (1 << 21) // TODO: need to defined by config 
+#define SHRM_IPA_RANGE_SIZE 0x10000000 // 256 MB
 
 #define SHRM_ID_MASK 0xFFF
 
