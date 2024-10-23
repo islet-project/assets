@@ -56,12 +56,13 @@ static inline int rmi_data_create_unknown(unsigned long data,
 
 static inline int rmi_shared_data_create(unsigned long data,
 					  unsigned long rd,
-					  unsigned long map_addr)
+					  unsigned long map_addr,
+					  unsigned long level)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_1_1_invoke(SMC_RMI_SHARED_DATA_CREATE, data, rd, map_addr,
-			     &res);
+			level, &res);
 
 	return res.a0;
 }

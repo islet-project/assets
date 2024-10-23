@@ -567,6 +567,7 @@ int realm_map_protected_ro(struct realm *realm,
 	unsigned long size;
 	int map_level;
 	int ret = 0;
+	int mem_chunk_size;
 
 	pr_err("%s is called", __func__);
 
@@ -583,18 +584,9 @@ int realm_map_protected_ro(struct realm *realm,
 	default:
 		return -EINVAL;
 	}
+	mem_chunk_size = rme_rtt_level_mapsize(map_level);
 
-	if (map_level < RME_RTT_MAX_LEVEL) {
-		/*
-		 * A temporary RTT is needed during the map, precreate it,
-		 * however if there is an error (e.g. missing parent tables)
-		 * this will be handled below.
-		 */
-		realm_create_rtt_levels(realm, ipa, map_level,
-					RME_RTT_MAX_LEVEL, memcache);
-	}
-
-	for (size = 0; size < map_size; size += PAGE_SIZE) {
+	for (size = 0; size < map_size; size += mem_chunk_size) {
 		ret = rmi_map_shared_mem_as_ro(phys, rd, ipa, map_size);
 
 		if (RMI_RETURN_STATUS(ret) == RMI_ERROR_RTT) {
@@ -617,14 +609,16 @@ int realm_map_protected_ro(struct realm *realm,
 		if (ret)
 			goto err;
 
-		phys += PAGE_SIZE;
-		ipa += PAGE_SIZE;
+		phys += mem_chunk_size;
+		ipa += mem_chunk_size;
 	}
 
+	/* NOTE: Current RMM doesn't support fold_rtt
 	if (map_size == RME_L2_BLOCK_SIZE)
 		ret = fold_rtt(rd, base_ipa, map_level, realm);
 	if (WARN_ON(ret))
 		goto err;
+	*/
 
 	return 0;
 
@@ -638,7 +632,7 @@ int realm_map_protected(struct realm *realm,
 			struct page *dst_page,
 			unsigned long map_size,
 			struct kvm_mmu_memory_cache *memcache,
-			int (*shared_data_create)(unsigned long, unsigned long, unsigned long))
+			int (*shared_data_create)(unsigned long, unsigned long, unsigned long, unsigned long))
 {
 	phys_addr_t dst_phys = page_to_phys(dst_page);
 	phys_addr_t rd = virt_to_phys(realm->rd);
@@ -647,6 +641,7 @@ int realm_map_protected(struct realm *realm,
 	unsigned long size;
 	int map_level;
 	int ret = 0;
+	int mem_chunk_size;
 
 	if (WARN_ON(!IS_ALIGNED(ipa, map_size)))
 		return -EINVAL;
@@ -661,18 +656,21 @@ int realm_map_protected(struct realm *realm,
 	default:
 		return -EINVAL;
 	}
+	mem_chunk_size = rme_rtt_level_mapsize(map_level);
 
-	if (map_level < RME_RTT_MAX_LEVEL) {
+	// If map_size is RME_L2_BLOCK_SIZE, it needs L2 Block but the below code creates L2 Table.
+	// if the spec is right with my intension, then the below code is bug
+	//if (map_level < RME_RTT_MAX_LEVEL) {
 		/*
 		 * A temporary RTT is needed during the map, precreate it,
 		 * however if there is an error (e.g. missing parent tables)
 		 * this will be handled below.
 		 */
-		realm_create_rtt_levels(realm, ipa, map_level,
-					RME_RTT_MAX_LEVEL, memcache);
-	}
+	//	realm_create_rtt_levels(realm, ipa, map_level,
+	//				RME_RTT_MAX_LEVEL, memcache);
+	//}
 
-	for (size = 0; size < map_size; size += PAGE_SIZE) {
+	for (size = 0; size < map_size; size += mem_chunk_size) {
 		if (rmi_granule_delegate(phys)) {
 			struct rtt_entry rtt;
 
@@ -697,7 +695,7 @@ int realm_map_protected(struct realm *realm,
 		}
 
 		if (shared_data_create) {
-			ret = shared_data_create(phys, rd, ipa);
+			ret = shared_data_create(phys, rd, ipa, map_level);
 		} else {
 			ret = rmi_data_create_unknown(phys, rd, ipa);
 		}
@@ -714,7 +712,7 @@ int realm_map_protected(struct realm *realm,
 				goto err_undelegate;
 
 			if (shared_data_create) {
-				ret = shared_data_create(phys, rd, ipa);
+				ret = shared_data_create(phys, rd, ipa, map_level);
 			} else {
 				ret = rmi_data_create_unknown(phys, rd, ipa);
 			}
@@ -724,14 +722,16 @@ int realm_map_protected(struct realm *realm,
 		if (ret)
 			goto err_undelegate;
 
-		phys += PAGE_SIZE;
-		ipa += PAGE_SIZE;
+		phys += mem_chunk_size;
+		ipa += mem_chunk_size;
 	}
 
+	/* NOTE: Current RMM doesn't support fold_rtt
 	if (map_size == RME_L2_BLOCK_SIZE)
 		ret = fold_rtt(rd, base_ipa, map_level, realm);
 	if (WARN_ON(ret))
 		goto err;
+	*/
 
 	return 0;
 
@@ -742,9 +742,9 @@ err_undelegate:
 	}
 err:
 	while (size > 0) {
-		phys -= PAGE_SIZE;
-		size -= PAGE_SIZE;
-		ipa -= PAGE_SIZE;
+		phys -= mem_chunk_size;
+		size -= mem_chunk_size;
+		ipa -= mem_chunk_size;
 
 		if (shared_data_create) {
 			rmi_shared_data_destroy(rd, ipa, NULL);

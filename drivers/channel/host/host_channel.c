@@ -31,6 +31,8 @@
 #define INTER_REALM_SHM_SIZE (1 << 12) * 8 
 #elif defined(CONFIG_INTER_REALM_SHM_SIZE_64KB)
 #define INTER_REALM_SHM_SIZE (1 << 12) * 16
+#elif defined(CONFIG_INTER_REALM_SHM_SIZE_2MB)
+#define INTER_REALM_SHM_SIZE (1 << 21)
 #endif
 
 #define VMID_MAX 128
@@ -192,10 +194,12 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 	pr_info("[HCH] mmap vm_flags 0x%llx vm_page_prot 0x%llx offset 0x%llx\n",
 			vma->vm_flags, vma->vm_page_prot, offset);
 
+	/*
 	if (req_size != INTER_REALM_SHM_SIZE) {
 		pr_err("%s Incorrect req_size 0x%llx != 0x%llx\n", __func__, req_size, INTER_REALM_SHM_SIZE);
 		return -EINVAL;
 	}
+	*/
 
 	if (offset & MMAP_SHARE_OTHER_REALM_MEM_MASK) {
 		struct shared_realm_memory *tmp, *target = NULL;

@@ -57,4 +57,10 @@ config INTER_REALM_SHM_SIZE_64KB
 	help
 	  This enables support for 64KB pages for inter co-resident realms shared memory
 
+config INTER_REALM_SHM_SIZE_2MB
+	bool "64KB"
+	depends on HOST_CHANNEL
+	help
+	  This enables support for 64KB pages for inter co-resident realms shared memory
+
 endif # CHANNEL
