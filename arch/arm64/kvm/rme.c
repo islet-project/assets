@@ -996,6 +996,10 @@ static int set_ipa_state(struct kvm_vcpu *vcpu,
 	unsigned long map_size = rme_rtt_level_mapsize(level);
 	int ret;
 
+	if (ipa == 0xc0000000) {
+		pr_info("%s: level: %d, map_size: %#llx", __func__, level, map_size);
+	}
+
 	while (ipa < end) {
 		ret = rmi_rtt_set_ripas(rd_phys, rec_phys, ipa, level, ripas);
 
@@ -1078,7 +1082,12 @@ static int find_map_level(struct kvm *kvm, unsigned long start, unsigned long en
 {
 	int level = RME_RTT_MAX_LEVEL;
 
-	while (level > get_start_level(kvm) + 1) {
+	if (start == 0xc0000000) {
+		pr_info("eom: %s: get_start_level(kvm): %d, start: %#llx, end: %#llx",
+				__func__, get_start_level(kvm), start, end);
+	}
+
+	while (level > get_start_level(kvm)) {
 		unsigned long map_size = rme_rtt_level_mapsize(level - 1);
 
 		if (!IS_ALIGNED(start, map_size) ||
@@ -1100,6 +1109,10 @@ int realm_set_ipa_state(struct kvm_vcpu *vcpu,
 	while (addr < end) {
 		int level = find_map_level(vcpu->kvm, addr, end);
 		unsigned long map_size = rme_rtt_level_mapsize(level);
+		if (addr == 0xc0000000) {
+			pr_info("%s: addr: %#llx, end: %#llx, level: %d, map_size: %#llx",
+					__func__, addr, end, level, map_size);
+		}
 
 		ret = set_ipa_state(vcpu, addr, addr + map_size, level, ripas);
 		if (ret)
