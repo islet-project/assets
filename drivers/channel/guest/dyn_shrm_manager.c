@@ -144,6 +144,7 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 	rw_shrms->free_size += SHRM_CHUNK_SIZE;
 	rw_shrms->total_size += SHRM_CHUNK_SIZE;
 
+#ifdef CONFIG_GUEST_IO_RING
 	desc_idx = desc_push_back(rts, 0, 0, IO_RING_DESC_F_DYN_ALLOC, shrm_id);
 	if (desc_idx < 0) {
 		pr_err("%s: desc_push_back failed %d", __func__, desc_idx);
@@ -154,6 +155,7 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 		pr_err("avail_push_back() is failed %d", ret);
 		return ret;
 	}
+#endif
 	return 0;
 }
 
@@ -202,7 +204,7 @@ s64 req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 		}
 
 		pr_info("[GCH] %s call set_memory_shared with shrm_ipa 0x%llx", __func__, shrm_ipa);
-		set_memory_shared(shrm_ipa, 1);
+		set_memory_shared(shrm_ipa, SHRM_CHUNK_SIZE / PAGE_SIZE);
 
 		ret = add_rw_shrm_chunk(rts, rw_shrms, shrm_ipa, shrm_id);
 		if (ret) 

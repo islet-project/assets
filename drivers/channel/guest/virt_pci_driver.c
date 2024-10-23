@@ -350,7 +350,7 @@ static void drv_setup_virtio_mem(struct work_struct *work) {
 		return;
 	}
 
-	drv_priv->rw_shrms = init_shrm_list(drv_priv->rts, SHRM_RW_IPA_REGION_START, SHRM_IPA_RANGE_SIZE);
+	drv_priv->rw_shrms = init_shrm_list(NULL, SHRM_RW_IPA_REGION_START, SHRM_IPA_RANGE_SIZE);
 	if (!drv_priv->rw_shrms) {
 		pr_err("[GCH] %s: init_shrm_list() failed", __func__);
 		return;

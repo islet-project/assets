@@ -261,13 +261,15 @@ int init_ro_rings(struct rings_to_send* rts, struct rings_to_receive* rtr, u64 s
 
 int desc_push_back(struct rings_to_send* rings_to_send, u64 offset, u32 len, u16 flags, u16 shrm_id) {
 	int idx;
-	struct desc_ring* desc_ring = rings_to_send->desc_ring;
+	struct desc_ring* desc_ring;
 
 	if (!rings_to_send || !desc_ring)
 		return -EINVAL;
 
 	if ((desc_ring->rear + 1) % MAX_DESC_RING == desc_ring->front) 
 		return -ENOSPC;
+
+	desc_ring = rings_to_send->desc_ring;
 
 	idx = desc_ring->rear;
 
