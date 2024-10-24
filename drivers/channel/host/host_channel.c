@@ -106,7 +106,7 @@ static void mmap_vma_close(struct vm_area_struct *vma)
 			pr_info("%s: shrm_id 0x%llx, vmid %d ref_cnt %d", __func__, shrm_id, vmid, tmp->ref_cnt);
 			if (--tmp->ref_cnt == 0) {
 				list_del(&tmp->list);
-				free_pages(tmp->va, get_order(INTER_REALM_SHM_SIZE));
+				free_pages_exact(tmp->va, PAGE_ALIGN(INTER_REALM_SHM_SIZE));
 				kfree(tmp);
 				free_shrm_id(shrm_id);
 				pr_info("%s: shrm with shrm_id 0x%llx is freed", __func__, shrm_id);
@@ -232,10 +232,10 @@ static int channel_mmap(struct file *filp, struct vm_area_struct *vma)
 		pr_info("[HCH] %s founded the target shrm with shrm_id 0x%llx", __func__, shrm_id);
 	} else {
 		struct shared_realm_memory *shrm;
-		void *va = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO | __GFP_MOVABLE,
-				get_order(INTER_REALM_SHM_SIZE));
+
+		void *va = alloc_pages_exact(PAGE_ALIGN(INTER_REALM_SHM_SIZE), GFP_KERNEL | __GFP_ZERO);
 		if (!va) {
-			pr_err("%s __get_free_pages failed\n", __func__);
+			pr_err("%s alloc_pages_exact failed\n", __func__);
 			return -ENOMEM;
 		}
 
