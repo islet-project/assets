@@ -488,7 +488,7 @@ u64 get_unmapped_ipa(SHRM_TYPE shrm_type) {
     u64 ipa = (shrm_type == SHRM_RW) ? SHRM_RW_IPA_REGION_START : SHRM_RO_IPA_REGION_START;
     u64 max_ipa = ipa + MAX_SHRM_IPA_SIZE_PER_REALM;
 
-    for (; ipa < max_ipa; ipa += PAGE_SIZE) {
+    for (; ipa < max_ipa; ipa += INTER_REALM_SHM_SIZE) {
         if (!is_mapped(ipa)) {
             return ipa;
         }

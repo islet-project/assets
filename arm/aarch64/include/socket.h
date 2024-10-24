@@ -13,7 +13,7 @@
 #define HOST_CHANNEL_PATH "/dev/host_channel"
 #define SHM_ALLOC_EFD_ID 0
 
-#define INTER_REALM_SHM_SIZE (1 << 12) * 2 // 4KB or 2MB only
+#define INTER_REALM_SHM_SIZE (1 << 21) // 4KB or 2MB only
 #define SHRM_IPA_RANGE_SIZE 0x10000000
 
 #define SHRM_RW_IPA_REGION_START 0xC0000000

@@ -34,7 +34,7 @@ static void* request_memory_to_host_channel(int vmid, SHRM_TYPE shrm_type, u64* 
 	}
 
     offset = offset << 12;
-    ch_syslog("mmap offset: 0x%llx\n", offset);
+    ch_syslog("mmap offset: 0x%llx, INTER_REALM_SHM_SIZE: %#llx\n", offset, INTER_REALM_SHM_SIZE);
 
     mem = mmap(NULL, INTER_REALM_SHM_SIZE, PROT_RW,
 			MAP_SHARED | MAP_NORESERVE | MAP_LOCKED, hc_fd, offset);
