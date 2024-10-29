@@ -41,7 +41,4 @@ struct packet_pos {
 	u64 size;
 };
 
-int mmio_write_to_remove_shrm(u64 ipa);
-int mmio_write_to_unmap_shrm(u64 ipa);
-
 #endif /* _SHARED_REALM_MEMORY_H */

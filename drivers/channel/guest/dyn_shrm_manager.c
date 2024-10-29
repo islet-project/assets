@@ -2,10 +2,72 @@
 #include "virt_pci_driver.h"
 #include <linux/slab.h>
 
-void send_signal(int peer_id);
-s64 mmio_read_to_get_shrm(SHRM_TYPE shrm_type);
-int mmio_write_to_remove_shrm(u64 ipa);
 void set_memory_shared(phys_addr_t start, int numpages);
+
+s64 get_shrm_chunk(void) {
+	s64 shrm_ipa, mmio_ret;
+	u32 shrm_id;
+
+	pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
+
+	mmio_ret = mmio_read_to_get_shrm(SHRM_RW);
+	shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
+	shrm_id = mmio_ret & SHRM_ID_MASK;
+	if (!shrm_ipa || !shrm_id) {
+		pr_err("[GCH] %s failed to get shrm_ipa. mmio_ret: %#llx", __func__, mmio_ret);
+		return -EAGAIN;
+	}
+
+	pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
+
+	return mmio_ret;
+}
+
+s64 _req_shrm_chunk(bool was_requested) {
+	s64 ret = 0;
+
+	if (was_requested) {
+		ret = get_shrm_chunk();
+		return ret;
+	}
+
+	pr_info("%s: send_signal to the SHRM_ALLOCATOR", __func__);
+	send_signal(SHRM_ALLOCATOR);
+	return -EAGAIN;
+}
+
+
+#ifndef CONFIG_GUEST_CHANNEL_IO_RING
+struct gen_pool* init_shrm_pool(void) {
+	int cnt = 0, ret;
+	struct packet_pos *cur_pp;
+    struct gen_pool* shrm_pool = gen_pool_create(PAGE_SHIFT, -1);
+	if (!shrm_pool) {
+		pr_err("[GCH] %s gen_pool_create() failed\n", __func__);
+		return NULL;
+	}
+
+	return shrm_pool;
+}
+
+int add_shrm_pool(struct gen_pool* shrm_pool, u64 va, u64 ipa, u64 size) {
+	int ret;
+
+	if (!shrm_pool) {
+		pr_info("%s: shrm_pool shouldn't be NULL", __func__);
+		return -EINVAL;
+	}
+
+	 ret = gen_pool_add_virt(shrm_pool, va, (phys_addr_t) ipa, (size_t)size, -1);
+	 if (ret) {
+		 pr_err("%s: gen_pool_add_virt() failed %d", __func__, ret);
+	 }
+	 pr_info("%s: va %#llx, ipa %#llx, size %#llx ret %d", __func__, va, ipa, size, ret);
+
+	 return ret;
+}
+#endif
+
 
 void print_front_rear(struct packet_pos* pp) {
 	if (!pp) return;
@@ -31,6 +93,13 @@ struct shrm_list* init_shrm_list(struct rings_to_send* rts, u64 ipa_start, u64 i
 	INIT_LIST_HEAD(&rw_shrms->head);
 	rw_shrms->ipa_start = ipa_start;
 	rw_shrms->ipa_end = ipa_start + ipa_size;
+
+#ifndef CONFIG_GUEST_CHANNEL_IO_RING
+	rw_shrms->shrm_pool = init_shrm_pool();
+	if (!rw_shrms->shrm_pool) {
+		return NULL;
+	}
+#endif
 
 	do {
 		if (cnt > 10) {
@@ -90,16 +159,7 @@ int remove_shrm_chunk(struct shrm_list* rw_shrms, u64 ipa) {
 	return -EINVAL;
 }
 
-static void set_req_pending(struct shrm_list* rw_shrms) {
-	if (!rw_shrms) {
-		pr_info("[GCH] %s rw_shrms shouldn't be NULL", __func__);
-		return;
-	}
-	if (rw_shrms->add_req_pending)
-		return;
-	rw_shrms->add_req_pending = true;
-	send_signal(SHRM_ALLOCATOR);
-}
+
 
 static struct shared_realm_memory* get_new_shrm(s64 shrm_ipa, u32 shrm_id, SHRM_TYPE type) {
 	struct shared_realm_memory *new_shrm;
@@ -119,7 +179,10 @@ static struct shared_realm_memory* get_new_shrm(s64 shrm_ipa, u32 shrm_id, SHRM_
 
 int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id) {
 	struct shared_realm_memory *new_shrm;
+	u64 va;
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	int desc_idx = -1, ret;
+#endif
 
 	if (!rw_shrms) {
 		pr_err("[GCH] %s: rw_shrms shouldn't be NULL\n", __func__);
@@ -144,7 +207,7 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 	rw_shrms->free_size += SHRM_CHUNK_SIZE;
 	rw_shrms->total_size += SHRM_CHUNK_SIZE;
 
-#ifdef CONFIG_GUEST_IO_RING
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	desc_idx = desc_push_back(rts, 0, 0, IO_RING_DESC_F_DYN_ALLOC, shrm_id);
 	if (desc_idx < 0) {
 		pr_err("%s: desc_push_back failed %d", __func__, desc_idx);
@@ -155,28 +218,14 @@ int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64
 		pr_err("avail_push_back() is failed %d", ret);
 		return ret;
 	}
+#else
+	va = (u64) get_shrm_va(SHRM_RW, new_shrm->ipa);
+	return add_shrm_pool(rw_shrms->shrm_pool, va, new_shrm->ipa, SHRM_CHUNK_SIZE);
 #endif
 	return 0;
 }
 
-s64 get_shrm_chunk(void) {
-	s64 shrm_ipa, mmio_ret;
-	u32 shrm_id;
 
-	pr_info("[GCH] %s read a new shrm_ipa using mmio trap", __func__);
-
-	mmio_ret = mmio_read_to_get_shrm(SHRM_RW);
-	shrm_ipa = mmio_ret & ~SHRM_ID_MASK;
-	shrm_id = mmio_ret & SHRM_ID_MASK;
-	if (!shrm_ipa || !shrm_id) {
-		pr_err("[GCH] %s failed to get shrm_ipa. mmio_ret: %#llx", __func__, mmio_ret);
-		return -EAGAIN;
-	}
-
-	pr_info("[GCH] %s get shrm_ipa 0x%llx from kvmtool", __func__, shrm_ipa);
-
-	return mmio_ret;
-}
 
 //TODO: need to be static. for now, it's opened just for the test
 s64 req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
@@ -187,13 +236,11 @@ s64 req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 		return -EINVAL;
 	}
 
+	ret = _req_shrm_chunk(rw_shrms->add_req_pending);
+
 	if (rw_shrms->add_req_pending) {
 		s64 shrm_ipa;
 		u32 shrm_id;
-
-		ret = get_shrm_chunk();
-		if (ret < 0) 
-			return ret;
 
 		shrm_ipa = ret & ~SHRM_ID_MASK;
 		shrm_id = ret & SHRM_ID_MASK;
@@ -214,10 +261,10 @@ s64 req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms) {
 
 		return ret;
 	} else {
-		pr_info("[GCH] %s set_req_pending", __func__);
-		set_req_pending(rw_shrms);
-		return -EAGAIN;
+		rw_shrms->add_req_pending = true;
 	}
+
+	return ret;
 }
 
 bool invalid_packet_pos(struct packet_pos* pp) {
@@ -241,6 +288,7 @@ bool invalid_packet_pos(struct packet_pos* pp) {
 	return false;
 }
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 static int _write_to_shrm(struct shrm_list* rw_shrms, u64* va, const u64* data, u64 size) {
 	if (rw_shrms->free_size < size) {
 		pr_err("%s: not enough shrm. free_size: %#llx < size: %#llx",
@@ -322,6 +370,7 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 		cur_pp->size += data_size;
 		pp->rear = cur_pp->rear;
 
+		next_rear_shrm->in_use = true;
 		pr_info("%s: print front & rear", __func__);
 		print_front_rear(&rw_shrms->pp);
 
@@ -384,6 +433,11 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 
 	return data_size - written_size; // in normal case, should be zero
 }
+#else
+int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct packet_pos* pp, const void* data, u64 size) {
+	return NULL;
+}
+#endif
 
 // Returns number of bytes that could not be copied. On success, this will be zero.
 int copy_from_shrm(void* to, struct packet_pos* from) {
@@ -535,7 +589,6 @@ int delete_packet_from_shrm(struct packet_pos* pp, struct shrm_list* rw_shrms) {
 	pr_info("%s done 2", __func__);
 	return 0;
 }
-
 
 /***************************************************************************
  *

@@ -21,6 +21,12 @@
 #include <linux/dma-map-ops.h>
 #include <linux/dma-direct.h>
 
+void *virtio_custom_alloc(struct device *dev, size_t size,
+		dma_addr_t *dma, gfp_t gfp, unsigned long attrs);
+/*
+ * dma_handle: allocated address should be set to this.
+ * vring_alloc_queue flags: GFP_KERNEL | __GFP_NOWARN | __GFP_ZERO
+ * but we don't need to use GFP_NOWARN.
 static void *eom_test_alloc(struct device *dev, size_t size,
 		dma_addr_t *dma_handle, gfp_t gfp, unsigned long attrs) {
 	pr_info("%s: start! size: %#llx, gfp: %#llx, attrs: %#llx, dev->dma_io_tlb_mem->for_alloc: %d",
@@ -28,11 +34,13 @@ static void *eom_test_alloc(struct device *dev, size_t size,
 	//dump_stack();
 	return dma_direct_alloc(dev, size, dma_handle, gfp, attrs);
 }
+*/
+
 static struct dma_map_ops test_dma_ops = { 
 	.get_sgtable = dma_direct_get_sgtable,
 	.mmap = dma_direct_mmap,
 	.get_required_mask = dma_direct_get_required_mask,
-	.alloc = eom_test_alloc,
+	.alloc = virtio_custom_alloc,
 	.free = dma_direct_free,
 	.alloc_pages = dma_direct_alloc_pages,
 	.free_pages = dma_direct_free_pages,

@@ -46,7 +46,7 @@ static struct class *ch_class;
 
 #define INVALID_PEER_ID -1
 
-struct channel_priv *drv_priv;
+struct channel_priv *drv_priv = NULL;
 u64 test_shrm_offset = 0x0;
 
 u64 test_msg[3] = {0xBEEF, 0xF00D, 0xC0FFEE};
@@ -101,7 +101,9 @@ struct channel_priv {
 	bool init_ro_rings_done;
 };
 
-
+struct shrm_list* get_rw_shrms(void) {
+	return (drv_priv) ? drv_priv->rw_shrms : NULL;
+}
 
 static u64 get_shrm_ipa_start(SHRM_TYPE shrm_type) {
 	return (shrm_type == SHRM_RW) ? SHRM_RW_IPA_REGION_START : SHRM_RO_IPA_REGION_START;
@@ -122,6 +124,29 @@ u64* get_shrm_va(SHRM_TYPE shrm_type, u64 ipa) {
 
 	return (u64*)shrm_va;
 }
+
+/* not used at the moment
+u64 get_shrm_ipa(SHRM_TYPE shrm_type, u64 va) {
+	u64 ipa, base_va = (shrm_type == SHRM_RW) ? (u64)drv_priv->rw_shrm_va_start : (u64)drv_priv->ro_shrm_va_start ;
+
+	if (!base_va) {
+		pr_err("%s base_va shouldn't be non-zero. shrm_type %d. ipa 0x%llx",
+				__func__, shrm_type, ipa);
+		return 0;
+	}
+
+	if (base_va > va) {
+		pr_err("%s: va %#llx shouldn't be smaller than base_va %#llx", __func__, va, base_va);
+		return 0;
+	}
+
+	ipa = base_va + (va % SHRM_IPA_RANGE_SIZE);
+
+	pr_info("%s: ipa %#llx base_va %#llx", __func__, ipa, base_va);
+
+	return ipa;
+}
+*/
 
 void send_signal(int peer_id) {
 	pr_info("[GCH] write %d to ioeventfd_addr 0x%x", peer_id, (uint32_t)drv_priv->ioeventfd_addr);
@@ -224,6 +249,7 @@ int mmio_write_to_get_ro_shrm(u32 shrm_id) {
 	return mmio_write(BAR_MMIO_SHM_RO_IPA_BASE, shrm_id);
 }
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 static u64 get_reserved_rw_shrm_ipa(void) {
 	u64 ret, reserved_shrm_ipa = 0;
 	u8 cnt = 0;
@@ -252,7 +278,6 @@ static u64 get_reserved_rw_shrm_ipa(void) {
 	return reserved_shrm_ipa;
 }
 
-#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 static void drv_setup_rw_rings(struct work_struct *work) {
 	int ret = 0;
 	u64 shrm_rw_ipa_range_start, reserved_shrm_ipa;
@@ -318,8 +343,7 @@ static void drv_setup_rw_rings(struct work_struct *work) {
 }
 #else
 static void drv_setup_virtio_mem(struct work_struct *work) {
-	int ret = 0;
-	u64 shrm_rw_ipa_range_start, reserved_shrm_ipa;
+	u64 shrm_rw_ipa_range_start;
 
 	pr_info("%s: start", __func__);
 
@@ -335,7 +359,8 @@ static void drv_setup_virtio_mem(struct work_struct *work) {
 			return;
 	}
 
-	pr_info("%s: call rsi_set_shrm_token(%d, %#x)", __func__, SHRM_RW, drv_priv->shrm_token[SHRM_RW]);
+	pr_info("%s: call rsi_set_shrm_token(%d, %#x)",
+			__func__, SHRM_RW, drv_priv->shrm_token[SHRM_RW]);
 	rsi_set_shrm_token(SHRM_RW, drv_priv->shrm_token[SHRM_RW]);
 
 	shrm_rw_ipa_range_start = get_shrm_ipa_start(SHRM_RW);
@@ -356,8 +381,10 @@ static void drv_setup_virtio_mem(struct work_struct *work) {
 		return;
 	}
 }
+
 #endif
 
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 //TODO: implement it!!
 static u64 get_reserved_ro_shrm_ipa(void) {
 	u64 first_peer_shrm_id = set_peer_id(), reserved_shrm_ro_ipa = 0;
@@ -369,7 +396,6 @@ static u64 get_reserved_ro_shrm_ipa(void) {
 	return reserved_shrm_ro_ipa;
 }
 
-#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 static int drv_setup_ro_rings(void) {
 	u64 reserved_shrm_ro_ipa;
 	u64 shrm_ro_ipa_region_start = get_shrm_ipa_start(SHRM_RO);
@@ -454,7 +480,6 @@ static void ch_send(struct work_struct *work) {
 
 	pr_info("[GCH] %s done", __func__);
 }
-#endif
 
 static bool is_same_msg(u64* a, u64* b, u64 size) {
 	const u64 *u1 = a, *u2 = b;
@@ -473,6 +498,7 @@ static bool is_same_msg(u64* a, u64* b, u64 size) {
 		}
 	return res == 0;
 }
+#endif
 
 u64 get_packet_size(struct shrm_list* rw_shrms, struct rings_to_receive* rtr) {
 	u64 packet_size = 0;
@@ -493,8 +519,10 @@ u64 get_packet_size(struct shrm_list* rw_shrms, struct rings_to_receive* rtr) {
 }
 
 static void ch_receive(struct work_struct *work) {
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
 	int ret;
 	u64* received_data = NULL, received_packet_size = 0;
+#endif
 
 	pr_info("%s start", __func__);
 	set_peer_id();
@@ -756,12 +784,14 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
         return ret;
     }
 
-    /* Allocate memory for the driver private data */
-    drv_priv = kzalloc(sizeof(struct channel_priv), GFP_KERNEL);
-    if (!drv_priv) {
-		pr_err("[GCH] failed to kzalloc for drv_priv\n");
-		goto pci_disable;
-    }
+	if (!drv_priv) {
+		/* allocate memory for the driver private data */
+		drv_priv = kzalloc(sizeof(struct channel_priv), GFP_KERNEL);
+		if (!drv_priv) {
+			pr_err("[gch] failed to kzalloc for drv_priv\n");
+			goto pci_disable;
+		}
+	}
 
 	drv_priv->role = -1;
 
@@ -803,14 +833,22 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 
 	dev_ioeventfd_addr = IOEVENTFD_BASE_ADDR;
 	dev_ioeventfd_size = IOEVENTFD_BASE_SIZE;
-	drv_priv->ioeventfd_addr = ioremap(dev_ioeventfd_addr, dev_ioeventfd_size);
-
-	pr_info("[GCH] ioeventfd addr 0x%x, size 0x%x, iomap_addr 0x%llx",
-			dev_ioeventfd_addr, dev_ioeventfd_size, (uint64_t)drv_priv->ioeventfd_addr);
 	if (!drv_priv->ioeventfd_addr) {
-		pr_err("[GCH] pci_iomap failed for ioeventfd_addr\n");
-		goto pci_disable;
+		drv_priv->ioeventfd_addr = ioremap(dev_ioeventfd_addr, dev_ioeventfd_size);
+
+		pr_info("[GCH] ioeventfd addr 0x%x, size 0x%x, iomap_addr 0x%llx",
+				dev_ioeventfd_addr, dev_ioeventfd_size, (uint64_t)drv_priv->ioeventfd_addr);
+		if (!drv_priv->ioeventfd_addr) {
+			pr_err("[GCH] pci_iomap failed for ioeventfd_addr\n");
+			goto pci_disable;
+		}
 	}
+
+#ifdef CONFIG_GUEST_CHANNEL_IO_RING
+	schedule_work(&drv_priv->setup_rw_rings);
+#else
+	schedule_work(&drv_priv->setup_virtio_mem);
+#endif
 
     /* Set driver private data */
     /* Now we can access mapped "hwmem" from the any driver's function */
@@ -822,34 +860,6 @@ static int channel_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		pr_err("[GCH] request_irq failed. pdev->irq: %d\n", pdev->irq);
 		goto iomap_release;
 	}
-	pr_info("[GCH] request_irq done");
-
-	pr_info("[GCH] DYN_ALLOC_REQ_TEST: send signal to peer_id %d", 0);
-
-#ifdef CONFIG_GUEST_CHANNEL_IO_RING
-	schedule_work(&drv_priv->setup_rw_rings);
-#else
-	schedule_work(&drv_priv->setup_virtio_mem);
-#endif
-
-	/*
-	 * schedule_work(setup_rw_rings);
-	 * schedule_work(setup_ro_rings); // if my role is Client, it starts after getting noti by peer
-	 * schedule_work(setup_ro_rings); // if my role is Server, start it now 
-	 */
-
-
-	/*
-	pr_info("[GCH] TEST: send signal to destination peer_id %d", drv_priv->peer.id);
-	send_signal(drv_priv->peer.id);
-	*/
-
-	/*
-	if (drv_priv->role == CLIENT) {
-		pr_info("[GCH] start schedule_work for send");
-		schedule_work(&drv_priv->send);
-	}
-	*/
 
 	pr_info("[GCH] %s done\n", __func__);
 

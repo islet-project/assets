@@ -4,6 +4,9 @@
 #include <linux/list.h>
 #include "io_ring.h"
 #include "shrm.h"
+#ifndef CONFIG_GUEST_CHANNEL_IO_RING
+#include <linux/genalloc.h>
+#endif
 
 #define MIN_FREE_SHRM_SIZE 1024 * 8 // 8kb
 //#define MIN_FREE_SHRM_SIZE 1024 * 1024 * 2 // 2MB
@@ -16,6 +19,9 @@ struct shrm_list {
 	u64 free_size, total_size;
 	u64 ipa_start, ipa_end; // RW shrm IPA range only for the current realm
 	bool add_req_pending;
+#ifndef CONFIG_CHANNL_GUEST_IO_RING
+	struct gen_pool* shrm_pool;
+#endif
 	//TODO: need lock to enlarge and shrink it
 };
 
@@ -25,7 +31,6 @@ int write_to_shrm(struct rings_to_send* rts, struct shrm_list* rw_shrms, struct 
 int copy_from_shrm(void* to, struct packet_pos* from);
 int add_rw_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms, s64 shrm_ipa, u32 shrm_id);
 int add_ro_shrm_chunk(struct list_head* ro_shrms_head, u32 shrm_id);
-s64 get_shrm_chunk(void);
 s64 req_shrm_chunk(struct rings_to_send* rts, struct shrm_list* rw_shrms);
 bool invalid_packet_pos(struct packet_pos* pp);
 u64 req_ro_shrm_ipa(u32 shrm_id);

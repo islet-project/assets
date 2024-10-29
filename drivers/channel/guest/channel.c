@@ -1,6 +1,7 @@
 #include "dyn_shrm_manager.h"
 #include "shrm.h"
 #include "channel.h"
+#include "virt_pci_driver.h"
 #include <linux/printk.h>
 
 void notify_peer(void);
@@ -310,4 +311,52 @@ int delete_used(struct rings_to_receive* rtr) {
 	}
 
 	return 0;
+}
+
+void* shrm_pool_dma_alloc(struct shrm_list* rw_shrms, size_t size, dma_addr_t* dma) {
+	void* va = NULL;
+	int cnt = 0;
+	s64 ret;
+
+	pr_info("%s start!", __func__);
+
+	if (!rw_shrms || !rw_shrms->shrm_pool) {
+		pr_info("%s: input pointers shouldn't be NULL", __func__);
+		return NULL;
+	}
+
+	va = gen_pool_dma_alloc(rw_shrms->shrm_pool, size, dma);
+	if (!va) {
+		pr_info("%s: gen_pool_dma_alloc() failed. try to get an new shrm", __func__);
+
+		do {
+			if (cnt > 10) {
+				pr_err("%s: req_shrm_chunk cnt %d. something wrong", __func__, cnt);
+				return NULL;
+			}
+			ret = req_shrm_chunk(NULL, rw_shrms);
+			cnt++;
+		} while(ret == -EAGAIN);
+	}
+
+	va = gen_pool_dma_alloc(rw_shrms->shrm_pool, size, dma);
+	if (!va) {
+		pr_err("%s: gen_pool_add_virt() is done already. maybe synchronization problem", __func__);
+	}
+
+	pr_info("%s: va: %#llx, size: %#llx, *dma(pa): %#llx", __func__, va, size, *dma);
+
+	return va;
+}
+
+void *virtio_custom_alloc(struct device *dev, size_t size,
+		dma_addr_t *dma, gfp_t gfp, unsigned long attrs) {
+	struct shrm_list* rw_shrms = get_rw_shrms();
+
+	if (!rw_shrms) {
+		pr_info("%s: rw_shrms shouldn't be NULL", __func__);
+		return NULL;
+	}
+
+	return shrm_pool_dma_alloc(rw_shrms, size, dma);
 }

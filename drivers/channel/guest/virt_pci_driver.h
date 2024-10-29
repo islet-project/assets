@@ -12,5 +12,7 @@ int mmio_write_to_remove_shrm(u64 ipa);
 int mmio_write_to_unmap_shrm(u64 ipa);
 int mmio_write_to_get_ro_shrm(u32 shrm_id);
 u64* get_shrm_va(SHRM_TYPE shrm_type, u64 ipa);
+void send_signal(int peer_id);
+struct shrm_list* get_rw_shrms(void);
 
 #endif /* _VIRT_PCI_DRIVER_H */
