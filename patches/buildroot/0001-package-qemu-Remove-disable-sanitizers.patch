@@ -1,0 +1,29 @@
+From 18c0780797ce308821d17e2eea8ffa151e19934c Mon Sep 17 00:00:00 2001
+From: Jean-Philippe Brucker <jean-philippe@linaro.org>
+Date: Wed, 25 Sep 2024 10:04:38 +0100
+Subject: [PATCH] package/qemu: Remove --disable-sanitizers
+
+The config option --disable-sanitizers has been removed upstream.
+
+Signed-off-by: Jean-Philippe Brucker <jean-philippe@linaro.org>
+---
+ package/qemu/qemu.mk | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/package/qemu/qemu.mk b/package/qemu/qemu.mk
+index 8de803dd25..a11bef1e51 100644
+--- a/package/qemu/qemu.mk
++++ b/package/qemu/qemu.mk
+@@ -322,7 +322,6 @@ define QEMU_CONFIGURE_CMDS
+ 			--disable-pa \
+ 			--disable-plugins \
+ 			--disable-rbd \
+-			--disable-sanitizers \
+ 			--disable-selinux \
+ 			--disable-sparse \
+ 			--disable-strip \
+
+base-commit: d79f40dbbe98983bc657d4c82d46b38b8283351b
+-- 
+2.47.0
+

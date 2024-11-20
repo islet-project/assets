@@ -290,13 +290,20 @@ ifneq (y,$(BR2_PER_PACKAGE_DIRECTORIES))
 br-make-flags := -j1
 endif
 
+# Temporary patch for buildroot: its qemu target passes --disable-sanitizers
+# which isn't supported by the most recent qemu.
+.patch_buildroot:
+	pushd ../buildroot && \
+	git am ../build/patches/buildroot/*.patch && \
+	popd
+	touch .patch_buildroot
 
 .qemu_target:
 	cd $(QEMU_TARGET_PATH); ./configure --target-list=aarch64-softmmu; make clean
 	touch $@
 
 .PHONY: buildroot
-buildroot: optee-os .qemu_target
+buildroot: optee-os .qemu_target  .patch_buildroot
 	@mkdir -p ../out-br
 	@rm -f ../out-br/build/optee_*/.stamp_*
 	@rm -f ../out-br/extra.conf
