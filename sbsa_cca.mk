@@ -624,6 +624,7 @@ run-only:
 	$(call launch-terminal,54323,"Realm")
 	$(call wait-for-ports,54322,54323)
 	cd $(BINARIES_PATH) && $(QEMU_BUILD)/qemu-system-aarch64 \
+         -nographic \
          -machine sbsa-ref -m 8G \
          -cpu max,x-rme=on,sme=off \
          -drive file=$(IMAGES_PATH)/SBSA_FLASH0.fd,format=raw,if=pflash \
