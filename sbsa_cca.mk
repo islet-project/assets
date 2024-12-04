@@ -626,7 +626,7 @@ run-only:
 	cd $(BINARIES_PATH) && $(QEMU_BUILD)/qemu-system-aarch64 \
          -nographic \
          -machine sbsa-ref -m 8G \
-         -cpu max,x-rme=on,sme=off \
+         -cpu max,x-rme=on,sme=off,pauth-impdef=on \
          -drive file=$(IMAGES_PATH)/SBSA_FLASH0.fd,format=raw,if=pflash \
          -drive file=$(IMAGES_PATH)/SBSA_FLASH1.fd,format=raw,if=pflash \
          -drive file=fat:rw:$(IMAGES_PATH)/disks/virtual,format=raw \
