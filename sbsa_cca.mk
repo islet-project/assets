@@ -317,18 +317,19 @@ define edk2-call
         MAKEFLAGS= \
         build -n `getconf _NPROCESSORS_ONLN` -a $(EDK2_ARCH) \
                 -t $(EDK2_TOOLCHAIN) \
-                -p $(EDK2_PLATFORMS_PATH)/Platform/Qemu/SbsaQemu/SbsaQemu-rme.dsc \
+                -p $(EDK2_PLATFORMS_PATH)/Platform/Qemu/SbsaQemu/SbsaQemu.dsc \
+		-D ENABLE_RME \
 		--pcd PcdUefiShellDefaultBootEnable=1 \
 		--pcd PcdShellDefaultDelay=0 \
                 -b $(EDK2_BUILD)
 endef
 
 edk2: arm-tf edk2-common
-	truncate -s 256M $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH0.fd
-	truncate -s 256M $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH1.fd
+	truncate -s 256M $(EDK2_BUILD_DIR)/Build/SbsaQemuRme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH0.fd
+	truncate -s 256M $(EDK2_BUILD_DIR)/Build/SbsaQemuRme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH1.fd
 	mkdir -p $(IMAGES_PATH)
-	cp $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH0.fd $(IMAGES_PATH)/
-	cp $(EDK2_BUILD_DIR)/Build/SbsaQemu-rme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH1.fd $(IMAGES_PATH)/
+	cp $(EDK2_BUILD_DIR)/Build/SbsaQemuRme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH0.fd $(IMAGES_PATH)/
+	cp $(EDK2_BUILD_DIR)/Build/SbsaQemuRme/$(EDK2_BUILD)_$(EDK2_TOOLCHAIN)/FV/SBSA_FLASH1.fd $(IMAGES_PATH)/
 
 edk2-clean: edk2-clean-common
 
