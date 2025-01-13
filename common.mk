@@ -290,26 +290,12 @@ ifneq (y,$(BR2_PER_PACKAGE_DIRECTORIES))
 br-make-flags := -j1
 endif
 
-# Temporary patch for buildroot: its qemu target passes --disable-sanitizers
-# which isn't supported by the most recent qemu.
-.patch_buildroot:
-	pushd ../buildroot && \
-	git am ../build/patches/buildroot/*.patch && \
-	popd
-	touch .patch_buildroot
-
-.qemu_target:
-	cd $(QEMU_TARGET_PATH); ./configure --target-list=aarch64-softmmu; make clean
-	touch $@
-
 .PHONY: buildroot
-buildroot: optee-os .qemu_target  .patch_buildroot
+buildroot: optee-os
 	@mkdir -p ../out-br
 	@rm -f ../out-br/build/optee_*/.stamp_*
 	@rm -f ../out-br/extra.conf
 	@$(call append-br2-vars,../out-br/extra.conf)
-	@echo 'KVMTOOL_OVERRIDE_SRCDIR=$(KVMTOOL_TARGET_PATH)' > ../out-br/local.mk
-	@echo 'QEMU_OVERRIDE_SRCDIR=$(QEMU_TARGET_PATH)' >> ../out-br/local.mk
 	@(cd .. && $(PYTHON3) build/br-ext/scripts/make_def_config.py \
 		--br buildroot --out out-br --br-ext build/br-ext \
 		--br-ext buildroot-external-cca \

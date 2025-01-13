@@ -58,7 +58,6 @@ TF_A_PATH		?= $(ROOT)/trusted-firmware-a
 BINARIES_PATH		?= $(ROOT)/out/bin
 QEMU_PATH		?= $(ROOT)/qemu
 QEMU_BUILD		?= $(QEMU_PATH)/build
-QEMU_TARGET_PATH	?= $(ROOT)/qemu.target
 MODULE_OUTPUT		?= $(ROOT)/out/kernel_modules
 UBOOT_PATH		?= $(ROOT)/u-boot
 UBOOT_BIN		?= $(UBOOT_PATH)/u-boot.bin
@@ -80,7 +79,6 @@ RMM_BUILD		?= Release
 RMM_LOG_LEVEL		?= 40
 endif
 RMM_BIN			?= $(RMM_PATH)/build/$(RMM_BUILD)/rmm.img
-KVMTOOL_TARGET_PATH	?= $(ROOT)/kvmtool
 MKIMAGE_PATH		?= $(UBOOT_PATH)/tools
 HAFNIUM_PATH		?= $(ROOT)/hafnium
 HAFNIUM_BIN		?= $(HAFNIUM_PATH)/out/reference/secure_qemu_aarch64_clang/hafnium.bin
