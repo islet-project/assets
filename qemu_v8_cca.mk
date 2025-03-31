@@ -650,7 +650,7 @@ run-only:
          -chardev socket,mux=on,id=hvc1,port=54323,host=localhost \
          -device virtio-serial-device \
          -device virtconsole,chardev=hvc1 \
-         -append "root=/dev/vda earlycon console=hvc0" \
+         -append "root=/dev/vda earlycon console=hvc0 nokaslr" \
          -device virtio-net-pci,netdev=net0 \
          -netdev user,id=net0 \
          -device virtio-9p-device,fsdev=shr0,mount_tag=shr0 \
