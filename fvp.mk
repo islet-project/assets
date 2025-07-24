@@ -151,6 +151,11 @@ LINUX_DEFCONFIG_COMMON_FILES := \
 		$(CURDIR)/kconfigs/fvp.conf \
 		$(CURDIR)/kconfigs/vsock.conf
 
+GRUB_FILE := grub.cfg
+ifeq ($(RME_HOST_CONTEXT),y)
+    GRUB_FILE = grub-hostctxt.cfg
+endif
+
 .PHONY: linux-ftpm-module
 linux-ftpm-module: linux
 ifeq ($(MEASURED_BOOT),y)
@@ -254,7 +259,7 @@ boot-img: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	mmd -i $(BOOT_IMG) ::/EFI/BOOT
 	mcopy -i $(BOOT_IMG) $(OUT_PATH)/initrd.img ::/initrd.img
 	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
-	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
+	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/${GRUB_FILE} ::/EFI/BOOT/grub.cfg
 
 .PHONY: boot-img-launch
 boot-img-launch: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
@@ -273,7 +278,7 @@ boot-img-launch: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	mmd -i $(BOOT_IMG) ::/EFI/BOOT
 	mcopy -i $(BOOT_IMG) $(OUT_PATH)/initrd.img ::/initrd.img
 	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
-	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
+	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/${GRUB_FILE} ::/EFI/BOOT/grub.cfg
 
 .PHONY: boot-img-net  # static address setting for a tap networking
 boot-img-net: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
@@ -298,7 +303,7 @@ boot-img-net: boot-img-clean $(GRUB_BIN) ${LINUX_BIN} ${LINUX_DTB_BIN}
 	mmd -i $(BOOT_IMG) ::/EFI/BOOT
 	mcopy -i $(BOOT_IMG) $(OUT_PATH)/initrd.img ::/initrd.img
 	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
-	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
+	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/${GRUB_FILE}.cfg ::/EFI/BOOT/grub.cfg
 
 .PHONY: boot-img-clean
 boot-img-clean:
