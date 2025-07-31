@@ -3,7 +3,7 @@
 ################################################################################
 SHELL				= /bin/bash
 ROOT				?= $(CURDIR)/..
-TOOLCHAIN_ROOT 			?= $(ROOT)/toolchains
+TOOLCHAIN_ROOT 			?= $(ROOT)/assets/toolchain
 UNAME_M				:= $(shell uname -m)
 ARCH				?= arm
 

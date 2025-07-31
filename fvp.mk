@@ -9,7 +9,6 @@ COMPILE_S_USER    ?= 64
 COMPILE_S_KERNEL  ?= 64
 
 OPTEE_OS_PLATFORM = vexpress-fvp
-
 include common.mk
 
 ################################################################################
@@ -190,8 +189,9 @@ edk2-clean: edk2-clean-common
 ################################################################################
 LINUX_DEFCONFIG_COMMON_ARCH := arm64
 LINUX_DEFCONFIG_COMMON_FILES ?= \
-		$(LINUX_PATH)/arch/arm64/configs/defconfig \
-		$(CURDIR)/kconfigs/fvp.conf
+		$(LINUX_PATH)/arch/arm64/configs/host \
+		$(CURDIR)/kconfigs/fvp.conf \
+		$(CURDIR)/kconfigs/vsock.conf
 
 .PHONY: linux-ftpm-module
 linux-ftpm-module: linux
@@ -281,14 +281,17 @@ grub-clean:
 ################################################################################
 
 .PHONY: boot-img
-boot-img: grub buildroot
+# We want to use a pre-built grub
+#boot-img: grub buildroot
+boot-img:
 	rm -f $(BOOT_IMG)
 	mformat -i $(BOOT_IMG) -n 64 -h 255 -T 131072 -v "BOOT IMG" -C ::
 	mcopy -i $(BOOT_IMG) $(LINUX_PATH)/arch/arm64/boot/Image ::
 	mcopy -i $(BOOT_IMG) $(FVP_LINUX_DTB) ::/fvp.dtb
+	mcopy -i $(BOOT_IMG) $(FVP_LINUX_DTB) ::
 	mmd -i $(BOOT_IMG) ::/EFI
 	mmd -i $(BOOT_IMG) ::/EFI/BOOT
-	mcopy -i $(BOOT_IMG) $(ROOT)/out-br/images/rootfs.cpio.gz ::/initrd.img
+	mcopy -i $(BOOT_IMG) $(OUT_PATH)/rootfs.cpio.gz ::/initrd.img
 	mcopy -i $(BOOT_IMG) $(GRUB_BIN) ::/EFI/BOOT/bootaa64.efi
 	mcopy -i $(BOOT_IMG) $(GRUB_CONFIG_PATH)/grub.cfg ::/EFI/BOOT/grub.cfg
 
