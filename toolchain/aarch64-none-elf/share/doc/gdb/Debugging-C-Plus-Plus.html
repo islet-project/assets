@@ -178,22 +178,6 @@ available choices, or to finish the type list for you.
 See <a href="Completion.html#Completion">Command Completion</a>, for details on how to do this.
 </p>
 </dd>
-<dt><code><span class="roman">Breakpoints in template functions</span></code></dt>
-<dd>
-<p>Similar to how overloaded symbols are handled, <small>GDB</small> will ignore
-template parameter lists when it encounters a symbol which includes a
-C<tt>++</tt> template.  This permits setting breakpoints on families of template functions
-or functions whose parameters include template types.
-</p>
-<p>The <kbd>-qualified</kbd> flag may be used to override this behavior, causing
-<small>GDB</small> to search for a specific function or type.
-</p>
-<p>The <small>GDB</small> command-line word completion facility also understands
-template parameters and may be used to list available choices or finish
-template parameter lists for you. See <a href="Completion.html#Completion">Command Completion</a>, for
-details on how to do this.
-</p>
-</dd>
 <dt><code><span class="roman">Breakpoints in functions with ABI tags</span></code></dt>
 <dd>
 <p>The GNU C<tt>++</tt> compiler introduced the notion of ABI &ldquo;tags&rdquo;, which

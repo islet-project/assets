@@ -129,24 +129,6 @@ does not  use that identifier.
 a <code>gdb.Inferior</code> object.  This attribute is not writable.
 </p></dd></dl>
 
-<dl>
-<dt><a name="index-InferiorThread_002edetails"></a>Variable: <strong>InferiorThread.details</strong></dt>
-<dd><p>A string containing target specific thread state information.  The
-format of this string varies by target.  If there is no additional
-state information for this thread, then this attribute contains
-<code>None</code>.
-</p>
-<p>For example, on a <small>GNU</small>/Linux system, a thread that is in the
-process of exiting will return the string &lsquo;<samp>Exiting</samp>&rsquo;.  For remote
-targets the <code>details</code> string will be obtained with the
-&lsquo;<samp>qThreadExtraInfo</samp>&rsquo; remote packet, if the target supports it
-(see <a href="General-Query-Packets.html#qThreadExtraInfo">&lsquo;<samp>qThreadExtraInfo</samp>&rsquo;</a>).
-</p>
-<p><small>GDB</small> displays the <code>details</code> string as part of the
-&lsquo;<samp>Target Id</samp>&rsquo; column, in the <code>info threads</code> output
-(see <a href="Threads.html#info_005fthreads">&lsquo;<samp>info threads</samp>&rsquo;</a>).
-</p></dd></dl>
-
 <p>A <code>gdb.InferiorThread</code> object has the following methods:
 </p>
 <dl>

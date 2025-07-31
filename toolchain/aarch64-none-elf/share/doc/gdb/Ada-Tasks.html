@@ -235,45 +235,6 @@ from the current task to the given task.
 </pre></div>
 
 </dd>
-<dt><code>task apply [<var>task-id-list</var> | all] [<var>flag</var>]&hellip; <var>command</var></code></dt>
-<dd><p>The <code>task apply</code> command is the Ada tasking analogue of
-<code>thread apply</code> (see <a href="Threads.html#Threads">Threads</a>).  It allows you to apply the
-named <var>command</var> to one or more tasks.  Specify the tasks that you
-want affected using a list of task IDs, or specify <code>all</code> to apply
-to all tasks.
-</p>
-<p>The <var>flag</var> arguments control what output to produce and how to
-handle errors raised when applying <var>command</var> to a task.
-<var>flag</var> must start with a <code>-</code> directly followed by one letter
-in <code>qcs</code>.  If several flags are provided, they must be given
-individually, such as <code>-c -q</code>.
-</p>
-<p>By default, <small>GDB</small> displays some task information before the
-output produced by <var>command</var>, and an error raised during the
-execution of a <var>command</var> will abort <code>task apply</code>.  The
-following flags can be used to fine-tune this behavior:
-</p>
-<dl compact="compact">
-<dt><code>-c</code></dt>
-<dd><p>The flag <code>-c</code>, which stands for &lsquo;<samp>continue</samp>&rsquo;, causes any
-errors in <var>command</var> to be displayed, and the execution of
-<code>task apply</code> then continues.
-</p></dd>
-<dt><code>-s</code></dt>
-<dd><p>The flag <code>-s</code>, which stands for &lsquo;<samp>silent</samp>&rsquo;, causes any errors
-or empty output produced by a <var>command</var> to be silently ignored.
-That is, the execution continues, but the task information and errors
-are not printed.
-</p></dd>
-<dt><code>-q</code></dt>
-<dd><p>The flag <code>-q</code> (&lsquo;<samp>quiet</samp>&rsquo;) disables printing the task
-information.
-</p></dd>
-</dl>
-
-<p>Flags <code>-c</code> and <code>-s</code> cannot be used together.
-</p>
-</dd>
 <dt><code>break <var>location</var> task <var>taskno</var></code></dt>
 <dt><code>break <var>location</var> task <var>taskno</var> if &hellip;</code></dt>
 <dd><a name="index-breakpoints-and-tasks_002c-in-Ada"></a>

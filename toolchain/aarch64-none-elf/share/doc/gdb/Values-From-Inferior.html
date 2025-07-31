@@ -252,9 +252,6 @@ its result is used.
 from the Python buffer object specified by <var>val</var>.  The number of
 bytes in the Python buffer object must be greater than or equal to the
 size of <var>type</var>.
-</p>
-<p>If <var>type</var> is <code>None</code> then this version of <code>__init__</code>
-behaves as though <var>type</var> was not passed at all.
 </p></dd></dl>
 
 <dl>
@@ -483,17 +480,6 @@ print repeats</code> in <a href="Print-Settings.html#Print-Settings">Print Setti
 the returned string.  For instance, <code>'x'</code> is equivalent to using the
 <small>GDB</small> command <code>print</code> with the <code>/x</code> option and formats
 the value as a hexadecimal number.
-</p>
-</dd>
-<dt><code>styling</code></dt>
-<dd><p><code>True</code> if <small>GDB</small> should apply styling to the returned
-string.  When styling is applied, the returned string might contain
-ANSI terminal escape sequences.  Escape sequences will only be
-included if styling is turned on, see <a href="Output-Styling.html#Output-Styling">Output Styling</a>.
-Additionally, <small>GDB</small> only styles some value contents, so not
-every output string will contain escape sequences.
-</p>
-<p>When <code>False</code>, which is the default, no output styling is applied.
 </p></dd>
 </dl>
 </dd></dl>

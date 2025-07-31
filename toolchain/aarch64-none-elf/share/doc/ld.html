@@ -1,10 +1,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <!-- This file documents the GNU linker LD
-(Arm GNU Toolchain 11.3.Rel1)
-version 2.38.
+(GNU Toolchain for the Arm Architecture 11.2-2022.02 (arm-11.14))
+version 2.37.
 
-Copyright (C) 1991-2022 Free Software Foundation, Inc.
+Copyright (C) 1991-2021 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3
@@ -212,8 +212,8 @@ Next: <a href="#Overview" accesskey="n" rel="next">Overview</a>, Up: <a href="di
 <a name="LD"></a>
 <h1 class="top">LD</h1>
 <p>This file documents the <small>GNU</small> linker ld
-(Arm GNU Toolchain 11.3.Rel1)
-version 2.38.
+(GNU Toolchain for the Arm Architecture 11.2-2022.02 (arm-11.14))
+version 2.37.
 </p>
 <p>This document is distributed under the terms of the GNU Free
 Documentation License version 1.3.  A copy of the license is included
@@ -752,7 +752,7 @@ sections.  This is ignored for other object file formats.
 the specified name.  When an executable is linked with a shared object
 which has a DT_SONAME field, then when the executable is run the dynamic
 linker will attempt to load the shared object specified by the DT_SONAME
-field rather than using the file name given to the linker.
+field rather than the using the file name given to the linker.
 </p>
 <a name="index-_002di"></a>
 <a name="index-incremental-link"></a>
@@ -1405,19 +1405,6 @@ to indicate compatibility with IBT.  This also implies <samp>ibtplt</samp>.
 Supported for Linux/i386 and Linux/x86_64.
 </p>
 </dd>
-<dt>&lsquo;<samp>indirect-extern-access</samp>&rsquo;</dt>
-<dt>&lsquo;<samp>noindirect-extern-access</samp>&rsquo;</dt>
-<dd><p>Generate GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS in
-.note.gnu.property section to indicate that object file requires
-canonical function pointers and cannot be used with copy relocation.
-This option also implies <samp>noextern-protected-data</samp> and
-<samp>nocopyreloc</samp>.  Supported for i386 and x86-64.
-</p>
-<p><samp>noindirect-extern-access</samp> removes
-GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS from .note.gnu.property
-section.
-</p>
-</dd>
 <dt>&lsquo;<samp>initfirst</samp>&rsquo;</dt>
 <dd><p>This option is only meaningful when building a shared object.
 It marks the object so that its runtime initialization will occur
@@ -1563,18 +1550,6 @@ called.
 </dd>
 <dt>&lsquo;<samp>origin</samp>&rsquo;</dt>
 <dd><p>Specify that the object requires &lsquo;<samp>$ORIGIN</samp>&rsquo; handling in paths.
-</p>
-</dd>
-<dt>&lsquo;<samp>pack-relative-relocs</samp>&rsquo;</dt>
-<dt>&lsquo;<samp>nopack-relative-relocs</samp>&rsquo;</dt>
-<dd><p>Generate compact relative relocation in position-independent executable
-and shared library.  It adds <code>DT_RELR</code>, <code>DT_RELRSZ</code> and
-<code>DT_RELRENT</code> entries to the dynamic section.  It is ignored when
-building position-dependent executable and relocatable output.
-<samp>nopack-relative-relocs</samp> is the default, which disables compact
-relative relocation.  When linked against the GNU C Library, a
-GLIBC_ABI_DT_RELR symbol version dependency on the shared C Library is
-added to the output.  Supported for i386 and x86-64.
 </p>
 </dd>
 <dt>&lsquo;<samp>relro</samp>&rsquo;</dt>
@@ -3074,13 +3049,6 @@ has been used.
 <p>The <samp>--reduce-memory-overheads</samp> switch may be also be used to
 enable other tradeoffs in future versions of the linker.
 </p>
-<a name="index-_002d_002dmax_002dcache_002dsize_003dsize"></a>
-</dd>
-<dt><code>--max-cache-size=<var>size</var></code></dt>
-<dd><p><code>ld</code> normally caches the relocation information and symbol tables
-of input files in memory with the unlimited size.  This option sets the
-maximum cache size to <var>size</var>.
-</p>
 <a name="index-_002d_002dbuild_002did"></a>
 <a name="index-_002d_002dbuild_002did_003dstyle"></a>
 </dd>
@@ -4230,9 +4198,7 @@ stopping when one of them succeeds:
 </li><li> the value of a target-specific symbol, if it is defined;  For many
 targets this is <code>start</code>, but PE- and BeOS-based systems for example
 check a list of possible entry symbols, matching the first one found.
-</li><li> the address of the first byte of the code section, if present and an
-executable is being created - the code section is usually
-&lsquo;<samp>.text</samp>&rsquo;, but can be something else; 
+</li><li> the address of the first byte of the &lsquo;<samp>.text</samp>&rsquo; section, if present;
 </li><li> The address <code>0</code>.
 </li></ul>
 
@@ -5449,6 +5415,13 @@ character may be used to specify a range of characters, as in
 </p></dd>
 </dl>
 
+<p>When a file name is matched with a wildcard, the wildcard characters
+will not match a &lsquo;<samp>/</samp>&rsquo; character (used to separate directory names on
+Unix).  A pattern consisting of a single &lsquo;<samp>*</samp>&rsquo; character is an
+exception; it will always match any file name, whether it contains a
+&lsquo;<samp>/</samp>&rsquo; or not.  In a section name, the wildcard characters will match
+a &lsquo;<samp>/</samp>&rsquo; character.
+</p>
 <p>File name wildcard patterns only match files which are explicitly
 specified on the command line or in an <code>INPUT</code> command.  The linker
 does not search directories to expand wildcards.
@@ -5935,9 +5908,6 @@ parentheses.  The following types are defined:
 <dt><code>NOLOAD</code></dt>
 <dd><p>The section should be marked as not loadable, so that it will not be
 loaded into memory when the program is run.
-</p></dd>
-<dt><code>READONLY</code></dt>
-<dd><p>The section should be marked as read-only.
 </p></dd>
 <dt><code>DSECT</code></dt>
 <dt><code>COPY</code></dt>
@@ -6799,11 +6769,9 @@ Next: <a href="#Implicit-Linker-Scripts" accesskey="n" rel="next">Implicit Linke
 <a name="index-expressions"></a>
 <a name="index-arithmetic"></a>
 <p>The syntax for expressions in the linker script language is identical to
-that of C expressions, except that whitespace is required in some
-places to resolve syntactic ambiguities.  All expressions are
-evaluated as integers.  All expressions are evaluated in the same
-size, which is 32 bits if both the host and target are 32 bits, and is
-otherwise 64 bits.
+that of C expressions.  All expressions are evaluated as integers.  All
+expressions are evaluated in the same size, which is 32 bits if both the
+host and target are 32 bits, and is otherwise 64 bits.
 </p>
 <p>You can use and set symbol values in expressions.
 </p>
@@ -7559,6 +7527,7 @@ evaluated, the linker will report an error.  In the following example,
 
 </dd>
 <dt><code>SIZEOF_HEADERS</code></dt>
+<dt><code>sizeof_headers</code></dt>
 <dd><a name="index-SIZEOF_005fHEADERS"></a>
 <a name="index-header-size"></a>
 <p>Return the size in bytes of the output file&rsquo;s headers.  This is
@@ -10749,7 +10718,6 @@ Previous: <a href="#GNU-Free-Documentation-License" accesskey="p" rel="previous"
 <tr><td></td><td valign="top"><a href="#index-_002d_002dmajor_002dimage_002dversion"><code>--major-image-version</code></a>:</td><td>&nbsp;</td><td valign="top"><a href="#Options">Options</a></td></tr>
 <tr><td></td><td valign="top"><a href="#index-_002d_002dmajor_002dos_002dversion"><code>--major-os-version</code></a>:</td><td>&nbsp;</td><td valign="top"><a href="#Options">Options</a></td></tr>
 <tr><td></td><td valign="top"><a href="#index-_002d_002dmajor_002dsubsystem_002dversion"><code>--major-subsystem-version</code></a>:</td><td>&nbsp;</td><td valign="top"><a href="#Options">Options</a></td></tr>
-<tr><td></td><td valign="top"><a href="#index-_002d_002dmax_002dcache_002dsize_003dsize"><code>--max-cache-size=<var>size</var></code></a>:</td><td>&nbsp;</td><td valign="top"><a href="#Options">Options</a></td></tr>
 <tr><td></td><td valign="top"><a href="#index-_002d_002dmerge_002dexidx_002dentries"><code>--merge-exidx-entries</code></a>:</td><td>&nbsp;</td><td valign="top"><a href="#ARM">ARM</a></td></tr>
 <tr><td></td><td valign="top"><a href="#index-_002d_002dminor_002dimage_002dversion"><code>--minor-image-version</code></a>:</td><td>&nbsp;</td><td valign="top"><a href="#Options">Options</a></td></tr>
 <tr><td></td><td valign="top"><a href="#index-_002d_002dminor_002dos_002dversion"><code>--minor-os-version</code></a>:</td><td>&nbsp;</td><td valign="top"><a href="#Options">Options</a></td></tr>

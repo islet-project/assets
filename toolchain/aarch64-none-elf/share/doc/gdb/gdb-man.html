@@ -72,7 +72,14 @@ Next: <a href="gdbserver-man.html#gdbserver-man" accesskey="n" rel="next">gdbser
 <h3 class="heading">gdb man</h3>
 
 
-<p>gdb [OPTIONS] [<var>prog</var>|<var>prog</var> <var>procID</var>|<var>prog</var> <var>core</var>]
+<p>gdb [<samp>-help</samp>] [<samp>-nh</samp>] [<samp>-nx</samp>] [<samp>-q</samp>]
+[<samp>-batch</samp>] [<samp>-cd=</samp><var>dir</var>] [<samp>-f</samp>]
+[<samp>-b</samp>&nbsp;<!-- /@w --><var>bps</var>]
+    [<samp>-tty=</samp><var>dev</var>] [<samp>-s</samp> <var>symfile</var>]
+[<samp>-e</samp>&nbsp;<!-- /@w --><var>prog</var>] [<samp>-se</samp>&nbsp;<!-- /@w --><var>prog</var>]
+[<samp>-c</samp>&nbsp;<!-- /@w --><var>core</var>] [<samp>-p</samp>&nbsp;<!-- /@w --><var>procID</var>]
+    [<samp>-x</samp>&nbsp;<!-- /@w --><var>cmds</var>] [<samp>-d</samp>&nbsp;<!-- /@w --><var>dir</var>]
+[<var>prog</var>|<var>prog</var> <var>procID</var>|<var>prog</var> <var>core</var>]
 </p>
 <p>The purpose of a debugger such as <small>GDB</small> is to allow you to see what is
 going on &ldquo;inside&rdquo; another program while it executes &ndash; or what another
@@ -97,7 +104,7 @@ Modula-2.
 </p>
 <p><small>GDB</small> is invoked with the shell command <code>gdb</code>.  Once started, it reads
 commands from the terminal until you tell it to exit with the <small>GDB</small>
-command <code>quit</code> or <code>exit</code>.  You can get online help from <small>GDB</small> itself
+command <code>quit</code>.  You can get online help from <small>GDB</small> itself
 by using the command <code>help</code>.
 </p>
 <p>You can run <code>gdb</code> with no arguments or options; but the most
@@ -128,8 +135,8 @@ can omit the <var>program</var> filename.
 <p>Here are some of the most frequently needed <small>GDB</small> commands:
 </p>
 <dl compact="compact">
-<dt><code>break [<var>file</var>:][<var>function</var>|<var>line</var>]</code></dt>
-<dd><p>Set a breakpoint at <var>function</var> or <var>line</var> (in <var>file</var>).
+<dt><code>break [<var>file</var>:]<var>function</var></code></dt>
+<dd><p>Set a breakpoint at <var>function</var> (in <var>file</var>).
 </p>
 </dd>
 <dt><code>run [<var>arglist</var>]</code></dt>
@@ -172,7 +179,6 @@ about using <small>GDB</small>.
 </p>
 </dd>
 <dt><code>quit</code></dt>
-<dt><code>exit</code></dt>
 <dd><p>Exit from <small>GDB</small>.
 </p></dd>
 </dl>
@@ -181,104 +187,84 @@ about using <small>GDB</small>.
 <p>Any arguments other than options specify an executable
 file and core file (or process ID); that is, the first argument
 encountered with no
-associated option flag is equivalent to a <samp>--se</samp> option, and the second,
+associated option flag is equivalent to a <samp>-se</samp> option, and the second,
 if any, is equivalent to a <samp>-c</samp> option if it&rsquo;s the name of a file.
 Many options have
-both long and abbreviated forms; both are shown here.  The long forms are also
+both long and short forms; both are shown here.  The long forms are also
 recognized if you truncate them, so long as enough of the option is
-present to be unambiguous.
+present to be unambiguous.  (If you prefer, you can flag option
+arguments with <samp>+</samp> rather than <samp>-</samp>, though we illustrate the
+more usual convention.)
 </p>
-<p>The abbreviated forms are shown here with &lsquo;<samp>-</samp>&rsquo; and long forms are shown
-with &lsquo;<samp>--</samp>&rsquo; to reflect how they are shown in <samp>--help</samp>. However,
-<small>GDB</small> recognizes all of the following conventions for most options:
-</p>
-<dl compact="compact">
-<dt><code>--option=<var>value</var></code></dt>
-<dt><code>--option <var>value</var></code></dt>
-<dt><code>-option=<var>value</var></code></dt>
-<dt><code>-option <var>value</var></code></dt>
-<dt><code>--o=<var>value</var></code></dt>
-<dt><code>--o <var>value</var></code></dt>
-<dt><code>-o=<var>value</var></code></dt>
-<dt><code>-o <var>value</var></code></dt>
-</dl>
-
 <p>All the options and command line arguments you give are processed
 in sequential order.  The order makes a difference when the <samp>-x</samp>
 option is used.
 </p>
 <dl compact="compact">
-<dt><code>--help</code></dt>
+<dt><code>-help</code></dt>
 <dt><code>-h</code></dt>
 <dd><p>List all options, with brief explanations.
 </p>
 </dd>
-<dt><code>--symbols=<var>file</var></code></dt>
+<dt><code>-symbols=<var>file</var></code></dt>
 <dt><code>-s <var>file</var></code></dt>
-<dd><p>Read symbol table from <var>file</var>.
+<dd><p>Read symbol table from file <var>file</var>.
 </p>
 </dd>
-<dt><code>--write</code></dt>
+<dt><code>-write</code></dt>
 <dd><p>Enable writing into executable and core files.
 </p>
 </dd>
-<dt><code>--exec=<var>file</var></code></dt>
+<dt><code>-exec=<var>file</var></code></dt>
 <dt><code>-e <var>file</var></code></dt>
-<dd><p>Use <var>file</var> as the executable file to execute when
+<dd><p>Use file <var>file</var> as the executable file to execute when
 appropriate, and for examining pure data in conjunction with a core
 dump.
 </p>
 </dd>
-<dt><code>--se=<var>file</var></code></dt>
-<dd><p>Read symbol table from <var>file</var> and use it as the executable
+<dt><code>-se=<var>file</var></code></dt>
+<dd><p>Read symbol table from file <var>file</var> and use it as the executable
 file.
 </p>
 </dd>
-<dt><code>--core=<var>file</var></code></dt>
+<dt><code>-core=<var>file</var></code></dt>
 <dt><code>-c <var>file</var></code></dt>
-<dd><p>Use <var>file</var> as a core dump to examine.
+<dd><p>Use file <var>file</var> as a core dump to examine.
 </p>
 </dd>
-<dt><code>--command=<var>file</var></code></dt>
+<dt><code>-command=<var>file</var></code></dt>
 <dt><code>-x <var>file</var></code></dt>
-<dd><p>Execute <small>GDB</small> commands from <var>file</var>.
+<dd><p>Execute <small>GDB</small> commands from file <var>file</var>.
 </p>
 </dd>
-<dt><code>--eval-command=<var>command</var></code></dt>
 <dt><code>-ex <var>command</var></code></dt>
 <dd><p>Execute given <small>GDB</small> <var>command</var>.
 </p>
 </dd>
-<dt><code>--init-eval-command=<var>command</var></code></dt>
-<dt><code>-iex</code></dt>
-<dd><p>Execute <small>GDB</small> <var>command</var> before loading the inferior.
-</p>
-</dd>
-<dt><code>--directory=<var>directory</var></code></dt>
+<dt><code>-directory=<var>directory</var></code></dt>
 <dt><code>-d <var>directory</var></code></dt>
 <dd><p>Add <var>directory</var> to the path to search for source files.
 </p>
 </dd>
-<dt><code>--nh</code></dt>
+<dt><code>-nh</code></dt>
 <dd><p>Do not execute commands from <samp>~/.config/gdb/gdbinit</samp>,
 <samp>~/.gdbinit</samp>, <samp>~/.config/gdb/gdbearlyinit</samp>, or
 <samp>~/.gdbearlyinit</samp>
 </p>
 </dd>
-<dt><code>--nx</code></dt>
+<dt><code>-nx</code></dt>
 <dt><code>-n</code></dt>
 <dd><p>Do not execute commands from any <samp>.gdbinit</samp> or
 <samp>.gdbearlyinit</samp> initialization files.
 </p>
 </dd>
-<dt><code>--quiet</code></dt>
-<dt><code>--silent</code></dt>
+<dt><code>-quiet</code></dt>
 <dt><code>-q</code></dt>
 <dd><p>&ldquo;Quiet&rdquo;.  Do not print the introductory and copyright messages.  These
 messages are also suppressed in batch mode.
 </p>
 </dd>
-<dt><code>--batch</code></dt>
+<dt><code>-batch</code></dt>
 <dd><p>Run in batch mode.  Exit with status <code>0</code> after processing all the command
 files specified with <samp>-x</samp> (and <samp>.gdbinit</samp>, if not inhibited).
 Exit with nonzero status if an error occurs in executing the <small>GDB</small>
@@ -296,81 +282,12 @@ more useful, the message
 terminates) is not issued when running in batch mode.
 </p>
 </dd>
-<dt><code>--batch-silent</code></dt>
-<dd><p>Run in batch mode, just like <samp>--batch</samp>, but totally silent.  All <small>GDB</small>
-output is supressed (stderr is unaffected).  This is much quieter than
-<samp>--silent</samp> and would be useless for an interactive session.
-</p>
-<p>This is particularly useful when using targets that give &lsquo;<samp>Loading section</samp>&rsquo;
-messages, for example.
-</p>
-<p>Note that targets that give their output via <small>GDB</small>, as opposed to writing
-directly to <code>stdout</code>, will also be made silent.
-</p>
-</dd>
-<dt><code>--args <var>prog</var> [<var>arglist</var>]</code></dt>
-<dd><p>Change interpretation of command line so that arguments following this
-option are passed as arguments to the inferior.  As an example, take
-the following command:
-</p>
-<div class="smallexample">
-<pre class="smallexample">gdb ./a.out -q
-</pre></div>
-
-<p>It would start <small>GDB</small> with <samp>-q</samp>, not printing the introductory message.  On
-the other hand, using:
-</p>
-<div class="smallexample">
-<pre class="smallexample">gdb --args ./a.out -q
-</pre></div>
-
-<p>starts <small>GDB</small> with the introductory message, and passes the option to the inferior.
-</p>
-</dd>
-<dt><code>--pid=<var>pid</var></code></dt>
-<dd><p>Attach <small>GDB</small> to an already running program, with the PID <var>pid</var>.
-</p>
-</dd>
-<dt><code>--tui</code></dt>
-<dd><p>Open the terminal user interface.
-</p>
-</dd>
-<dt><code>--readnow</code></dt>
-<dd><p>Read all symbols from the given symfile on the first access.
-</p>
-</dd>
-<dt><code>--readnever</code></dt>
-<dd><p>Do not read symbol files.
-</p>
-</dd>
-<dt><code>--dbx</code></dt>
-<dd><p>Run in DBX compatibility mode.
-</p>
-</dd>
-<dt><code>--return-child-result</code></dt>
-<dd><p><small>GDB</small>&rsquo;s exit code will be the same as the child&rsquo;s exit code.
-</p>
-</dd>
-<dt><code>--configuration</code></dt>
-<dd><p>Print details about GDB configuration and then exit.
-</p>
-</dd>
-<dt><code>--version</code></dt>
-<dd><p>Print version information and then exit.
-</p>
-</dd>
-<dt><code>--cd=<var>directory</var></code></dt>
+<dt><code>-cd=<var>directory</var></code></dt>
 <dd><p>Run <small>GDB</small> using <var>directory</var> as its working directory,
 instead of the current directory.
 </p>
 </dd>
-<dt><code>--data-directory=<var>directory</var></code></dt>
-<dt><code>-D</code></dt>
-<dd><p>Run <small>GDB</small> using <var>directory</var> as its data directory.  The data
-directory is where <small>GDB</small> searches for its auxiliary files.
-</p>
-</dd>
-<dt><code>--fullname</code></dt>
+<dt><code>-fullname</code></dt>
 <dt><code>-f</code></dt>
 <dd><p>Emacs sets this option when it runs <small>GDB</small> as a subprocess.  It tells
 <small>GDB</small> to output the full file name and line number in a standard,
@@ -382,16 +299,12 @@ Emacs-to-<small>GDB</small> interface program uses the two &lsquo;<samp>\032</sa
 characters as a signal to display the source code for the frame.
 </p>
 </dd>
-<dt><code>-b <var>baudrate</var></code></dt>
+<dt><code>-b <var>bps</var></code></dt>
 <dd><p>Set the line speed (baud rate or bits per second) of any serial
 interface used by <small>GDB</small> for remote debugging.
 </p>
 </dd>
-<dt><code>-l <var>timeout</var></code></dt>
-<dd><p>Set timeout, in seconds, for remote debugging.
-</p>
-</dd>
-<dt><code>--tty=<var>device</var></code></dt>
+<dt><code>-tty=<var>device</var></code></dt>
 <dd><p>Run using <var>device</var> for your program&rsquo;s standard input and output.
 </p></dd>
 </dl>

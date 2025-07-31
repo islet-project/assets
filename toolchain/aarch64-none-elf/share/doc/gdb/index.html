@@ -73,8 +73,8 @@ ul.no-bullet {list-style: none}
 </p>
 <p>This is the Tenth Edition, of <cite>Debugging with
 <small>GDB</small>: the <small>GNU</small> Source-Level Debugger</cite> for <small>GDB</small>
-(Arm GNU Toolchain 11.3.Rel1)
-Version 12.1.90.20220802-git.
+(GNU Toolchain for the Arm Architecture 11.2-2022.02 (arm-11.14))
+Version 11.2.90.20220202-git.
 </p>
 <p>Copyright &copy; 1988-2022 Free Software Foundation, Inc.
 </p>
@@ -104,8 +104,8 @@ Next: <a href="Summary.html#Summary" accesskey="n" rel="next">Summary</a> &nbsp;
 <p>This file describes <small>GDB</small>, the <small>GNU</small> symbolic debugger.
 </p>
 <p>This is the Tenth Edition, for <small>GDB</small>
-(Arm GNU Toolchain 11.3.Rel1)
-Version 12.1.90.20220802-git.
+(GNU Toolchain for the Arm Architecture 11.2-2022.02 (arm-11.14))
+Version 11.2.90.20220202-git.
 </p>
 <p>Copyright (C) 1988-2022 Free Software Foundation, Inc.
 </p>
@@ -208,8 +208,6 @@ software in general.  We will miss him.
 <tr><td align="left" valign="top">&bull; <a href="Trace-File-Format.html#Trace-File-Format">Trace File Format</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">GDB trace file format
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Index-Section-Format.html#Index-Section-Format">Index Section Format</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">.gdb_index section format
-</td></tr>
-<tr><td align="left" valign="top">&bull; <a href="Debuginfod.html#Debuginfod">Debuginfod</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Download debugging resources with <code>debuginfod</code>
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Man-Pages.html#Man-Pages">Man Pages</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Manual pages
 </td></tr>
@@ -341,7 +339,6 @@ software in general.  We will miss him.
     <li><a name="toc-Searching-Source-Files" href="Search.html#Search">9.4 Searching Source Files</a></li>
     <li><a name="toc-Specifying-Source-Directories" href="Source-Path.html#Source-Path">9.5 Specifying Source Directories</a></li>
     <li><a name="toc-Source-and-Machine-Code" href="Machine-Code.html#Machine-Code">9.6 Source and Machine Code</a></li>
-    <li><a name="toc-Disable-Reading-Source-Code" href="Disable-Reading-Source.html#Disable-Reading-Source">9.7 Disable Reading Source Code</a></li>
   </ul></li>
   <li><a name="toc-Examining-Data" href="Data.html#Data">10 Examining Data</a>
   <ul class="no-bullet">
@@ -492,7 +489,7 @@ software in general.  We will miss him.
         <li><a name="toc-Extensions-for-Ada-Tasks" href="Ada-Tasks.html#Ada-Tasks">15.4.10.7 Extensions for Ada Tasks</a></li>
         <li><a name="toc-Tasking-Support-when-Debugging-Core-Files" href="Ada-Tasks-and-Core-Files.html#Ada-Tasks-and-Core-Files">15.4.10.8 Tasking Support when Debugging Core Files</a></li>
         <li><a name="toc-Tasking-Support-when-using-the-Ravenscar-Profile" href="Ravenscar-Profile.html#Ravenscar-Profile">15.4.10.9 Tasking Support when using the Ravenscar Profile</a></li>
-        <li><a name="toc-Ada-Source-Character-Set-1" href="Ada-Source-Character-Set.html#Ada-Source-Character-Set">15.4.10.10 Ada Source Character Set</a></li>
+        <li><a name="toc-Ada-Settings-1" href="Ada-Settings.html#Ada-Settings">15.4.10.10 Ada Settings</a></li>
         <li><a name="toc-Known-Peculiarities-of-Ada-Mode" href="Ada-Glitches.html#Ada-Glitches">15.4.10.11 Known Peculiarities of Ada Mode</a></li>
       </ul></li>
     </ul></li>
@@ -679,24 +676,22 @@ software in general.  We will miss him.
         <li><a name="toc-Events-In-Python-1" href="Events-In-Python.html#Events-In-Python">23.3.2.17 Events In Python</a></li>
         <li><a name="toc-Threads-In-Python-1" href="Threads-In-Python.html#Threads-In-Python">23.3.2.18 Threads In Python</a></li>
         <li><a name="toc-Recordings-In-Python-1" href="Recordings-In-Python.html#Recordings-In-Python">23.3.2.19 Recordings In Python</a></li>
-        <li><a name="toc-CLI-Commands-In-Python-1" href="CLI-Commands-In-Python.html#CLI-Commands-In-Python">23.3.2.20 CLI Commands In Python</a></li>
-        <li><a name="toc-GDB_002fMI-Commands-In-Python-1" href="GDB_002fMI-Commands-In-Python.html#GDB_002fMI-Commands-In-Python">23.3.2.21 <small>GDB/MI</small> Commands In Python</a></li>
-        <li><a name="toc-Parameters-In-Python-1" href="Parameters-In-Python.html#Parameters-In-Python">23.3.2.22 Parameters In Python</a></li>
-        <li><a name="toc-Writing-new-convenience-functions" href="Functions-In-Python.html#Functions-In-Python">23.3.2.23 Writing new convenience functions</a></li>
-        <li><a name="toc-Program-Spaces-In-Python" href="Progspaces-In-Python.html#Progspaces-In-Python">23.3.2.24 Program Spaces In Python</a></li>
-        <li><a name="toc-Objfiles-In-Python-1" href="Objfiles-In-Python.html#Objfiles-In-Python">23.3.2.25 Objfiles In Python</a></li>
-        <li><a name="toc-Accessing-inferior-stack-frames-from-Python" href="Frames-In-Python.html#Frames-In-Python">23.3.2.26 Accessing inferior stack frames from Python</a></li>
-        <li><a name="toc-Accessing-blocks-from-Python" href="Blocks-In-Python.html#Blocks-In-Python">23.3.2.27 Accessing blocks from Python</a></li>
-        <li><a name="toc-Python-representation-of-Symbols" href="Symbols-In-Python.html#Symbols-In-Python">23.3.2.28 Python representation of Symbols</a></li>
-        <li><a name="toc-Symbol-table-representation-in-Python" href="Symbol-Tables-In-Python.html#Symbol-Tables-In-Python">23.3.2.29 Symbol table representation in Python</a></li>
-        <li><a name="toc-Manipulating-line-tables-using-Python" href="Line-Tables-In-Python.html#Line-Tables-In-Python">23.3.2.30 Manipulating line tables using Python</a></li>
-        <li><a name="toc-Manipulating-breakpoints-using-Python" href="Breakpoints-In-Python.html#Breakpoints-In-Python">23.3.2.31 Manipulating breakpoints using Python</a></li>
-        <li><a name="toc-Finish-Breakpoints" href="Finish-Breakpoints-in-Python.html#Finish-Breakpoints-in-Python">23.3.2.32 Finish Breakpoints</a></li>
-        <li><a name="toc-Python-representation-of-lazy-strings" href="Lazy-Strings-In-Python.html#Lazy-Strings-In-Python">23.3.2.33 Python representation of lazy strings</a></li>
-        <li><a name="toc-Python-representation-of-architectures" href="Architectures-In-Python.html#Architectures-In-Python">23.3.2.34 Python representation of architectures</a></li>
-        <li><a name="toc-Registers-In-Python-1" href="Registers-In-Python.html#Registers-In-Python">23.3.2.35 Registers In Python</a></li>
-        <li><a name="toc-Connections-In-Python-1" href="Connections-In-Python.html#Connections-In-Python">23.3.2.36 Connections In Python</a></li>
-        <li><a name="toc-Implementing-new-TUI-windows" href="TUI-Windows-In-Python.html#TUI-Windows-In-Python">23.3.2.37 Implementing new TUI windows</a></li>
+        <li><a name="toc-Commands-In-Python-1" href="Commands-In-Python.html#Commands-In-Python">23.3.2.20 Commands In Python</a></li>
+        <li><a name="toc-Parameters-In-Python-1" href="Parameters-In-Python.html#Parameters-In-Python">23.3.2.21 Parameters In Python</a></li>
+        <li><a name="toc-Writing-new-convenience-functions" href="Functions-In-Python.html#Functions-In-Python">23.3.2.22 Writing new convenience functions</a></li>
+        <li><a name="toc-Program-Spaces-In-Python" href="Progspaces-In-Python.html#Progspaces-In-Python">23.3.2.23 Program Spaces In Python</a></li>
+        <li><a name="toc-Objfiles-In-Python-1" href="Objfiles-In-Python.html#Objfiles-In-Python">23.3.2.24 Objfiles In Python</a></li>
+        <li><a name="toc-Accessing-inferior-stack-frames-from-Python" href="Frames-In-Python.html#Frames-In-Python">23.3.2.25 Accessing inferior stack frames from Python</a></li>
+        <li><a name="toc-Accessing-blocks-from-Python" href="Blocks-In-Python.html#Blocks-In-Python">23.3.2.26 Accessing blocks from Python</a></li>
+        <li><a name="toc-Python-representation-of-Symbols" href="Symbols-In-Python.html#Symbols-In-Python">23.3.2.27 Python representation of Symbols</a></li>
+        <li><a name="toc-Symbol-table-representation-in-Python" href="Symbol-Tables-In-Python.html#Symbol-Tables-In-Python">23.3.2.28 Symbol table representation in Python</a></li>
+        <li><a name="toc-Manipulating-line-tables-using-Python" href="Line-Tables-In-Python.html#Line-Tables-In-Python">23.3.2.29 Manipulating line tables using Python</a></li>
+        <li><a name="toc-Manipulating-breakpoints-using-Python" href="Breakpoints-In-Python.html#Breakpoints-In-Python">23.3.2.30 Manipulating breakpoints using Python</a></li>
+        <li><a name="toc-Finish-Breakpoints" href="Finish-Breakpoints-in-Python.html#Finish-Breakpoints-in-Python">23.3.2.31 Finish Breakpoints</a></li>
+        <li><a name="toc-Python-representation-of-lazy-strings" href="Lazy-Strings-In-Python.html#Lazy-Strings-In-Python">23.3.2.32 Python representation of lazy strings</a></li>
+        <li><a name="toc-Python-representation-of-architectures" href="Architectures-In-Python.html#Architectures-In-Python">23.3.2.33 Python representation of architectures</a></li>
+        <li><a name="toc-Registers-In-Python-1" href="Registers-In-Python.html#Registers-In-Python">23.3.2.34 Registers In Python</a></li>
+        <li><a name="toc-Implementing-new-TUI-windows" href="TUI-Windows-In-Python.html#TUI-Windows-In-Python">23.3.2.35 Implementing new TUI windows</a></li>
       </ul></li>
       <li><a name="toc-Python-Auto_002dloading-1" href="Python-Auto_002dloading.html#Python-Auto_002dloading">23.3.3 Python Auto-loading</a></li>
       <li><a name="toc-Python-modules-1" href="Python-modules.html#Python-modules">23.3.4 Python modules</a>
@@ -1021,19 +1016,18 @@ software in general.  We will miss him.
       <li><a name="toc-ARC-Features-1" href="ARC-Features.html#ARC-Features">G.5.2 ARC Features</a></li>
       <li><a name="toc-ARM-Features-1" href="ARM-Features.html#ARM-Features">G.5.3 ARM Features</a></li>
       <li><a name="toc-i386-Features-1" href="i386-Features.html#i386-Features">G.5.4 i386 Features</a></li>
-      <li><a name="toc-LoongArch-Features-1" href="LoongArch-Features.html#LoongArch-Features">G.5.5 LoongArch Features</a></li>
-      <li><a name="toc-MicroBlaze-Features-1" href="MicroBlaze-Features.html#MicroBlaze-Features">G.5.6 MicroBlaze Features</a></li>
-      <li><a name="toc-MIPS-Features-1" href="MIPS-Features.html#MIPS-Features">G.5.7 <acronym>MIPS</acronym> Features</a></li>
-      <li><a name="toc-M68K-Features-1" href="M68K-Features.html#M68K-Features">G.5.8 M68K Features</a></li>
-      <li><a name="toc-NDS32-Features-1" href="NDS32-Features.html#NDS32-Features">G.5.9 NDS32 Features</a></li>
-      <li><a name="toc-Nios-II-Features-1" href="Nios-II-Features.html#Nios-II-Features">G.5.10 Nios II Features</a></li>
-      <li><a name="toc-Openrisc-1000-Features" href="OpenRISC-1000-Features.html#OpenRISC-1000-Features">G.5.11 Openrisc 1000 Features</a></li>
-      <li><a name="toc-PowerPC-Features-1" href="PowerPC-Features.html#PowerPC-Features">G.5.12 PowerPC Features</a></li>
-      <li><a name="toc-RISC_002dV-Features-1" href="RISC_002dV-Features.html#RISC_002dV-Features">G.5.13 RISC-V Features</a></li>
-      <li><a name="toc-RX-Features-1" href="RX-Features.html#RX-Features">G.5.14 RX Features</a></li>
-      <li><a name="toc-S_002f390-and-System-z-Features-1" href="S_002f390-and-System-z-Features.html#S_002f390-and-System-z-Features">G.5.15 S/390 and System z Features</a></li>
-      <li><a name="toc-Sparc-Features-1" href="Sparc-Features.html#Sparc-Features">G.5.16 Sparc Features</a></li>
-      <li><a name="toc-TMS320C6x-Features" href="TIC6x-Features.html#TIC6x-Features">G.5.17 TMS320C6x Features</a></li>
+      <li><a name="toc-MicroBlaze-Features-1" href="MicroBlaze-Features.html#MicroBlaze-Features">G.5.5 MicroBlaze Features</a></li>
+      <li><a name="toc-MIPS-Features-1" href="MIPS-Features.html#MIPS-Features">G.5.6 <acronym>MIPS</acronym> Features</a></li>
+      <li><a name="toc-M68K-Features-1" href="M68K-Features.html#M68K-Features">G.5.7 M68K Features</a></li>
+      <li><a name="toc-NDS32-Features-1" href="NDS32-Features.html#NDS32-Features">G.5.8 NDS32 Features</a></li>
+      <li><a name="toc-Nios-II-Features-1" href="Nios-II-Features.html#Nios-II-Features">G.5.9 Nios II Features</a></li>
+      <li><a name="toc-Openrisc-1000-Features" href="OpenRISC-1000-Features.html#OpenRISC-1000-Features">G.5.10 Openrisc 1000 Features</a></li>
+      <li><a name="toc-PowerPC-Features-1" href="PowerPC-Features.html#PowerPC-Features">G.5.11 PowerPC Features</a></li>
+      <li><a name="toc-RISC_002dV-Features-1" href="RISC_002dV-Features.html#RISC_002dV-Features">G.5.12 RISC-V Features</a></li>
+      <li><a name="toc-RX-Features-1" href="RX-Features.html#RX-Features">G.5.13 RX Features</a></li>
+      <li><a name="toc-S_002f390-and-System-z-Features-1" href="S_002f390-and-System-z-Features.html#S_002f390-and-System-z-Features">G.5.14 S/390 and System z Features</a></li>
+      <li><a name="toc-Sparc-Features-1" href="Sparc-Features.html#Sparc-Features">G.5.15 Sparc Features</a></li>
+      <li><a name="toc-TMS320C6x-Features" href="TIC6x-Features.html#TIC6x-Features">G.5.16 TMS320C6x Features</a></li>
     </ul></li>
   </ul></li>
   <li><a name="toc-Operating-System-Information-1" href="Operating-System-Information.html#Operating-System-Information">Appendix H Operating System Information</a>
@@ -1042,13 +1036,9 @@ software in general.  We will miss him.
   </ul></li>
   <li><a name="toc-Trace-File-Format-1" href="Trace-File-Format.html#Trace-File-Format">Appendix I Trace File Format</a></li>
   <li><a name="toc-_002egdb_005findex-section-format" href="Index-Section-Format.html#Index-Section-Format">Appendix J <code>.gdb_index</code> section format</a></li>
-  <li><a name="toc-Download-debugging-resources-with-Debuginfod" href="Debuginfod.html#Debuginfod">Appendix K Download debugging resources with Debuginfod</a>
-  <ul class="no-bullet">
-    <li><a name="toc-Debuginfod-Settings-1" href="Debuginfod-Settings.html#Debuginfod-Settings">K.1 Debuginfod Settings</a></li>
-  </ul></li>
-  <li><a name="toc-Manual-pages" href="Man-Pages.html#Man-Pages">Appendix L Manual pages</a></li>
-  <li><a name="toc-GNU-GENERAL-PUBLIC-LICENSE" href="Copying.html#Copying">Appendix M GNU GENERAL PUBLIC LICENSE</a></li>
-  <li><a name="toc-GNU-Free-Documentation-License-1" href="GNU-Free-Documentation-License.html#GNU-Free-Documentation-License">Appendix N GNU Free Documentation License</a></li>
+  <li><a name="toc-Manual-pages" href="Man-Pages.html#Man-Pages">Appendix K Manual pages</a></li>
+  <li><a name="toc-GNU-GENERAL-PUBLIC-LICENSE" href="Copying.html#Copying">Appendix L GNU GENERAL PUBLIC LICENSE</a></li>
+  <li><a name="toc-GNU-Free-Documentation-License-1" href="GNU-Free-Documentation-License.html#GNU-Free-Documentation-License">Appendix M GNU Free Documentation License</a></li>
   <li><a name="toc-Concept-Index-1" href="Concept-Index.html#Concept-Index">Concept Index</a></li>
   <li><a name="toc-Command_002c-Variable_002c-and-Function-Index" href="Command-and-Variable-Index.html#Command-and-Variable-Index">Command, Variable, and Function Index</a></li>
 </ul>

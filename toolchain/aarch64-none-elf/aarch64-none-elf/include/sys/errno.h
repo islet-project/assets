@@ -10,16 +10,10 @@ extern "C" {
 
 #include <sys/reent.h>
 
-#ifdef _REENT_THREAD_LOCAL
-#define errno (_tls_errno)
-#else /* _REENT_THREAD_LOCAL */
-
 #ifndef _REENT_ONLY
 #define errno (*__errno())
 extern int *__errno (void);
 #endif
-
-#endif /* _REENT_THREAD_LOCAL */
 
 /* Please don't use these variables directly.
    Use strerror instead. */
@@ -32,7 +26,7 @@ extern __IMPORT char *program_invocation_name;
 extern __IMPORT char *program_invocation_short_name;
 #endif
 
-#define __errno_r(ptr) _REENT_ERRNO(ptr)
+#define __errno_r(ptr) ((ptr)->_errno)
 
 #define	EPERM 1		/* Not owner */
 #define	ENOENT 2	/* No such file or directory */

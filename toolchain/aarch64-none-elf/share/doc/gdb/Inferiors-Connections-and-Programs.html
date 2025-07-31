@@ -214,7 +214,7 @@ remove inferiors from the debugging session use the
 <code><span class="nolinebreak">remove-inferiors</span></code><!-- /@w --> command.
 </p>
 <dl compact="compact">
-<dd><a name="add_005finferior_005fcli"></a><a name="index-add_002dinferior"></a>
+<dd><a name="index-add_002dinferior"></a>
 </dd>
 <dt><code>add-inferior [ -copies <var>n</var> ] [ -exec <var>executable</var> ] [-no-connection ]</code></dt>
 <dd><p>Adds <var>n</var> inferiors to be run using <var>executable</var> as the
@@ -237,12 +237,8 @@ use <code>run</code> to spawn a local program, etc.
 <dt><code>clone-inferior [ -copies <var>n</var> ] [ <var>infno</var> ]</code></dt>
 <dd><p>Adds <var>n</var> inferiors ready to execute the same program as inferior
 <var>infno</var>; <var>n</var> defaults to 1, and <var>infno</var> defaults to the
-number of the current inferior.  This command copies the values of the
-<var>args</var>, <var><span class="nolinebreak">inferior-tty</span></var><!-- /@w --> and <var>cwd</var> properties from the
-current inferior to the new one.  It also propagates changes the user
-made to environment variables using the <code>set&nbsp;environment</code><!-- /@w --> and
-<code>unset&nbsp;environment</code><!-- /@w --> commands.  This is a convenient command
-when you want to run another instance of the inferior you are debugging.
+number of the current inferior.  This is a convenient command when you
+want to run another instance of the inferior you are debugging.
 </p>
 <div class="smallexample">
 <pre class="smallexample">(gdb) info inferiors
@@ -311,7 +307,7 @@ control use <code>set&nbsp;print&nbsp;<span class="nolinebreak">inferior-events<
 <dd><p>The <code>set print inferior-events</code> command allows you to enable or
 disable printing of messages when <small>GDB</small> notices that new
 inferiors have started or that inferiors have exited or have been
-detached.  By default, these messages will be printed.
+detached.  By default, these messages will not be printed.
 </p>
 <a name="index-show-print-inferior_002devents"></a>
 </dd>

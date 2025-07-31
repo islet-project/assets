@@ -2,7 +2,7 @@ This is gprof.info, produced by makeinfo version 5.1 from gprof.texi.
 
 This file documents the gprof profiler of the GNU system.
 
-   Copyright (C) 1988-2022 Free Software Foundation, Inc.
+   Copyright (C) 1988-2021 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -27,8 +27,8 @@ to determine which parts of a program are taking most of the execution
 time.  We assume that you know how to write, compile, and execute
 programs.  GNU 'gprof' was written by Jay Fenlason.
 
-   This manual is for 'gprof' (Arm GNU Toolchain 11.3.Rel1) version
-2.38.
+   This manual is for 'gprof' (GNU Toolchain for the Arm Architecture
+11.2-2022.02 (arm-11.14)) version 2.37.
 
    This document is distributed under the terms of the GNU Free
 Documentation License version 1.3.  A copy of the license is included in
@@ -2423,34 +2423,34 @@ their use in free software.
 
 Tag Table:
 Node: Top719
-Node: Introduction2057
-Node: Compiling4548
-Node: Executing8604
-Node: Invoking11497
-Node: Output Options12912
-Node: Analysis Options20003
-Node: Miscellaneous Options23923
-Node: Deprecated Options25177
-Node: Symspecs27240
-Node: Output29066
-Node: Flat Profile30106
-Node: Call Graph35059
-Node: Primary38291
-Node: Callers40879
-Node: Subroutines42997
-Node: Cycles44838
-Node: Line-by-line51615
-Node: Annotated Source55689
-Node: Inaccuracy58686
-Node: Sampling Error58944
-Node: Assumptions61848
-Node: How do I?63318
-Node: Incompatibilities64875
-Node: Details66369
-Node: Implementation66762
-Node: File Format72661
-Node: Internals76953
-Node: Debugging85443
-Node: GNU Free Documentation License87033
+Node: Introduction2093
+Node: Compiling4584
+Node: Executing8640
+Node: Invoking11533
+Node: Output Options12948
+Node: Analysis Options20039
+Node: Miscellaneous Options23959
+Node: Deprecated Options25213
+Node: Symspecs27276
+Node: Output29102
+Node: Flat Profile30142
+Node: Call Graph35095
+Node: Primary38327
+Node: Callers40915
+Node: Subroutines43033
+Node: Cycles44874
+Node: Line-by-line51651
+Node: Annotated Source55725
+Node: Inaccuracy58722
+Node: Sampling Error58980
+Node: Assumptions61884
+Node: How do I?63354
+Node: Incompatibilities64911
+Node: Details66405
+Node: Implementation66798
+Node: File Format72697
+Node: Internals76989
+Node: Debugging85479
+Node: GNU Free Documentation License87069
 
 End Tag Table

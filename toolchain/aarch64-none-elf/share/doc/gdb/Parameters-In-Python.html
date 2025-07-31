@@ -27,7 +27,7 @@ developing GNU and promoting software freedom." -->
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Python-API.html#Python-API" rel="up" title="Python API">
 <link href="Functions-In-Python.html#Functions-In-Python" rel="next" title="Functions In Python">
-<link href="GDB_002fMI-Commands-In-Python.html#GDB_002fMI-Commands-In-Python" rel="previous" title="GDB/MI Commands In Python">
+<link href="Commands-In-Python.html#Commands-In-Python" rel="previous" title="Commands In Python">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
@@ -64,11 +64,11 @@ ul.no-bullet {list-style: none}
 <a name="Parameters-In-Python"></a>
 <div class="header">
 <p>
-Next: <a href="Functions-In-Python.html#Functions-In-Python" accesskey="n" rel="next">Functions In Python</a>, Previous: <a href="GDB_002fMI-Commands-In-Python.html#GDB_002fMI-Commands-In-Python" accesskey="p" rel="previous">GDB/MI Commands In Python</a>, Up: <a href="Python-API.html#Python-API" accesskey="u" rel="up">Python API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Concept-Index.html#Concept-Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Functions-In-Python.html#Functions-In-Python" accesskey="n" rel="next">Functions In Python</a>, Previous: <a href="Commands-In-Python.html#Commands-In-Python" accesskey="p" rel="previous">Commands In Python</a>, Up: <a href="Python-API.html#Python-API" accesskey="u" rel="up">Python API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Concept-Index.html#Concept-Index" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <a name="Parameters-In-Python-1"></a>
-<h4 class="subsubsection">23.3.2.22 Parameters In Python</h4>
+<h4 class="subsubsection">23.3.2.21 Parameters In Python</h4>
 
 <a name="index-parameters-in-python"></a>
 <a name="index-python-parameters"></a>
@@ -105,7 +105,7 @@ parameter.  In this case the parameter can subsequently be accessed in
 can be found, an exception is raised.
 </p>
 <p><var>command-class</var> should be one of the &lsquo;<samp>COMMAND_</samp>&rsquo; constants
-(see <a href="CLI-Commands-In-Python.html#CLI-Commands-In-Python">CLI Commands In Python</a>).  This argument tells <small>GDB</small> how to
+(see <a href="Commands-In-Python.html#Commands-In-Python">Commands In Python</a>).  This argument tells <small>GDB</small> how to
 categorize the new parameter in the help system.
 </p>
 <p><var>parameter-class</var> should be one of the &lsquo;<samp>PARAM_</samp>&rsquo; constants
@@ -120,48 +120,25 @@ represent the possible values for the parameter.
 <p>If <var>parameter-class</var> is not <code>PARAM_ENUM</code>, then the presence
 of a fourth argument will cause an exception to be thrown.
 </p>
-<p>The help text for the new parameter includes the Python documentation
-string from the parameter&rsquo;s class, if there is one.  If there is no
-documentation string, a default value is used.  The documentation
-string is included in the output of the parameters <code>help set</code> and
-<code>help show</code> commands, and should be written taking this into
-account.
+<p>The help text for the new parameter is taken from the Python
+documentation string for the parameter&rsquo;s class, if there is one.  If
+there is no documentation string, a default value is used.
 </p></dd></dl>
 
 <dl>
 <dt><a name="index-Parameter_002eset_005fdoc"></a>Variable: <strong>Parameter.set_doc</strong></dt>
 <dd><p>If this attribute exists, and is a string, then its value is used as
-the first part of the help text for this parameter&rsquo;s <code>set</code>
-command.  The second part of the help text is taken from the
-documentation string for the parameter&rsquo;s class, if there is one.
-</p>
-<p>The value of <code>set_doc</code> should give a brief summary specific to
-the set action, this text is only displayed when the user runs the
-<code>help set</code> command for this parameter.  The class documentation
-should be used to give a fuller description of what the parameter
-does, this text is displayed for both the <code>help set</code> and
-<code>help show</code> commands.
-</p>
-<p>The <code>set_doc</code> value is examined when <code>Parameter.__init__</code> is
-invoked; subsequent changes have no effect.
+the help text for this parameter&rsquo;s <code>set</code> command.  The value is
+examined when <code>Parameter.__init__</code> is invoked; subsequent changes
+have no effect.
 </p></dd></dl>
 
 <dl>
 <dt><a name="index-Parameter_002eshow_005fdoc"></a>Variable: <strong>Parameter.show_doc</strong></dt>
 <dd><p>If this attribute exists, and is a string, then its value is used as
-the first part of the help text for this parameter&rsquo;s <code>show</code>
-command.  The second part of the help text is taken from the
-documentation string for the parameter&rsquo;s class, if there is one.
-</p>
-<p>The value of <code>show_doc</code> should give a brief summary specific to
-the show action, this text is only displayed when the user runs the
-<code>help show</code> command for this parameter.  The class documentation
-should be used to give a fuller description of what the parameter
-does, this text is displayed for both the <code>help set</code> and
-<code>help show</code> commands.
-</p>
-<p>The <code>show_doc</code> value is examined when <code>Parameter.__init__</code>
-is invoked; subsequent changes have no effect.
+the help text for this parameter&rsquo;s <code>show</code> command.  The value is
+examined when <code>Parameter.__init__</code> is invoked; subsequent changes
+have no effect.
 </p></dd></dl>
 
 <dl>
@@ -314,7 +291,7 @@ constants provided when the parameter is created.
 <hr>
 <div class="header">
 <p>
-Next: <a href="Functions-In-Python.html#Functions-In-Python" accesskey="n" rel="next">Functions In Python</a>, Previous: <a href="GDB_002fMI-Commands-In-Python.html#GDB_002fMI-Commands-In-Python" accesskey="p" rel="previous">GDB/MI Commands In Python</a>, Up: <a href="Python-API.html#Python-API" accesskey="u" rel="up">Python API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Concept-Index.html#Concept-Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Functions-In-Python.html#Functions-In-Python" accesskey="n" rel="next">Functions In Python</a>, Previous: <a href="Commands-In-Python.html#Commands-In-Python" accesskey="p" rel="previous">Commands In Python</a>, Up: <a href="Python-API.html#Python-API" accesskey="u" rel="up">Python API</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Concept-Index.html#Concept-Index" title="Index" rel="index">Index</a>]</p>
 </div>
 
 

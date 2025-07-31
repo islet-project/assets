@@ -415,48 +415,15 @@ popup menu, but is needless clutter on the command line, and
 <h4 class="subheading">Synopsis</h4>
 
 <div class="smallexample">
-<pre class="smallexample">-add-inferior [ --no-connection ]
+<pre class="smallexample">-add-inferior
 </pre></div>
 
 <p>Creates a new inferior (see <a href="Inferiors-Connections-and-Programs.html#Inferiors-Connections-and-Programs">Inferiors Connections and Programs</a>).  The created
 inferior is not associated with any executable.  Such association may
 be established with the &lsquo;<samp>-file-exec-and-symbols</samp>&rsquo; command
-(see <a href="GDB_002fMI-File-Commands.html#GDB_002fMI-File-Commands">GDB/MI File Commands</a>).
-</p>
-<p>By default, the new inferior begins connected to the same target
-connection as the current inferior.  For example, if the current
-inferior was connected to <code>gdbserver</code> with <code>target remote</code>,
-then the new inferior will be connected to the same <code>gdbserver</code>
-instance.  The &lsquo;<samp>--no-connection</samp>&rsquo; option starts the new inferior
-with no connection yet.  You can then for example use the
-<code>-target-select remote</code> command to connect to some other
-<code>gdbserver</code> instance, use <code>-exec-run</code> to spawn a local
-program, etc.
-</p>
-<p>The command response always has a field, <var>inferior</var>, whose value
-is the identifier of the thread group corresponding to the new
-inferior.
-</p>
-<p>An additional section field, <var>connection</var>, is optional.  This
-field will only exist if the new inferior has a target connection.  If
-this field exists, then its value will be a tuple containing the
-following fields:
-</p>
-<dl compact="compact">
-<dt>&lsquo;<samp>number</samp>&rsquo;</dt>
-<dd><p>The number of the connection used for the new inferior.
-</p>
-</dd>
-<dt>&lsquo;<samp>name</samp>&rsquo;</dt>
-<dd><p>The name of the connection type used for the new inferior.
-</p></dd>
-</dl>
-
-<a name="GDB-Command-91"></a>
-<h4 class="subheading"><small>GDB</small> Command</h4>
-
-<p>The corresponding <small>GDB</small> command is &lsquo;<samp>add-inferior</samp>&rsquo;
-(see <a href="Inferiors-Connections-and-Programs.html#add_005finferior_005fcli">&lsquo;<samp>add-inferior</samp>&rsquo;</a>).
+(see <a href="GDB_002fMI-File-Commands.html#GDB_002fMI-File-Commands">GDB/MI File Commands</a>).  The command response has a single
+field, &lsquo;<samp>inferior</samp>&rsquo;, whose value is the identifier of the
+thread group corresponding to the new inferior.
 </p>
 <a name="Example-92"></a>
 <h4 class="subheading">Example</h4>
@@ -480,7 +447,7 @@ following fields:
 <a name="g_t_002dinterpreter_002dexec"></a>
 <p>Execute the specified <var>command</var> in the given <var>interpreter</var>.
 </p>
-<a name="GDB-Command-92"></a>
+<a name="GDB-Command-91"></a>
 <h4 class="subheading"><small>GDB</small> Command</h4>
 
 <p>The corresponding <small>GDB</small> command is &lsquo;<samp>interpreter-exec</samp>&rsquo;.
@@ -511,7 +478,7 @@ following fields:
 
 <p>Set terminal for future runs of the program being debugged.
 </p>
-<a name="GDB-Command-93"></a>
+<a name="GDB-Command-92"></a>
 <h4 class="subheading"><small>GDB</small> Command</h4>
 
 <p>The corresponding <small>GDB</small> command is &lsquo;<samp>set inferior-tty</samp>&rsquo; /dev/pts/1.
@@ -539,7 +506,7 @@ following fields:
 
 <p>Show terminal for future runs of program being debugged.
 </p>
-<a name="GDB-Command-94"></a>
+<a name="GDB-Command-93"></a>
 <h4 class="subheading"><small>GDB</small> Command</h4>
 
 <p>The corresponding <small>GDB</small> command is &lsquo;<samp>show inferior-tty</samp>&rsquo;.
@@ -573,7 +540,7 @@ command as a field in its output.  This command is to help frontend
 developers optimize the performance of their code.  No argument is
 equivalent to &lsquo;<samp>yes</samp>&rsquo;.
 </p>
-<a name="GDB-Command-95"></a>
+<a name="GDB-Command-94"></a>
 <h4 class="subheading"><small>GDB</small> Command</h4>
 
 <p>No equivalent.
@@ -646,7 +613,7 @@ has no known completions, this field is omitted.
 </dd>
 </dl>
 
-<a name="GDB-Command-96"></a>
+<a name="GDB-Command-95"></a>
 <h4 class="subheading"><small>GDB</small> Command</h4>
 
 <p>The corresponding <small>GDB</small> command is &lsquo;<samp>complete</samp>&rsquo;.

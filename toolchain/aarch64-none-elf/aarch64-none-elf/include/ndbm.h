@@ -40,7 +40,6 @@
 #ifndef _NDBM_H_
 #define	_NDBM_H_
 
-#include <sys/types.h>	/* For mode_t. */
 /* #include <db.h> */
 
 /*

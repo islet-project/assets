@@ -94,10 +94,10 @@ otherwise a default layout is used.
 <dd><a name="index-tui-disable"></a>
 <p>Disable TUI mode, returning to the console interpreter.
 </p>
-<a name="info_005fwin_005fcommand"></a></dd>
+</dd>
 <dt><code>info win</code></dt>
 <dd><a name="index-info-win"></a>
-<p>List the names and sizes of all currently displayed windows.
+<p>List and give the size of all displayed windows.
 </p>
 </dd>
 <dt><code>tui new-layout <var>name</var> <var>window</var> <var>weight</var> <span class="roman">[</span><var>window</var> <var>weight</var>&hellip;<span class="roman">]</span></code></dt>
@@ -270,11 +270,11 @@ through all of the available register groups in the reverse order to
 <dt><code>winheight <var>name</var> +<var>count</var></code></dt>
 <dt><code>winheight <var>name</var> -<var>count</var></code></dt>
 <dd><a name="index-winheight"></a>
-<p>Change the height of the window <var>name</var> by <var>count</var> lines.
-Positive counts increase the height, while negative counts decrease
-it.  The <var>name</var> parameter can be the name of any currently visible
-window.  The names of the currently visible windows can be discovered
-using <kbd>info win</kbd> (see <a href="#info_005fwin_005fcommand">info win</a>).
+<p>Change the height of the window <var>name</var> by <var>count</var>
+lines.  Positive counts increase the height, while negative counts
+decrease it.  The <var>name</var> parameter can be one of <code>src</code> (the
+source window), <code>cmd</code> (the command window), <code>asm</code> (the
+disassembly window), or <code>regs</code> (the register display window).
 </p></dd>
 </dl>
 

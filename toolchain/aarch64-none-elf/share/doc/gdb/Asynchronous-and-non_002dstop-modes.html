@@ -81,13 +81,8 @@ find if asynchronous execution is enabled using the
 <code>-list-target-features</code> command.
 </p>
 <dl compact="compact">
-<dd><a name="index-foreground-execution-1"></a>
-<a name="index-background-execution-1"></a>
-<a name="index-asynchronous-execution-1"></a>
-<a name="index-execution_002c-foreground_002c-background-and-asynchronous-1"></a>
-<a name="index-set-mi_002dasync"></a>
-</dd>
-<dt><code>-gdb-set mi-async <span class="roman">[</span>on<span class="roman">|</span>off<span class="roman">]</span></code></dt>
+<dt><code>-gdb-set mi-async on</code></dt>
+<dt><code>-gdb-set mi-async off</code></dt>
 <dd><p>Set whether MI is in asynchronous mode.
 </p>
 <p>When <code>off</code>, which is the default, MI execution commands (e.g.,
@@ -99,7 +94,6 @@ commands (e.g., <code>-exec-continue</code> becomes the equivalent of the
 <code>c&amp;</code> CLI command), and so <small>GDB</small> is capable of processing
 MI commands even while the target is running.
 </p>
-<a name="index-show-mi_002dasync"></a>
 </dd>
 <dt><code>-gdb-show mi-async</code></dt>
 <dd><p>Show whether MI asynchronous mode is enabled.

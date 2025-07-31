@@ -115,7 +115,7 @@ slow down the running of your program.
 <dl compact="compact">
 <dd><a name="index-watch"></a>
 </dd>
-<dt><code>watch <span class="roman">[</span>-l<span class="roman">|</span>-location<span class="roman">]</span> <var>expr</var> <span class="roman">[</span>thread <var>thread-id</var><span class="roman">]</span> <span class="roman">[</span>mask <var>maskvalue</var><span class="roman">]</span> <span class="roman">[</span>task <var>task-id</var><span class="roman">]</span></code></dt>
+<dt><code>watch <span class="roman">[</span>-l<span class="roman">|</span>-location<span class="roman">]</span> <var>expr</var> <span class="roman">[</span>thread <var>thread-id</var><span class="roman">]</span> <span class="roman">[</span>mask <var>maskvalue</var><span class="roman">]</span></code></dt>
 <dd><p>Set a watchpoint for an expression.  <small>GDB</small> will break when the
 expression <var>expr</var> is written into by the program and its value
 changes.  The simplest (and the most popular) use of this command is
@@ -131,9 +131,6 @@ argument, <small>GDB</small> breaks only when the thread identified by
 change the value of <var>expr</var>, <small>GDB</small> will not break.  Note
 that watchpoints restricted to a single thread in this way only work
 with Hardware Watchpoints.
-</p>
-<p>Similarly, if the <code>task</code> argument is given, then the watchpoint
-will be specific to the indicated Ada task (see <a href="Ada-Tasks.html#Ada-Tasks">Ada Tasks</a>).
 </p>
 <p>Ordinarily a watchpoint respects the scope of variables in <var>expr</var>
 (see below).  The <code>-location</code> argument tells <small>GDB</small> to

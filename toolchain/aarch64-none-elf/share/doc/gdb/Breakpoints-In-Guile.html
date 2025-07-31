@@ -87,7 +87,7 @@ outside of Guile.
 <code>(gdb)</code> module:
 </p>
 <dl>
-<dt><a name="index-make_002dbreakpoint"></a>Scheme Procedure: <strong>make-breakpoint</strong> <em>location <span class="roman">[</span>#:type&nbsp;type<span class="roman">]</span><!-- /@w -->     <span class="roman">[</span><span class="nolinebreak">#:wp-class</span>&nbsp;<span class="nolinebreak">wp-class</span><span class="roman">]</span><!-- /@w --> <span class="roman">[</span>#:internal&nbsp;internal<span class="roman">]</span><!-- /@w -->     <span class="roman">[</span>#:temporary&nbsp;temporary<span class="roman">]</span><!-- /@w --></em></dt>
+<dt><a name="index-make_002dbreakpoint"></a>Scheme Procedure: <strong>make-breakpoint</strong> <em>location <span class="roman">[</span>#:type type<span class="roman">]</span> <span class="roman">[</span>#:wp-class wp-class<span class="roman">]</span> <span class="roman">[</span>#:internal internal<span class="roman">]</span></em></dt>
 <dd><p>Create a new breakpoint at <var>location</var>, a string naming the
 location of the breakpoint, or an expression that defines a watchpoint.
 The contents can be any location recognized by the <code>break</code> command,
@@ -112,11 +112,6 @@ registered, nor will it be listed in the output from <code>info breakpoints</cod
 (but will be listed with the <code>maint info breakpoints</code> command).
 If an internal flag is not provided, the breakpoint is visible
 (non-internal).
-</p>
-<p>The optional <var>temporary</var> argument makes the breakpoint a temporary
-breakpoint.  Temporary breakpoints are deleted after they have been hit,
-after which the Guile breakpoint is no longer usable (although it may be
-re-registered with <code>register-breakpoint!</code>).
 </p>
 <p>When a watchpoint is created, <small>GDB</small> will try to create a
 hardware assisted watchpoint.  If successful, the type of the watchpoint
@@ -245,16 +240,6 @@ inferior leaves the scope of that watchpoint.
 <dt><a name="index-breakpoint_002dnumber"></a>Scheme Procedure: <strong>breakpoint-number</strong> <em>breakpoint</em></dt>
 <dd><p>Return the breakpoint&rsquo;s number &mdash; the identifier used by
 the user to manipulate the breakpoint.
-</p></dd></dl>
-
-<dl>
-<dt><a name="index-breakpoint_002dtemporary_003f"></a>Scheme Procedure: <strong>breakpoint-temporary?</strong> <em>breakpoint</em></dt>
-<dd><p>Return <code>#t</code> if the breakpoint was created as a temporary
-breakpoint.  Temporary breakpoints are automatically deleted after
-they&rsquo;ve been hit.  Calling this procedure, and all other procedures
-other than <code>breakpoint-valid?</code> and <code>register-breakpoint!</code>,
-will result in an error after the breakpoint has been hit (since it has
-been automatically deleted).
 </p></dd></dl>
 
 <dl>

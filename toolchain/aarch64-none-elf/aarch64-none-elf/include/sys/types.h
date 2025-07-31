@@ -115,8 +115,10 @@ typedef	_TIME_T_	time_t;
 #define	_TIME_T_DECLARED
 #endif
 
-typedef	__daddr_t	daddr_t;
-
+#ifndef __daddr_t_defined
+typedef	long	daddr_t;
+#define __daddr_t_defined
+#endif
 #ifndef __caddr_t_defined
 typedef	char *	caddr_t;
 #define __caddr_t_defined

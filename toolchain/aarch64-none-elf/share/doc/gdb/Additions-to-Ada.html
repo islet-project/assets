@@ -117,18 +117,6 @@ complex conditional breaks:
 (gdb) condition 1 (report(i); k += 1; A(k) &gt; 100)
 </pre></div>
 
-</li><li> An extension to based literals can be used to specify the exact byte
-contents of a floating-point literal.  After the base, you can use
-from zero to two &lsquo;<samp>l</samp>&rsquo; characters, followed by an &lsquo;<samp>f</samp>&rsquo;.  The
-number of &lsquo;<samp>l</samp>&rsquo; characters controls the width of the resulting real
-constant: zero means <code>Float</code> is used, one means
-<code>Long_Float</code>, and two means <code>Long_Long_Float</code>.
-
-<div class="smallexample">
-<pre class="smallexample">(gdb) print 16f#41b80000#
-$1 = 23.0
-</pre></div>
-
 </li><li> Rather than use catenation and symbolic character names to introduce special 
 characters into strings, one may instead use a special bracket notation, 
 which is also used to print strings.  A sequence of characters of the form 

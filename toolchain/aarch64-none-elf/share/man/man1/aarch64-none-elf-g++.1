@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "GCC 1"
-.TH GCC 1 "2022-07-12" "gcc-11.3.1" "GNU"
+.TH GCC 1 "2022-01-11" "gcc-11.2.1" "GNU"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -840,12 +840,12 @@ in the following sections.
 \&\fB\-msim  \-msdata=\fR\fIsdata-type\fR
 .Sp
 \&\fI\s-1CRIS\s0 Options\fR
-\&\fB\-mcpu=\fR\fIcpu\fR  \fB\-march=\fR\fIcpu\fR
-\&\fB\-mtune=\fR\fIcpu\fR \fB\-mmax\-stack\-frame=\fR\fIn\fR 
+\&\fB\-mcpu=\fR\fIcpu\fR  \fB\-march=\fR\fIcpu\fR  \fB\-mtune=\fR\fIcpu\fR 
+\&\fB\-mmax\-stack\-frame=\fR\fIn\fR  \fB\-melinux\-stacksize=\fR\fIn\fR 
 \&\fB\-metrax4  \-metrax100  \-mpdebug  \-mcc\-init  \-mno\-side\-effects 
 \&\-mstack\-align  \-mdata\-align  \-mconst\-align 
-\&\-m32\-bit  \-m16\-bit  \-m8\-bit  \-mno\-prologue\-epilogue 
-\&\-melf  \-maout  \-sim  \-sim2 
+\&\-m32\-bit  \-m16\-bit  \-m8\-bit  \-mno\-prologue\-epilogue  \-mno\-gotplt 
+\&\-melf  \-maout  \-melinux  \-mlinux  \-sim  \-sim2 
 \&\-mmul\-bug\-workaround  \-mno\-mul\-bug\-workaround\fR
 .Sp
 \&\fI\s-1CR16\s0 Options\fR
@@ -1417,8 +1417,7 @@ See \s-1RS/6000\s0 and PowerPC Options.
 \&\fB\-mstack\-protector\-guard\-symbol=\fR\fIsymbol\fR 
 \&\fB\-mgeneral\-regs\-only  \-mcall\-ms2sysv\-xlogues 
 \&\-mindirect\-branch=\fR\fIchoice\fR  \fB\-mfunction\-return=\fR\fIchoice\fR 
-\&\fB\-mindirect\-branch\-register \-mharden\-sls=\fR\fIchoice\fR 
-\&\fB\-mindirect\-branch\-cs\-prefix \-mneeded\fR
+\&\fB\-mindirect\-branch\-register \-mneeded\fR
 .Sp
 \&\fIx86 Windows Options\fR
 \&\fB\-mconsole  \-mcygwin  \-mno\-cygwin  \-mdll 
@@ -5345,7 +5344,7 @@ name is still supported, but the newer name is more descriptive.)
 \&\-Wredundant\-move\fR (only for \*(C+)  
 \&\fB\-Wtype\-limits  
 \&\-Wuninitialized  
-\&\-Wshift\-negative\-value\fR (in \*(C+11 to \*(C+17 and in C99 and newer)  
+\&\-Wshift\-negative\-value\fR (in \*(C+03 and in C99 and newer)  
 \&\fB\-Wunused\-parameter\fR (only with\fB \fR\fB\-Wunused\fR\fB \fRor\fB \fR\fB\-Wall\fR) 
 \&\fB\-Wunused\-but\-set\-parameter\fR (only with\fB \fR\fB\-Wunused\fR\fB \fRor\fB \fR\fB\-Wall\fR)
 .Sp
@@ -6270,7 +6269,7 @@ of the type.  This warning is enabled by default.
 .IP "\fB\-Wshift\-negative\-value\fR" 4
 .IX Item "-Wshift-negative-value"
 Warn if left shifting a negative value.  This warning is enabled by
-\&\fB\-Wextra\fR in C99 (and newer) and \*(C+11 to \*(C+17 modes.
+\&\fB\-Wextra\fR in C99 and \*(C+11 modes (and newer).
 .IP "\fB\-Wno\-shift\-overflow\fR" 4
 .IX Item "-Wno-shift-overflow"
 .PD 0
@@ -20705,7 +20704,8 @@ These options are defined specifically for the \s-1CRIS\s0 ports.
 Generate code for the specified architecture.  The choices for
 \&\fIarchitecture-type\fR are \fBv3\fR, \fBv8\fR and \fBv10\fR for
 respectively \s-1ETRAX\s0\ 4, \s-1ETRAX\s0\ 100, and \s-1ETRAX\s0\ 100\ \s-1LX.\s0
-Default is \fBv0\fR.
+Default is \fBv0\fR except for cris-axis-linux-gnu, where the default is
+\&\fBv10\fR.
 .IP "\fB\-mtune=\fR\fIarchitecture-type\fR" 4
 .IX Item "-mtune=architecture-type"
 Tune to \fIarchitecture-type\fR everything applicable about the generated
@@ -20787,12 +20787,26 @@ instructions or return sequences are generated in the code.  Use this
 option only together with visual inspection of the compiled code: no
 warnings or errors are generated when call-saved registers must be saved,
 or storage for local variables needs to be allocated.
+.IP "\fB\-mno\-gotplt\fR" 4
+.IX Item "-mno-gotplt"
+.PD 0
+.IP "\fB\-mgotplt\fR" 4
+.IX Item "-mgotplt"
+.PD
+With \fB\-fpic\fR and \fB\-fPIC\fR, don't generate (do generate)
+instruction sequences that load addresses for functions from the \s-1PLT\s0 part
+of the \s-1GOT\s0 rather than (traditional on other architectures) calls to the
+\&\s-1PLT. \s0 The default is \fB\-mgotplt\fR.
 .IP "\fB\-melf\fR" 4
 .IX Item "-melf"
-Legacy no-op option.
+Legacy no-op option only recognized with the cris-axis-elf and
+cris-axis-linux-gnu targets.
+.IP "\fB\-mlinux\fR" 4
+.IX Item "-mlinux"
+Legacy no-op option only recognized with the cris-axis-linux-gnu target.
 .IP "\fB\-sim\fR" 4
 .IX Item "-sim"
-This option arranges
+This option, recognized for the cris-axis-elf, arranges
 to link with input-output functions from a simulator library.  Code,
 initialized data and zero-initialized data are allocated consecutively.
 .IP "\fB\-sim2\fR" 4
@@ -27497,8 +27511,7 @@ system representing a certain processor type.  Possible values for
 \&\fIcpu-type\fR are \fBz900\fR/\fBarch5\fR, \fBz990\fR/\fBarch6\fR,
 \&\fBz9\-109\fR, \fBz9\-ec\fR/\fBarch7\fR, \fBz10\fR/\fBarch8\fR,
 \&\fBz196\fR/\fBarch9\fR, \fBzEC12\fR, \fBz13\fR/\fBarch11\fR,
-\&\fBz14\fR/\fBarch12\fR, \fBz15\fR/\fBarch13\fR,
-\&\fBz16\fR/\fBarch14\fR, and \fBnative\fR.
+\&\fBz14\fR/\fBarch12\fR, \fBz15\fR/\fBarch13\fR, and \fBnative\fR.
 .Sp
 The default is \fB\-march=z900\fR.
 .Sp
@@ -29141,14 +29154,12 @@ instruction set support.
 .IP "\fBsapphirerapids\fR" 4
 .IX Item "sapphirerapids"
 Intel sapphirerapids \s-1CPU\s0 with 64\-bit extensions, \s-1MOVBE, MMX, SSE, SSE2, SSE3,
-SSSE3, SSE4.1, SSE4.2, POPCNT, CX16, SAHF, FXSR, AVX, XSAVE, PCLMUL, FSGSBASE,
-RDRND, F16C, AVX2, BMI, BMI2, LZCNT, FMA, MOVBE, HLE, RDSEED, ADCX, PREFETCHW,
-AES, CLFLUSHOPT, XSAVEC, XSAVES, SGX, AVX512F, AVX512VL, AVX512BW, AVX512DQ,
-AVX512CD, PKU, AVX512VBMI, AVX512IFMA, SHA, AVX512VNNI, GFNI, VAES, AVX512VBMI2
-VPCLMULQDQ, AVX512BITALG, RDPID, AVX512VPOPCNTDQ, PCONFIG, WBNOINVD, CLWB,
+SSSE3, SSE4.1, SSE4.2, POPCNT, PKU, AVX, AVX2, AES, PCLMUL, FSGSBASE, RDRND,
+FMA, BMI, BMI2, F16C, RDSEED, ADCX, PREFETCHW, CLFLUSHOPT, XSAVEC, XSAVES,
+AVX512F, CLWB, AVX512VL, AVX512BW, AVX512DQ, AVX512CD, AVX512VNNI, AVX512BF16,
 MOVDIRI, MOVDIR64B, AVX512VP2INTERSECT, ENQCMD, CLDEMOTE, PTWRITE, WAITPKG,
-SERIALIZE, TSXLDTRK, UINTR, AMX\-BF16,\s0 AMX-TILE, \s-1AMX\-INT8,\s0 AVX-VNNI and
-\&\s-1AVX512BF16\s0 instruction set support.
+SERIALIZE, TSXLDTRK, UINTR, AMX\-BF16,\s0 AMX-TILE, \s-1AMX\-INT8\s0 and AVX-VNNI
+instruction set support.
 .IP "\fBalderlake\fR" 4
 .IX Item "alderlake"
 Intel Alderlake \s-1CPU\s0 with 64\-bit extensions, \s-1MOVBE, MMX, SSE, SSE2, SSE3, SSSE3,
@@ -30548,19 +30559,6 @@ not be reachable in the large code model.
 .IP "\fB\-mindirect\-branch\-register\fR" 4
 .IX Item "-mindirect-branch-register"
 Force indirect call and jump via register.
-.IP "\fB\-mharden\-sls=\fR\fIchoice\fR" 4
-.IX Item "-mharden-sls=choice"
-Generate code to mitigate against straight line speculation (\s-1SLS\s0) with
-\&\fIchoice\fR.  The default is \fBnone\fR which disables all \s-1SLS\s0
-hardening.  \fBreturn\fR enables \s-1SLS\s0 hardening for function returns.
-\&\fBindirect-jmp\fR enables \s-1SLS\s0 hardening for indirect jumps.
-\&\fBall\fR enables all \s-1SLS\s0 hardening.
-.IP "\fB\-mindirect\-branch\-cs\-prefix\fR" 4
-.IX Item "-mindirect-branch-cs-prefix"
-Add \s-1CS\s0 prefix to call and jmp to indirect thunk with branch target in
-r8\-r15 registers so that the call and jmp instruction length is 6 bytes
-to allow them to be replaced with \fBlfence; call *%r8\-r15\fR or
-\&\fBlfence; jmp *%r8\-r15\fR at run-time.
 .PP
 These \fB\-m\fR switches are supported in addition to the above
 on x86\-64 processors in 64\-bit environments.

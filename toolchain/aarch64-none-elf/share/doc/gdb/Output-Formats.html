@@ -85,25 +85,25 @@ letters supported are:
 </p>
 <dl compact="compact">
 <dt><code>x</code></dt>
-<dd><p>Print the binary representation of the value in hexadecimal.
+<dd><p>Regard the bits of the value as an integer, and print the integer in
+hexadecimal.
 </p>
 </dd>
 <dt><code>d</code></dt>
-<dd><p>Print the binary representation of the value in decimal.
+<dd><p>Print as integer in signed decimal.
 </p>
 </dd>
 <dt><code>u</code></dt>
-<dd><p>Print the binary representation of the value as an decimal, as if it
-were unsigned.
+<dd><p>Print as integer in unsigned decimal.
 </p>
 </dd>
 <dt><code>o</code></dt>
-<dd><p>Print the binary representation of the value in octal.
+<dd><p>Print as integer in octal.
 </p>
 </dd>
 <dt><code>t</code></dt>
-<dd><p>Print the binary representation of the value in binary.  The letter
-&lsquo;<samp>t</samp>&rsquo; stands for &ldquo;two&rdquo;.  <a name="DOCF11" href="#FOOT11"><sup>11</sup></a>
+<dd><p>Print as integer in binary.  The letter &lsquo;<samp>t</samp>&rsquo; stands for &ldquo;two&rdquo;.
+<a name="DOCF11" href="#FOOT11"><sup>11</sup></a>
 </p>
 </dd>
 <dt><code>a</code></dt>
@@ -123,11 +123,10 @@ See <a href="Symbols.html#Symbols">info symbol</a>.
 </p>
 </dd>
 <dt><code>c</code></dt>
-<dd><p>Cast the value to an integer (unlike other formats, this does not just
-reinterpret the underlying bits) and print it as a character constant.
-This prints both the numerical value and its character representation.
-The character representation is replaced with the octal escape
-&lsquo;<samp>\nnn</samp>&rsquo; for characters outside the 7-bit <small>ASCII</small> range.
+<dd><p>Regard as an integer and print it as a character constant.  This
+prints both the numerical value and its character representation.  The
+character representation is replaced with the octal escape &lsquo;<samp>\nnn</samp>&rsquo;
+for characters outside the 7-bit <small>ASCII</small> range.
 </p>
 <p>Without this format, <small>GDB</small> displays <code>char</code>,
 <code>unsigned&nbsp;char</code><!-- /@w -->, and <code>signed&nbsp;char</code><!-- /@w --> data as character
@@ -187,10 +186,9 @@ expression.  For example, &lsquo;<samp>p/x</samp>&rsquo; reprints the last value
 <h4 class="footnotes-heading">Footnotes</h4>
 
 <h3><a name="FOOT11" href="#DOCF11">(11)</a></h3>
-<p>&lsquo;<samp>b</samp>&rsquo; cannot be used
-because these format letters are also used with the <code>x</code> command,
-where &lsquo;<samp>b</samp>&rsquo; stands for &ldquo;byte&rdquo;; see <a href="Memory.html#Memory">Examining
-Memory</a>.</p>
+<p>&lsquo;<samp>b</samp>&rsquo; cannot be used because these format letters are also
+used with the <code>x</code> command, where &lsquo;<samp>b</samp>&rsquo; stands for &ldquo;byte&rdquo;;
+see <a href="Memory.html#Memory">Examining Memory</a>.</p>
 </div>
 <hr>
 <div class="header">

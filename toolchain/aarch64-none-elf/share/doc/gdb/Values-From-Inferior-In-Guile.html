@@ -399,7 +399,7 @@ The value must be a number.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-value_002d_003estring"></a>Scheme Procedure: <strong>value-&gt;string</strong> <em>value     <span class="roman">[</span>#:encoding&nbsp;encoding<span class="roman">]</span><!-- /@w --> <span class="roman">[</span>#:errors&nbsp;errors<span class="roman">]</span><!-- /@w -->     <span class="roman">[</span>#:length&nbsp;length<span class="roman">]</span><!-- /@w --></em></dt>
+<dt><a name="index-value_002d_003estring"></a>Scheme Procedure: <strong>value-&gt;string</strong> <em>value <span class="roman">[</span>#:encoding encoding<span class="roman">]</span> <span class="roman">[</span>#:errors errors<span class="roman">]</span> <span class="roman">[</span>#:length length<span class="roman">]</span></em></dt>
 <dd><p>If <var>value&gt;</var> represents a string, then this method
 converts the contents to a Guile string.  Otherwise, this method will
 throw an exception.
@@ -441,7 +441,7 @@ The length must be a Scheme integer and not a <code>&lt;gdb:value&gt;</code> int
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-value_002d_003elazy_002dstring"></a>Scheme Procedure: <strong>value-&gt;lazy-string</strong> <em>value     <span class="roman">[</span>#:encoding&nbsp;encoding<span class="roman">]</span><!-- /@w --> <span class="roman">[</span>#:length&nbsp;length<span class="roman">]</span><!-- /@w --></em></dt>
+<dt><a name="index-value_002d_003elazy_002dstring"></a>Scheme Procedure: <strong>value-&gt;lazy-string</strong> <em>value <span class="roman">[</span>#:encoding encoding<span class="roman">]</span> <span class="roman">[</span>#:length length<span class="roman">]</span></em></dt>
 <dd><p>If this <code>&lt;gdb:value&gt;</code> represents a string, then this method
 converts <var>value</var> to a <code>&lt;gdb:lazy-string</code> (see <a href="Lazy-Strings-In-Guile.html#Lazy-Strings-In-Guile">Lazy Strings In Guile</a>).  Otherwise, this method will throw an exception.
 </p>

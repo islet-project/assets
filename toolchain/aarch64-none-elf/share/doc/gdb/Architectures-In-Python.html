@@ -68,7 +68,7 @@ Next: <a href="Registers-In-Python.html#Registers-In-Python" accesskey="n" rel="
 </div>
 <hr>
 <a name="Python-representation-of-architectures"></a>
-<h4 class="subsubsection">23.3.2.34 Python representation of architectures</h4>
+<h4 class="subsubsection">23.3.2.33 Python representation of architectures</h4>
 <a name="index-Python-architectures"></a>
 
 <p><small>GDB</small> uses architecture specific parameters and artifacts in a
@@ -77,7 +77,7 @@ by an instance of the <code>gdb.Architecture</code> class.
 </p>
 <p>A <code>gdb.Architecture</code> class has the following methods:
 </p>
-<a name="gdbpy_005farchitecture_005fname"></a><dl>
+<dl>
 <dt><a name="index-Architecture_002ename"></a>Function: <strong>Architecture.name</strong> <em>()</em></dt>
 <dd><p>Return the name (string value) of the architecture.
 </p></dd></dl>
@@ -120,22 +120,6 @@ instruction in bytes.
 </dd>
 </dl>
 </dd></dl>
-
-<a name="index-Architecture_002einteger_005ftype"></a>
-<dl>
-<dt><a name="index-Architecture_002einteger_005ftype-1"></a>Function: <strong>Architecture.integer_type</strong> <em>(size <span class="roman">[</span>, signed<span class="roman">]</span>)</em></dt>
-<dd><p>This function looks up an integer type by its <var>size</var>, and
-optionally whether or not it is signed.
-</p>
-<p><var>size</var> is the size, in bits, of the desired integer type.  Only
-certain sizes are currently supported: 0, 8, 16, 24, 32, 64, and 128.
-</p>
-<p>If <var>signed</var> is not specified, it defaults to <code>True</code>.  If
-<var>signed</var> is <code>False</code>, the returned type will be unsigned.
-</p>
-<p>If the indicated type cannot be found, this function will throw a
-<code>ValueError</code> exception.
-</p></dd></dl>
 
 <a name="gdbpy_005farchitecture_005fregisters"></a><dl>
 <dt><a name="index-Architecture_002eregisters"></a>Function: <strong>Architecture.registers</strong> <em>(<span class="roman">[</span> <var>reggroup</var> <span class="roman">]</span>)</em></dt>

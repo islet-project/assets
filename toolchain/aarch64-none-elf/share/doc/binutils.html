@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Copyright (C) 1991-2022 Free Software Foundation, Inc.
+<!-- Copyright (C) 1991-2021 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3
@@ -119,8 +119,8 @@ Next: <a href="#ar" accesskey="n" rel="next">ar</a>, Up: <a href="dir.html#Top" 
 <a name="index-version"></a>
 <p>This brief manual contains documentation for the <small>GNU</small> binary
 utilities
-(Arm GNU Toolchain 11.3.Rel1)
-version 2.38:
+(GNU Toolchain for the Arm Architecture 11.2-2022.02 (arm-11.14))
+version 2.37:
 </p>
 
 <p>This document is distributed under the terms of the GNU Free
@@ -279,7 +279,7 @@ Next: <a href="#ar-scripts" accesskey="n" rel="next">ar scripts</a>, Up: <a href
 <h3 class="section">1.1 Controlling <code>ar</code> on the Command Line</h3>
 
 <div class="smallexample">
-<pre class="smallexample">ar [<samp>-X32_64</samp>] [<samp>-</samp>]<var>p</var>[<var>mod</var>] [<samp>--plugin</samp> <var>name</var>] [<samp>--target</samp> <var>bfdname</var>] [<samp>--output</samp> <var>dirname</var>] [<samp>--record-libdeps</samp> <var>libdeps</var>] [<samp>--thin</samp>] [<var>relpos</var>] [<var>count</var>] <var>archive</var> [<var>member</var>&hellip;]
+<pre class="smallexample">ar [<samp>-X32_64</samp>] [<samp>-</samp>]<var>p</var>[<var>mod</var>] [<samp>--plugin</samp> <var>name</var>] [<samp>--target</samp> <var>bfdname</var>] [<samp>--output</samp> <var>dirname</var>] [<samp>--record-libdeps</samp> <var>libdeps</var>] [<var>relpos</var>] [<var>count</var>] <var>archive</var> [<var>member</var>&hellip;]
 </pre></div>
 
 <a name="index-Unix-compatibility_002c-ar"></a>
@@ -544,9 +544,10 @@ with the linker.  In order to build a symbol table, you must omit the
 </p>
 </dd>
 <dt>&lsquo;<samp>T</samp>&rsquo;</dt>
-<dd><p>Deprecated alias for <samp>--thin</samp>.  <samp>T</samp> is not recommended because in
-many ar implementations <samp>T</samp> has a different meaning, as specified by
-X/Open System Interface.
+<dd><a name="index-creating-thin-archive"></a>
+<p>Make the specified <var>archive</var> a <em>thin</em> archive.  If it already
+exists and is a regular archive, the existing members must be present
+in the same directory as <var>archive</var>.
 </p>
 </dd>
 <dt>&lsquo;<samp>u</samp>&rsquo;</dt>
@@ -649,13 +650,6 @@ line.
 <dt>&lsquo;<samp>--record-libdeps <var>libdeps</var></samp>&rsquo;</dt>
 <dd><p>The <samp>--record-libdeps</samp> option is identical to the <samp>l</samp> modifier,
 just handled in long form.
-</p>
-</dd>
-<dt>&lsquo;<samp>--thin</samp>&rsquo;</dt>
-<dd><a name="index-creating-thin-archive"></a>
-<p>Make the specified <var>archive</var> a <em>thin</em> archive.  If it already
-exists and is a regular archive, the existing members must be present
-in the same directory as <var>archive</var>.
 </p>
 </dd>
 </dl>
@@ -862,7 +856,6 @@ Next: <a href="#objcopy" accesskey="n" rel="next">objcopy</a>, Previous: <a href
    [<samp>-s</samp>|<samp>--print-armap</samp>]
    [<samp>-t</samp> <var>radix</var>|<samp>--radix=</samp><var>radix</var>]
    [<samp>-u</samp>|<samp>--undefined-only</samp>]
-   [<samp>-U</samp> <var>method</var>] [<samp>--unicode=</samp><var>method</var>]
    [<samp>-V</samp>|<samp>--version</samp>]
    [<samp>-X 32_64</samp>]
    [<samp>--defined-only</samp>]
@@ -1211,22 +1204,6 @@ contain definitions for which names.
 <dd><a name="index-external-symbols-1"></a>
 <a name="index-undefined-symbols"></a>
 <p>Display only undefined symbols (those external to each object file).
-</p>
-</dd>
-<dt><code>-U <var>[d|i|l|e|x|h]</var></code></dt>
-<dt><code>--unicode=<var>[default|invalid|locale|escape|hex|highlight]</var></code></dt>
-<dd><p>Controls the display of UTF-8 encoded multibyte characters in strings.
-The default (<samp>--unicode=default</samp>) is to give them no special
-treatment.  The <samp>--unicode=locale</samp> option displays the sequence
-in the current locale, which may or may not support them.  The options
-<samp>--unicode=hex</samp> and <samp>--unicode=invalid</samp> display them as
-hex byte sequences enclosed by either angle brackets or curly braces.
-</p>
-<p>The <samp>--unicode=escape</samp> option displays them as escape sequences
-(<var>\uxxxx</var>) and the <samp>--unicode=highlight</samp> option displays
-them as escape sequences highlighted in red (if supported by the
-output device).  The colouring is intended to draw attention to the
-presence of unicode sequences where they might not be expected.
 </p>
 </dd>
 <dt><code>-V</code></dt>
@@ -2437,7 +2414,6 @@ Next: <a href="#ranlib" accesskey="n" rel="next">ranlib</a>, Previous: <a href="
         [<samp>--prefix-strip=</samp><var>level</var>]
         [<samp>--insn-width=</samp><var>width</var>]
         [<samp>--visualize-jumps[=color|=extended-color|=off]</samp>
-        [<samp>-U</samp> <var>method</var>] [<samp>--unicode=</samp><var>method</var>]
         [<samp>-V</samp>|<samp>--version</samp>]
         [<samp>-H</samp>|<samp>--help</samp>]
         <var>objfile</var>&hellip;
@@ -3054,7 +3030,7 @@ information:
 </p>
 </dd>
 <dt><code>F</code></dt>
-<dt><code>=frames-interp</code></dt>
+<dt><code>=frame-interp</code></dt>
 <dd><p>Display the interpreted contents of a &lsquo;<samp>.debug_frame</samp>&rsquo; section.
 </p>
 </dd>
@@ -3210,28 +3186,19 @@ siblings and children of the specified DIE will be printed.
 </p>
 
 </dd>
-<dt><code>--ctf[=<var>section</var>]</code></dt>
+<dt><code>--ctf=<var>section</var></code></dt>
 <dd><a name="index-CTF"></a>
 <a name="index-Compact-Type-Format"></a>
 
 <p>Display the contents of the specified CTF section.  CTF sections themselves
 contain many subsections, all of which are displayed in order.
 </p>
-<p>By default, display the name of the section named <var>.ctf</var>, which is the
-name emitted by <code>ld</code>.
-</p>
 </dd>
-<dt><code>--ctf-parent=<var>member</var></code></dt>
+<dt><code>--ctf-parent=<var>section</var></code></dt>
 <dd>
-<p>If the CTF section contains ambiguously-defined types, it will consist
-of an archive of many CTF dictionaries, all inheriting from one
-dictionary containing unambiguous types.  This member is by default
-named <var>.ctf</var>, like the section containing it, but it is possible to
-change this name using the <code>ctf_link_set_memb_name_changer</code>
-function at link time.  When looking at CTF archives that have been
-created by a linker that uses the name changer to rename the parent
-archive member, <samp>--ctf-parent</samp> can be used to specify the name
-used for the parent.
+<p>Specify the name of another section from which the CTF dictionary can inherit
+types.  (If none is specified, we assume the CTF dictionary inherits types
+from the default-named member of the archive contained within this section.)
 </p>
 </dd>
 <dt><code>-G</code></dt>
@@ -3374,22 +3341,6 @@ otherwise it&rsquo;s put into parentheses.
 <dd><p>When displaying symbols include those which the target considers to be
 special in some way and which would not normally be of interest to the
 user.
-</p>
-</dd>
-<dt><code>-U <var>[d|i|l|e|x|h]</var></code></dt>
-<dt><code>--unicode=<var>[default|invalid|locale|escape|hex|highlight]</var></code></dt>
-<dd><p>Controls the display of UTF-8 encoded multibyte characters in strings.
-The default (<samp>--unicode=default</samp>) is to give them no special
-treatment.  The <samp>--unicode=locale</samp> option displays the sequence
-in the current locale, which may or may not support them.  The options
-<samp>--unicode=hex</samp> and <samp>--unicode=invalid</samp> display them as
-hex byte sequences enclosed by either angle brackets or curly braces.
-</p>
-<p>The <samp>--unicode=escape</samp> option displays them as escape sequences
-(<var>\uxxxx</var>) and the <samp>--unicode=highlight</samp> option displays
-them as escape sequences highlighted in red (if supported by the
-output device).  The colouring is intended to draw attention to the
-presence of unicode sequences where they might not be expected.
 </p>
 </dd>
 <dt><code>-V</code></dt>
@@ -3666,11 +3617,10 @@ Next: <a href="#strip" accesskey="n" rel="next">strip</a>, Previous: <a href="#s
         [<samp>-n</samp> <var>min-len</var>] [<samp>--bytes=</samp><var>min-len</var>]
         [<samp>-t</samp> <var>radix</var>] [<samp>--radix=</samp><var>radix</var>]
         [<samp>-e</samp> <var>encoding</var>] [<samp>--encoding=</samp><var>encoding</var>]
-        [<samp>-U</samp> <var>method</var>] [<samp>--unicode=</samp><var>method</var>]
         [<samp>-</samp>] [<samp>--all</samp>] [<samp>--print-file-name</samp>]
         [<samp>-T</samp> <var>bfdname</var>] [<samp>--target=</samp><var>bfdname</var>]
         [<samp>-w</samp>] [<samp>--include-all-whitespace</samp>]
-        [<samp>-s</samp>] [<samp>--output-separator</samp> <var>sep_string</var>]
+        [<samp>-s</samp>] [<samp>--output-separator</samp><var>sep_string</var>]
         [<samp>--help</samp>] [<samp>--version</samp>] <var>file</var>&hellip;
 </pre></div>
 
@@ -3734,13 +3684,8 @@ library and instead just print all of the strings found in the file.
 <dt><code>-<var>min-len</var></code></dt>
 <dt><code>-n <var>min-len</var></code></dt>
 <dt><code>--bytes=<var>min-len</var></code></dt>
-<dd><p>Print sequences of displayable characters that are at least
-<var>min-len</var> characters long.  If not specified a default minimum
-length of 4 is used.  The distinction between displayable and
-non-displayable characters depends upon the setting of the 
-<samp>-e</samp> and <samp>-U</samp> options.  Sequences are always terminated
-at control characters such as new-line and carriage-return, but not
-the tab character.
+<dd><p>Print sequences of characters that are at least <var>min-len</var> characters
+long, instead of the default 4.
 </p>
 </dd>
 <dt><code>-o</code></dt>
@@ -3765,29 +3710,6 @@ single-8-bit-byte characters, &lsquo;<samp>b</samp>&rsquo; = 16-bit bigendian, &
 16-bit littleendian, &lsquo;<samp>B</samp>&rsquo; = 32-bit bigendian, &lsquo;<samp>L</samp>&rsquo; = 32-bit
 littleendian.  Useful for finding wide character strings. (&lsquo;<samp>l</samp>&rsquo;
 and &lsquo;<samp>b</samp>&rsquo; apply to, for example, Unicode UTF-16/UCS-2 encodings).
-</p>
-</dd>
-<dt><code>-U <var>[d|i|l|e|x|h]</var></code></dt>
-<dt><code>--unicode=<var>[default|invalid|locale|escape|hex|highlight]</var></code></dt>
-<dd><p>Controls the display of UTF-8 encoded multibyte characters in strings.
-The default (<samp>--unicode=default</samp>) is to give them no special
-treatment, and instead rely upon the setting of the
-<samp>--encoding</samp> option.  The other values for this option
-automatically enable <samp>--encoding=S</samp>.
-</p>
-<p>The <samp>--unicode=invalid</samp> option treats them as non-graphic
-characters and hence not part of a valid string.  All the remaining
-options treat them as valid string characters.
-</p>
-<p>The <samp>--unicode=locale</samp> option displays them in the current
-locale, which may or may not support UTF-8 encoding.  The
-<samp>--unicode=hex</samp> option displays them as hex byte sequences
-enclosed between <var>&lt;&gt;</var> characters.  The <samp>--unicode=escape</samp>
-option displays them as escape sequences (<var>\uxxxx</var>) and the
-<samp>--unicode=highlight</samp> option displays them as escape sequences
-highlighted in red (if supported by the output device).  The colouring
-is intended to draw attention to the presence of unicode sequences
-where they might not be expected.
 </p>
 </dd>
 <dt><code>-T <var>bfdname</var></code></dt>
@@ -5402,7 +5324,6 @@ Next: <a href="#elfedit" accesskey="n" rel="next">elfedit</a>, Previous: <a href
         [<samp>--demangle<var>=style</var></samp>|<samp>--no-demangle</samp>]
         [<samp>--quiet</samp>]
         [<samp>--recurse-limit</samp>|<samp>--no-recurse-limit</samp>]
-        [<samp>-U</samp> <var>method</var>|<samp>--unicode=</samp><var>method</var>]
         [<samp>-n</samp>|<samp>--notes</samp>]
         [<samp>-r</samp>|<samp>--relocs</samp>]
         [<samp>-u</samp>|<samp>--unwind</samp>]
@@ -5579,29 +5500,6 @@ that if the recursion limit is disabled then stack exhaustion is
 possible and any bug reports about such an event will be rejected.
 </p>
 </dd>
-<dt><code>-U <var>[d|i|l|e|x|h]</var></code></dt>
-<dt><code>--unicode=[default|invalid|locale|escape|hex|highlight]</code></dt>
-<dd><p>Controls the display of non-ASCII characters in identifier names.
-The default (<samp>--unicode=locale</samp> or <samp>--unicode=default</samp>) is
-to treat them as multibyte characters and display them in the current
-locale.  All other versions of this option treat the bytes as UTF-8
-encoded values and attempt to interpret them.  If they cannot be
-interpreted or if the <samp>--unicode=invalid</samp> option is used then
-they are displayed as a sequence of hex bytes, encloses in curly
-parethesis characters.
-</p>
-<p>Using the <samp>--unicode=escape</samp> option will display the characters
-as as unicode escape sequences (<var>\uxxxx</var>).  Using the
-<samp>--unicode=hex</samp> will display the characters as hex byte
-sequences enclosed between angle brackets.
-</p>
-<p>Using the <samp>--unicode=highlight</samp> will display the characters as 
-unicode escape sequences but it will also highlighted them in red,
-assuming that colouring is supported by the output device.  The
-colouring is intended to draw attention to the presence of unicode
-sequences when they might not be expected.
-</p>
-</dd>
 <dt><code>-e</code></dt>
 <dt><code>--headers</code></dt>
 <dd><p>Display all the headers in the file.  Equivalent to <samp>-h -l -S</samp>.
@@ -5741,7 +5639,7 @@ information:
 </p>
 </dd>
 <dt><code>F</code></dt>
-<dt><code>=frames-interp</code></dt>
+<dt><code>=frame-interp</code></dt>
 <dd><p>Display the interpreted contents of a &lsquo;<samp>.debug_frame</samp>&rsquo; section.
 </p>
 </dd>
@@ -5901,28 +5799,19 @@ command line options will be displayed.
 </p>
 
 </dd>
-<dt><code>--ctf[=<var>section</var>]</code></dt>
+<dt><code>--ctf=<var>section</var></code></dt>
 <dd><a name="index-CTF-1"></a>
 <a name="index-Compact-Type-Format-1"></a>
 
 <p>Display the contents of the specified CTF section.  CTF sections themselves
 contain many subsections, all of which are displayed in order.
 </p>
-<p>By default, display the name of the section named <var>.ctf</var>, which is the
-name emitted by <code>ld</code>.
-</p>
 </dd>
-<dt><code>--ctf-parent=<var>member</var></code></dt>
+<dt><code>--ctf-parent=<var>section</var></code></dt>
 <dd>
-<p>If the CTF section contains ambiguously-defined types, it will consist
-of an archive of many CTF dictionaries, all inheriting from one
-dictionary containing unambiguous types.  This member is by default
-named <var>.ctf</var>, like the section containing it, but it is possible to
-change this name using the <code>ctf_link_set_memb_name_changer</code>
-function at link time.  When looking at CTF archives that have been
-created by a linker that uses the name changer to rename the parent
-archive member, <samp>--ctf-parent</samp> can be used to specify the name
-used for the parent.
+<p>Specify the name of another section from which the CTF dictionary can inherit
+types.  (If none is specified, we assume the CTF dictionary inherits types
+from the default-named member of the archive contained within this section.)
 </p></dd>
 <dt><code>--ctf-symbols=<var>section</var></code></dt>
 <dt><code>--ctf-strings=<var>section</var></code></dt>
@@ -5990,11 +5879,9 @@ Next: <a href="#Common-Options" accesskey="n" rel="next">Common Options</a>, Pre
 <pre class="smallexample">elfedit [<samp>--input-mach=</samp><var>machine</var>]
         [<samp>--input-type=</samp><var>type</var>]
         [<samp>--input-osabi=</samp><var>osabi</var>]
-        [<samp>--input-abiversion=</samp><var>version</var>]
         <samp>--output-mach=</samp><var>machine</var>
         <samp>--output-type=</samp><var>type</var>
         <samp>--output-osabi=</samp><var>osabi</var>
-        <samp>--output-abiversion=</samp><var>version</var>
         <samp>--enable-x86-feature=</samp><var>feature</var>
         <samp>--disable-x86-feature=</samp><var>feature</var>
         [<samp>-v</samp>|<samp>--version</samp>]
@@ -6015,7 +5902,6 @@ should be updated.
 <p>The long and short forms of options, shown here as alternatives, are
 equivalent. At least one of the <samp>--output-mach</samp>,
 <samp>--output-type</samp>, <samp>--output-osabi</samp>,
-<samp>--output-abiversion</samp>,
 <samp>--enable-x86-feature</samp> and <samp>--disable-x86-feature</samp>
 options must be given.
 </p>
@@ -6060,17 +5946,6 @@ supported ELF types are the same as <samp>--input-type</samp>.
 <dt><code>--output-osabi=<var>osabi</var></code></dt>
 <dd><p>Change the ELF OSABI in the ELF header to <var>osabi</var>.  The
 supported ELF OSABI are the same as <samp>--input-osabi</samp>.
-</p>
-</dd>
-<dt><code>--input-abiversion=<var>version</var></code></dt>
-<dd><p>Set the matching input ELF file ABIVERSION to <var>version</var>.
-<var>version</var> must be between 0 and 255.  If <samp>--input-abiversion</samp>
-isn&rsquo;t specified, it will match any ELF ABIVERSIONs.
-</p>
-</dd>
-<dt><code>--output-abiversion=<var>version</var></code></dt>
-<dd><p>Change the ELF ABIVERSION in the ELF header to <var>version</var>.
-<var>version</var> must be between 0 and 255.
 </p>
 </dd>
 <dt><code>--enable-x86-feature=<var>feature</var></code></dt>

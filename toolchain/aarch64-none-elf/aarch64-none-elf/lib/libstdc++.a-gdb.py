@@ -19,7 +19,7 @@ import gdb
 import os
 import os.path
 
-pythondir = '/data/jenkins/workspace/GNU-toolchain/arm-11/build-aarch64-none-elf/install/share/gcc-11.3.1/python'
+pythondir = '/data/jenkins/workspace/GNU-toolchain/arm-11/build-aarch64-none-elf/install/share/gcc-11.2.1/python'
 libdir = '/data/jenkins/workspace/GNU-toolchain/arm-11/build-aarch64-none-elf/install/aarch64-none-elf/lib'
 
 # This file might be loaded when there is no current objfile.  This

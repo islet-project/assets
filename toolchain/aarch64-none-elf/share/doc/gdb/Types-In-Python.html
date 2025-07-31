@@ -91,9 +91,6 @@ Otherwise, it is searched for globally.
 If the named type cannot be found, it will throw an exception.
 </p></dd></dl>
 
-<p>Integer types can be found without looking them up by name.
-See <a href="Architectures-In-Python.html#Architectures-In-Python">Architectures In Python</a>, for the <code>integer_type</code> method.
-</p>
 <p>If the type is a structure or class type, or an enum type, the fields
 of that type can be accessed using the Python <em>dictionary syntax</em>.
 For example, if <code>some_type</code> is a <code>gdb.Type</code> instance holding
@@ -174,24 +171,6 @@ languages have this concept.  If this type has no tag name, then
 <dt><a name="index-Type_002eobjfile"></a>Variable: <strong>Type.objfile</strong></dt>
 <dd><p>The <code>gdb.Objfile</code> that this type was defined in, or <code>None</code> if
 there is no associated objfile.
-</p></dd></dl>
-
-<dl>
-<dt><a name="index-Type_002eis_005fscalar"></a>Variable: <strong>Type.is_scalar</strong></dt>
-<dd><p>This property is <code>True</code> if the type is a scalar type, otherwise,
-this property is <code>False</code>.  Examples of non-scalar types include
-structures, unions, and classes.
-</p></dd></dl>
-
-<dl>
-<dt><a name="index-Type_002eis_005fsigned"></a>Variable: <strong>Type.is_signed</strong></dt>
-<dd><p>For scalar types (those for which <code>Type.is_scalar</code> is
-<code>True</code>), this property is <code>True</code> if the type is signed,
-otherwise this property is <code>False</code>.
-</p>
-<p>Attempting to read this property for a non-scalar type (a type for
-which <code>Type.is_scalar</code> is <code>False</code>), will raise a
-<code>ValueError</code>.
 </p></dd></dl>
 
 <p>The following methods are provided:

@@ -72,8 +72,8 @@ Next: <a href="System_002dwide-configuration.html#System_002dwide-configuration"
 
 <p>Here is a summary of the <samp>configure</samp> options and arguments that
 are most often useful for building <small>GDB</small>.  <samp>configure</samp>
-also has several other options not listed here.  See <a href="http://www.gnu.org/software/autoconf/manual/html_node/Running-configure-Scripts.html#Running-configure-Scripts">(autoconf)Running
-configure Scripts</a>, for a full
+also has several other options not listed here.  See <a href="http://www.gnu.org/software/autoconf/manual/html_node/Running-configure-scripts.html#Running-configure-scripts">(autoconf.info)Running
+configure scripts</a>, for a full
 explanation of <samp>configure</samp>.
 </p>
 <div class="smallexample">
@@ -174,12 +174,12 @@ terminal operations.
 </p>
 </dd>
 <dt><code>--with-debuginfod</code></dt>
-<dd><p>Build <small>GDB</small> with <samp>libdebuginfod</samp>, the <code>debuginfod</code> client
-library.  Used to automatically fetch ELF, DWARF and source files from
-<code>debuginfod</code> servers using build IDs associated with any missing
-files.  Enabled by default if <samp>libdebuginfod</samp> is installed and found
-at configure time.  For more information regarding <code>debuginfod</code> see
-<a href="Debuginfod.html#Debuginfod">Debuginfod</a>.
+<dd><p>Build <small>GDB</small> with libdebuginfod, the debuginfod client library.
+Used to automatically fetch source files and separate debug files from
+debuginfod servers using the associated executable&rsquo;s build ID. Enabled
+by default if libdebuginfod is installed and found at configure time.
+debuginfod is packaged with elfutils, starting with version 0.178. You
+can get the latest version from &lsquo;https://sourceware.org/elfutils/&rsquo;.
 </p>
 </dd>
 <dt><code>--with-libunwind-ia64</code></dt>
@@ -307,7 +307,7 @@ compiler you are using.
 </p>
 </dd>
 <dt><code>--enable-werror</code></dt>
-<dd><p>Treat compiler warnings as errors.  It adds the <code>-Werror</code> flag
+<dd><p>Treat compiler warnings as werrors.  It adds the <code>-Werror</code> flag
 to the compiler, which will fail the compilation if the compiler
 outputs any warning messages.
 </p>

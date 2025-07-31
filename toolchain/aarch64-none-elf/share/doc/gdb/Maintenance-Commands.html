@@ -217,11 +217,6 @@ buffer.
 <dd><p>Control whether <small>GDB</small> will skip PAD packets when computing the
 packet history.
 </p>
-<a name="index-maint-info-jit"></a>
-</dd>
-<dt><code>maint info jit</code></dt>
-<dd><p>Print information about JIT code objects loaded in the current inferior.
-</p>
 <a name="index-set-displaced_002dstepping"></a>
 <a name="index-show-displaced_002dstepping"></a>
 <a name="index-displaced-stepping-support"></a>
@@ -384,21 +379,7 @@ disabled.
 </p></dd>
 </dl>
 
-<a name="index-maint-set-internal_002derror-1"></a>
-<a name="index-maint-show-internal_002derror-1"></a>
-<a name="index-maint-set-internal_002dwarning-1"></a>
-<a name="index-maint-show-internal_002dwarning-1"></a>
-</dd>
-<dt><code>maint set internal-error backtrace <span class="roman">[</span>on|off<span class="roman">]</span></code></dt>
-<dt><code>maint show internal-error backtrace</code></dt>
-<dt><code>maint set internal-warning backtrace <span class="roman">[</span>on|off<span class="roman">]</span></code></dt>
-<dt><code>maint show internal-warning backtrace</code></dt>
-<dd><p>When <small>GDB</small> reports an internal problem (error or warning) it is
-possible to have a backtrace of <small>GDB</small> printed to the standard
-error stream.  This is &lsquo;<samp>on</samp>&rsquo; by default for <code>internal-error</code>
-and &lsquo;<samp>off</samp>&rsquo; by default for <code>internal-warning</code>.
-</p>
-<a name="maint-packet"></a><a name="index-maint-packet-1"></a>
+<a name="index-maint-packet"></a>
 </dd>
 <dt><code>maint packet <var>text</var></code></dt>
 <dd><p>If <small>GDB</small> is talking to an inferior via the serial protocol,
@@ -406,9 +387,6 @@ then this command sends the string <var>text</var> to the inferior, and
 displays the response packet.  <small>GDB</small> supplies the initial
 &lsquo;<samp>$</samp>&rsquo; character, the terminating &lsquo;<samp>#</samp>&rsquo; character, and the
 checksum.
-</p>
-<p>Any non-printable characters in the reply are printed as escaped hex,
-e.g. &lsquo;<samp>\x00</samp>&rsquo;, &lsquo;<samp>\x01</samp>&rsquo;, etc.
 </p>
 <a name="index-maint-print-architecture"></a>
 </dd>
@@ -545,20 +523,6 @@ frame cache.  This command is useful when debugging issues related to
 register fetching, or frame unwinding.  The command <code>flushregs</code>
 is deprecated in favor of <code>maint flush register-cache</code>.
 </p>
-<a name="index-maint-flush-source_002dcache"></a>
-<a name="index-source-code_002c-caching"></a>
-</dd>
-<dt><code>maint flush source-cache</code></dt>
-<dd><p>Flush <small>GDB</small>&rsquo;s cache of source code file contents.  After
-<small>GDB</small> reads a source file, and optionally applies styling
-(see <a href="Output-Styling.html#Output-Styling">Output Styling</a>), the file contents are cached.  This command
-clears that cache.  The next time <small>GDB</small> wants to show lines
-from a source file, the content will be re-read.
-</p>
-<p>This command is useful when debugging issues related to source code
-styling.  After flushing the cache any source code displayed by
-<small>GDB</small> will be re-read and re-styled.
-</p>
 <a name="index-maint-print-objfiles"></a>
 <a name="index-info-for-known-object-files"></a>
 </dd>
@@ -634,23 +598,14 @@ data structures, including its flags and contained types.
 <a name="index-maint-selftest"></a>
 <a name="index-self-tests"></a>
 </dd>
-<dt><code>maint selftest <span class="roman">[</span>-verbose<span class="roman">]</span> <span class="roman">[</span><var>filter</var><span class="roman">]</span></code></dt>
+<dt><code>maint selftest <span class="roman">[</span><var>filter</var><span class="roman">]</span></code></dt>
 <dd><p>Run any self tests that were compiled in to <small>GDB</small>.  This will
 print a message showing how many tests were run, and how many failed.
 If a <var>filter</var> is passed, only the tests with <var>filter</var> in their
-name will be ran.  If <code>-verbose</code> is passed, the self tests can be
-more verbose.
-</p>
-<a name="index-maint-set-selftest-verbose"></a>
-<a name="index-maint-show-selftest-verbose"></a>
-<a name="index-self-tests-1"></a>
-</dd>
-<dt><code>maint set selftest verbose</code></dt>
-<dt><code>maint show selftest verbose</code></dt>
-<dd><p>Control whether self tests are run verbosely or not.
+name will by ran.
 </p>
 <a name="index-maint-info-selftests"></a>
-<a name="index-self-tests-2"></a>
+<a name="index-self-tests-1"></a>
 </dd>
 <dt><code>maint info selftests</code></dt>
 <dd><p>List the selftests compiled in to <small>GDB</small>.
@@ -893,26 +848,6 @@ unload the library and continue searching for a suitable candidate as
 described in <a href="Threads.html#set-libthread_002ddb_002dsearch_002dpath">set libthread-db-search-path</a>.  For more information
 about the tests, see <a href="#maint-check-libthread_002ddb">maint check libthread-db</a>.
 </p>
-<a name="index-maint-set-gnu_002dsource_002dhighlight-enabled"></a>
-<a name="index-maint-show-gnu_002dsource_002dhighlight-enabled"></a>
-</dd>
-<dt><code>maint set gnu-source-highlight enabled <span class="roman">[</span>on|off<span class="roman">]</span></code></dt>
-<dt><code>maint show gnu-source-highlight enabled</code></dt>
-<dd><p>Control whether <small>GDB</small> should use the GNU Source Highlight
-library for applying styling to source code (see <a href="Output-Styling.html#Output-Styling">Output Styling</a>).
-This will be &lsquo;<samp>on</samp>&rsquo; by default if the GNU Source Highlight library
-is available.  If the GNU Source Highlight library is not available,
-then this will be &lsquo;<samp>off</samp>&rsquo; by default, and attempting to change this
-value to &lsquo;<samp>on</samp>&rsquo; will give an error.
-</p>
-<p>If the GNU Source Highlight library is not being used, then
-<small>GDB</small> will use the Python Pygments package for source code
-styling, if it is available.
-</p>
-<p>This option is useful for debugging <small>GDB</small>&rsquo;s use of the Pygments
-library when <small>GDB</small> is linked against the GNU Source Highlight
-library.
-</p>
 <a name="index-maint-space"></a>
 <a name="index-memory-used-by-commands"></a>
 </dd>
@@ -972,25 +907,6 @@ support in the command options framework.
 <dd><p>These are representative commands for each <var>kind</var> of setting type
 <small>GDB</small> supports.  They are used by the testsuite for exercising
 the settings infrastructure.
-</p>
-<a name="index-maint-set-backtrace_002don_002dfatal_002dsignal"></a>
-<a name="index-maint-show-backtrace_002don_002dfatal_002dsignal"></a>
-</dd>
-<dt><code>maint set backtrace-on-fatal-signal [on|off]</code></dt>
-<dt><code>maint show backtrace-on-fatal-signal</code></dt>
-<dd><p>When this setting is <code>on</code>, if <small>GDB</small> itself terminates with
-a fatal signal (e.g. SIGSEGV), then a limited backtrace will be
-printed to the standard error stream.  This backtrace can be used to
-help diagnose crashes within <small>GDB</small> in situations where a user
-is unable to share a corefile with the <small>GDB</small> developers.
-</p>
-<p>If the functionality to provide this backtrace is not available for
-the platform on which GDB is running then this feature will be
-<code>off</code> by default, and attempting to turn this feature on will
-give an error.
-</p>
-<p>For platforms that do support creating the backtrace this feature is
-<code>on</code> by default.
 </p>
 <a name="index-maint-with"></a>
 </dd>

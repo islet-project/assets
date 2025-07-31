@@ -17,7 +17,6 @@ import traceback
 import os
 import sys
 import _gdb
-from contextlib import contextmanager
 
 # Python 3 moved "reload"
 if sys.version_info >= (3, 4):
@@ -232,19 +231,20 @@ def find_pc_line(pc):
     return current_progspace().find_pc_line(pc)
 
 
-def set_parameter(name, value):
-    """Set the GDB parameter NAME to VALUE."""
-    execute("set " + name + " " + str(value), to_string=True)
+try:
+    from pygments import formatters, lexers, highlight
+
+    def colorize(filename, contents):
+        # Don't want any errors.
+        try:
+            lexer = lexers.get_lexer_for_filename(filename, stripnl=False)
+            formatter = formatters.TerminalFormatter()
+            return highlight(contents, lexer, formatter)
+        except:
+            return None
 
 
-@contextmanager
-def with_parameter(name, value):
-    """Temporarily set the GDB parameter NAME to VALUE.
-    Note that this is a context manager."""
-    old_value = parameter(name)
-    set_parameter(name, value)
-    try:
-        # Nothing that useful to return.
-        yield None
-    finally:
-        set_parameter(name, old_value)
+except:
+
+    def colorize(filename, contents):
+        return None

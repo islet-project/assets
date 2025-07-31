@@ -156,15 +156,6 @@ It is false if we must use <code>collect2</code>.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-TARGET_005fDTORS_005fFROM_005fCXA_005fATEXIT"></a>Target Hook: <em>bool</em> <strong>TARGET_DTORS_FROM_CXA_ATEXIT</strong></dt>
-<dd><p>This value is true if the target wants destructors to be queued to be
-run from __cxa_atexit.  If this is the case then, for each priority level,
-a new constructor will be entered that registers the destructors for that
-level with __cxa_atexit (and there will be no destructors emitted).
-It is false the method implied by <code>have_ctors_dtors</code> is used.
-</p></dd></dl>
-
-<dl>
 <dt><a name="index-TARGET_005fASM_005fCONSTRUCTOR"></a>Target Hook: <em>void</em> <strong>TARGET_ASM_CONSTRUCTOR</strong> <em>(rtx <var>symbol</var>, int <var>priority</var>)</em></dt>
 <dd><p>If defined, a function that outputs assembler code to arrange to call
 the function referenced by <var>symbol</var> at initialization time.

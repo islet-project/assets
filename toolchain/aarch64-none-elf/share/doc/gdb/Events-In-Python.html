@@ -101,10 +101,7 @@ will no longer receive notifications of events.
 <div class="smallexample">
 <pre class="smallexample">def exit_handler (event):
     print (&quot;event type: exit&quot;)
-    if hasattr (event, 'exit_code'):
-        print (&quot;exit code: %d&quot; % (event.exit_code))
-    else:
-        print (&quot;exit code not available&quot;)
+    print (&quot;exit code: %d&quot; % (event.exit_code))
 
 gdb.events.exited.connect (exit_handler)
 </pre></div>
@@ -350,29 +347,6 @@ This has a single attribute:
 <dl>
 <dt><a name="index-NewThreadEvent_002einferior_005fthread"></a>Variable: <strong>NewThreadEvent.inferior_thread</strong></dt>
 <dd><p>The new thread.
-</p></dd></dl>
-
-</dd>
-<dt><code>events.gdb_exiting</code></dt>
-<dd><p>This is emitted when <small>GDB</small> exits.  This event is not emitted if
-<small>GDB</small> exits as a result of an internal error, or after an
-unexpected signal.  The event is of type <code>gdb.GdbExitingEvent</code>,
-which has a single attribute:
-</p>
-<dl>
-<dt><a name="index-GdbExitingEvent_002eexit_005fcode"></a>Variable: <strong>GdbExitingEvent.exit_code</strong></dt>
-<dd><p>An integer, the value of the exit code <small>GDB</small> will return.
-</p></dd></dl>
-
-</dd>
-<dt><code>events.connection_removed</code></dt>
-<dd><p>This is emitted when <small>GDB</small> removes a connection
-(see <a href="Connections-In-Python.html#Connections-In-Python">Connections In Python</a>).  The event is of type
-<code>gdb.ConnectionEvent</code>.  This has a single read-only attribute:
-</p>
-<dl>
-<dt><a name="index-ConnectionEvent_002econnection"></a>Variable: <strong>ConnectionEvent.connection</strong></dt>
-<dd><p>The <code>gdb.TargetConnection</code> that is being removed.
 </p></dd></dl>
 
 </dd>

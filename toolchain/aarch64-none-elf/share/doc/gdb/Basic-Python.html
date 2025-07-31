@@ -178,34 +178,6 @@ parameter&rsquo;s value is converted to a Python value of the appropriate
 type, and returned.
 </p></dd></dl>
 
-<a name="index-gdb_002eset_005fparameter"></a>
-<dl>
-<dt><a name="index-gdb_002eset_005fparameter-1"></a>Function: <strong>gdb.set_parameter</strong> <em>(name, value)</em></dt>
-<dd><p>Sets the gdb parameter <var>name</var> to <var>value</var>.  As with
-<code>gdb.parameter</code>, the parameter name string may contain spaces if
-the parameter has a multi-part name.
-</p></dd></dl>
-
-<a name="index-gdb_002ewith_005fparameter"></a>
-<dl>
-<dt><a name="index-gdb_002ewith_005fparameter-1"></a>Function: <strong>gdb.with_parameter</strong> <em>(name, value)</em></dt>
-<dd><p>Create a Python context manager (for use with the Python
-<code>with</code> statement) that temporarily sets the gdb parameter
-<var>name</var> to <var>value</var>.  On exit from the context, the previous
-value will be restored.
-</p>
-<p>This uses <code>gdb.parameter</code> in its implementation, so it can throw
-the same exceptions as that function.
-</p>
-<p>For example, it&rsquo;s sometimes useful to evaluate some Python code with a
-particular gdb language:
-</p>
-<div class="smallexample">
-<pre class="smallexample">with gdb.with_parameter('language', 'pascal'):
-  ... language-specific operations
-</pre></div>
-</dd></dl>
-
 <a name="index-gdb_002ehistory"></a>
 <dl>
 <dt><a name="index-gdb_002ehistory-1"></a>Function: <strong>gdb.history</strong> <em>(number)</em></dt>
@@ -219,26 +191,6 @@ raised.
 </p>
 <p>If no exception is raised, the return value is always an instance of
 <code>gdb.Value</code> (see <a href="Values-From-Inferior.html#Values-From-Inferior">Values From Inferior</a>).
-</p></dd></dl>
-
-<dl>
-<dt><a name="index-gdb_002eadd_005fhistory"></a>Function: <strong>gdb.add_history</strong> <em>(value)</em></dt>
-<dd><p>Takes <var>value</var>, an instance of <code>gdb.Value</code> (see <a href="Values-From-Inferior.html#Values-From-Inferior">Values From Inferior</a>), and appends the value this object represents to
-<small>GDB</small>&rsquo;s value history (see <a href="Value-History.html#Value-History">Value History</a>), and return an
-integer, its history number.  If <var>value</var> is not a
-<code>gdb.Value</code>, it is is converted using the <code>gdb.Value</code>
-constructor.  If <var>value</var> can&rsquo;t be converted to a <code>gdb.Value</code>
-then a <code>TypeError</code> is raised.
-</p>
-<p>When a command implemented in Python prints a single <code>gdb.Value</code>
-as its result, then placing the value into the history will allow the
-user convenient access to those values via CLI history facilities.
-</p></dd></dl>
-
-<dl>
-<dt><a name="index-gdb_002ehistory_005fcount"></a>Function: <strong>gdb.history_count</strong> <em>()</em></dt>
-<dd><p>Return an integer indicating the number of values in <small>GDB</small>&rsquo;s
-value history (see <a href="Value-History.html#Value-History">Value History</a>).
 </p></dd></dl>
 
 <a name="index-gdb_002econvenience_005fvariable"></a>
@@ -270,8 +222,7 @@ the current language, evaluate it, and return the result as a
 <code>gdb.Value</code>.
 </p>
 <p>This function can be useful when implementing a new command
-(see <a href="CLI-Commands-In-Python.html#CLI-Commands-In-Python">CLI Commands In Python</a>, see <a href="GDB_002fMI-Commands-In-Python.html#GDB_002fMI-Commands-In-Python">GDB/MI Commands In Python</a>),
-as it provides a way to parse the
+(see <a href="Commands-In-Python.html#Commands-In-Python">Commands In Python</a>), as it provides a way to parse the
 command&rsquo;s argument as an expression.  It is also useful simply to
 compute values.
 </p></dd></dl>
@@ -330,7 +281,7 @@ this.  For example:
 
 <a name="index-gdb_002ewrite"></a>
 <dl>
-<dt><a name="index-gdb_002ewrite-1"></a>Function: <strong>gdb.write</strong> <em>(string <span class="roman">[</span>, stream<span class="roman">]</span>)</em></dt>
+<dt><a name="index-gdb_002ewrite-1"></a>Function: <strong>gdb.write</strong> <em>(string <span class="roman">[</span>, stream])</em></dt>
 <dd><p>Print a string to <small>GDB</small>&rsquo;s paginated output stream.  The
 optional <var>stream</var> determines the stream to print to.  The default
 stream is <small>GDB</small>&rsquo;s standard output stream.  Possible stream
@@ -414,15 +365,6 @@ that &lsquo;<samp>auto</samp>&rsquo; is never returned.
 never returned.
 </p></dd></dl>
 
-<a name="index-gdb_002ehost_005fcharset"></a>
-<dl>
-<dt><a name="index-gdb_002ehost_005fcharset-1"></a>Function: <strong>gdb.host_charset</strong> <em>()</em></dt>
-<dd><p>Return a string, the name of the current host character set
-(see <a href="Character-Sets.html#Character-Sets">Character Sets</a>).  This differs from
-<code>gdb.parameter('host-charset')</code> in that &lsquo;<samp>auto</samp>&rsquo; is never
-returned.
-</p></dd></dl>
-
 <a name="index-gdb_002esolib_005fname"></a>
 <dl>
 <dt><a name="index-gdb_002esolib_005fname-1"></a>Function: <strong>gdb.solib_name</strong> <em>(address)</em></dt>
@@ -463,22 +405,6 @@ the current prompt.
 <p>Some prompts cannot be substituted in <small>GDB</small>.  Secondary prompts
 such as those used by readline for command input, and annotation
 related prompts are prohibited from being changed.
-</p></dd></dl>
-
-<dl>
-<dt><a name="index-gdb_002earchitecture_005fnames"></a>Function: <strong>gdb.architecture_names</strong> <em>()</em></dt>
-<dd><p>Return a list containing all of the architecture names that the
-current build of <small>GDB</small> supports.  Each architecture name is a
-string.  The names returned in this list are the same names as are
-returned from <code>gdb.Architecture.name</code>
-(see <a href="Architectures-In-Python.html#gdbpy_005farchitecture_005fname">Architecture.name</a>).
-</p></dd></dl>
-
-<a name="gdbpy_005fconnections"></a><dl>
-<dt><a name="index-gdb_002econnections"></a>Function: <strong>gdb.connections</strong></dt>
-<dd><p>Return a list of <code>gdb.TargetConnection</code> objects, one for each
-currently active connection (see <a href="Connections-In-Python.html#Connections-In-Python">Connections In Python</a>).  The
-connection objects are in no particular order in the returned list.
 </p></dd></dl>
 
 <hr>

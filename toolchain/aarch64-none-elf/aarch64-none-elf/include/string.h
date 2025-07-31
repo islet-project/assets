@@ -130,7 +130,7 @@ char	*strlwr (char *);
 char	*strupr (char *);
 #endif
 
-#if __POSIX_VISIBLE >= 200809
+#ifndef DEFS_H	/* Kludge to work around problem compiling in gdb */
 char	*strsignal (int __signo);
 #endif
 

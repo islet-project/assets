@@ -84,17 +84,6 @@ and &lsquo;<samp>xpsr</samp>&rsquo;.
 <p>The &lsquo;<samp>org.gnu.gdb.arm.fpa</samp>&rsquo; feature is optional.  If present, it
 should contain registers &lsquo;<samp>f0</samp>&rsquo; through &lsquo;<samp>f7</samp>&rsquo; and &lsquo;<samp>fps</samp>&rsquo;.
 </p>
-<p>The &lsquo;<samp>org.gnu.gdb.arm.m-profile-mve</samp>&rsquo; feature is optional.  If present, it
-must contain register &lsquo;<samp>vpr</samp>&rsquo;.
-</p>
-<p>If the &lsquo;<samp>org.gnu.gdb.arm.m-profile-mve</samp>&rsquo; feature is available, <small>GDB</small>
-will synthesize the &lsquo;<samp>p0</samp>&rsquo; pseudo register from &lsquo;<samp>vpr</samp>&rsquo; contents.
-</p>
-<p>If the &lsquo;<samp>org.gnu.gdb.arm.vfp</samp>&rsquo; feature is available alongside the
-&lsquo;<samp>org.gnu.gdb.arm.m-profile-mve</samp>&rsquo; feature, <small>GDB</small> will
-synthesize the &lsquo;<samp>q</samp>&rsquo; pseudo registers from &lsquo;<samp>d</samp>&rsquo; register
-contents.
-</p>
 <p>The &lsquo;<samp>org.gnu.gdb.xscale.iwmmxt</samp>&rsquo; feature is optional.  If present,
 it should contain at least registers &lsquo;<samp>wR0</samp>&rsquo; through &lsquo;<samp>wR15</samp>&rsquo; and
 &lsquo;<samp>wCGR0</samp>&rsquo; through &lsquo;<samp>wCGR3</samp>&rsquo;.  The &lsquo;<samp>wCID</samp>&rsquo;, &lsquo;<samp>wCon</samp>&rsquo;,

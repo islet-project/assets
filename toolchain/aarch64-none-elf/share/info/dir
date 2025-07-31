@@ -44,9 +44,6 @@ Individual utilities
                                                   resources.
 * windres: (binutils)windres.                   Manipulate Windows resources.
 
-Miscellaneous
-* Embed with GNU: (porting-).   Embed with GNU
-
 Software development
 * Annotate: (annotate).         The obsolete annotation interface.
 * As: (as).                     The GNU assembler.

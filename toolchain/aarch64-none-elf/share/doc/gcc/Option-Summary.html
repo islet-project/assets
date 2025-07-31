@@ -793,12 +793,12 @@ Objective-C and Objective-C++ Dialects</a>.
 
 <p><em>CRIS Options</em>
 </p><div class="smallexample">
-<pre class="smallexample">-mcpu=<var>cpu</var>  -march=<var>cpu</var>
--mtune=<var>cpu</var> -mmax-stack-frame=<var>n</var> 
+<pre class="smallexample">-mcpu=<var>cpu</var>  -march=<var>cpu</var>  -mtune=<var>cpu</var> 
+-mmax-stack-frame=<var>n</var>  -melinux-stacksize=<var>n</var> 
 -metrax4  -metrax100  -mpdebug  -mcc-init  -mno-side-effects 
 -mstack-align  -mdata-align  -mconst-align 
--m32-bit  -m16-bit  -m8-bit  -mno-prologue-epilogue 
--melf  -maout  -sim  -sim2 
+-m32-bit  -m16-bit  -m8-bit  -mno-prologue-epilogue  -mno-gotplt 
+-melf  -maout  -melinux  -mlinux  -sim  -sim2 
 -mmul-bug-workaround  -mno-mul-bug-workaround
 </pre></div>
 
@@ -1468,8 +1468,7 @@ See RS/6000 and PowerPC Options.
 -mstack-protector-guard-symbol=<var>symbol</var> 
 -mgeneral-regs-only  -mcall-ms2sysv-xlogues 
 -mindirect-branch=<var>choice</var>  -mfunction-return=<var>choice</var> 
--mindirect-branch-register -mharden-sls=<var>choice</var> 
--mindirect-branch-cs-prefix -mneeded
+-mindirect-branch-register -mneeded
 </pre></div>
 
 <p><em>x86 Windows Options</em>

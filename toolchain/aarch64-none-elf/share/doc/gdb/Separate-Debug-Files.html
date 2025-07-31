@@ -127,9 +127,7 @@ filesystems disallow colons in file names.)
 a file named <samp><var>nn</var>/<var>nnnnnnnn</var>.debug</samp>, where <var>nn</var> are the
 first 2 hex characters of the build ID bit string, and <var>nnnnnnnn</var>
 are the rest of the bit string.  (Real build ID strings are 32 or more
-hex characters, not 10.)  <small>GDB</small> can automatically query
-<code>debuginfod</code> servers using build IDs in order to download separate debug
-files that cannot be found locally.  For more information see <a href="Debuginfod.html#Debuginfod">Debuginfod</a>.
+hex characters, not 10.)
 </li></ul>
 
 <p>So, for example, suppose you ask <small>GDB</small> to debug
@@ -146,10 +144,6 @@ debug information files, in the indicated order:
 </li><li>- <samp>/usr/lib/debug/usr/bin/ls.debug</samp>.
 </li></ul>
 
-<p>If the debug file still has not been found and <code>debuginfod</code>
-(see <a href="Debuginfod.html#Debuginfod">Debuginfod</a>) is enabled, <small>GDB</small> will attempt to download the
-file from <code>debuginfod</code> servers.
-</p>
 <a name="debug_002dfile_002ddirectory"></a><p>Global debugging info directories default to what is set by <small>GDB</small>
 configure option <samp>--with-separate-debug-dir</samp>.  During <small>GDB</small> run
 you can also set the global debugging info directories, and view the list

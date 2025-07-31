@@ -76,10 +76,13 @@ Previous: <a href="Shell-Commands.html#Shell-Commands" accesskey="p" rel="previo
 There are several commands to control <small>GDB</small>&rsquo;s logging.
 </p>
 <dl compact="compact">
-<dd><a name="index-set-logging-enabled"></a>
+<dd><a name="index-set-logging"></a>
 </dd>
-<dt><code>set logging enabled [on|off]</code></dt>
-<dd><p>Enable or disable logging.
+<dt><code>set logging on</code></dt>
+<dd><p>Enable logging.
+</p></dd>
+<dt><code>set logging off</code></dt>
+<dd><p>Disable logging.
 <a name="index-logging-file-name"></a>
 </p></dd>
 <dt><code>set logging file <var>file</var></code></dt>
@@ -87,7 +90,7 @@ There are several commands to control <small>GDB</small>&rsquo;s logging.
 </p></dd>
 <dt><code>set logging overwrite [on|off]</code></dt>
 <dd><p>By default, <small>GDB</small> will append to the logfile.  Set <code>overwrite</code> if
-you want <code>set logging enabled on</code> to overwrite the logfile instead.
+you want <code>set logging on</code> to overwrite the logfile instead.
 </p></dd>
 <dt><code>set logging redirect [on|off]</code></dt>
 <dd><p>By default, <small>GDB</small> output will go to both the terminal and the logfile.

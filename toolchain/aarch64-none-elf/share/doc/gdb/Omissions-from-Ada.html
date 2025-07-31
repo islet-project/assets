@@ -95,7 +95,10 @@ operand of the membership (<code>in</code>) operator.
 </li><li>- <tt>'Address</tt>.
 </li></ul>
 
-</li><li> The names in <code>Characters.Latin_1</code> are not available.
+</li><li> The names in
+<code>Characters.Latin_1</code> are not available and
+concatenation is not implemented.  Thus, escape characters in strings are 
+not currently available.
 
 </li><li> Equality tests (&lsquo;<samp>=</samp>&rsquo; and &lsquo;<samp>/=</samp>&rsquo;) on arrays test for bitwise
 equality of representations.  They will generally work correctly
@@ -181,8 +184,6 @@ context.
 Should your program
 redefine these names in a package or procedure (at best a dubious practice),
 you will have to use fully qualified names to access their new definitions.
-
-</li><li> Based real literals are not implemented.
 </li></ul>
 
 <hr>
