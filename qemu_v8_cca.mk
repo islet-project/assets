@@ -272,7 +272,8 @@ else
 endif
 	ln -sf $(BL33_BIN) $(BINARIES_PATH)/bl33.bin
 
-arm-tf-clean: edk2-clean rmm-clean
+#arm-tf-clean: edk2-clean rmm-clean
+arm-tf-clean: rmm-clean
 	$(TF_A_EXPORTS) $(MAKE) -C $(TF_A_PATH) $(TF_A_FLAGS) clean
 
 ################################################################################
@@ -384,9 +385,10 @@ cloud-hypervisor: buildroot $(BINARIES_PATH)
 ################################################################################
 LINUX_DEFCONFIG_COMMON_ARCH := arm64
 LINUX_DEFCONFIG_COMMON_FILES := \
-		$(LINUX_PATH)/arch/arm64/configs/defconfig \
+		$(LINUX_PATH)/arch/arm64/configs/host \
 		$(CURDIR)/kconfigs/qemu.conf \
-		$(CURDIR)/kconfigs/cca.conf
+		$(CURDIR)/kconfigs/cca.conf \
+		$(CURDIR)/kconfigs/vsock.conf
 
 linux-defconfig: $(LINUX_PATH)/.config
 
@@ -494,7 +496,7 @@ $(KERNEL_UIMAGE): u-boot linux | $(BINARIES_PATH)
 uImage: $(KERNEL_UIMAGE)
 
 $(ROOTFS_UGZ): u-boot buildroot | $(BINARIES_PATH)
-	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)
+	ln -rsf $(ROOT)/out/rootfs.cpio.gz $(BINARIES_PATH)
 	$(MKIMAGE_PATH)/mkimage -A arm64 \
 				-T ramdisk \
 				-C gzip \
@@ -610,7 +612,7 @@ $(SCMI_DTBO): $(SCMI_DTSO)
 	dtc -I dts -O dtb -o $(SCMI_DTBO) $(SCMI_DTSO)
 
 $(SCMI_DTB): $(SCMI_DTBO) $(QEMU_BUILD)/.stamp_qemu linux arm-tf buildroot
-	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	ln -rsf $(ROOT)/out/rootfs.cpio.gz $(BINARIES_PATH)/
 	cd $(BINARIES_PATH) && $(QEMU_BUILD)/aarch64-softmmu/qemu-system-aarch64 \
 		$(QEMU_BASE_ARGS) -machine dumpdtb=qemu_v8.dtb
 	cd $(BINARIES_PATH) && fdtoverlay -i qemu_v8.dtb -o $(SCMI_DTB) $(SCMI_DTBO)
@@ -622,7 +624,7 @@ QEMU_RUN_ARGS += -s -S -serial tcp:127.0.0.1:$(QEMU_NW_PORT) -serial tcp:127.0.0
 
 .PHONY: run-only
 run-only:
-	ln -rsf $(ROOT)/out-br/images/rootfs.cpio.gz $(BINARIES_PATH)/
+	ln -rsf $(ROOT)/out/rootfs.cpio.gz $(BINARIES_PATH)/
 	$(call check-terminal)
 	$(call run-help)
 	$(call launch-terminal,54321,"Secure")
@@ -638,9 +640,7 @@ run-only:
          -nographic \
          -bios flash.bin \
          -kernel Image \
-         -drive format=raw,if=none,file=$(ROOT)/out-br/images/rootfs.ext4,id=hd0 \
-         -device virtio-blk-pci,drive=hd0 \
-         -append root=/dev/vda \
+         -initrd rootfs.cpio.gz \
          -nodefaults \
          -serial tcp:localhost:54320 \
          -serial tcp:localhost:54321 \
@@ -650,11 +650,16 @@ run-only:
          -chardev socket,mux=on,id=hvc1,port=54323,host=localhost \
          -device virtio-serial-device \
          -device virtconsole,chardev=hvc1 \
-         -append "root=/dev/vda earlycon console=hvc0 nokaslr" \
+         -append "earlycon console=hvc0 nokaslr" \
          -device virtio-net-pci,netdev=net0 \
          -netdev user,id=net0 \
-         -device virtio-9p-device,fsdev=shr0,mount_tag=shr0 \
-         -fsdev local,security_model=none,path=../../,id=shr0
+         -device virtio-9p-device,fsdev=FM,mount_tag=FM \
+         -fsdev local,security_model=none,path=$(ROOT)/out/shared,id=FM
+#         -drive format=raw,if=none,file=rootfs.ext4,id=hd0 \
+#         -device virtio-blk-pci,drive=hd0 \
+#         -append root=/dev/vda \
+#         -append "root=/dev/vda earlycon console=hvc0 nokaslr" \
+#         -fsdev local,security_model=none,path=../../,id=shr0
 
 ifneq ($(filter check check-rust,$(MAKECMDGOALS)),)
 CHECK_DEPS := all
