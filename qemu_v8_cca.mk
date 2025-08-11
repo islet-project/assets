@@ -622,6 +622,13 @@ QEMU_RUN_ARGS = $(QEMU_BASE_ARGS) $(QEMU_SCMI_ARGS)
 QEMU_RUN_ARGS += $(QEMU_RUN_ARGS_COMMON)
 QEMU_RUN_ARGS += -s -S -serial tcp:127.0.0.1:$(QEMU_NW_PORT) -serial tcp:127.0.0.1:$(QEMU_SW_PORT) 
 
+QEMU_LPA2 ?= y
+ifeq ($(QEMU_LPA2),y)
+LPA2_ARG = on
+else
+LPA2_ARG = off
+endif
+
 .PHONY: run-only
 run-only:
 	ln -rsf $(ROOT)/out/rootfs.cpio.gz $(BINARIES_PATH)/
@@ -635,7 +642,7 @@ run-only:
 	$(call wait-for-ports,54322,54323)
 	cd $(BINARIES_PATH) && $(QEMU_BUILD)/qemu-system-aarch64 \
          -M virt,virtualization=on,secure=on,gic-version=3 \
-         -M acpi=off -cpu max,x-rme=on,sme=off,pauth-impdef=on \
+         -M acpi=off -cpu max,x-rme=on,sme=off,pauth-impdef=on,lpa2=$(LPA2_ARG)\
          -m 8G -smp 4 \
          -nographic \
          -bios flash.bin \
@@ -650,7 +657,7 @@ run-only:
          -chardev socket,mux=on,id=hvc1,port=54323,host=localhost \
          -device virtio-serial-device \
          -device virtconsole,chardev=hvc1 \
-         -append "earlycon console=hvc0 nokaslr" \
+         -append "earlycon console=hvc0 nokaslr $(EXTRA_CMDLINE)" \
          -device virtio-net-pci,netdev=net0 \
          -netdev user,id=net0 \
          -device virtio-9p-device,fsdev=FM,mount_tag=FM \
