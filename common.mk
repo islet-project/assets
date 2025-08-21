@@ -439,6 +439,9 @@ endif
 define wait-for-ports
 	@while ! nc -z 127.0.0.1 $(1) || ! nc -z 127.0.0.1 $(2); do sleep 1; done
 endef
+define wait-for-port
+	@while ! nc -z 127.0.0.1 $(1); do sleep 1; done
+endef
 
 ################################################################################
 # OP-TEE

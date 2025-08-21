@@ -12,6 +12,7 @@ COMPILE_S_KERNEL ?= 64
 # If you change this, you MUST run `make arm-tf-clean` first before rebuilding
 ################################################################################
 TF_A_TRUSTED_BOARD_BOOT ?= n
+TF_A_RSE_SERIAL_HES ?= n
 
 OPTEE_OS_PLATFORM = vexpress-qemu_armv8a
 
@@ -125,6 +126,8 @@ else
 	QEMU_GIC_VERSION = 2
 endif
 
+QEMU_ADDITIONAL_ARGS ?=
+
 ################################################################################
 # Targets
 ################################################################################
@@ -217,6 +220,21 @@ TF_A_FLAGS += \
 	MBEDTLS_DIR=$(ROOT)/mbedtls \
 	TRUSTED_BOARD_BOOT=1 \
 	GENERATE_COT=1
+endif
+
+ifeq ($(TF_A_RSE_SERIAL_HES),y)
+TF_A_FLAGS += \
+	MBEDTLS_DIR=$(ROOT)/third-party/mbedtls \
+	PLAT_RSE_COMMS_USE_SERIAL=1 \
+	MEASURED_BOOT=1
+QEMU_ADDITIONAL_ARGS += \
+	-chardev socket,id=chrtpm,path=/tmp/mytpm-sock \
+	-tpmdev emulator,id=tpm0,chardev=chrtpm \
+	-device tpm-tis-device,tpmdev=tpm0 \
+	-serial tcp:localhost:54321,server,wait
+else
+QEMU_ADDITIONAL_ARGS += \
+	-serial tcp:localhost:54321
 endif
 
 ifeq ($(PAUTH),y)
@@ -631,12 +649,21 @@ endif
 
 .PHONY: run-only
 run-only:
+ifeq ($(TF_A_RSE_SERIAL_HES),y)
+	pkill swtpm || true
+	mkdir -p /tmp/mytpmstate
+	swtpm socket --tpm2 --tpmstate dir=/tmp/mytpmstate --ctrl type=unixio,path=/tmp/mytpm-sock &
+endif
 	ln -rsf $(ROOT)/out/rootfs.cpio.gz $(BINARIES_PATH)/
 	$(call check-terminal)
 	$(call run-help)
-	$(call launch-terminal,54321,"Secure")
 	$(call launch-terminal,54320,"Firmware")
+ifeq ($(TF_A_RSE_SERIAL_HES),y)
+	$(call wait-for-port,54320)
+else
+	$(call launch-terminal,54321,"Secure")
 	$(call wait-for-ports,54320,54321)
+endif
 	$(call launch-terminal,54322,"host")
 	$(call launch-terminal,54323,"Realm")
 	$(call wait-for-ports,54322,54323)
@@ -650,7 +677,6 @@ run-only:
          -initrd rootfs.cpio.gz \
          -nodefaults \
          -serial tcp:localhost:54320 \
-         -serial tcp:localhost:54321 \
          -chardev socket,mux=on,id=hvc0,port=54322,host=localhost \
          -device virtio-serial-device \
          -device virtconsole,chardev=hvc0 \
@@ -661,7 +687,9 @@ run-only:
          -device virtio-net-pci,netdev=net0 \
          -netdev user,id=net0 \
          -device virtio-9p-device,fsdev=FM,mount_tag=FM \
-         -fsdev local,security_model=none,path=$(ROOT)/out/shared,id=FM
+         -fsdev local,security_model=none,path=$(ROOT)/out/shared,id=FM \
+         $(QEMU_ADDITIONAL_ARGS)
+
 #         -drive format=raw,if=none,file=rootfs.ext4,id=hd0 \
 #         -device virtio-blk-pci,drive=hd0 \
 #         -append root=/dev/vda \
