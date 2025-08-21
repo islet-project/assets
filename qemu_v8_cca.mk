@@ -12,6 +12,7 @@ COMPILE_S_KERNEL ?= 64
 # If you change this, you MUST run `make arm-tf-clean` first before rebuilding
 ################################################################################
 TF_A_TRUSTED_BOARD_BOOT ?= n
+TF_A_MEASURED_BOOT ?= n
 
 OPTEE_OS_PLATFORM = vexpress-qemu_armv8a
 
@@ -217,6 +218,16 @@ TF_A_FLAGS += \
 	MBEDTLS_DIR=$(ROOT)/mbedtls \
 	TRUSTED_BOARD_BOOT=1 \
 	GENERATE_COT=1
+endif
+
+ifeq ($(TF_A_MEASURED_BOOT),y)
+TF_A_FLAGS += \
+	MBEDTLS_DIR=$(ROOT)/third-party/mbedtls \
+	MEASURED_BOOT=1
+QEMU_MEASURED_BOOT_ARGS = \
+	-chardev socket,id=chrtpm,path=/tmp/mytpm-sock \
+	-tpmdev emulator,id=tpm0,chardev=chrtpm \
+	-device tpm-tis-device,tpmdev=tpm0
 endif
 
 ifeq ($(PAUTH),y)
@@ -631,6 +642,11 @@ endif
 
 .PHONY: run-only
 run-only:
+ifeq ($(TF_A_MEASURED_BOOT),y)
+	pkill swtpm || true
+	mkdir -p /tmp/mytpmstate
+	swtpm socket --tpm2 --tpmstate dir=/tmp/mytpmstate --ctrl type=unixio,path=/tmp/mytpm-sock &
+endif
 	ln -rsf $(ROOT)/out/rootfs.cpio.gz $(BINARIES_PATH)/
 	$(call check-terminal)
 	$(call run-help)
@@ -661,7 +677,7 @@ run-only:
          -device virtio-net-pci,netdev=net0 \
          -netdev user,id=net0 \
          -device virtio-9p-device,fsdev=FM,mount_tag=FM \
-         -fsdev local,security_model=none,path=$(ROOT)/out/shared,id=FM
+         -fsdev local,security_model=none,path=$(ROOT)/out/shared,id=FM $(QEMU_MEASURED_BOOT_ARGS)
 #         -drive format=raw,if=none,file=rootfs.ext4,id=hd0 \
 #         -device virtio-blk-pci,drive=hd0 \
 #         -append root=/dev/vda \
