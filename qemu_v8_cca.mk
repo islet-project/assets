@@ -52,6 +52,9 @@ PAUTH ?= n
 # Option to configure Memory Tagging Extension
 MEMTAG ?= n
 
+# Option to configure tap network, the variable should contain the name of the interface
+TAP_NETWORK ?= n
+
 ################################################################################
 # Paths to git projects and various binaries
 ################################################################################
@@ -297,6 +300,12 @@ arm-tf-clean: rmm-clean
 ################################################################################
 # QEMU
 ################################################################################
+ifneq ($(TAP_NETWORK),n)
+QEMU_ADDITIONAL_ARGS += \
+	-device virtio-net-pci,netdev=eth0 \
+	-netdev tap,id=eth0,ifname=$(TAP_NETWORK),script=no
+endif
+
 $(QEMU_BUILD)/config-host.mak:
 	cd $(QEMU_PATH); ./configure --target-list=aarch64-softmmu --enable-slirp\
 			$(QEMU_CONFIGURE_PARAMS_COMMON)
@@ -684,8 +693,6 @@ endif
          -device virtio-serial-device \
          -device virtconsole,chardev=hvc1 \
          -append "earlycon console=hvc0 nokaslr $(EXTRA_CMDLINE)" \
-         -device virtio-net-pci,netdev=net0 \
-         -netdev user,id=net0 \
          -device virtio-9p-device,fsdev=FM,mount_tag=FM \
          -fsdev local,security_model=none,path=$(ROOT)/out/shared,id=FM \
          $(QEMU_ADDITIONAL_ARGS)
