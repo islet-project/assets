@@ -231,9 +231,6 @@ TF_A_FLAGS += \
 	PLAT_RSE_COMMS_USE_SERIAL=1 \
 	MEASURED_BOOT=1
 QEMU_ADDITIONAL_ARGS += \
-	-chardev socket,id=chrtpm,path=/tmp/mytpm-sock \
-	-tpmdev emulator,id=tpm0,chardev=chrtpm \
-	-device tpm-tis-device,tpmdev=tpm0 \
 	-serial tcp:localhost:54321,server,wait
 else
 QEMU_ADDITIONAL_ARGS += \
@@ -658,11 +655,6 @@ endif
 
 .PHONY: run-only
 run-only:
-ifeq ($(TF_A_RSE_SERIAL_HES),y)
-	pkill swtpm || true
-	mkdir -p /tmp/mytpmstate
-	swtpm socket --tpm2 --tpmstate dir=/tmp/mytpmstate --ctrl type=unixio,path=/tmp/mytpm-sock &
-endif
 	ln -rsf $(ROOT)/out/rootfs.cpio.gz $(BINARIES_PATH)/
 	$(call check-terminal)
 	$(call run-help)
