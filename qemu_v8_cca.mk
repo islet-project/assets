@@ -670,7 +670,7 @@ endif
 	$(call wait-for-ports,54322,54323)
 	cd $(BINARIES_PATH) && $(QEMU_BUILD)/qemu-system-aarch64 \
          -M virt,virtualization=on,secure=on,gic-version=3 \
-         -M acpi=off -cpu max,x-rme=on,sme=off,pauth-impdef=on,lpa2=$(LPA2_ARG)\
+         -M acpi=off -cpu max,x-rme=on,sve=on,sve2048=on,sme=off,pauth-impdef=on,lpa2=$(LPA2_ARG)\
          -m 8G -smp 4 \
          -nographic \
          -bios flash.bin \
